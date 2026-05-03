@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import EventBadge from "@/components/EventBadge";
+import UnderConstruction from "@/components/UnderConstruction";
 import { getListingLinks } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
 import { getSiteUrl } from "@/lib/site-url";
+import { isUnderConstruction } from "@/lib/under-construction";
 
 export async function generateMetadata(): Promise<Metadata> {
   const url = `${getSiteUrl()}/eventos-moto`;
@@ -27,6 +29,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function EventosMotoPage() {
+  if (isUnderConstruction()) {
+    return <UnderConstruction />;
+  }
+
   const events = await getVisibleEvents();
   const links = getListingLinks(events);
   const siteUrl = getSiteUrl();

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import EventBadge from "@/components/EventBadge";
+import UnderConstruction from "@/components/UnderConstruction";
 import { formatRange } from "@/lib/date-utils";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
+import { isUnderConstruction } from "@/lib/under-construction";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
 
@@ -109,6 +111,10 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 }
 
 export default async function EventPage({ params }: EventPageProps) {
+  if (isUnderConstruction()) {
+    return <UnderConstruction />;
+  }
+
   const { slug } = await params;
   const event = await getEventBySlug(slug);
 

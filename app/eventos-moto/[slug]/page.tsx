@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import EventBadge from "@/components/EventBadge";
+import UnderConstruction from "@/components/UnderConstruction";
 import { resolveEventListing } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
 import { getSiteUrl } from "@/lib/site-url";
+import { isUnderConstruction } from "@/lib/under-construction";
 
 type ListingPageProps = {
   params: Promise<{ slug: string }>;
@@ -60,6 +62,10 @@ export async function generateMetadata({ params }: ListingPageProps): Promise<Me
 }
 
 export default async function EventosMotoSlugPage({ params }: ListingPageProps) {
+  if (isUnderConstruction()) {
+    return <UnderConstruction />;
+  }
+
   const { slug } = await params;
   const listing = await getListing(slug);
 
