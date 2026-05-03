@@ -2,6 +2,7 @@ export type EventStatus = "finalizado" | "en directo" | "proximo";
 
 export interface EventItem {
   id: string;
+  slug?: string;
   title: string;
   championship: string;
   discipline: string;

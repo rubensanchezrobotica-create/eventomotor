@@ -9,6 +9,7 @@ create table if not exists public.event_sources (
 
 create table if not exists public.events (
   id text primary key,
+  slug text unique,
   title text not null,
   championship text,
   discipline text,
@@ -37,3 +38,4 @@ create index if not exists events_start_date_idx on public.events (start_date);
 create index if not exists events_region_idx on public.events (region);
 create index if not exists events_discipline_idx on public.events (discipline);
 create index if not exists events_source_id_idx on public.events (source_id);
+create unique index if not exists events_slug_key on public.events (slug);

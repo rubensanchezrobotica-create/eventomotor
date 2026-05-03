@@ -2,9 +2,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { createEventSlug } from "../lib/slug";
 
 type ManualRfmeEvent = {
   id: string;
+  slug?: string;
   title: string;
   championship?: string;
   discipline: string;
@@ -28,6 +30,7 @@ type ManualRfmeEvent = {
 
 type EventUpsert = {
   id: string;
+  slug: string;
   title: string;
   championship: string;
   discipline: string;
@@ -105,6 +108,7 @@ function validateManualEvent(value: unknown, index: number): ManualRfmeEvent {
 
   return {
     id: (value.id as string).trim(),
+    slug: typeof value.slug === "string" && value.slug.trim() ? value.slug.trim() : undefined,
     title: (value.title as string).trim(),
     championship:
       typeof value.championship === "string" && value.championship.trim()
@@ -178,6 +182,7 @@ async function readEvents() {
 function toEventUpsert(event: ManualRfmeEvent, updatedAt: string): EventUpsert {
   return {
     id: event.id,
+    slug: event.slug || createEventSlug(event.title, event.start),
     title: event.title,
     championship: event.championship || event.title,
     discipline: event.discipline,

@@ -1,9 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { createEventSlug } from "@/lib/slug";
 import type { EventRow } from "@/lib/supabase";
 
 type AdminEvent = Pick<
   EventRow,
   | "id"
+  | "slug"
   | "title"
   | "championship"
   | "discipline"
@@ -26,7 +28,7 @@ type AdminEvent = Pick<
 >;
 
 const ADMIN_EVENT_SELECT =
-  "id,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,featured,visible,import_method,data_quality,notes";
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,featured,visible,import_method,data_quality,notes";
 
 const DATA_QUALITY_OPTIONS = ["draft", "reviewed", "published", "cancelled", "pending_date"];
 
@@ -141,6 +143,7 @@ function parseAdminEventBody(value: unknown) {
 
   return {
     id,
+    slug: optionalString(value, "slug") || createEventSlug(title, startDate),
     title,
     championship: optionalString(value, "championship") || title,
     discipline,

@@ -1,10 +1,12 @@
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { FALLBACK_EVENTS } from "../lib/fallback-events";
+import { createEventSlug } from "../lib/slug";
 import type { EventItem } from "../types/event";
 
 type EventInsert = {
   id: string;
+  slug: string;
   title: string;
   championship: string;
   discipline: string;
@@ -42,6 +44,7 @@ function getRequiredEnv(name: string) {
 function toEventInsert(event: EventItem, updatedAt: string): EventInsert {
   return {
     id: event.id,
+    slug: event.slug || createEventSlug(event.title, event.start),
     title: event.title,
     championship: event.championship,
     discipline: event.discipline,

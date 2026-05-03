@@ -1,4 +1,5 @@
 import type { RawEvent } from "@/lib/scrapers/types";
+import { createEventSlug } from "@/lib/slug";
 import type { EventUpsert } from "@/lib/supabase";
 
 function normalizeText(value: string) {
@@ -36,6 +37,7 @@ export function normalizeSyncEvent(event: RawEvent): EventUpsert {
 
   return {
     id: buildEventId({ ...event, title, discipline, venue }),
+    slug: createEventSlug(title, event.start),
     title,
     championship: event.championship?.trim() || discipline,
     discipline,

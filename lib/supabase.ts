@@ -1,8 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createEventSlug } from "@/lib/slug";
 import type { EventItem } from "@/types/event";
 
 export type EventRow = {
   id: string;
+  slug: string | null;
   title: string;
   championship: string | null;
   discipline: string | null;
@@ -28,6 +30,7 @@ export type EventRow = {
 
 export type EventUpsert = {
   id: string;
+  slug?: string | null;
   title: string;
   championship?: string | null;
   discipline?: string | null;
@@ -91,6 +94,7 @@ export function createSupabaseServerClient(): SupabaseClient<Database> | null {
 export function mapEventRowToEventItem(row: EventRow): EventItem {
   return {
     id: row.id,
+    slug: row.slug || createEventSlug(row.title, row.start_date),
     title: row.title,
     championship: row.championship || row.discipline || "Motociclismo",
     discipline: row.discipline || "Motociclismo",

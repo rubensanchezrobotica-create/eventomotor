@@ -1,8 +1,12 @@
+import Link from "next/link";
 import EventBadge from "@/components/EventBadge";
 import { formatRange, formatStatus, statusOf } from "@/lib/date-utils";
+import { createEventSlug } from "@/lib/slug";
 import type { EventItem } from "@/types/event";
 
 export default function EventCard({ event, onOpen }: { event: EventItem; onOpen: (event: EventItem) => void }) {
+  const eventHref = `/evento/${event.slug || createEventSlug(event.title, event.start)}`;
+
   return (
     <article className="rounded-3xl border border-white/10 bg-zinc-900/80 p-5 shadow-xl shadow-black/30 transition hover:-translate-y-1 hover:border-orange-300/40">
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -20,11 +24,11 @@ export default function EventCard({ event, onOpen }: { event: EventItem; onOpen:
         ) : null}
       </div>
 
-      <button onClick={() => onOpen(event)} className="text-left">
+      <Link className="block text-left" href={eventHref}>
         <h3 className="text-xl font-black leading-tight text-white hover:text-orange-200">
           {event.title}
         </h3>
-      </button>
+      </Link>
 
       <p className="mt-1 text-sm text-zinc-400">{event.championship}</p>
 
@@ -44,11 +48,18 @@ export default function EventCard({ event, onOpen }: { event: EventItem; onOpen:
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-        <button
-          onClick={() => onOpen(event)}
+        <Link
           className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-zinc-950 hover:bg-orange-200"
+          href={eventHref}
         >
           Ver ficha
+        </Link>
+
+        <button
+          onClick={() => onOpen(event)}
+          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10"
+        >
+          Vista rapida
         </button>
 
         {event.ticketUrl ? (

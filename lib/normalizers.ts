@@ -1,5 +1,6 @@
 import type { EventItem } from "@/types/event";
 import { isDateText, parseDate } from "@/lib/date-utils";
+import { createEventSlug } from "@/lib/slug";
 
 function slugify(text: string) {
   return String(text || "")
@@ -28,6 +29,7 @@ export function normalizeRemoteEvent(raw: unknown, index: number): EventItem | n
 
   return {
     id: String(record.id || `${slugify(title)}-${start}-${index}`),
+    slug: String(record.slug || createEventSlug(title, start)),
     title,
     championship: String(record.championship || record.series || discipline),
     discipline,
