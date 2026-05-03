@@ -24,6 +24,10 @@ create table if not exists public.events (
   ticket_url text,
   tags text[] not null default '{}',
   featured boolean not null default false,
+  visible boolean not null default true,
+  import_method text,
+  data_quality text not null default 'reviewed',
+  notes text,
   source_id text references public.event_sources(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

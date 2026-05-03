@@ -19,10 +19,16 @@ type AdminEvent = Pick<
   | "ticket_url"
   | "tags"
   | "featured"
+  | "visible"
+  | "import_method"
+  | "data_quality"
+  | "notes"
 >;
 
 const ADMIN_EVENT_SELECT =
-  "id,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,featured";
+  "id,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,featured,visible,import_method,data_quality,notes";
+
+const DATA_QUALITY_OPTIONS = ["draft", "reviewed", "published", "cancelled", "pending_date"];
 
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
@@ -94,7 +100,10 @@ function requireIsoDate(body: Record<string, unknown>, field: string) {
 
 function parseTags(value: unknown) {
   if (Array.isArray(value)) {
-    return value.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean);
+    return value
+      .filter((tag): tag is string => typeof tag === "string")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
 
   if (typeof value === "string") {
@@ -105,6 +114,14 @@ function parseTags(value: unknown) {
   }
 
   return [];
+}
+
+function parseDataQuality(value: unknown) {
+  if (typeof value === "string" && DATA_QUALITY_OPTIONS.includes(value)) {
+    return value;
+  }
+
+  return "reviewed";
 }
 
 function parseAdminEventBody(value: unknown) {
@@ -139,6 +156,10 @@ function parseAdminEventBody(value: unknown) {
     ticket_url: optionalString(value, "ticketUrl") || "",
     tags: parseTags(value.tags),
     featured: typeof value.featured === "boolean" ? value.featured : false,
+    visible: typeof value.visible === "boolean" ? value.visible : true,
+    import_method: optionalString(value, "importMethod"),
+    data_quality: parseDataQuality(value.dataQuality),
+    notes: optionalString(value, "notes"),
     updated_at: new Date().toISOString(),
   };
 }

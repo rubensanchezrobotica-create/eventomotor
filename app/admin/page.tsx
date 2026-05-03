@@ -2,6 +2,8 @@
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 
+const DATA_QUALITY_OPTIONS = ["draft", "reviewed", "published", "cancelled", "pending_date"];
+
 type AdminEvent = {
   id: string;
   title: string;
@@ -19,6 +21,10 @@ type AdminEvent = {
   ticket_url: string | null;
   tags: string[] | null;
   featured: boolean | null;
+  visible: boolean | null;
+  import_method: string | null;
+  data_quality: string | null;
+  notes: string | null;
 };
 
 type EventForm = {
@@ -38,6 +44,10 @@ type EventForm = {
   ticketUrl: string;
   tags: string;
   featured: boolean;
+  visible: boolean;
+  importMethod: string;
+  dataQuality: string;
+  notes: string;
 };
 
 type EventsResponse = { ok: true; events: AdminEvent[] } | { ok: false; error: string };
@@ -60,6 +70,10 @@ const EMPTY_FORM: EventForm = {
   ticketUrl: "",
   tags: "",
   featured: false,
+  visible: true,
+  importMethod: "admin",
+  dataQuality: "reviewed",
+  notes: "",
 };
 
 function matchesSearch(event: AdminEvent, search: string) {
@@ -92,6 +106,10 @@ function eventToForm(event: AdminEvent): EventForm {
     ticketUrl: event.ticket_url || "",
     tags: event.tags?.join(", ") || "",
     featured: Boolean(event.featured),
+    visible: event.visible !== false,
+    importMethod: event.import_method || "",
+    dataQuality: event.data_quality || "reviewed",
+    notes: event.notes || "",
   };
 }
 
@@ -277,6 +295,14 @@ export default function AdminPage() {
     return (event: ChangeEvent<HTMLInputElement>) => updateForm(field, event.target.value);
   }
 
+  function handleSelectChange(field: keyof EventForm) {
+    return (event: ChangeEvent<HTMLSelectElement>) => updateForm(field, event.target.value);
+  }
+
+  function handleNotesChange(event: ChangeEvent<HTMLTextAreaElement>) {
+    updateForm("notes", event.target.value);
+  }
+
   return (
     <main className="min-h-screen bg-zinc-950 px-4 py-6 text-zinc-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -346,6 +372,7 @@ export default function AdminPage() {
                   ["sourceUrl", "Source URL"],
                   ["ticketUrl", "Ticket URL"],
                   ["tags", "Tags"],
+                  ["importMethod", "Import method"],
                 ].map(([field, label]) => (
                   <label className="flex flex-col gap-1 text-xs text-zinc-400" key={field}>
                     {label}
@@ -357,6 +384,30 @@ export default function AdminPage() {
                   </label>
                 ))}
 
+                <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                  Data quality
+                  <select
+                    className="min-h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-red-400"
+                    onChange={handleSelectChange("dataQuality")}
+                    value={form.dataQuality}
+                  >
+                    {DATA_QUALITY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-1 text-xs text-zinc-400 md:col-span-2 xl:col-span-4">
+                  Notes
+                  <textarea
+                    className="min-h-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-red-400"
+                    onChange={handleNotesChange}
+                    value={form.notes}
+                  />
+                </label>
+
                 <label className="flex min-h-10 items-center gap-2 self-end text-sm text-zinc-200">
                   <input
                     checked={form.featured}
@@ -367,7 +418,17 @@ export default function AdminPage() {
                   Featured
                 </label>
 
-                <div className="flex flex-col gap-2 self-end sm:flex-row xl:col-span-3">
+                <label className="flex min-h-10 items-center gap-2 self-end text-sm text-zinc-200">
+                  <input
+                    checked={form.visible}
+                    className="h-4 w-4"
+                    onChange={(event) => updateForm("visible", event.target.checked)}
+                    type="checkbox"
+                  />
+                  Visible
+                </label>
+
+                <div className="flex flex-col gap-2 self-end sm:flex-row xl:col-span-2">
                   <button
                     className="min-h-10 rounded-md bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
                     disabled={isSaving}
@@ -412,6 +473,8 @@ export default function AdminPage() {
                       <th className="px-3 py-3 font-medium">Province</th>
                       <th className="px-3 py-3 font-medium">Source</th>
                       <th className="px-3 py-3 font-medium">Featured</th>
+                      <th className="px-3 py-3 font-medium">Visible</th>
+                      <th className="px-3 py-3 font-medium">Quality</th>
                       <th className="px-3 py-3 font-medium">Acciones</th>
                     </tr>
                   </thead>
@@ -432,6 +495,12 @@ export default function AdminPage() {
                         <td className="px-3 py-3 text-zinc-300">
                           {event.featured ? "Si" : "No"}
                         </td>
+                        <td className="px-3 py-3 text-zinc-300">
+                          {event.visible === false ? "No" : "Si"}
+                        </td>
+                        <td className="px-3 py-3 text-zinc-300">
+                          {event.data_quality || "reviewed"}
+                        </td>
                         <td className="flex min-w-72 gap-2 px-3 py-3">
                           <button
                             className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-red-400"
@@ -447,14 +516,6 @@ export default function AdminPage() {
                             type="button"
                           >
                             {event.featured ? "Desmarcar" : "Marcar"}
-                          </button>
-                          <button
-                            className="rounded-md border border-zinc-800 px-3 py-2 text-xs text-zinc-500"
-                            disabled
-                            title="TODO: implementar cuando exista el campo visible en public.events"
-                            type="button"
-                          >
-                            Ocultar
                           </button>
                         </td>
                       </tr>

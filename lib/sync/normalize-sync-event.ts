@@ -52,6 +52,10 @@ export function normalizeSyncEvent(event: RawEvent): EventUpsert {
     ticket_url: event.ticketUrl?.trim() || "",
     tags: tags?.length ? tags : [discipline],
     featured: Boolean(event.featured),
+    visible: true,
+    import_method: "scraper-rfme",
+    data_quality: "draft",
+    notes: null,
     updated_at: new Date().toISOString(),
   };
 }

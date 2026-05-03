@@ -18,6 +18,10 @@ export type EventRow = {
   ticket_url: string | null;
   tags: string[] | null;
   featured: boolean | null;
+  visible: boolean | null;
+  import_method: string | null;
+  data_quality: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -39,6 +43,10 @@ export type EventUpsert = {
   ticket_url?: string | null;
   tags?: string[] | null;
   featured?: boolean | null;
+  visible?: boolean | null;
+  import_method?: string | null;
+  data_quality?: string | null;
+  notes?: string | null;
   source_id?: string | null;
   updated_at?: string;
 };
@@ -98,5 +106,16 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     ticketUrl: row.ticket_url || "",
     tags: row.tags?.length ? row.tags : [row.discipline || "Motociclismo"],
     featured: Boolean(row.featured),
+    visible: row.visible !== false,
+    importMethod: row.import_method || "",
+    dataQuality:
+      row.data_quality === "draft" ||
+      row.data_quality === "reviewed" ||
+      row.data_quality === "published" ||
+      row.data_quality === "cancelled" ||
+      row.data_quality === "pending_date"
+        ? row.data_quality
+        : "reviewed",
+    notes: row.notes || "",
   };
 }

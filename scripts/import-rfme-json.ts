@@ -20,6 +20,10 @@ type ManualRfmeEvent = {
   ticketUrl?: string;
   tags?: string[];
   featured?: boolean;
+  visible?: boolean;
+  importMethod?: string;
+  dataQuality?: string;
+  notes?: string;
 };
 
 type EventUpsert = {
@@ -39,6 +43,10 @@ type EventUpsert = {
   ticket_url: string;
   tags: string[];
   featured: boolean;
+  visible: boolean;
+  import_method: string;
+  data_quality: string;
+  notes: string | null;
   updated_at: string;
 };
 
@@ -122,6 +130,16 @@ function validateManualEvent(value: unknown, index: number): ManualRfmeEvent {
       ? value.tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim()))
       : ["RFME", (value.discipline as string).trim()],
     featured: typeof value.featured === "boolean" ? value.featured : false,
+    visible: typeof value.visible === "boolean" ? value.visible : true,
+    importMethod:
+      typeof value.importMethod === "string" && value.importMethod.trim()
+        ? value.importMethod.trim()
+        : "rfme-json",
+    dataQuality:
+      typeof value.dataQuality === "string" && value.dataQuality.trim()
+        ? value.dataQuality.trim()
+        : "reviewed",
+    notes: typeof value.notes === "string" && value.notes.trim() ? value.notes.trim() : undefined,
   };
 }
 
@@ -175,6 +193,10 @@ function toEventUpsert(event: ManualRfmeEvent, updatedAt: string): EventUpsert {
     ticket_url: event.ticketUrl || "",
     tags: withImportTags(event.tags, event.discipline),
     featured: Boolean(event.featured),
+    visible: event.visible !== false,
+    import_method: event.importMethod || "rfme-json",
+    data_quality: event.dataQuality || "reviewed",
+    notes: event.notes || null,
     updated_at: updatedAt,
   };
 }

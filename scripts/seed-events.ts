@@ -20,6 +20,10 @@ type EventInsert = {
   ticket_url: string;
   tags: string[];
   featured: boolean;
+  visible: boolean;
+  import_method: string;
+  data_quality: string;
+  notes: string | null;
   updated_at: string;
 };
 
@@ -53,6 +57,10 @@ function toEventInsert(event: EventItem, updatedAt: string): EventInsert {
     ticket_url: event.ticketUrl,
     tags: event.tags,
     featured: event.featured,
+    visible: true,
+    import_method: "fallback-seed",
+    data_quality: "reviewed",
+    notes: null,
     updated_at: updatedAt,
   };
 }

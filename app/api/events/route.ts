@@ -26,6 +26,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("events")
       .select("*")
+      .eq("visible", true)
       .order("start_date", { ascending: true });
 
     if (error || !data?.length) {

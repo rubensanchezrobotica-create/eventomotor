@@ -17,6 +17,10 @@ export interface EventItem {
   ticketUrl: string;
   tags: string[];
   featured: boolean;
+  visible?: boolean;
+  importMethod?: string;
+  dataQuality?: "draft" | "reviewed" | "published" | "cancelled" | "pending_date";
+  notes?: string;
 }
 
 export interface SourceFeed {
