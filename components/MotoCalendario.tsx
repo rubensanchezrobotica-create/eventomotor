@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CalendarView from "@/components/CalendarView";
 import EventCard from "@/components/EventCard";
@@ -228,6 +229,13 @@ export default function MotoCalendarioEspana() {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
+                <Link
+                  className="rounded-2xl border border-orange-300/30 bg-orange-300/10 px-5 py-3 font-black text-orange-100 hover:bg-orange-300/20"
+                  href="/eventos-moto"
+                >
+                  Guias SEO
+                </Link>
+
                 <button
                   onClick={() => setView("calendario")}
                   className="rounded-2xl bg-orange-400 px-5 py-3 font-black text-zinc-950 hover:bg-orange-300"
@@ -241,6 +249,23 @@ export default function MotoCalendarioEspana() {
                 >
                   Explorar eventos
                 </button>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[
+                  ["MotoGP", "/eventos-moto/motogp"],
+                  ["Motocross", "/eventos-moto/motocross"],
+                  ["Trial", "/eventos-moto/trial"],
+                  ["Enduro", "/eventos-moto/enduro"],
+                ].map(([label, href]) => (
+                  <Link
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-zinc-200 hover:bg-white/10"
+                    href={href}
+                    key={href}
+                  >
+                    {label}
+                  </Link>
+                ))}
               </div>
             </div>
 
