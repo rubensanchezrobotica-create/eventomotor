@@ -22,13 +22,41 @@ export type EventRow = {
   updated_at: string;
 };
 
+export type EventUpsert = {
+  id: string;
+  title: string;
+  championship?: string | null;
+  discipline?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  venue?: string | null;
+  city?: string | null;
+  province?: string | null;
+  region?: string | null;
+  level?: string | null;
+  source?: string | null;
+  source_url?: string | null;
+  ticket_url?: string | null;
+  tags?: string[] | null;
+  featured?: boolean | null;
+  source_id?: string | null;
+  updated_at?: string;
+};
+
 type Database = {
   public: {
     Tables: {
       events: {
         Row: EventRow;
+        Insert: EventUpsert;
+        Update: Partial<EventUpsert>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
