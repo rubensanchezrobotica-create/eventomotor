@@ -1,0 +1,36 @@
+[
+  {
+    "id": "rfme-velocidad-jerez-2026",
+    "title": "Copa de Espana de Velocidad - Jerez I",
+    "championship": "Copa de Espana de Velocidad",
+    "discipline": "Velocidad",
+    "start": "2026-05-29",
+    "end": "2026-05-31",
+    "venue": "Circuito de Jerez - Angel Nieto",
+    "city": "Jerez de la Frontera",
+    "province": "Cadiz",
+    "region": "Andalucia",
+    "level": "Nacional",
+    "sourceUrl": "https://rfme.com/campeonatos/copa-de-espana-de-velocidad/",
+    "ticketUrl": "",
+    "tags": ["RFME", "Velocidad"],
+    "featured": false
+  },
+  {
+    "id": "rfme-trial-gironella-2026",
+    "title": "Campeonato de Espana de Trial - Gironella",
+    "championship": "Campeonato de Espana de Trial",
+    "discipline": "Trial",
+    "start": "2026-05-30",
+    "end": "2026-05-31",
+    "venue": "Gironella",
+    "city": "Gironella",
+    "province": "Barcelona",
+    "region": "Catalunya",
+    "level": "Nacional",
+    "sourceUrl": "https://rfme.com/campeonatos/campeonato-de-espana-de-trial/",
+    "ticketUrl": "",
+    "tags": ["RFME", "Trial"],
+    "featured": false
+  }
+]
