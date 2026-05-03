@@ -15,6 +15,7 @@ type ManualRfmeEvent = {
   province: string;
   region?: string;
   level?: string;
+  source?: string;
   sourceUrl: string;
   ticketUrl?: string;
   tags?: string[];
@@ -113,6 +114,8 @@ function validateManualEvent(value: unknown, index: number): ManualRfmeEvent {
         : (value.province as string).trim(),
     level:
       typeof value.level === "string" && value.level.trim() ? value.level.trim() : "Nacional",
+    source:
+      typeof value.source === "string" && value.source.trim() ? value.source.trim() : "RFME JSON",
     sourceUrl: (value.sourceUrl as string).trim(),
     ticketUrl: typeof value.ticketUrl === "string" ? value.ticketUrl.trim() : "",
     tags: Array.isArray(value.tags)
@@ -120,6 +123,27 @@ function validateManualEvent(value: unknown, index: number): ManualRfmeEvent {
       : ["RFME", (value.discipline as string).trim()],
     featured: typeof value.featured === "boolean" ? value.featured : false,
   };
+}
+
+function withImportTags(tags: string[] | undefined, discipline: string) {
+  const normalizedTags = tags?.length ? tags : ["RFME", discipline];
+  const tagMap = new Map<string, string>();
+
+  for (const tag of [...normalizedTags, "import-manual", "rfme-json"]) {
+    const trimmed = tag.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const key = trimmed.toLowerCase();
+
+    if (!tagMap.has(key)) {
+      tagMap.set(key, trimmed);
+    }
+  }
+
+  return [...tagMap.values()];
 }
 
 async function readEvents() {
@@ -146,10 +170,10 @@ function toEventUpsert(event: ManualRfmeEvent, updatedAt: string): EventUpsert {
     province: event.province,
     region: event.region || event.province,
     level: event.level || "Nacional",
-    source: "RFME",
+    source: event.source || "RFME JSON",
     source_url: event.sourceUrl,
     ticket_url: event.ticketUrl || "",
-    tags: event.tags?.length ? event.tags : ["RFME", event.discipline],
+    tags: withImportTags(event.tags, event.discipline),
     featured: Boolean(event.featured),
     updated_at: updatedAt,
   };
