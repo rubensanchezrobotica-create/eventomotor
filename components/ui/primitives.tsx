@@ -17,7 +17,7 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex min-h-11 items-center justify-center rounded-md bg-[#E10600] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_40px_rgba(225,6,0,0.24)] transition hover:bg-[#ff1710] focus:outline-none focus:ring-2 focus:ring-[#E10600] focus:ring-offset-2 focus:ring-offset-[#0D0D0F] disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex min-h-12 items-center justify-center rounded-md bg-[#E10600] px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_38px_rgba(225,6,0,0.2)] transition hover:bg-[#ff1710] focus:outline-none focus:ring-2 focus:ring-[#E10600] focus:ring-offset-2 focus:ring-offset-[#0D0D0F] disabled:cursor-not-allowed disabled:opacity-55",
         className,
       )}
       {...props}
@@ -35,7 +35,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-lg border border-white/10 bg-[#1A1A1D] shadow-[0_24px_70px_rgba(0,0,0,0.34)]",
+        "rounded-lg border border-white/10 bg-[#15161A] shadow-[0_26px_80px_rgba(0,0,0,0.36)]",
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ export function Chip({
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#A6A6A6]",
+        "inline-flex items-center rounded-full border border-white/10 bg-white/[0.035] px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#A6A6A6]",
         className,
       )}
       {...props}
@@ -67,7 +67,7 @@ export function SearchInput({ className, ...props }: InputHTMLAttributes<HTMLInp
   return (
     <input
       className={cx(
-        "min-h-11 w-full rounded-md border border-white/10 bg-[#1A1A1D] px-4 text-sm text-white outline-none transition placeholder:text-[#A6A6A6]/70 focus:border-[#E10600] focus:ring-2 focus:ring-[#E10600]/25",
+        "min-h-12 w-full rounded-md border border-white/10 bg-[#15161A] px-4 text-sm text-white outline-none transition placeholder:text-[#A6A6A6]/70 focus:border-[#E10600] focus:ring-2 focus:ring-[#E10600]/25",
         className,
       )}
       type="search"
