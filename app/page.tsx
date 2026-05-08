@@ -1,11 +1,5 @@
-import MotoCalendario from "@/components/MotoCalendario";
-import UnderConstruction from "@/components/UnderConstruction";
-import { isUnderConstruction } from "@/lib/under-construction";
+import ConceptHomePage from "@/components/public/concept/ConceptHomePage";
 
-export default function Home() {
-  if (isUnderConstruction()) {
-    return <UnderConstruction />;
-  }
-
-  return <MotoCalendario />;
+export default function HomePage() {
+  return <ConceptHomePage />;
 }
