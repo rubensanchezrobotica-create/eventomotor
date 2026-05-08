@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { getVehicleType } from "../lib/event-classification";
 import { createEventSlug, slugify } from "../lib/slug";
 
 type RawSeedEvent = Record<string, unknown>;
@@ -27,6 +28,8 @@ type ValidSeedEvent = {
   visible: boolean;
   importMethod: string;
   dataQuality: string;
+  vehicleType?: string;
+  vehicle_type?: string;
   notes: string | null;
 };
 
@@ -47,6 +50,7 @@ type EventUpsert = {
   source_url: string;
   ticket_url: string;
   tags: string[];
+  vehicle_type: string;
   featured: boolean;
   visible: boolean;
   import_method: string;
@@ -220,6 +224,7 @@ function validateSeedEvent(value: unknown, index: number): ValidSeedEvent | Inva
     visible,
     importMethod: getString(value.importMethod) || "seed-2026",
     dataQuality: getString(value.dataQuality) || "reviewed",
+    vehicleType: getString(value.vehicleType) || getString(value.vehicle_type) || undefined,
     notes: getString(value.notes) || null,
   };
 }
@@ -340,6 +345,7 @@ function toEventUpsert(event: ValidSeedEvent, updatedAt: string): EventUpsert {
     source_url: event.sourceUrl,
     ticket_url: event.ticketUrl,
     tags: event.tags,
+    vehicle_type: getVehicleType(event),
     featured: event.featured,
     visible: event.visible,
     import_method: event.importMethod,

@@ -1,8 +1,31 @@
 "use client";
 
+import type React from "react";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 
-const DATA_QUALITY_OPTIONS = ["draft", "reviewed", "published", "cancelled", "pending_date"];
+const DATA_QUALITY_OPTIONS = ["needs_review", "reviewed", "published", "draft", "pending_date", "cancelled"];
+const VEHICLE_TYPE_OPTIONS = ["moto", "coche", "mixto", "karting", "otros"];
+const DATE_FILTERS = ["proximos", "pasados", "todos"] as const;
+const VISIBLE_FILTERS = ["todos", "visibles", "ocultos"] as const;
+
+const QUALITY_LABELS: Record<string, string> = {
+  needs_review: "Necesita revisión",
+  draft: "Borrador",
+  reviewed: "Revisado",
+  published: "Publicado",
+  cancelled: "Cancelado",
+  pending_date: "Sin fecha confirmada",
+};
+
+const VEHICLE_TYPE_LABELS: Record<string, string> = {
+  moto: "Moto",
+  coche: "Coche",
+  mixto: "Mixto",
+  karting: "Karting",
+  otros: "Otros",
+};
+
+const IMPORT_METHOD_OPTIONS = ["manual-web-research", "seed", "rfme", "scraper", "manual"];
 
 type AdminEvent = {
   id: string;
@@ -20,6 +43,7 @@ type AdminEvent = {
   source_url: string | null;
   ticket_url: string | null;
   tags: string[] | null;
+  vehicle_type: string | null;
   featured: boolean | null;
   visible: boolean | null;
   import_method: string | null;
@@ -38,133 +62,346 @@ type EventForm = {
   city: string;
   province: string;
   region: string;
-  level: string;
   source: string;
   sourceUrl: string;
   ticketUrl: string;
-  tags: string;
+  vehicleType: string;
   featured: boolean;
   visible: boolean;
   importMethod: string;
   dataQuality: string;
   notes: string;
+  tags: string;
+};
+
+type Filters = {
+  search: string;
+  vehicleType: string;
+  visible: (typeof VISIBLE_FILTERS)[number];
+  dataQuality: string;
+  importMethod: string;
+  discipline: string;
+  province: string;
+  date: (typeof DATE_FILTERS)[number];
+  featured: "todos" | "destacados";
+  reviewOnly: boolean;
+  missingSource: boolean;
+  missingLocation: boolean;
 };
 
 type EventsResponse = { ok: true; events: AdminEvent[] } | { ok: false; error: string };
 type EventMutationResponse = { ok: true; event: AdminEvent } | { ok: false; error: string };
 
-const EMPTY_FORM: EventForm = {
-  id: "",
-  title: "",
-  championship: "",
-  discipline: "",
-  start: "",
-  end: "",
-  venue: "",
-  city: "",
-  province: "",
-  region: "",
-  level: "Nacional",
-  source: "Admin",
-  sourceUrl: "",
-  ticketUrl: "",
-  tags: "",
-  featured: false,
-  visible: true,
-  importMethod: "admin",
-  dataQuality: "reviewed",
-  notes: "",
+const EMPTY_FILTERS: Filters = {
+  search: "",
+  vehicleType: "todos",
+  visible: "todos",
+  dataQuality: "todos",
+  importMethod: "todos",
+  discipline: "todas",
+  province: "todas",
+  date: "proximos",
+  featured: "todos",
+  reviewOnly: false,
+  missingSource: false,
+  missingLocation: false,
 };
 
-function matchesSearch(event: AdminEvent, search: string) {
-  const query = search.trim().toLowerCase();
+function emptyForm(): EventForm {
+  return {
+    id: "",
+    title: "",
+    championship: "",
+    discipline: "",
+    start: "",
+    end: "",
+    venue: "",
+    city: "",
+    province: "",
+    region: "",
+    source: "",
+    sourceUrl: "",
+    ticketUrl: "",
+    vehicleType: "otros",
+    featured: false,
+    visible: true,
+    importMethod: "manual",
+    dataQuality: "needs_review",
+    notes: "",
+    tags: "",
+  };
+}
 
-  if (!query) {
-    return true;
-  }
+function normalizeText(value: string | null | undefined) {
+  return value?.trim() || "";
+}
 
-  return [event.title, event.discipline, event.city]
-    .filter(Boolean)
-    .some((value) => value!.toLowerCase().includes(query));
+function normalized(value: string | null | undefined) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isMissingEditorialValue(value: string | null | undefined) {
+  const current = normalized(value);
+  return !current || current === "a confirmar" || current === "por confirmar";
+}
+
+function reviewReasons(event: AdminEvent) {
+  const reasons: string[] = [];
+  const dataQuality = event.data_quality || "";
+
+  if (dataQuality === "needs_review") reasons.push("calidad needs_review");
+  if (isMissingEditorialValue(event.venue)) reasons.push("ubicación pendiente");
+  if (isMissingEditorialValue(event.city)) reasons.push("ciudad pendiente");
+  if (isMissingEditorialValue(event.province)) reasons.push("provincia pendiente");
+  if (!event.source_url?.trim()) reasons.push("fuente pendiente");
+  if (!event.title?.trim()) reasons.push("título pendiente");
+  if (!event.start_date?.trim()) reasons.push("fecha pendiente");
+  if (!event.vehicle_type?.trim() || event.vehicle_type === "otros") reasons.push("tipo de vehículo pendiente");
+  if (!event.discipline?.trim()) reasons.push("disciplina pendiente");
+  if (normalized(event.notes).includes("duda") || normalized(event.notes).includes("revisar")) reasons.push("notas con dudas");
+  if (event.visible !== false && dataQuality === "needs_review") reasons.push("visible con revisión pendiente");
+
+  return reasons;
+}
+
+function needsEditorialReview(event: AdminEvent) {
+  return reviewReasons(event).length > 0;
 }
 
 function eventToForm(event: AdminEvent): EventForm {
   return {
     id: event.id,
-    title: event.title,
+    title: event.title || "",
     championship: event.championship || "",
     discipline: event.discipline || "",
-    start: event.start_date,
-    end: event.end_date || event.start_date,
+    start: event.start_date || "",
+    end: event.end_date || event.start_date || "",
     venue: event.venue || "",
     city: event.city || "",
     province: event.province || "",
     region: event.region || "",
-    level: event.level || "Nacional",
-    source: event.source || "Admin",
+    source: event.source || "",
     sourceUrl: event.source_url || "",
     ticketUrl: event.ticket_url || "",
-    tags: event.tags?.join(", ") || "",
+    vehicleType: event.vehicle_type || "otros",
     featured: Boolean(event.featured),
     visible: event.visible !== false,
     importMethod: event.import_method || "",
-    dataQuality: event.data_quality || "reviewed",
+    dataQuality: event.data_quality || "needs_review",
     notes: event.notes || "",
+    tags: event.tags?.join(", ") || "",
   };
 }
 
 function mergeEvent(events: AdminEvent[], event: AdminEvent) {
-  const exists = events.some((currentEvent) => currentEvent.id === event.id);
-  const nextEvents = exists
-    ? events.map((currentEvent) => (currentEvent.id === event.id ? event : currentEvent))
-    : [...events, event];
+  return events
+    .map((currentEvent) => (currentEvent.id === event.id ? event : currentEvent))
+    .sort((a, b) => (a.start_date || "").localeCompare(b.start_date || ""));
+}
 
-  return nextEvents.sort((a, b) => a.start_date.localeCompare(b.start_date));
+function uniqueSorted(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map(normalizeText).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function formatDate(date: string | null | undefined) {
+  if (!date) return "Sin fecha";
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${date}T12:00:00`));
+}
+
+function isPast(event: AdminEvent) {
+  const endDate = event.end_date || event.start_date;
+  const today = new Date().toISOString().slice(0, 10);
+  return endDate < today;
+}
+
+function matchesSearch(event: AdminEvent, search: string) {
+  const query = normalized(search);
+
+  if (!query) return true;
+
+  return [
+    event.title,
+    event.city,
+    event.province,
+    event.venue,
+    event.source,
+    event.discipline,
+    event.championship,
+    event.import_method,
+  ]
+    .map(normalized)
+    .some((value) => value.includes(query));
+}
+
+function matchesFilters(event: AdminEvent, filters: Filters) {
+  if (!matchesSearch(event, filters.search)) return false;
+  if (filters.vehicleType !== "todos" && event.vehicle_type !== filters.vehicleType) return false;
+  if (filters.visible === "visibles" && event.visible === false) return false;
+  if (filters.visible === "ocultos" && event.visible !== false) return false;
+  if (filters.dataQuality !== "todos" && event.data_quality !== filters.dataQuality) return false;
+  if (filters.importMethod !== "todos" && !(event.import_method || "").includes(filters.importMethod)) return false;
+  if (filters.discipline !== "todas" && event.discipline !== filters.discipline) return false;
+  if (filters.province !== "todas" && event.province !== filters.province) return false;
+  if (filters.date === "proximos" && isPast(event)) return false;
+  if (filters.date === "pasados" && !isPast(event)) return false;
+  if (filters.featured === "destacados" && !event.featured) return false;
+  if (filters.reviewOnly && !needsEditorialReview(event)) return false;
+  if (filters.missingSource && event.source_url?.trim()) return false;
+  if (filters.missingLocation && !isMissingEditorialValue(event.venue) && !isMissingEditorialValue(event.city) && !isMissingEditorialValue(event.province)) return false;
+
+  return true;
 }
 
 function validateForm(form: EventForm) {
-  const requiredFields: Array<keyof EventForm> = [
-    "id",
-    "title",
-    "discipline",
-    "start",
-    "end",
-    "venue",
-    "city",
-    "province",
-    "sourceUrl",
-  ];
-
-  for (const field of requiredFields) {
-    if (typeof form[field] === "string" && !form[field].trim()) {
-      return `${field} es obligatorio.`;
-    }
-  }
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.start) || !/^\d{4}-\d{2}-\d{2}$/.test(form.end)) {
-    return "start y end deben usar formato YYYY-MM-DD.";
-  }
-
+  if (!form.id.trim()) return "El ID es obligatorio.";
+  if (!form.title.trim()) return "El título es obligatorio.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.start)) return "La fecha de inicio debe usar YYYY-MM-DD.";
+  if (form.end && !/^\d{4}-\d{2}-\d{2}$/.test(form.end)) return "La fecha de fin debe usar YYYY-MM-DD.";
   return "";
+}
+
+function Chip({
+  active,
+  children,
+  onClick,
+  tone = "default",
+}: {
+  active?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+  tone?: "default" | "success" | "warning" | "danger" | "vehicle";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+      : tone === "warning"
+        ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
+        : tone === "danger"
+          ? "border-red-500/30 bg-red-500/10 text-red-100"
+          : tone === "vehicle"
+            ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
+            : "border-white/[0.08] bg-white/[0.035] text-zinc-300";
+  const className = `inline-flex min-h-7 items-center rounded-full border px-2.5 text-xs font-semibold transition ${
+    active ? "border-red-400/70 bg-red-500/15 text-red-50" : toneClass
+  }`;
+
+  if (!onClick) {
+    return <span className={className}>{children}</span>;
+  }
+
+  return (
+    <button className={`${className} hover:border-red-400/60 hover:text-white`} onClick={onClick} type="button">
+      {children}
+    </button>
+  );
+}
+
+function ActionButton({
+  children,
+  disabled,
+  onClick,
+  title,
+  tone = "secondary",
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+  title: string;
+  tone?: "primary" | "secondary" | "success" | "warning" | "danger";
+}) {
+  const toneClass =
+    tone === "primary"
+      ? "border-red-500/70 bg-red-600/90 text-white hover:bg-red-500"
+      : tone === "success"
+        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-100 hover:border-emerald-400"
+        : tone === "warning"
+          ? "border-amber-500/40 bg-amber-500/15 text-amber-100 hover:border-amber-400"
+          : tone === "danger"
+            ? "border-red-500/40 bg-red-500/10 text-red-100 hover:border-red-400"
+            : "border-zinc-700 bg-zinc-900 text-zinc-100 hover:border-zinc-500";
+
+  return (
+    <button
+      className={`min-h-9 rounded-md border px-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClass}`}
+      disabled={disabled}
+      onClick={onClick}
+      title={title}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-400">
+      {label}
+      {children}
+    </label>
+  );
 }
 
 export default function AdminPage() {
   const [secret, setSecret] = useState("");
   const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [form, setForm] = useState<EventForm>(EMPTY_FORM);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [form, setForm] = useState<EventForm>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  const disciplines = useMemo(() => uniqueSorted(events.map((event) => event.discipline)), [events]);
+  const provinces = useMemo(() => uniqueSorted(events.map((event) => event.province)), [events]);
+
   const filteredEvents = useMemo(
-    () => events.filter((event) => matchesSearch(event, search)),
-    [events, search],
+    () => events.filter((event) => matchesFilters(event, filters)),
+    [events, filters],
   );
+
+  const counts = useMemo(
+    () => ({
+      total: events.length,
+      moto: events.filter((event) => event.vehicle_type === "moto").length,
+      coche: events.filter((event) => event.vehicle_type === "coche").length,
+      mixto: events.filter((event) => event.vehicle_type === "mixto").length,
+      visible: events.filter((event) => event.visible !== false).length,
+      hidden: events.filter((event) => event.visible === false).length,
+      featured: events.filter((event) => event.featured).length,
+      review: events.filter(needsEditorialReview).length,
+      reviewed: events.filter((event) => event.data_quality === "reviewed").length,
+      published: events.filter((event) => event.data_quality === "published").length,
+      pendingDate: events.filter((event) => event.data_quality === "pending_date" || !event.start_date).length,
+      missingSource: events.filter((event) => !event.source_url?.trim()).length,
+      missingLocation: events.filter((event) => isMissingEditorialValue(event.venue) || isMissingEditorialValue(event.city) || isMissingEditorialValue(event.province)).length,
+    }),
+    [events],
+  );
+
+  function setFilter<K extends keyof Filters>(field: K, value: Filters[K]) {
+    setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyCounterFilter(nextFilters: Partial<Filters>) {
+    setFilters({ ...EMPTY_FILTERS, date: "todos", ...nextFilters });
+  }
 
   function updateForm(field: keyof EventForm, value: string | boolean) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
@@ -188,11 +425,10 @@ export default function AdminPage() {
       }
 
       setEvents(payload.events);
+      setSelectedIds(new Set());
       setIsAuthenticated(true);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : String(loadError);
-
-      setError(message);
+      setError(loadError instanceof Error ? loadError.message : String(loadError));
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -234,19 +470,21 @@ export default function AdminPage() {
       }
 
       setEvents((currentEvents) => mergeEvent(currentEvents, payload.event));
-      setForm(EMPTY_FORM);
       setEditingId(null);
-      setNotice(editingId ? "Evento actualizado." : "Evento creado.");
+      setForm(emptyForm());
+      setNotice("Cambios guardados.");
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : String(saveError);
-
-      setError(message);
+      setError(saveError instanceof Error ? saveError.message : String(saveError));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function toggleFeatured(event: AdminEvent) {
+  async function patchEvent(
+    event: AdminEvent,
+    requestPayload: { featured?: boolean; visible?: boolean; dataQuality?: string; vehicleType?: string; notes?: string },
+    successMessage: string,
+  ) {
     setUpdatingId(event.id);
     setError("");
     setNotice("");
@@ -258,7 +496,7 @@ export default function AdminPage() {
           authorization: `Bearer ${secret}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ id: event.id, featured: !event.featured }),
+        body: JSON.stringify({ id: event.id, ...requestPayload }),
       });
       const payload = (await response.json()) as EventMutationResponse;
 
@@ -267,10 +505,9 @@ export default function AdminPage() {
       }
 
       setEvents((currentEvents) => mergeEvent(currentEvents, payload.event));
+      setNotice(successMessage);
     } catch (updateError) {
-      const message = updateError instanceof Error ? updateError.message : String(updateError);
-
-      setError(message);
+      setError(updateError instanceof Error ? updateError.message : String(updateError));
     } finally {
       setUpdatingId(null);
     }
@@ -281,14 +518,12 @@ export default function AdminPage() {
     setEditingId(event.id);
     setError("");
     setNotice("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function clearForm() {
-    setForm(EMPTY_FORM);
+    setForm(emptyForm());
     setEditingId(null);
     setError("");
-    setNotice("");
   }
 
   function handleInputChange(field: keyof EventForm) {
@@ -299,40 +534,116 @@ export default function AdminPage() {
     return (event: ChangeEvent<HTMLSelectElement>) => updateForm(field, event.target.value);
   }
 
-  function handleNotesChange(event: ChangeEvent<HTMLTextAreaElement>) {
+  function handleTextareaChange(event: ChangeEvent<HTMLTextAreaElement>) {
     updateForm("notes", event.target.value);
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleAllFiltered() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allSelected = filteredEvents.length > 0 && filteredEvents.every((event) => next.has(event.id));
+
+      if (allSelected) {
+        filteredEvents.forEach((event) => next.delete(event.id));
+      } else {
+        filteredEvents.forEach((event) => next.add(event.id));
+      }
+
+      return next;
+    });
+  }
+
+  async function runBulkAction() {
+    if (!bulkAction || selectedIds.size === 0) return;
+
+    if ((bulkAction === "hide" || bulkAction === "cancelled") && !window.confirm("¿Aplicar este cambio en lote?")) {
+      return;
+    }
+
+    const selectedEvents = events.filter((event) => selectedIds.has(event.id));
+    const payload =
+      bulkAction === "reviewed"
+        ? { dataQuality: "reviewed" }
+        : bulkAction === "published"
+          ? { dataQuality: "published", visible: true }
+          : bulkAction === "hide"
+            ? { visible: false }
+            : bulkAction === "cancelled"
+              ? { dataQuality: "cancelled" }
+              : bulkAction.startsWith("vehicle:")
+                ? { vehicleType: bulkAction.replace("vehicle:", "") }
+                : bulkAction.startsWith("quality:")
+                  ? { dataQuality: bulkAction.replace("quality:", "") }
+                  : null;
+
+    if (!payload) return;
+
+    setIsSaving(true);
+    setNotice("");
+    setError("");
+
+    try {
+      for (const event of selectedEvents) {
+        await patchEvent(event, payload, "");
+      }
+
+      setNotice(`Acción aplicada a ${selectedEvents.length} eventos.`);
+      setSelectedIds(new Set());
+      setBulkAction("");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-zinc-950 px-4 py-6 text-zinc-100 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-2 border-b border-zinc-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen bg-[#09090b] px-4 py-5 text-zinc-100 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[94rem] flex-col gap-5">
+        <header className="flex flex-col gap-4 border-b border-white/[0.06] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-red-400">EventoMotor</p>
-            <h1 className="text-2xl font-semibold text-white">Admin de eventos</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-400/90">EventoMotor</p>
+            <h1 className="mt-1 text-2xl font-semibold text-white">Mesa editorial de eventos</h1>
+            <p className="mt-1.5 text-sm text-zinc-400">
+              Revisa, filtra, corrige y publica eventos importados sin perder contexto.
+            </p>
           </div>
           {isAuthenticated ? (
             <button
-              className="w-fit rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:border-zinc-500"
+              className="min-h-9 w-fit rounded-md border border-white/[0.08] bg-white/[0.04] px-3 text-xs font-bold text-zinc-100 hover:border-white/[0.16]"
               onClick={() => loadEvents()}
               type="button"
             >
-              Refrescar
+              Refrescar eventos
             </button>
           ) : null}
         </header>
 
-        <section className="border-b border-zinc-800 pb-5">
-          <form className="flex max-w-xl flex-col gap-3 sm:flex-row" onSubmit={handleLogin}>
-            <input
-              className="min-h-11 flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-red-400"
-              onChange={(event) => setSecret(event.target.value)}
-              placeholder="ADMIN_SECRET"
-              type="password"
-              value={secret}
-            />
+        <section className="rounded-lg border border-white/[0.07] bg-white/[0.035] p-3.5">
+          <form className="flex max-w-2xl flex-col gap-3 sm:flex-row" onSubmit={handleLogin}>
+            <Field label="Clave de administración">
+              <input
+                className="min-h-10 rounded-md border border-white/[0.08] bg-black/30 px-3 text-sm text-white outline-none focus:border-red-400/80"
+                onChange={(event) => setSecret(event.target.value)}
+                placeholder="Introduce ADMIN_SECRET"
+                type="password"
+                value={secret}
+              />
+            </Field>
             <button
-              className="min-h-11 rounded-md bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
+              className="min-h-10 self-end rounded-md bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
               disabled={isLoading || !secret.trim()}
               type="submit"
             >
@@ -345,188 +656,333 @@ export default function AdminPage() {
 
         {isAuthenticated ? (
           <>
-            <section className="border-b border-zinc-800 pb-6">
-              <div className="mb-4 flex flex-col gap-1">
-                <h2 className="text-lg font-semibold text-white">
-                  {editingId ? "Editar evento" : "Crear evento"}
-                </h2>
-                <p className="text-sm text-zinc-400">
-                  Los tags se escriben separados por coma. No hay borrado de eventos todavía.
+            <section className="rounded-lg border border-white/[0.07] bg-[#111216] p-3.5">
+              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-white">Contadores rápidos</h2>
+                  <p className="text-xs text-zinc-500">Pulsa un chip para aplicar ese filtro.</p>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Mostrando {filteredEvents.length} de {events.length}
                 </p>
               </div>
-
-              <form className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" onSubmit={saveEvent}>
-                {[
-                  ["id", "ID"],
-                  ["title", "Title"],
-                  ["championship", "Championship"],
-                  ["discipline", "Discipline"],
-                  ["start", "Start YYYY-MM-DD"],
-                  ["end", "End YYYY-MM-DD"],
-                  ["venue", "Venue"],
-                  ["city", "City"],
-                  ["province", "Province"],
-                  ["region", "Region"],
-                  ["level", "Level"],
-                  ["source", "Source"],
-                  ["sourceUrl", "Source URL"],
-                  ["ticketUrl", "Ticket URL"],
-                  ["tags", "Tags"],
-                  ["importMethod", "Import method"],
-                ].map(([field, label]) => (
-                  <label className="flex flex-col gap-1 text-xs text-zinc-400" key={field}>
-                    {label}
-                    <input
-                      className="min-h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-red-400"
-                      onChange={handleInputChange(field as keyof EventForm)}
-                      value={form[field as keyof EventForm] as string}
-                    />
-                  </label>
-                ))}
-
-                <label className="flex flex-col gap-1 text-xs text-zinc-400">
-                  Data quality
-                  <select
-                    className="min-h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-red-400"
-                    onChange={handleSelectChange("dataQuality")}
-                    value={form.dataQuality}
-                  >
-                    {DATA_QUALITY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1 text-xs text-zinc-400 md:col-span-2 xl:col-span-4">
-                  Notes
-                  <textarea
-                    className="min-h-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-red-400"
-                    onChange={handleNotesChange}
-                    value={form.notes}
-                  />
-                </label>
-
-                <label className="flex min-h-10 items-center gap-2 self-end text-sm text-zinc-200">
-                  <input
-                    checked={form.featured}
-                    className="h-4 w-4"
-                    onChange={(event) => updateForm("featured", event.target.checked)}
-                    type="checkbox"
-                  />
-                  Featured
-                </label>
-
-                <label className="flex min-h-10 items-center gap-2 self-end text-sm text-zinc-200">
-                  <input
-                    checked={form.visible}
-                    className="h-4 w-4"
-                    onChange={(event) => updateForm("visible", event.target.checked)}
-                    type="checkbox"
-                  />
-                  Visible
-                </label>
-
-                <div className="flex flex-col gap-2 self-end sm:flex-row xl:col-span-2">
-                  <button
-                    className="min-h-10 rounded-md bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
-                    disabled={isSaving}
-                    type="submit"
-                  >
-                    {isSaving ? "Guardando" : editingId ? "Guardar cambios" : "Crear evento"}
-                  </button>
-                  <button
-                    className="min-h-10 rounded-md border border-zinc-700 px-4 text-sm text-zinc-200 hover:border-zinc-500"
-                    onClick={clearForm}
-                    type="button"
-                  >
-                    Limpiar formulario
-                  </button>
-                </div>
-              </form>
+              <div className="flex flex-wrap gap-2">
+                <Chip active={filters.date === "todos" && filters.vehicleType === "todos" && !filters.reviewOnly} onClick={() => setFilters({ ...EMPTY_FILTERS, date: "todos" })}>
+                  Total {counts.total}
+                </Chip>
+                <Chip active={filters.vehicleType === "moto"} onClick={() => applyCounterFilter({ vehicleType: "moto" })} tone="vehicle">
+                  Motos {counts.moto}
+                </Chip>
+                <Chip active={filters.vehicleType === "coche"} onClick={() => applyCounterFilter({ vehicleType: "coche" })} tone="vehicle">
+                  Coches {counts.coche}
+                </Chip>
+                <Chip active={filters.vehicleType === "mixto"} onClick={() => applyCounterFilter({ vehicleType: "mixto" })} tone="vehicle">
+                  Mixtos {counts.mixto}
+                </Chip>
+                <Chip active={filters.visible === "visibles"} onClick={() => applyCounterFilter({ visible: "visibles" })} tone="success">
+                  Visibles {counts.visible}
+                </Chip>
+                <Chip active={filters.visible === "ocultos"} onClick={() => applyCounterFilter({ visible: "ocultos" })} tone="danger">
+                  Ocultos {counts.hidden}
+                </Chip>
+                <Chip active={filters.featured === "destacados"} onClick={() => applyCounterFilter({ featured: "destacados" })} tone="warning">
+                  Destacados {counts.featured}
+                </Chip>
+                <Chip active={filters.reviewOnly} onClick={() => applyCounterFilter({ reviewOnly: true })} tone="warning">
+                  Necesitan revisión {counts.review}
+                </Chip>
+                <Chip active={filters.dataQuality === "reviewed"} onClick={() => applyCounterFilter({ dataQuality: "reviewed" })} tone="success">
+                  Revisados {counts.reviewed}
+                </Chip>
+                <Chip active={filters.dataQuality === "published"} onClick={() => applyCounterFilter({ dataQuality: "published" })} tone="success">
+                  Publicados {counts.published}
+                </Chip>
+                <Chip active={filters.dataQuality === "pending_date"} onClick={() => applyCounterFilter({ dataQuality: "pending_date" })} tone="warning">
+                  Sin fecha confirmada {counts.pendingDate}
+                </Chip>
+                <Chip active={filters.missingSource} onClick={() => applyCounterFilter({ missingSource: true })} tone="warning">
+                  Sin fuente {counts.missingSource}
+                </Chip>
+                <Chip active={filters.missingLocation} onClick={() => applyCounterFilter({ missingLocation: true })} tone="warning">
+                  Sin ubicación clara {counts.missingLocation}
+                </Chip>
+              </div>
             </section>
 
-            <section className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <input
-                  className="min-h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-red-400 sm:max-w-md"
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar por titulo, disciplina o ciudad"
-                  type="search"
-                  value={search}
-                />
-                <p className="text-sm text-zinc-400">
-                  {filteredEvents.length} de {events.length} eventos
-                </p>
-              </div>
-
-              <div className="overflow-x-auto border border-zinc-800">
-                <table className="min-w-full border-collapse text-left text-sm">
-                  <thead className="bg-zinc-900 text-xs uppercase text-zinc-400">
-                    <tr>
-                      <th className="px-3 py-3 font-medium">Title</th>
-                      <th className="px-3 py-3 font-medium">Discipline</th>
-                      <th className="px-3 py-3 font-medium">Start</th>
-                      <th className="px-3 py-3 font-medium">Venue</th>
-                      <th className="px-3 py-3 font-medium">City</th>
-                      <th className="px-3 py-3 font-medium">Province</th>
-                      <th className="px-3 py-3 font-medium">Source</th>
-                      <th className="px-3 py-3 font-medium">Featured</th>
-                      <th className="px-3 py-3 font-medium">Visible</th>
-                      <th className="px-3 py-3 font-medium">Quality</th>
-                      <th className="px-3 py-3 font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {filteredEvents.map((event) => (
-                      <tr className="align-top hover:bg-zinc-900/70" key={event.id}>
-                        <td className="max-w-sm px-3 py-3 font-medium text-white">
-                          {event.title}
-                        </td>
-                        <td className="px-3 py-3 text-zinc-300">{event.discipline || "-"}</td>
-                        <td className="whitespace-nowrap px-3 py-3 text-zinc-300">
-                          {event.start_date}
-                        </td>
-                        <td className="px-3 py-3 text-zinc-300">{event.venue || "-"}</td>
-                        <td className="px-3 py-3 text-zinc-300">{event.city || "-"}</td>
-                        <td className="px-3 py-3 text-zinc-300">{event.province || "-"}</td>
-                        <td className="px-3 py-3 text-zinc-300">{event.source || "-"}</td>
-                        <td className="px-3 py-3 text-zinc-300">
-                          {event.featured ? "Si" : "No"}
-                        </td>
-                        <td className="px-3 py-3 text-zinc-300">
-                          {event.visible === false ? "No" : "Si"}
-                        </td>
-                        <td className="px-3 py-3 text-zinc-300">
-                          {event.data_quality || "reviewed"}
-                        </td>
-                        <td className="flex min-w-72 gap-2 px-3 py-3">
-                          <button
-                            className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-red-400"
-                            onClick={() => editEvent(event)}
-                            type="button"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={updatingId === event.id}
-                            onClick={() => toggleFeatured(event)}
-                            type="button"
-                          >
-                            {event.featured ? "Desmarcar" : "Marcar"}
-                          </button>
-                        </td>
-                      </tr>
+            <section className="rounded-lg border border-white/[0.07] bg-white/[0.03] p-3.5">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <Field label="Buscar">
+                  <input
+                    className="min-h-10 rounded-md border border-white/[0.08] bg-black/30 px-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-red-400/80"
+                    onChange={(event) => setFilter("search", event.target.value)}
+                    placeholder="Título, ciudad, fuente, disciplina..."
+                    type="search"
+                    value={filters.search}
+                  />
+                </Field>
+                <Field label="Tipo de vehículo">
+                  <select className="admin-select" onChange={(event) => setFilter("vehicleType", event.target.value)} value={filters.vehicleType}>
+                    <option value="todos">Todos</option>
+                    {VEHICLE_TYPE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{VEHICLE_TYPE_LABELS[option]}</option>
                     ))}
-                  </tbody>
-                </table>
+                  </select>
+                </Field>
+                <Field label="Estado visible">
+                  <select className="admin-select" onChange={(event) => setFilter("visible", event.target.value as Filters["visible"])} value={filters.visible}>
+                    <option value="todos">Todos</option>
+                    <option value="visibles">Visibles</option>
+                    <option value="ocultos">Ocultos</option>
+                  </select>
+                </Field>
+                <Field label="Calidad editorial">
+                  <select className="admin-select" onChange={(event) => setFilter("dataQuality", event.target.value)} value={filters.dataQuality}>
+                    <option value="todos">Todos</option>
+                    {DATA_QUALITY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{QUALITY_LABELS[option]}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Método de importación">
+                  <select className="admin-select" onChange={(event) => setFilter("importMethod", event.target.value)} value={filters.importMethod}>
+                    <option value="todos">Todos</option>
+                    {IMPORT_METHOD_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </Field>
+                <Field label="Disciplina">
+                  <select className="admin-select" onChange={(event) => setFilter("discipline", event.target.value)} value={filters.discipline}>
+                    <option value="todas">Todas</option>
+                    {disciplines.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </Field>
+                <Field label="Provincia">
+                  <select className="admin-select" onChange={(event) => setFilter("province", event.target.value)} value={filters.province}>
+                    <option value="todas">Todas</option>
+                    {provinces.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </Field>
+                <Field label="Fecha">
+                  <select className="admin-select" onChange={(event) => setFilter("date", event.target.value as Filters["date"])} value={filters.date}>
+                    <option value="proximos">Próximos</option>
+                    <option value="pasados">Pasados</option>
+                    <option value="todos">Todos</option>
+                  </select>
+                </Field>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <ActionButton onClick={() => setFilters(EMPTY_FILTERS)} title="Limpia todos los filtros.">
+                  Limpiar filtros
+                </ActionButton>
+                <ActionButton onClick={toggleAllFiltered} title="Selecciona o deselecciona todos los eventos filtrados.">
+                  {filteredEvents.length > 0 && filteredEvents.every((event) => selectedIds.has(event.id)) ? "Deseleccionar filtrados" : "Seleccionar filtrados"}
+                </ActionButton>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-white/[0.07] bg-[#101114] p-3.5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-white">Cambios masivos</h2>
+                  <p className="text-xs text-zinc-500">{selectedIds.size} eventos seleccionados.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-[minmax(14rem,22rem)_auto]">
+                  <select className="admin-select" onChange={(event) => setBulkAction(event.target.value)} value={bulkAction}>
+                    <option value="">Elige una acción</option>
+                    <option value="reviewed">Marcar revisados</option>
+                    <option value="published">Publicar</option>
+                    <option value="hide">Ocultar</option>
+                    <option value="cancelled">Marcar como cancelados</option>
+                    {VEHICLE_TYPE_OPTIONS.map((option) => (
+                      <option key={option} value={`vehicle:${option}`}>Cambiar tipo a {VEHICLE_TYPE_LABELS[option]}</option>
+                    ))}
+                    {DATA_QUALITY_OPTIONS.map((option) => (
+                      <option key={option} value={`quality:${option}`}>Cambiar calidad a {QUALITY_LABELS[option]}</option>
+                    ))}
+                  </select>
+                  <ActionButton disabled={!bulkAction || selectedIds.size === 0 || isSaving} onClick={runBulkAction} title="Aplica la acción a los eventos seleccionados." tone="primary">
+                    Aplicar
+                  </ActionButton>
+                </div>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              {filteredEvents.map((event) => {
+                const isUpdating = updatingId === event.id;
+                const isVisible = event.visible !== false;
+                const isFeatured = Boolean(event.featured);
+                const reasons = reviewReasons(event);
+                const sourceUrl = event.source_url?.trim();
+                const ticketUrl = event.ticket_url?.trim();
+
+                return (
+                  <article
+                    className={`rounded-lg border px-3.5 py-3 shadow-[0_12px_34px_rgba(0,0,0,0.16)] ${
+                      editingId === event.id ? "border-red-500/40 bg-[#171316]" : "border-white/[0.07] bg-[#15161A]/88"
+                    }`}
+                    key={event.id}
+                  >
+                    <div className="grid gap-3 xl:grid-cols-[auto_minmax(0,1fr)_minmax(18rem,auto)] xl:items-start">
+                      <label className="flex items-start gap-2 pt-1 text-xs text-zinc-400">
+                        <input checked={selectedIds.has(event.id)} className="mt-1 h-4 w-4" onChange={() => toggleSelected(event.id)} type="checkbox" />
+                      </label>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Chip tone="vehicle">{getVehicleTypeLabel(event.vehicle_type)}</Chip>
+                          <Chip tone={event.data_quality === "published" || event.data_quality === "reviewed" ? "success" : event.data_quality === "cancelled" ? "danger" : "warning"}>
+                            {QUALITY_LABELS[event.data_quality || ""] || event.data_quality || "Sin estado"}
+                          </Chip>
+                          <Chip tone={isVisible ? "success" : "danger"}>{isVisible ? "Visible" : "Oculto"}</Chip>
+                          {isFeatured ? <Chip tone="warning">Destacado</Chip> : null}
+                          {event.import_method ? <Chip>{event.import_method}</Chip> : null}
+                        </div>
+                        <h3 className="mt-2 text-base font-semibold leading-6 text-white">{event.title || "Sin título"}</h3>
+                        <p className="mt-1 text-sm text-zinc-400">
+                          {formatDate(event.start_date)} · {event.city || "Ciudad pendiente"}, {event.province || "Provincia pendiente"} · {event.discipline || "Disciplina pendiente"}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {event.source || "Sin fuente"} · {event.venue || "Lugar pendiente"}
+                        </p>
+                        <div className="mt-3 grid gap-1.5 text-xs text-zinc-500 md:grid-cols-2">
+                          <p><span className="text-zinc-300">Campeonato:</span> {event.championship || "Pendiente"}</p>
+                          <p><span className="text-zinc-300">Región:</span> {event.region || "Pendiente"}</p>
+                          <p className="truncate" title={sourceUrl || ""}><span className="text-zinc-300">Source URL:</span> {sourceUrl || "Pendiente"}</p>
+                          <p className="truncate" title={ticketUrl || ""}><span className="text-zinc-300">Ticket URL:</span> {ticketUrl || "Sin entradas"}</p>
+                          <p className="md:col-span-2"><span className="text-zinc-300">Notas:</span> {event.notes || "Sin notas"}</p>
+                        </div>
+                        {reasons.length ? (
+                          <p className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-100">
+                            Motivos: {reasons.join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 xl:justify-end">
+                        <ActionButton disabled={isUpdating} onClick={() => editEvent(event)} title="Editar debajo de esta tarjeta." tone="primary">Editar</ActionButton>
+                        <ActionButton disabled={isUpdating} onClick={() => patchEvent(event, { dataQuality: "reviewed" }, "Evento marcado como revisado.")} title="Marca el evento como revisado." tone="success">Revisado</ActionButton>
+                        <ActionButton disabled={isUpdating} onClick={() => patchEvent(event, { dataQuality: "published", visible: true }, "Evento publicado y visible.")} title="Marca el evento como publicado y visible." tone="success">Publicado</ActionButton>
+                        <ActionButton disabled={isUpdating} onClick={() => patchEvent(event, { visible: !isVisible }, isVisible ? "Evento ocultado." : "Evento visible.")} title={isVisible ? "Oculta el evento." : "Muestra el evento."} tone={isVisible ? "danger" : "success"}>
+                          {isVisible ? "Ocultar" : "Mostrar"}
+                        </ActionButton>
+                        <ActionButton disabled={isUpdating} onClick={() => patchEvent(event, { featured: !isFeatured }, isFeatured ? "Evento retirado de destacados." : "Evento destacado.")} title={isFeatured ? "Quita destacado." : "Marca como destacado."} tone="warning">
+                          {isFeatured ? "Quitar destacado" : "Destacar"}
+                        </ActionButton>
+                        <ActionButton disabled={isUpdating} onClick={() => patchEvent(event, { dataQuality: "cancelled" }, "Evento marcado como cancelado.")} title="Marca el evento como cancelado." tone="danger">Cancelado</ActionButton>
+                        <select
+                          className="min-h-9 rounded-md border border-zinc-700 bg-zinc-900 px-2 text-xs font-bold text-zinc-100 outline-none"
+                          disabled={isUpdating}
+                          onChange={(changeEvent) => patchEvent(event, { vehicleType: changeEvent.target.value }, `Tipo cambiado a ${VEHICLE_TYPE_LABELS[changeEvent.target.value]}.`)}
+                          title="Cambia el tipo de vehículo."
+                          value={event.vehicle_type || "otros"}
+                        >
+                          {VEHICLE_TYPE_OPTIONS.map((option) => (
+                            <option key={option} value={option}>{VEHICLE_TYPE_LABELS[option]}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {editingId === event.id ? (
+                      <form className="mt-3 rounded-lg border border-red-500/20 bg-[#0f1013] p-3.5" onSubmit={saveEvent}>
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wide text-red-300">Editando evento</p>
+                            <h4 className="text-sm font-semibold text-white">{event.title}</h4>
+                          </div>
+                          <ActionButton onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                          <Field label="Título"><input className="admin-input" onChange={handleInputChange("title")} value={form.title} /></Field>
+                          <Field label="Fecha inicio"><input className="admin-input" onChange={handleInputChange("start")} value={form.start} /></Field>
+                          <Field label="Fecha fin"><input className="admin-input" onChange={handleInputChange("end")} value={form.end} /></Field>
+                          <Field label="Disciplina"><input className="admin-input" onChange={handleInputChange("discipline")} value={form.discipline} /></Field>
+                          <Field label="Tipo de vehículo">
+                            <select className="admin-select" onChange={handleSelectChange("vehicleType")} value={form.vehicleType}>
+                              {VEHICLE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{VEHICLE_TYPE_LABELS[option]}</option>)}
+                            </select>
+                          </Field>
+                          <Field label="Campeonato"><input className="admin-input" onChange={handleInputChange("championship")} value={form.championship} /></Field>
+                          <Field label="Circuito/lugar"><input className="admin-input" onChange={handleInputChange("venue")} value={form.venue} /></Field>
+                          <Field label="Ciudad"><input className="admin-input" onChange={handleInputChange("city")} value={form.city} /></Field>
+                          <Field label="Provincia"><input className="admin-input" onChange={handleInputChange("province")} value={form.province} /></Field>
+                          <Field label="Comunidad/región"><input className="admin-input" onChange={handleInputChange("region")} value={form.region} /></Field>
+                          <Field label="Fuente"><input className="admin-input" onChange={handleInputChange("source")} value={form.source} /></Field>
+                          <Field label="Source URL"><input className="admin-input" onChange={handleInputChange("sourceUrl")} value={form.sourceUrl} /></Field>
+                          <Field label="Ticket URL"><input className="admin-input" onChange={handleInputChange("ticketUrl")} value={form.ticketUrl} /></Field>
+                          <Field label="Calidad editorial">
+                            <select className="admin-select" onChange={handleSelectChange("dataQuality")} value={form.dataQuality}>
+                              {DATA_QUALITY_OPTIONS.map((option) => <option key={option} value={option}>{QUALITY_LABELS[option]}</option>)}
+                            </select>
+                          </Field>
+                          <Field label="Etiquetas"><input className="admin-input" onChange={handleInputChange("tags")} value={form.tags} /></Field>
+                          <div className="flex items-end gap-4">
+                            <label className="flex min-h-10 items-center gap-2 text-sm text-zinc-300">
+                              <input checked={form.visible} className="h-4 w-4" onChange={(changeEvent) => updateForm("visible", changeEvent.target.checked)} type="checkbox" />
+                              Visible
+                            </label>
+                            <label className="flex min-h-10 items-center gap-2 text-sm text-zinc-300">
+                              <input checked={form.featured} className="h-4 w-4" onChange={(changeEvent) => updateForm("featured", changeEvent.target.checked)} type="checkbox" />
+                              Destacado
+                            </label>
+                          </div>
+                          <Field label="Notas">
+                            <textarea className="admin-input min-h-20 md:col-span-2 xl:col-span-4" onChange={handleTextareaChange} value={form.notes} />
+                          </Field>
+                        </div>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          <ActionButton onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
+                          <button
+                            className="min-h-9 rounded-md bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
+                            disabled={isSaving}
+                            type="submit"
+                          >
+                            {isSaving ? "Guardando" : "Guardar cambios"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+                  </article>
+                );
+              })}
+
+              {!filteredEvents.length ? (
+                <div className="rounded-lg border border-dashed border-white/[0.10] bg-white/[0.03] p-8 text-center">
+                  <h3 className="text-lg font-semibold text-white">No hay eventos con esos filtros</h3>
+                  <p className="mt-1 text-sm text-zinc-500">Prueba a limpiar filtros o cambiar la búsqueda.</p>
+                </div>
+              ) : null}
             </section>
           </>
         ) : null}
       </div>
+      <style jsx global>{`
+        .admin-input,
+        .admin-select {
+          min-height: 2.5rem;
+          border-radius: 0.375rem;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(0,0,0,.30);
+          padding: 0 0.75rem;
+          color: white;
+          font-size: .875rem;
+          outline: none;
+        }
+        textarea.admin-input {
+          padding-top: .5rem;
+          padding-bottom: .5rem;
+        }
+        .admin-input:focus,
+        .admin-select:focus {
+          border-color: rgba(248,113,113,.80);
+        }
+        .admin-select option {
+          background: #101114;
+          color: white;
+        }
+      `}</style>
     </main>
   );
+}
+
+function getVehicleTypeLabel(value: string | null | undefined) {
+  return value ? VEHICLE_TYPE_LABELS[value] || value : "Otros";
 }

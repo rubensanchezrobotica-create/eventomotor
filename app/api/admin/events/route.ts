@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { getVehicleType, VEHICLE_TYPE_OPTIONS, type VehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
 import type { EventRow } from "@/lib/supabase";
 
@@ -20,6 +21,7 @@ type AdminEvent = Pick<
   | "source_url"
   | "ticket_url"
   | "tags"
+  | "vehicle_type"
   | "featured"
   | "visible"
   | "import_method"
@@ -28,9 +30,9 @@ type AdminEvent = Pick<
 >;
 
 const ADMIN_EVENT_SELECT =
-  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,featured,visible,import_method,data_quality,notes";
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
 
-const DATA_QUALITY_OPTIONS = ["draft", "reviewed", "published", "cancelled", "pending_date"];
+const DATA_QUALITY_OPTIONS = ["needs_review", "draft", "reviewed", "published", "cancelled", "pending_date"];
 
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
@@ -126,6 +128,14 @@ function parseDataQuality(value: unknown) {
   return "reviewed";
 }
 
+function parseVehicleType(value: unknown, fallbackEvent: Parameters<typeof getVehicleType>[0]) {
+  if (typeof value === "string" && VEHICLE_TYPE_OPTIONS.includes(value as VehicleType)) {
+    return value;
+  }
+
+  return getVehicleType(fallbackEvent);
+}
+
 function parseAdminEventBody(value: unknown) {
   if (!isRecord(value)) {
     throw new Error("Request body must be an object.");
@@ -133,13 +143,22 @@ function parseAdminEventBody(value: unknown) {
 
   const id = requireString(value, "id");
   const title = requireString(value, "title");
-  const discipline = requireString(value, "discipline");
+  const discipline = optionalString(value, "discipline") || "";
   const startDate = requireIsoDate(value, "start");
   const endDate = requireIsoDate(value, "end");
-  const venue = requireString(value, "venue");
-  const city = requireString(value, "city");
-  const province = requireString(value, "province");
-  const sourceUrl = requireString(value, "sourceUrl");
+  const venue = optionalString(value, "venue") || "";
+  const city = optionalString(value, "city") || "";
+  const province = optionalString(value, "province") || "";
+  const sourceUrl = optionalString(value, "sourceUrl") || "";
+
+  const tags = parseTags(value.tags);
+  const vehicle_type = parseVehicleType(value.vehicleType || value.vehicle_type, {
+    title,
+    championship: optionalString(value, "championship") || title,
+    discipline,
+    tags,
+    source: optionalString(value, "source") || "Admin",
+  });
 
   return {
     id,
@@ -157,7 +176,8 @@ function parseAdminEventBody(value: unknown) {
     source: optionalString(value, "source") || "Admin",
     source_url: sourceUrl,
     ticket_url: optionalString(value, "ticketUrl") || "",
-    tags: parseTags(value.tags),
+    tags,
+    vehicle_type,
     featured: typeof value.featured === "boolean" ? value.featured : false,
     visible: typeof value.visible === "boolean" ? value.visible : true,
     import_method: optionalString(value, "importMethod"),
@@ -258,20 +278,80 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { id?: unknown; featured?: unknown };
+    const body = (await request.json()) as {
+      id?: unknown;
+      featured?: unknown;
+      visible?: unknown;
+      dataQuality?: unknown;
+      vehicleType?: unknown;
+      vehicle_type?: unknown;
+      notes?: unknown;
+    };
 
     if (typeof body.id !== "string" || !body.id.trim()) {
       return jsonError("Missing event id.", 400);
     }
 
-    if (typeof body.featured !== "boolean") {
-      return jsonError("Missing featured boolean.", 400);
+    const update: Partial<Pick<EventRow, "featured" | "visible" | "data_quality" | "vehicle_type" | "notes" | "updated_at">> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if ("featured" in body) {
+      if (typeof body.featured !== "boolean") {
+        return jsonError("featured must be a boolean.", 400);
+      }
+
+      update.featured = body.featured;
+    }
+
+    if ("visible" in body) {
+      if (typeof body.visible !== "boolean") {
+        return jsonError("visible must be a boolean.", 400);
+      }
+
+      update.visible = body.visible;
+    }
+
+    if ("dataQuality" in body) {
+      if (typeof body.dataQuality !== "string" || !DATA_QUALITY_OPTIONS.includes(body.dataQuality)) {
+        return jsonError("dataQuality is invalid.", 400);
+      }
+
+      update.data_quality = body.dataQuality;
+    }
+
+    if ("vehicleType" in body || "vehicle_type" in body) {
+      const value = body.vehicleType ?? body.vehicle_type;
+
+      if (typeof value !== "string" || !VEHICLE_TYPE_OPTIONS.includes(value as VehicleType)) {
+        return jsonError("vehicleType is invalid.", 400);
+      }
+
+      update.vehicle_type = value;
+    }
+
+    if ("notes" in body) {
+      if (typeof body.notes !== "string") {
+        return jsonError("notes must be a string.", 400);
+      }
+
+      update.notes = body.notes.trim() || null;
+    }
+
+    if (
+      !("featured" in update) &&
+      !("visible" in update) &&
+      !("data_quality" in update) &&
+      !("vehicle_type" in update) &&
+      !("notes" in update)
+    ) {
+      return jsonError("No supported fields to update.", 400);
     }
 
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("events")
-      .update({ featured: body.featured, updated_at: new Date().toISOString() })
+      .update(update)
       .eq("id", body.id)
       .select(ADMIN_EVENT_SELECT)
       .single();

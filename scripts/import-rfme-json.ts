@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { getVehicleType } from "../lib/event-classification";
 import { createEventSlug } from "../lib/slug";
 
 type ManualRfmeEvent = {
@@ -25,6 +26,8 @@ type ManualRfmeEvent = {
   visible?: boolean;
   importMethod?: string;
   dataQuality?: string;
+  vehicleType?: string;
+  vehicle_type?: string;
   notes?: string;
 };
 
@@ -45,6 +48,7 @@ type EventUpsert = {
   source_url: string;
   ticket_url: string;
   tags: string[];
+  vehicle_type: string;
   featured: boolean;
   visible: boolean;
   import_method: string;
@@ -143,6 +147,12 @@ function validateManualEvent(value: unknown, index: number): ManualRfmeEvent {
       typeof value.dataQuality === "string" && value.dataQuality.trim()
         ? value.dataQuality.trim()
         : "reviewed",
+    vehicleType:
+      typeof value.vehicleType === "string" && value.vehicleType.trim()
+        ? value.vehicleType.trim()
+        : typeof value.vehicle_type === "string" && value.vehicle_type.trim()
+          ? value.vehicle_type.trim()
+          : undefined,
     notes: typeof value.notes === "string" && value.notes.trim() ? value.notes.trim() : undefined,
   };
 }
@@ -197,6 +207,7 @@ function toEventUpsert(event: ManualRfmeEvent, updatedAt: string): EventUpsert {
     source_url: event.sourceUrl,
     ticket_url: event.ticketUrl || "",
     tags: withImportTags(event.tags, event.discipline),
+    vehicle_type: getVehicleType(event),
     featured: Boolean(event.featured),
     visible: event.visible !== false,
     import_method: event.importMethod || "rfme-json",

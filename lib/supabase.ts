@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getVehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
 import type { EventItem } from "@/types/event";
 
@@ -19,6 +20,7 @@ export type EventRow = {
   source_url: string | null;
   ticket_url: string | null;
   tags: string[] | null;
+  vehicle_type: string | null;
   featured: boolean | null;
   visible: boolean | null;
   import_method: string | null;
@@ -45,6 +47,7 @@ export type EventUpsert = {
   source_url?: string | null;
   ticket_url?: string | null;
   tags?: string[] | null;
+  vehicle_type?: string | null;
   featured?: boolean | null;
   visible?: boolean | null;
   import_method?: string | null;
@@ -92,6 +95,15 @@ export function createSupabaseServerClient(): SupabaseClient<Database> | null {
 }
 
 export function mapEventRowToEventItem(row: EventRow): EventItem {
+  const vehicleType = getVehicleType({
+    title: row.title,
+    championship: row.championship || undefined,
+    discipline: row.discipline || undefined,
+    tags: row.tags || undefined,
+    source: row.source || undefined,
+    vehicle_type: row.vehicle_type,
+  });
+
   return {
     id: row.id,
     slug: row.slug || createEventSlug(row.title, row.start_date),
@@ -109,6 +121,8 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     sourceUrl: row.source_url || "",
     ticketUrl: row.ticket_url || "",
     tags: row.tags?.length ? row.tags : [row.discipline || "Motociclismo"],
+    vehicleType,
+    vehicle_type: vehicleType,
     featured: Boolean(row.featured),
     visible: row.visible !== false,
     importMethod: row.import_method || "",

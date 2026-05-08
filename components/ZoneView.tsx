@@ -1,13 +1,17 @@
 import EventCard from "@/components/EventCard";
 import type { EventItem } from "@/types/event";
 
-export default function ZoneView({ items, setRegion, onOpen }: {
+export default function ZoneView({
+  items,
+  setRegion,
+  onOpen,
+}: {
   items: EventItem[];
   setRegion: (region: string) => void;
   onOpen: (event: EventItem) => void;
 }) {
   const counts = items.reduce<Record<string, number>>((acc, event) => {
-    acc[event.region] = (acc[event.region] || 0) + 1;
+    acc[event.province] = (acc[event.province] || 0) + 1;
     return acc;
   }, {});
 
@@ -15,19 +19,20 @@ export default function ZoneView({ items, setRegion, onOpen }: {
 
   return (
     <section className="mt-6 grid gap-5 lg:grid-cols-[360px_1fr]">
-      <aside className="rounded-3xl border border-white/10 bg-white/5 p-5">
-        <p className="text-sm font-bold uppercase tracking-widest text-orange-200">Zonas</p>
-        <h3 className="mt-2 text-2xl font-black text-white">Mapa rápido de actividad</h3>
+      <aside className="rounded-2xl border border-white/[0.08] bg-[#15161A]/78 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-red-300">Zonas</p>
+        <h3 className="mt-2 text-2xl font-semibold text-white">Mapa rápido de actividad</h3>
 
         <div className="mt-5 space-y-2">
           {zones.map(([name, count]) => (
             <button
+              className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-black/25 px-4 py-3 text-left transition hover:border-red-500/35 hover:bg-white/[0.045]"
               key={name}
               onClick={() => setRegion(name)}
-              className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-left hover:bg-white/10"
+              type="button"
             >
-              <span className="font-bold text-white">{name}</span>
-              <span className="rounded-full bg-orange-300 px-3 py-1 text-xs font-black text-zinc-950">
+              <span className="font-semibold text-white">{name}</span>
+              <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-bold text-red-100">
                 {count}
               </span>
             </button>

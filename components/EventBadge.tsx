@@ -1,10 +1,10 @@
-import { cls, COLORS } from "@/lib/date-utils";
+import { getDisciplineColor } from "@/lib/date-utils";
 
 export default function EventBadge({ discipline }: { discipline: string }) {
-  const color = COLORS[discipline] || COLORS.Motociclismo;
+  const color = getDisciplineColor(discipline);
 
   return (
-    <span className={cls("rounded-full border px-3 py-1 text-xs font-black", color)}>
+    <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${color.badge}`}>
       {discipline}
     </span>
   );

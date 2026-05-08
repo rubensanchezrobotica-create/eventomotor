@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { getVehicleType } from "../lib/event-classification";
 import { FALLBACK_EVENTS } from "../lib/fallback-events";
 import { createEventSlug } from "../lib/slug";
 import type { EventItem } from "../types/event";
@@ -21,6 +22,7 @@ type EventInsert = {
   source_url: string;
   ticket_url: string;
   tags: string[];
+  vehicle_type: string;
   featured: boolean;
   visible: boolean;
   import_method: string;
@@ -59,6 +61,7 @@ function toEventInsert(event: EventItem, updatedAt: string): EventInsert {
     source_url: event.sourceUrl,
     ticket_url: event.ticketUrl,
     tags: event.tags,
+    vehicle_type: getVehicleType(event),
     featured: event.featured,
     visible: true,
     import_method: "fallback-seed",

@@ -1,5 +1,6 @@
 import type { EventItem } from "@/types/event";
 import { isDateText, parseDate } from "@/lib/date-utils";
+import { getVehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
 
 function slugify(text: string) {
@@ -27,7 +28,7 @@ export function normalizeRemoteEvent(raw: unknown, index: number): EventItem | n
   const city = String(record.city || record.locality || "Por confirmar").trim();
   const province = String(record.province || record.state || "Por confirmar").trim();
 
-  return {
+  const event = {
     id: String(record.id || `${slugify(title)}-${start}-${index}`),
     slug: String(record.slug || createEventSlug(title, start)),
     title,
@@ -44,7 +45,17 @@ export function normalizeRemoteEvent(raw: unknown, index: number): EventItem | n
     sourceUrl: String(record.sourceUrl || record.url || ""),
     ticketUrl: String(record.ticketUrl || record.ticketsUrl || ""),
     tags: Array.isArray(record.tags) ? record.tags.map(String) : [discipline],
+    vehicleType: String(record.vehicleType || record.vehicle_type || ""),
+    vehicle_type: String(record.vehicle_type || record.vehicleType || ""),
     featured: Boolean(record.featured),
+  };
+
+  const vehicleType = getVehicleType(event);
+
+  return {
+    ...event,
+    vehicleType,
+    vehicle_type: vehicleType,
   };
 }
 

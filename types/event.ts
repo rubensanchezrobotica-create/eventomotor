@@ -17,6 +17,8 @@ export interface EventItem {
   sourceUrl: string;
   ticketUrl: string;
   tags: string[];
+  vehicleType?: string;
+  vehicle_type?: string;
   featured: boolean;
   visible?: boolean;
   importMethod?: string;
