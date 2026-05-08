@@ -3,14 +3,18 @@ import type { EventItem } from "@/types/event";
 export type VehicleType = "moto" | "coche" | "mixto" | "karting" | "otros";
 
 type NullableEventFields = {
-  [Key in keyof Pick<EventItem, "title" | "championship" | "discipline" | "tags" | "source" | "vehicleType">]?:
-    | EventItem[Key]
-    | null;
-};
-
-type EventLike = NullableEventFields & {
+  [Key in Extract<
+    keyof EventItem,
+    "title" | "championship" | "discipline" | "tags" | "source" | "source_url" | "vehicle_type"
+  >]?: EventItem[Key] | null;
+} & {
+  vehicleType?: string | null;
+  sourceUrl?: string | null;
+  importMethod?: string | null;
   vehicle_type?: string | null;
 };
+
+type EventLike = NullableEventFields;
 
 export const VEHICLE_TYPE_OPTIONS: VehicleType[] = ["moto", "coche", "mixto", "karting", "otros"];
 
