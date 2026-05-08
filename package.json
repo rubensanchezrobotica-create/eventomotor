@@ -8,6 +8,8 @@
     "seed:events": "tsx scripts/seed-events.ts",
     "import:rfme-json": "tsx scripts/import-rfme-json.ts",
     "import:concentraciones": "tsx scripts/import-concentraciones-seed.ts",
+    "import:rallyes-coches": "tsx scripts/import-rallyes-coches-seed.ts",
+    "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
     "lint": "eslint"
