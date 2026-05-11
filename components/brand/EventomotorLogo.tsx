@@ -32,7 +32,7 @@ export default function EventomotorLogo({
 
   return (
     <picture>
-      {compactOnMobile ? <source media="(max-width: 640px)" srcSet={MARK_LOGO} /> : null}
+      {compactOnMobile ? <source media="(max-width: 640px)" srcSet={DARK_HEADER_LOGO} /> : null}
       <img
         alt="EventoMotor"
         className={logoClassName}

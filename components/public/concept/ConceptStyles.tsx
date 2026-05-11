@@ -1734,9 +1734,9 @@ export default function ConceptStyles() {
   .emc-location-menu summary { width: 100%; min-width: 0; }
   .emc-location-popover { left: 0; right: auto; width: 100%; }
   .emc-nav-actions .emc-btn-primary { min-height: 42px; padding: 10px 13px; border-radius: 16px; font-size: 13px; }
-  .emc-brand-logo { width: 40px; min-width: 40px; min-height: 40px; padding: 0; overflow: visible; }
-  .emc-brand-logo picture { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
-  .emc-brand-logo .em-logo-horizontal { width: 36px; height: 36px; max-width: 36px; object-fit: contain; }
+  .emc-brand-logo { width: min(48vw, 176px); min-width: 138px; min-height: 40px; padding: 0; overflow: visible; justify-content: flex-start; }
+  .emc-brand-logo picture { display: flex; align-items: center; justify-content: flex-start; width: 100%; height: 40px; }
+  .emc-brand-logo .em-logo-horizontal { width: 100%; height: 34px; max-width: 176px; object-fit: contain; object-position: left center; }
   .em-logo-mark { height: 36px; width: 36px; object-fit: contain; }
   .emc-hero { padding-top: 20px; }
   .emc-hero:before { width: 260px; height: 260px; right: -90px; top: 52px; opacity: .34; }
@@ -1821,10 +1821,44 @@ export default function ConceptStyles() {
   .emc-day-modal-head-side .emc-badge { display: none; }
   .emc-day-modal-filters { margin-top: 10px; }
   .emc-day-modal-close { width: 40px; height: 40px; }
+  .emc-day-modal-list { gap: 18px; }
   .emc-event-row { grid-template-columns: 1fr; }
-  .emc-modal-event-row { grid-template-columns: 1fr; }
+  .emc-modal-event-row {
+    grid-template-columns: 1fr;
+    gap: 13px;
+    padding: 16px;
+    border-radius: 24px;
+    border-color: rgba(255,255,255,.13);
+    background:
+      radial-gradient(circle at 94% 0%, rgba(255,59,0,.12), transparent 34%),
+      linear-gradient(180deg, rgba(13,19,30,.96), rgba(8,12,20,.98));
+    box-shadow: 0 16px 46px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .emc-modal-event-row .emc-datebox {
+    display: inline-flex;
+    width: fit-content;
+    min-width: 0;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,.92);
+    font-size: 13px;
+    line-height: 1;
+  }
+  .emc-modal-event-row .emc-datebox small {
+    display: inline;
+    margin-top: 0;
+    font-size: 10px;
+    color: #5f6978;
+  }
+  .emc-modal-event-row .emc-event-chipline { margin-bottom: 9px; }
+  .emc-modal-event-row h4 { font-size: 18px; line-height: 1.16; margin-bottom: 8px; }
+  .emc-modal-event-row p { line-height: 1.45; }
   .emc-event-actions { align-items: stretch; }
-  .emc-event-actions .emc-card-action, .emc-event-actions .emc-ticket-action { justify-content: center; }
+  .emc-modal-event-row .emc-event-actions { display: grid; grid-template-columns: 1fr; gap: 9px; margin-top: 2px; }
+  .emc-event-actions .emc-card-action, .emc-event-actions .emc-ticket-action { justify-content: center; min-height: 40px; align-items: center; }
+  .emc-modal-event-row .emc-ticket-action { order: -1; }
   .emc-status { display: none; }
 }
 @media (max-width: 360px) {
