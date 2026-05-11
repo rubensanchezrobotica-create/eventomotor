@@ -1746,13 +1746,14 @@ export default function ConceptStyles() {
   .emc-event-hero { padding-top: 130px; }
   .emc-event-hero h1 { letter-spacing: -3px; }
   .emc-page h1 { letter-spacing: -3px; }
+  .emc-hero .emc-eyebrow { display: none; }
   .emc-hero-copy { font-size: 17px; }
   .emc-hero-search {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 24px;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 22px;
   }
   .emc-hero-decision-row,
   .emc-hero-fields {
@@ -1765,17 +1766,18 @@ export default function ConceptStyles() {
   .emc-date-quick-row { order: 5; }
   .emc-hero-fields .emc-btn { order: 6; }
   .emc-hero-location-card { order: 7; }
-  .emc-control-label { margin-bottom: 6px; }
+  .emc-control-label { margin-bottom: 5px; font-size: 10px; }
   .emc-vehicle-tabs-hero { min-height: 48px; border-radius: 18px; padding: 5px; }
   .emc-vehicle-tabs-hero button { min-height: 36px; border-radius: 13px; font-size: 13px; }
-  .emc-field { padding: 10px 12px; border-radius: 16px; }
+  .emc-field { padding: 9px 11px; border-radius: 15px; }
   .emc-field label { margin-bottom: 5px; font-size: 9px; }
   .emc-field input, .emc-field select { min-height: 24px; font-size: 14px; }
   .emc-hero-search .emc-btn { min-height: 44px; border-radius: 15px; }
   .emc-date-quick-row {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 2px;
+    margin-inline: -10px;
+    padding: 0 10px 2px;
     gap: 6px;
     scrollbar-width: none;
   }
@@ -1783,15 +1785,17 @@ export default function ConceptStyles() {
   .emc-date-quick-row button {
     min-height: 34px;
     flex: 0 0 auto;
-    padding: 0 10px;
+    padding: 0 12px;
     font-size: 11px;
     white-space: nowrap;
   }
-  .emc-hero-location-actions { gap: 6px; }
-  .emc-location-trigger { min-height: 44px; border-radius: 16px; grid-template-columns: 32px minmax(0, 1fr); padding: 6px 10px 6px 6px; }
-  .emc-location-trigger span { width: 32px; height: 32px; border-radius: 12px; }
-  .emc-location-trigger strong { font-size: 13px; }
-  .emc-location-trigger small { font-size: 11px; }
+  .emc-hero-location-card .emc-control-label { display: none; }
+  .emc-hero-location-actions { gap: 6px; align-items: center; }
+  .emc-location-trigger { min-height: 38px; border-radius: 999px; grid-template-columns: 24px minmax(0, 1fr); padding: 5px 10px 5px 6px; background: rgba(255,59,0,.10); border-color: rgba(255,59,0,.22); }
+  .emc-location-trigger span { width: 24px; height: 24px; border-radius: 999px; font-size: 12px; }
+  .emc-location-trigger strong { font-size: 12px; }
+  .emc-location-trigger small { display: none; }
+  .emc-location-clear { min-height: 34px; border-radius: 999px; padding: 0 10px; font-size: 11px; }
   .emc-metrics-strip, .emc-summary-grid, .emc-intent-grid, .emc-checks, .emc-hero-fields, .emc-hero-decision-row, .emc-results-grid, .emc-zone-card-grid, .emc-nearby-grid, .emc-event-info-grid, .emc-internal-links, .emc-discipline-grid, .emc-zone-explorer-grid { grid-template-columns: 1fr; }
   .emc-discipline-section { padding-top: 34px; }
   .emc-discipline-card { min-height: 220px; padding: 18px; border-radius: 26px; }
@@ -1834,12 +1838,13 @@ export default function ConceptStyles() {
   .emc-vehicle-tabs-calendar { min-width: 0; width: 100%; }
   .emc-calendar-fields { grid-template-columns: 1fr; }
   .emc-calendar-panel { padding: 14px; border-radius: 26px; }
-  .emc-calendar-toolbar { display: block; margin-bottom: 12px; }
-  .emc-month-title h3 { font-size: 26px; letter-spacing: -.8px; }
-  .emc-month-title p { font-size: 13px; }
-  .emc-month-actions { margin-top: 12px; display: grid; grid-template-columns: 42px 42px minmax(0, 1fr); gap: 8px; }
-  .emc-month-actions .emc-btn { min-height: 42px; justify-content: center; padding: 0 12px; }
-  .emc-calendar-legend { gap: 5px 8px; margin-bottom: 8px; font-size: 10px; line-height: 1.2; }
+  .emc-calendar-toolbar { display: block; margin-bottom: 10px; }
+  .emc-month-title h3 { font-size: 24px; letter-spacing: -.7px; }
+  .emc-month-title p { font-size: 12px; margin-top: 2px; }
+  .emc-month-actions { margin-top: 9px; display: grid; grid-template-columns: 38px 38px minmax(0, 92px); gap: 7px; justify-content: start; }
+  .emc-month-actions .emc-icon { width: 38px; height: 38px; border-radius: 12px; }
+  .emc-month-actions .emc-btn { min-height: 38px; justify-content: center; padding: 0 10px; border-radius: 13px; font-size: 12px; }
+  .emc-calendar-legend { gap: 4px 7px; margin-bottom: 7px; font-size: 9.5px; line-height: 1.2; }
   .emc-calendar-legend span { gap: 5px; }
   .emc-calendar-legend i { width: 6px; height: 6px; box-shadow: 0 0 0 2px rgba(255,255,255,.04); }
   .emc-zone-finder { padding: 16px; border-radius: 28px; }
@@ -1855,7 +1860,7 @@ export default function ConceptStyles() {
   .emc-day { min-height: 62px; border-radius: 14px; padding: 7px; }
   .emc-day.emc-has { background: linear-gradient(180deg, rgba(255,59,0,.12), rgba(8,12,20,.94)); border-color: rgba(255,91,31,.34); }
   .emc-day-number { font-size: 15px; line-height: 1; }
-  .emc-day small { right: 5px; top: 5px; min-width: 16px; height: 16px; font-size: 8px; box-shadow: 0 5px 12px rgba(0,0,0,.16); }
+  .emc-day small { right: 5px; top: 5px; min-width: 15px; height: 15px; background: rgba(255,91,31,.20); border: 1px solid rgba(255,91,31,.30); color: #ffd0bf; font-size: 8px; box-shadow: none; }
   .emc-dots { left: 7px; right: 7px; bottom: 7px; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
   .emc-edot { width: 5px; height: 5px; flex: 0 0 5px; }
   .emc-dots .emc-edot:nth-child(n+3) { display: none; }
