@@ -1747,6 +1747,51 @@ export default function ConceptStyles() {
   .emc-event-hero h1 { letter-spacing: -3px; }
   .emc-page h1 { letter-spacing: -3px; }
   .emc-hero-copy { font-size: 17px; }
+  .emc-hero-search {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 24px;
+  }
+  .emc-hero-decision-row,
+  .emc-hero-fields {
+    display: contents;
+  }
+  .emc-hero-decision-row > div:first-child { order: 1; }
+  .emc-hero-fields .emc-field:nth-child(1) { order: 2; }
+  .emc-hero-fields .emc-field:nth-child(2) { order: 3; }
+  .emc-hero-fields .emc-field:nth-child(3) { order: 4; }
+  .emc-date-quick-row { order: 5; }
+  .emc-hero-fields .emc-btn { order: 6; }
+  .emc-hero-location-card { order: 7; }
+  .emc-control-label { margin-bottom: 6px; }
+  .emc-vehicle-tabs-hero { min-height: 48px; border-radius: 18px; padding: 5px; }
+  .emc-vehicle-tabs-hero button { min-height: 36px; border-radius: 13px; font-size: 13px; }
+  .emc-field { padding: 10px 12px; border-radius: 16px; }
+  .emc-field label { margin-bottom: 5px; font-size: 9px; }
+  .emc-field input, .emc-field select { min-height: 24px; font-size: 14px; }
+  .emc-hero-search .emc-btn { min-height: 44px; border-radius: 15px; }
+  .emc-date-quick-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+  .emc-date-quick-row::-webkit-scrollbar { display: none; }
+  .emc-date-quick-row button {
+    min-height: 34px;
+    flex: 0 0 auto;
+    padding: 0 10px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .emc-hero-location-actions { gap: 6px; }
+  .emc-location-trigger { min-height: 44px; border-radius: 16px; grid-template-columns: 32px minmax(0, 1fr); padding: 6px 10px 6px 6px; }
+  .emc-location-trigger span { width: 32px; height: 32px; border-radius: 12px; }
+  .emc-location-trigger strong { font-size: 13px; }
+  .emc-location-trigger small { font-size: 11px; }
   .emc-metrics-strip, .emc-summary-grid, .emc-intent-grid, .emc-checks, .emc-hero-fields, .emc-hero-decision-row, .emc-results-grid, .emc-zone-card-grid, .emc-nearby-grid, .emc-event-info-grid, .emc-internal-links, .emc-discipline-grid, .emc-zone-explorer-grid { grid-template-columns: 1fr; }
   .emc-discipline-section { padding-top: 34px; }
   .emc-discipline-card { min-height: 220px; padding: 18px; border-radius: 26px; }
@@ -1794,8 +1839,9 @@ export default function ConceptStyles() {
   .emc-month-title p { font-size: 13px; }
   .emc-month-actions { margin-top: 12px; display: grid; grid-template-columns: 42px 42px minmax(0, 1fr); gap: 8px; }
   .emc-month-actions .emc-btn { min-height: 42px; justify-content: center; padding: 0 12px; }
-  .emc-calendar-legend { gap: 7px 10px; margin-bottom: 10px; font-size: 11px; line-height: 1.25; }
-  .emc-calendar-legend i { width: 7px; height: 7px; box-shadow: 0 0 0 2px rgba(255,255,255,.05); }
+  .emc-calendar-legend { gap: 5px 8px; margin-bottom: 8px; font-size: 10px; line-height: 1.2; }
+  .emc-calendar-legend span { gap: 5px; }
+  .emc-calendar-legend i { width: 6px; height: 6px; box-shadow: 0 0 0 2px rgba(255,255,255,.04); }
   .emc-zone-finder { padding: 16px; border-radius: 28px; }
   .emc-zone-finder-head { display: block; }
   .emc-zone-finder-head span { display: inline-flex; margin-top: 10px; max-width: 100%; }
@@ -1806,12 +1852,13 @@ export default function ConceptStyles() {
   .emc-weekdays, .emc-month { gap: 5px; }
   .emc-weekdays { margin-bottom: 7px; }
   .emc-weekdays div { font-size: 11px; }
-  .emc-day { min-height: 68px; border-radius: 15px; padding: 8px; }
+  .emc-day { min-height: 62px; border-radius: 14px; padding: 7px; }
+  .emc-day.emc-has { background: linear-gradient(180deg, rgba(255,59,0,.12), rgba(8,12,20,.94)); border-color: rgba(255,91,31,.34); }
   .emc-day-number { font-size: 15px; line-height: 1; }
-  .emc-day small { right: 6px; top: 6px; min-width: 18px; height: 18px; font-size: 9px; box-shadow: 0 6px 14px rgba(0,0,0,.18); }
-  .emc-dots { left: 8px; right: 8px; bottom: 8px; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+  .emc-day small { right: 5px; top: 5px; min-width: 16px; height: 16px; font-size: 8px; box-shadow: 0 5px 12px rgba(0,0,0,.16); }
+  .emc-dots { left: 7px; right: 7px; bottom: 7px; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
   .emc-edot { width: 5px; height: 5px; flex: 0 0 5px; }
-  .emc-dots .emc-edot:nth-child(n+4) { display: none; }
+  .emc-dots .emc-edot:nth-child(n+3) { display: none; }
   .emc-day-modal { align-items: end; padding: 0; }
   .emc-day-modal-panel { width: 100%; max-height: 85vh; border-radius: 28px 28px 0 0; padding: 0 16px 18px; }
   .emc-day-modal-panel:before { content: ""; position: sticky; top: 0; z-index: 6; display: block; width: 44px; height: 4px; margin: 0 auto; border-radius: 999px; background: rgba(255,255,255,.22); transform: translateY(12px); }
