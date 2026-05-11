@@ -1751,9 +1751,9 @@ export default function ConceptStyles() {
   .emc-hero-search {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    border-radius: 22px;
+    gap: 7px;
+    padding: 9px;
+    border-radius: 21px;
   }
   .emc-hero-decision-row,
   .emc-hero-fields {
@@ -1766,18 +1766,18 @@ export default function ConceptStyles() {
   .emc-date-quick-row { order: 5; }
   .emc-hero-fields .emc-btn { order: 6; }
   .emc-hero-location-card { order: 7; }
-  .emc-control-label { margin-bottom: 5px; font-size: 10px; }
-  .emc-vehicle-tabs-hero { min-height: 48px; border-radius: 18px; padding: 5px; }
+  .emc-control-label { margin-bottom: 4px; font-size: 9px; }
+  .emc-vehicle-tabs-hero { min-height: 46px; border-radius: 17px; padding: 5px; }
   .emc-vehicle-tabs-hero button { min-height: 36px; border-radius: 13px; font-size: 13px; }
-  .emc-field { padding: 9px 11px; border-radius: 15px; }
-  .emc-field label { margin-bottom: 5px; font-size: 9px; }
+  .emc-field { padding: 8px 10px; border-radius: 15px; }
+  .emc-field label { margin-bottom: 4px; font-size: 9px; }
   .emc-field input, .emc-field select { min-height: 24px; font-size: 14px; }
   .emc-hero-search .emc-btn { min-height: 44px; border-radius: 15px; }
   .emc-date-quick-row {
     flex-wrap: nowrap;
     overflow-x: auto;
     margin-inline: -10px;
-    padding: 0 10px 2px;
+    padding: 0 16px 2px 10px;
     gap: 6px;
     scrollbar-width: none;
   }
@@ -1789,19 +1789,52 @@ export default function ConceptStyles() {
     font-size: 11px;
     white-space: nowrap;
   }
+  .emc-date-quick-row button:nth-child(2),
+  .emc-date-quick-row button:nth-child(4) { font-size: 0; }
+  .emc-date-quick-row button:nth-child(2)::after,
+  .emc-date-quick-row button:nth-child(4)::after { font-size: 11px; }
+  .emc-date-quick-row button:nth-child(2)::after { content: "Finde"; }
+  .emc-date-quick-row button:nth-child(4)::after { content: "30 días"; }
   .emc-hero-location-card .emc-control-label { display: none; }
   .emc-hero-location-actions { gap: 6px; align-items: center; }
   .emc-location-trigger { min-height: 38px; border-radius: 999px; grid-template-columns: 24px minmax(0, 1fr); padding: 5px 10px 5px 6px; background: rgba(255,59,0,.10); border-color: rgba(255,59,0,.22); }
   .emc-location-trigger span { width: 24px; height: 24px; border-radius: 999px; font-size: 12px; }
   .emc-location-trigger strong { font-size: 12px; }
+  .emc-hero-location-card:has(.emc-location-clear) .emc-location-trigger strong { font-size: 0; }
+  .emc-hero-location-card:has(.emc-location-clear) .emc-location-trigger strong::before { content: "Cerca de ti activo"; font-size: 12px; }
   .emc-location-trigger small { display: none; }
   .emc-location-clear { min-height: 34px; border-radius: 999px; padding: 0 10px; font-size: 11px; }
   .emc-metrics-strip, .emc-summary-grid, .emc-intent-grid, .emc-checks, .emc-hero-fields, .emc-hero-decision-row, .emc-results-grid, .emc-zone-card-grid, .emc-nearby-grid, .emc-event-info-grid, .emc-internal-links, .emc-discipline-grid, .emc-zone-explorer-grid { grid-template-columns: 1fr; }
   .emc-discipline-section { padding-top: 34px; }
-  .emc-discipline-card { min-height: 220px; padding: 18px; border-radius: 26px; }
-  .emc-discipline-body strong { font-size: 28px; }
-  .emc-discipline-body small { font-size: 13px; }
+  .emc-discipline-card { min-height: 190px; padding: 16px; border-radius: 24px; }
+  .emc-discipline-body strong { font-size: 25px; }
+  .emc-discipline-body small { font-size: 12px; line-height: 1.4; }
   .emc-zone-explorer-card { min-height: 164px; }
+  .emc-pro-panel {
+    padding: 24px;
+    border-radius: 28px;
+    gap: 22px;
+  }
+  .emc-pro-copy { margin-top: 12px; line-height: 1.5; }
+  .emc-pro-actions { margin-top: 16px; }
+  .emc-checks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .emc-check {
+    min-height: 88px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .emc-check strong {
+    font-size: clamp(15px, 4vw, 18px);
+    line-height: 1.08;
+  }
+  .emc-check span {
+    margin-top: 7px;
+    font-size: 11px;
+    line-height: 1.32;
+  }
   .emc-footer-links { grid-template-columns: 1fr; }
   .emc-event-summary-card, .emc-event-info-item { border-radius: 24px; }
   .emc-event-media-card { border-radius: 24px; }
@@ -1860,7 +1893,7 @@ export default function ConceptStyles() {
   .emc-day { min-height: 62px; border-radius: 14px; padding: 7px; }
   .emc-day.emc-has { background: linear-gradient(180deg, rgba(255,59,0,.12), rgba(8,12,20,.94)); border-color: rgba(255,91,31,.34); }
   .emc-day-number { font-size: 15px; line-height: 1; }
-  .emc-day small { right: 5px; top: 5px; min-width: 15px; height: 15px; background: rgba(255,91,31,.20); border: 1px solid rgba(255,91,31,.30); color: #ffd0bf; font-size: 8px; box-shadow: none; }
+  .emc-day small { right: 5px; top: 5px; min-width: 14px; height: 14px; background: rgba(255,91,31,.18); border: 1px solid rgba(255,91,31,.30); color: #ffd1c2; font-size: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
   .emc-dots { left: 7px; right: 7px; bottom: 7px; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
   .emc-edot { width: 5px; height: 5px; flex: 0 0 5px; }
   .emc-dots .emc-edot:nth-child(n+3) { display: none; }
