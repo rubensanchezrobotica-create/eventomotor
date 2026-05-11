@@ -1727,16 +1727,17 @@ export default function ConceptStyles() {
 }
 @media (max-width: 760px) {
   .emc-navlinks, .emc-nav-actions .emc-btn-dark { display: none; }
-  .emc-header-shell { top: 10px; border-radius: 24px; }
-  .emc-nav { min-height: 50px; padding-left: 6px; }
+  .emc-header-shell { top: 10px; width: min(94vw, 520px); padding: 8px; border-radius: 22px; }
+  .emc-nav { min-height: 48px; padding: 0 4px; gap: 10px; }
   .emc-filter-rail { display: grid; grid-template-columns: 1fr; gap: 9px; }
   .emc-location-menu { margin-left: 0; }
   .emc-location-menu summary { width: 100%; min-width: 0; }
   .emc-location-popover { left: 0; right: auto; width: 100%; }
-  .emc-nav-actions .emc-btn-primary { padding: 11px 13px; }
-  .emc-brand-logo { min-height: 38px; padding: 0; }
-  .em-logo-horizontal { height: 34px; max-width: 168px; }
-  .em-logo-mark { height: 34px; width: 34px; }
+  .emc-nav-actions .emc-btn-primary { min-height: 42px; padding: 10px 13px; border-radius: 16px; font-size: 13px; }
+  .emc-brand-logo { width: 40px; min-width: 40px; min-height: 40px; padding: 0; overflow: visible; }
+  .emc-brand-logo picture { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+  .emc-brand-logo .em-logo-horizontal { width: 36px; height: 36px; max-width: 36px; object-fit: contain; }
+  .em-logo-mark { height: 36px; width: 36px; object-fit: contain; }
   .emc-hero { padding-top: 20px; }
   .emc-hero:before { width: 260px; height: 260px; right: -90px; top: 52px; opacity: .34; }
   .emc-hero-visual { inset: -40px -28% auto 22%; height: 360px; opacity: .14; filter: saturate(.9) contrast(.95); }
@@ -1787,8 +1788,14 @@ export default function ConceptStyles() {
   .emc-calendar-vehicle-row .emc-vehicle-tabs { margin-top: 8px; }
   .emc-vehicle-tabs-calendar { min-width: 0; width: 100%; }
   .emc-calendar-fields { grid-template-columns: 1fr; }
-  .emc-calendar-toolbar { display: block; }
-  .emc-month-actions { margin-top: 14px; flex-wrap: wrap; }
+  .emc-calendar-panel { padding: 14px; border-radius: 26px; }
+  .emc-calendar-toolbar { display: block; margin-bottom: 12px; }
+  .emc-month-title h3 { font-size: 26px; letter-spacing: -.8px; }
+  .emc-month-title p { font-size: 13px; }
+  .emc-month-actions { margin-top: 12px; display: grid; grid-template-columns: 42px 42px minmax(0, 1fr); gap: 8px; }
+  .emc-month-actions .emc-btn { min-height: 42px; justify-content: center; padding: 0 12px; }
+  .emc-calendar-legend { gap: 7px 10px; margin-bottom: 10px; font-size: 11px; line-height: 1.25; }
+  .emc-calendar-legend i { width: 7px; height: 7px; box-shadow: 0 0 0 2px rgba(255,255,255,.05); }
   .emc-zone-finder { padding: 16px; border-radius: 28px; }
   .emc-zone-finder-head { display: block; }
   .emc-zone-finder-head span { display: inline-flex; margin-top: 10px; max-width: 100%; }
@@ -1796,11 +1803,15 @@ export default function ConceptStyles() {
   .emc-micro-dot { width: 40px; height: 40px; font-size: 12px; }
   .emc-section-head p, .emc-zone-board-head p { margin-top: 16px; }
   .emc-zone-board { min-height: auto; }
-  .emc-day { min-height: 72px; border-radius: 16px; padding: 9px; }
-  .emc-day-number { font-size: 17px; }
-  .emc-day small { right: 7px; top: 7px; min-width: 22px; height: 22px; font-size: 10px; }
-  .emc-dots { left: 9px; right: 9px; bottom: 9px; gap: 4px; }
-  .emc-edot { width: 6px; height: 6px; }
+  .emc-weekdays, .emc-month { gap: 5px; }
+  .emc-weekdays { margin-bottom: 7px; }
+  .emc-weekdays div { font-size: 11px; }
+  .emc-day { min-height: 68px; border-radius: 15px; padding: 8px; }
+  .emc-day-number { font-size: 15px; line-height: 1; }
+  .emc-day small { right: 6px; top: 6px; min-width: 18px; height: 18px; font-size: 9px; box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+  .emc-dots { left: 8px; right: 8px; bottom: 8px; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+  .emc-edot { width: 5px; height: 5px; flex: 0 0 5px; }
+  .emc-dots .emc-edot:nth-child(n+4) { display: none; }
   .emc-day-modal { align-items: end; padding: 0; }
   .emc-day-modal-panel { width: 100%; max-height: 85vh; border-radius: 28px 28px 0 0; padding: 0 16px 18px; }
   .emc-day-modal-panel:before { content: ""; position: sticky; top: 0; z-index: 6; display: block; width: 44px; height: 4px; margin: 0 auto; border-radius: 999px; background: rgba(255,255,255,.22); transform: translateY(12px); }
@@ -1815,6 +1826,10 @@ export default function ConceptStyles() {
   .emc-event-actions { align-items: stretch; }
   .emc-event-actions .emc-card-action, .emc-event-actions .emc-ticket-action { justify-content: center; }
   .emc-status { display: none; }
+}
+@media (max-width: 360px) {
+  .emc-calendar-panel { overflow-x: auto; }
+  .emc-weekdays, .emc-month { min-width: 340px; }
 }
 `}</style>
   );
