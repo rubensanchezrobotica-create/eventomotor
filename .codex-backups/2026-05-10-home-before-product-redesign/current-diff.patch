@@ -1,0 +1,1732 @@
+﻿diff --git a/components/public/concept/ConceptCalendar.tsx b/components/public/concept/ConceptCalendar.tsx
+index 0da3d41..99003ed 100644
+--- a/components/public/concept/ConceptCalendar.tsx
++++ b/components/public/concept/ConceptCalendar.tsx
+@@ -1,9 +1,17 @@
+ import Link from "next/link";
+ import { MONTHS, TODAY, WEEK_DAYS, formatRange, getDisciplineColor, isOnDay } from "@/lib/date-utils";
+ import type { EventItem } from "@/types/event";
+-import type { ConceptIntent, ConceptZone } from "./concept-model";
++import type { ConceptZone } from "./concept-model";
+ import { dayLabel, eventHref } from "./concept-model";
+ 
++type VehicleMainFilter = "todos" | "moto" | "coche";
++
++const VEHICLE_FILTERS: Array<{ id: VehicleMainFilter; label: string }> = [
++  { id: "todos", label: "Todos" },
++  { id: "moto", label: "Motos" },
++  { id: "coche", label: "Coches" },
++];
++
+ type ConceptCalendarProps = {
+   year: number;
+   month: number;
+@@ -20,14 +28,13 @@ type ConceptCalendarProps = {
+   query: string;
+   discipline: string;
+   zone: string;
++  vehicleFilter: VehicleMainFilter;
+   disciplines: string[];
+   zones: ConceptZone[];
+-  intents: ConceptIntent[];
+-  selectedIntent: string | null;
+   setQuery: (value: string) => void;
+   setDiscipline: (value: string) => void;
++  onVehicle: (filter: VehicleMainFilter) => void;
+   onZoneSelect: (value: string) => void;
+-  onIntent: (label: string, terms: string[]) => void;
+   onThisMonth: () => void;
+   onDay: (day: Date) => void;
+   onClearFilters: () => void;
+@@ -49,14 +56,13 @@ export default function ConceptCalendar({
+   query,
+   discipline,
+   zone,
++  vehicleFilter,
+   disciplines,
+   zones,
+-  intents,
+-  selectedIntent,
+   setQuery,
+   setDiscipline,
++  onVehicle,
+   onZoneSelect,
+-  onIntent,
+   onThisMonth,
+   onDay,
+   onClearFilters,
+@@ -70,76 +76,73 @@ export default function ConceptCalendar({
+   return (
+     <section className="emc-section" id="calendario">
+       <div className="emc-container">
+-        <div className="emc-filter-status">
+-          <div className="emc-filter-status-head">
+-            <div>
+-              <span className="emc-kicker">Vista actual</span>
+-              <strong>{activeLabel}</strong>
+-              <p>{filtered.length} próximos eventos en esta selección.</p>
+-            </div>
+-            <div className="emc-calendar-filter-actions">
+-              <button className="emc-btn emc-btn-dark" onClick={onThisMonth} type="button">
+-                Este mes
+-              </button>
+-              {hasActiveFilters ? (
+-                <button className="emc-btn emc-btn-light" onClick={onClearFilters} type="button">
+-                  Ver todos
+-                </button>
+-              ) : null}
+-            </div>
+-          </div>
+-          <div className="emc-calendar-fields">
+-            <div className="emc-field">
+-              <label>Buscar</label>
+-              <input
+-                onChange={(event) => setQuery(event.target.value)}
+-                placeholder="Evento, circuito, ciudad..."
+-                value={query}
+-              />
+-            </div>
+-            <div className="emc-field">
+-              <label>Disciplina</label>
+-              <select onChange={(event) => setDiscipline(event.target.value)} value={discipline}>
+-                <option>Todas</option>
+-                {disciplines.map((item) => (
+-                  <option key={item}>{item}</option>
+-                ))}
+-              </select>
+-            </div>
+-            <div className="emc-field">
+-              <label>Zona</label>
+-              <select onChange={(event) => onZoneSelect(event.target.value)} value={zone}>
+-                <option>Toda España</option>
+-                {zones.map((item) => (
+-                  <option key={item.name}>{item.name}</option>
+-                ))}
+-              </select>
+-            </div>
+-          </div>
+-          <div className="emc-filter-chips">
+-            {intents.map((intent) => (
+-              <button
+-                className={selectedIntent === intent.label ? "emc-active" : ""}
+-                key={intent.label}
+-                onClick={() => onIntent(intent.label, intent.terms)}
+-                type="button"
+-              >
+-                {intent.short}
+-              </button>
+-            ))}
+-          </div>
+-        </div>
++        <div className="emc-calendar-wrap" id="calendario-vista">
++          <div className="emc-panel emc-calendar-panel">
++            <div className="emc-filter-status">
++              <div className="emc-filter-status-head">
++                <div>
++                  <span className="emc-kicker">Calendario</span>
++                  <strong>{activeLabel}</strong>
++                  <p>{filtered.length} próximos eventos.</p>
++                </div>
++                <div className="emc-calendar-filter-actions">
++                  <button className="emc-btn emc-btn-dark" onClick={onThisMonth} type="button">
++                    Este mes
++                  </button>
++                  {hasActiveFilters ? (
++                    <button className="emc-btn emc-btn-light" onClick={onClearFilters} type="button">
++                      Ver todos
++                    </button>
++                  ) : null}
++                </div>
++              </div>
+ 
+-        <div className="emc-section-head">
+-          <div>
+-            <div className="emc-kicker">Calendario usable</div>
+-            <h2>Ver fechas sin esfuerzo</h2>
+-          </div>
+-          <p>Filtros arriba, calendario despejado abajo: el mes queda limpio para mirar fechas y abrir la agenda del día.</p>
+-        </div>
++              <div className="emc-calendar-vehicle-row">
++                <span>Tipo</span>
++                <div className="emc-vehicle-tabs emc-vehicle-tabs-calendar" aria-label="Tipo de vehículo">
++                  {VEHICLE_FILTERS.map((item) => (
++                    <button
++                      className={vehicleFilter === item.id ? "emc-active" : ""}
++                      key={item.id}
++                      onClick={() => onVehicle(item.id)}
++                      type="button"
++                    >
++                      {item.label}
++                    </button>
++                  ))}
++                </div>
++              </div>
++
++              <div className="emc-calendar-fields">
++                <div className="emc-field">
++                  <label>Buscar</label>
++                  <input
++                    onChange={(event) => setQuery(event.target.value)}
++                    placeholder="Evento, circuito, ciudad..."
++                    value={query}
++                  />
++                </div>
++                <div className="emc-field">
++                  <label>Disciplina</label>
++                  <select onChange={(event) => setDiscipline(event.target.value)} value={discipline}>
++                    <option>Todas</option>
++                    {disciplines.map((item) => (
++                      <option key={item}>{item}</option>
++                    ))}
++                  </select>
++                </div>
++                <div className="emc-field">
++                  <label>Zona</label>
++                  <select onChange={(event) => onZoneSelect(event.target.value)} value={zone}>
++                    <option>Toda España</option>
++                    {zones.map((item) => (
++                      <option key={item.name}>{item.name}</option>
++                    ))}
++                  </select>
++                </div>
++              </div>
++            </div>
+ 
+-        <div className="emc-calendar-wrap" id="calendario-vista">
+-          <div className="emc-panel">
+             <div className="emc-calendar-toolbar">
+               <div className="emc-month-title">
+                 <h3>
+@@ -161,6 +164,7 @@ export default function ConceptCalendar({
+                 </button>
+               </div>
+             </div>
++
+             <div className="emc-weekdays">
+               {WEEK_DAYS.map((day) => (
+                 <div key={day}>{day}</div>
+@@ -170,9 +174,10 @@ export default function ConceptCalendar({
+               {days.map((day) => {
+                 const dayEvents = filtered.filter((event) => isOnDay(event, day));
+                 const isFocused = agendaDay.toDateString() === day.toDateString();
++                const isToday = TODAY.toDateString() === day.toDateString();
+                 return (
+                   <button
+-                    className={`emc-day ${dayEvents.length ? "emc-has" : ""} ${isFocused ? "emc-focus" : ""}`}
++                    className={`emc-day ${dayEvents.length ? "emc-has" : ""} ${isFocused ? "emc-focus" : ""} ${isToday ? "emc-today" : ""}`}
+                     key={day.toISOString()}
+                     onClick={() => onDay(day)}
+                     type="button"
+diff --git a/components/public/concept/ConceptHeader.tsx b/components/public/concept/ConceptHeader.tsx
+index e87e357..6986e8f 100644
+--- a/components/public/concept/ConceptHeader.tsx
++++ b/components/public/concept/ConceptHeader.tsx
+@@ -1,35 +1,40 @@
++"use client";
++
+ import Link from "next/link";
+ 
+-export default function ConceptHeader({ onCalendar }: { onCalendar: () => void }) {
++type ConceptHeaderProps = {
++  onCalendar: () => void;
++};
++
++export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
+   return (
+     <>
+       <div className="emc-topline" />
+-      <nav className="emc-nav">
+-        <Link className="emc-brand-logo" href="/" aria-label="EventoMotor inicio">
+-          <span className="emc-brand-mark" aria-hidden="true">
+-            EM
+-          </span>
+-          <span className="emc-brand-word">
+-            Evento<span>Motor</span>
+-          </span>
+-        </Link>
+-        <div className="emc-navlinks">
+-          <button className="emc-navlink-button" onClick={onCalendar} type="button">
+-            Calendario
+-          </button>
+-          <a href="#explorar">Zonas</a>
+-          <a href="#formas">Formas de descubrir</a>
+-          <a href="#organizadores">Organizadores</a>
+-        </div>
+-        <div className="emc-nav-actions">
+-          <button className="emc-btn emc-btn-dark" onClick={onCalendar} type="button">
+-            Ver agenda
+-          </button>
+-          <a className="emc-btn emc-btn-primary" href="#organizadores">
+-            Publicar
+-          </a>
+-        </div>
+-      </nav>
++      <header className="emc-header-shell">
++        <nav className="emc-nav">
++          <Link className="emc-brand-logo" href="/" aria-label="EventoMotor inicio">
++            <span className="emc-brand-mark" aria-hidden="true">
++              EM
++            </span>
++            <span className="emc-brand-word">
++              Evento<span>Motor</span>
++            </span>
++          </Link>
++
++          <div className="emc-navlinks">
++            <button className="emc-navlink-button" onClick={onCalendar} type="button">
++              Calendario
++            </button>
++            <a href="#calendario">Zonas</a>
++          </div>
++
++          <div className="emc-nav-actions">
++            <a className="emc-btn emc-btn-primary" href="#organizadores">
++              Publicar
++            </a>
++          </div>
++        </nav>
++      </header>
+     </>
+   );
+ }
+diff --git a/components/public/concept/ConceptHero.tsx b/components/public/concept/ConceptHero.tsx
+index d77b3ec..9b73368 100644
+--- a/components/public/concept/ConceptHero.tsx
++++ b/components/public/concept/ConceptHero.tsx
+@@ -1,122 +1,177 @@
+-import Link from "next/link";
+-import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+-import type { EventItem } from "@/types/event";
++"use client";
++
+ import type { ConceptZone } from "./concept-model";
+-import { dayLabel, eventHref } from "./concept-model";
++
++type VehicleMainFilter = "todos" | "moto" | "coche";
+ 
+ type ConceptHeroProps = {
+   zones: ConceptZone[];
+-  metrics: Array<{ label: string; value: number }>;
+-  highlightedEvents: EventItem[];
+-  isLoading: boolean;
++  disciplines: string[];
++  query: string;
++  discipline: string;
++  zone: string;
++  vehicleFilter: VehicleMainFilter;
++  locationLabel: string;
++  locationMessage: string;
++  userLocationActive: boolean;
+   onSearch: () => void;
++  onQuery: (value: string) => void;
++  onDiscipline: (value: string) => void;
+   onZone: (name: string) => void;
++  onVehicle: (filter: VehicleMainFilter) => void;
++  onUseLocation: () => void;
++  onClearLocation: () => void;
+ };
+ 
++const VEHICLE_FILTERS: Array<{ id: VehicleMainFilter; label: string }> = [
++  { id: "todos", label: "Todos" },
++  { id: "moto", label: "Motos" },
++  { id: "coche", label: "Coches" },
++];
++
+ export default function ConceptHero({
+   zones,
+-  metrics,
+-  highlightedEvents,
+-  isLoading,
++  disciplines,
++  query,
++  discipline,
++  zone,
++  vehicleFilter,
++  locationLabel,
++  locationMessage,
++  userLocationActive,
+   onSearch,
++  onQuery,
++  onDiscipline,
+   onZone,
++  onVehicle,
++  onUseLocation,
++  onClearLocation,
+ }: ConceptHeroProps) {
++  function zoneClassName(name: string) {
++    const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
++
++    if (normalized.includes("norte")) return "emc-zone-norte";
++    if (normalized.includes("centro")) return "emc-zone-centro";
++    if (normalized.includes("cataluna") || normalized.includes("catalunya") || normalized.includes("aragon")) return "emc-zone-cataluna";
++    if (normalized.includes("levante")) return "emc-zone-levante";
++    if (normalized.includes("sur")) return "emc-zone-sur";
++    if (normalized.includes("canarias")) return "emc-zone-canarias";
++
++    return "emc-zone-centro";
++  }
++
+   return (
+     <header className="emc-hero">
+       <div className="emc-container emc-hero-grid">
+-        <div>
+-          <div className="emc-eyebrow">La brújula del motor en España</div>
++        <div className="emc-hero-main">
++          <div className="emc-eyebrow">Eventos de motor en España</div>
+           <h1>
+-            Descubre dónde late el motor. <span>Sin ruido. Sin perderte.</span>
++            Eventos de motor cerca de ti. <span>Sin perderte.</span>
+           </h1>
+           <p className="emc-hero-copy">
+-            Empieza por el calendario: busca por circuito, provincia, disciplina o tipo de plan y encuentra el evento real que encaja contigo.
++            Elige motos, coches o todo. Ajusta zona, disciplina o búsqueda y el calendario se actualiza con eventos reales.
+           </p>
+-          <div className="emc-hero-actions">
+-            <button className="emc-btn emc-btn-primary" onClick={onSearch} type="button">
+-              Buscar eventos
+-            </button>
+-            <a className="emc-btn emc-btn-light" href="#explorar">
+-              Explorar zonas
+-            </a>
+-          </div>
+-          <div className="emc-trust">
+-            <span>Eventos reales</span>
+-            <span>Calendario como punto de partida</span>
+-            <span>Zonas e intenciones como apoyo</span>
+-          </div>
+-          <div className="emc-metrics-strip">
+-            {metrics.map((item) => (
+-              <div className="emc-metric" key={item.label}>
+-                <strong>{item.value}</strong>
+-                <span>{item.label}</span>
+-              </div>
+-            ))}
+-          </div>
+-        </div>
+ 
+-        <div className="emc-north-star">
+-          <div className="emc-product">
+-            <div className="emc-product-top">
+-              <div className="emc-traffic">
+-                <i />
+-                <i />
+-                <i />
+-              </div>
+-              <div className="emc-url">eventomotor.es/brujula</div>
+-            </div>
+-            <div className="emc-product-body">
+-              <div className="emc-mini-panel">
+-                <div className="emc-mini-head">
+-                  <h3>Zonas activas</h3>
+-                  <span>España</span>
+-                </div>
+-                <div className="emc-micro-map">
+-                  <div className="emc-micro-spain" />
+-                  {zones.slice(0, 5).map((item, index) => (
++          <form
++            className="emc-hero-search"
++            onSubmit={(event) => {
++              event.preventDefault();
++              onSearch();
++            }}
++          >
++            <div className="emc-hero-decision-row">
++              <div>
++                <span className="emc-control-label">Tipo de evento</span>
++                <div className="emc-vehicle-tabs emc-vehicle-tabs-hero" aria-label="Tipo de vehículo">
++                  {VEHICLE_FILTERS.map((item) => (
+                     <button
+-                      className={`emc-micro-dot emc-md${index + 1}`}
+-                      key={item.name}
+-                      onClick={() => onZone(item.name)}
+-                      style={{ background: item.color }}
++                      className={vehicleFilter === item.id ? "emc-active" : ""}
++                      key={item.id}
++                      onClick={() => onVehicle(item.id)}
+                       type="button"
+                     >
+-                      {item.events.length}
++                      {item.label}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+-              <div className="emc-mini-panel">
+-                <div className="emc-mini-head">
+-                  <h3>Próximos planes</h3>
+-                  <span>Relevancia</span>
+-                </div>
+-                <div className="emc-timeline">
+-                  {highlightedEvents.map((event) => {
+-                    const label = dayLabel(event);
+-                    return (
+-                      <Link className="emc-timeline-row" href={eventHref(event)} key={event.id}>
+-                        <div className="emc-date-pill">{label.day}</div>
+-                        <div>
+-                          <h4>{event.title}</h4>
+-                          <p>
+-                            {event.city} / {event.province} / {formatRange(event)}
+-                          </p>
+-                        </div>
+-                        <span className="emc-status" style={{ color: getDisciplineColor(event.discipline).accent }}>
+-                          {event.discipline}
+-                        </span>
+-                      </Link>
+-                    );
+-                  })}
+-                  {!highlightedEvents.length ? (
+-                    <p className="emc-empty">{isLoading ? "Cargando eventos..." : "No hay próximos eventos visibles."}</p>
++
++              <div className="emc-hero-location-card">
++                <span className="emc-control-label">{userLocationActive ? "Ubicación activa" : "Ubicación"}</span>
++                <div className="emc-hero-location-actions">
++                  <button className="emc-location-trigger" onClick={onUseLocation} type="button">
++                    <span aria-hidden="true">⌖</span>
++                    <strong>{userLocationActive ? "Cerca de ti" : "Usar mi ubicación"}</strong>
++                    <small>{locationLabel}</small>
++                  </button>
++                  {userLocationActive ? (
++                    <button className="emc-location-clear" onClick={onClearLocation} type="button">
++                      Quitar
++                    </button>
+                   ) : null}
+                 </div>
++                {locationMessage ? <p className="emc-location-inline-message">{locationMessage}</p> : null}
+               </div>
+             </div>
+-          </div>
++
++            <div className="emc-hero-fields">
++              <div className="emc-field">
++                <label htmlFor="emc-hero-query">Buscar</label>
++                <input
++                  id="emc-hero-query"
++                  onChange={(event) => onQuery(event.target.value)}
++                  placeholder="Ciudad, circuito, rally..."
++                  value={query}
++                />
++              </div>
++              <div className="emc-field">
++                <label htmlFor="emc-hero-zone">Zona</label>
++                <select id="emc-hero-zone" onChange={(event) => onZone(event.target.value)} value={zone}>
++                  <option value="Toda España">Toda España</option>
++                  {zones.map((item) => (
++                    <option key={item.name}>{item.name}</option>
++                  ))}
++                </select>
++              </div>
++              <div className="emc-field">
++                <label htmlFor="emc-hero-discipline">Disciplina</label>
++                <select id="emc-hero-discipline" onChange={(event) => onDiscipline(event.target.value)} value={discipline}>
++                  <option>Todas</option>
++                  {disciplines.map((item) => (
++                    <option key={item}>{item}</option>
++                  ))}
++                </select>
++              </div>
++              <button className="emc-btn emc-btn-primary" type="submit">
++                Buscar eventos
++              </button>
++            </div>
++          </form>
+         </div>
++
++        <aside className="emc-zone-finder" aria-label="Selección rápida por zona">
++          <div className="emc-zone-finder-head">
++            <div>
++              <div className="emc-kicker">Mapa vivo</div>
++              <h2>Explora por zona</h2>
++            </div>
++            <span>{zone}</span>
++          </div>
++          <div className="emc-micro-map">
++            <img className="emc-micro-spain" src="/maps/spain-map.svg" alt="" aria-hidden="true" />
++            {zones.map((item) => (
++              <button
++                className={`emc-micro-dot ${zoneClassName(item.name)} ${zone === item.name ? "emc-active" : ""}`}
++                key={item.name}
++                onClick={() => onZone(item.name)}
++                style={{ background: item.color }}
++                type="button"
++              >
++                {item.events.length}
++              </button>
++            ))}
++          </div>
++        </aside>
+       </div>
+     </header>
+   );
+diff --git a/components/public/concept/ConceptHomePage.tsx b/components/public/concept/ConceptHomePage.tsx
+index 07e0c6c..123fe69 100644
+--- a/components/public/concept/ConceptHomePage.tsx
++++ b/components/public/concept/ConceptHomePage.tsx
+@@ -5,9 +5,12 @@ import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
+ import ConceptFooter from "@/components/public/concept/ConceptFooter";
+ import ConceptHeader from "@/components/public/concept/ConceptHeader";
+ import ConceptHero from "@/components/public/concept/ConceptHero";
+-import ConceptLocationPanel, { readStoredLocation } from "@/components/public/concept/ConceptLocationPanel";
++import {
++  readStoredLocation,
++  removeStoredLocation,
++  saveLocation,
++} from "@/components/public/concept/ConceptLocationPanel";
+ import ConceptResults from "@/components/public/concept/ConceptResults";
+-import ConceptZones from "@/components/public/concept/ConceptZones";
+ import ConceptStyles from "@/components/public/concept/ConceptStyles";
+ import {
+   API_EVENTS_URL,
+@@ -19,12 +22,10 @@ import {
+   statusOf,
+ } from "@/lib/date-utils";
+ import { matchesVehicleFilter } from "@/lib/event-classification";
+-import { getEventDistanceKm, sortEventsByDistance, type UserLocation } from "@/lib/geo";
++import { sortEventsByDistance, type UserLocation } from "@/lib/geo";
+ import { normalizeRemoteEvents } from "@/lib/normalizers";
+ import type { EventItem } from "@/types/event";
+ import {
+-  INTENT_DEFINITIONS,
+-  buildIntents,
+   buildZones,
+   eventText,
+   matchesTerms,
+@@ -33,20 +34,13 @@ import {
+ 
+ type VehicleMainFilter = "todos" | "moto" | "coche";
+ 
+-const VEHICLE_FILTERS: Array<{ id: VehicleMainFilter; label: string }> = [
+-  { id: "todos", label: "Todos" },
+-  { id: "moto", label: "Motos" },
+-  { id: "coche", label: "Coches" },
+-];
++const ALL_ZONES = "Toda España";
+ 
+ export default function ConceptHomePage() {
+   const [events, setEvents] = useState<EventItem[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+   const [query, setQuery] = useState("");
+   const [discipline, setDiscipline] = useState("Todas");
+-  const [zone, setZone] = useState("Toda España");
+-  const [selectedZone, setSelectedZone] = useState("España");
+-  const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
++  const [zone, setZone] = useState(ALL_ZONES);
+   const [vehicleFilter, setVehicleFilter] = useState<VehicleMainFilter>("todos");
+   const [month, setMonth] = useState(TODAY.getMonth());
+   const [year, setYear] = useState(TODAY.getFullYear());
+@@ -65,8 +59,6 @@ export default function ConceptHomePage() {
+       setEvents(normalizeRemoteEvents(await response.json()));
+     } catch {
+       setEvents([]);
+-    } finally {
+-      setIsLoading(false);
+     }
+   }
+ 
+@@ -100,13 +92,13 @@ export default function ConceptHomePage() {
+   }, [upcoming]);
+ 
+   const disciplines = useMemo(() => unique(vehicleEvents.map((event) => event.discipline)), [vehicleEvents]);
+-  const provinces = useMemo(() => unique(vehicleEvents.map((event) => event.province)), [vehicleEvents]);
+   const zones = useMemo(() => buildZones(vehicleEvents), [vehicleEvents]);
+-  const intents = useMemo(() => buildIntents(vehicleEvents), [vehicleEvents]);
+ 
+-  const selectedIntentTerms = useMemo(() => {
+-    return INTENT_DEFINITIONS.find((item) => item.label === selectedIntent)?.terms || [];
+-  }, [selectedIntent]);
++  useEffect(() => {
++    if (discipline !== "Todas" && !disciplines.includes(discipline)) {
++      setDiscipline("Todas");
++    }
++  }, [discipline, disciplines]);
+ 
+   const filtered = useMemo(() => {
+     const q = query.trim().toLowerCase();
+@@ -116,37 +108,13 @@ export default function ConceptHomePage() {
+       .filter((event) => {
+         const okQuery = q === "" || eventText(event).includes(q);
+         const okDiscipline = discipline === "Todas" || event.discipline === discipline;
+-        const okZone = zone === "Toda España" || matchesTerms(event, zoneTerms);
+-        const okIntent = selectedIntentTerms.length === 0 || matchesTerms(event, selectedIntentTerms);
+-        return okQuery && okDiscipline && okZone && okIntent && statusOf(event) !== "finalizado";
++        const okZone = zone === ALL_ZONES || matchesTerms(event, zoneTerms);
++        return okQuery && okDiscipline && okZone && statusOf(event) !== "finalizado";
+       })
+       .sort((a, b) => parseDate(a.start).getTime() - parseDate(b.start).getTime());
+ 
+     return userLocation ? sortEventsByDistance(dateSortedEvents, userLocation) : dateSortedEvents;
+-  }, [discipline, query, selectedIntentTerms, userLocation, vehicleEvents, zone, zones]);
+-
+-  const nearbyEvents = useMemo(() => {
+-    if (!userLocation) {
+-      return [];
+-    }
+-
+-    return sortEventsByDistance(upcoming, userLocation)
+-      .filter((event) => getEventDistanceKm(event, userLocation) !== null)
+-      .slice(0, 6);
+-  }, [upcoming, userLocation]);
+-
+-  const activeZone = useMemo(() => {
+-    return {
+-      name: selectedZone,
+-      events: filtered,
+-      upcoming: filtered,
+-      provinces: unique(filtered.map((event) => event.province)),
+-      description:
+-        selectedZone === "España"
+-          ? "Vista nacional con los filtros actuales. Puedes combinar territorio e intención o volver a todos los eventos."
+-          : "Zona seleccionada combinada con el resto de filtros activos.",
+-    };
+-  }, [filtered, selectedZone]);
++  }, [discipline, query, userLocation, vehicleEvents, zone, zones]);
+ 
+   const highlightedEvents = useMemo(() => {
+     const featured = filtered.filter((event) => event.featured);
+@@ -163,45 +131,69 @@ export default function ConceptHomePage() {
+     vehicleFilter !== "todos" ||
+     query.trim() !== "" ||
+     discipline !== "Todas" ||
+-    zone !== "Toda España" ||
+-    selectedIntent !== null;
++    zone !== ALL_ZONES;
+   const activeLabel = useMemo(() => {
+     const parts = [];
+ 
+     if (vehicleFilter !== "todos") parts.push(vehicleFilter === "moto" ? "Motos" : "Coches");
+-    if (zone !== "Toda España") parts.push(zone);
+-    if (selectedIntent) parts.push(selectedIntent);
++    if (zone !== ALL_ZONES) parts.push(zone);
+     if (discipline !== "Todas") parts.push(discipline);
+     if (query.trim()) parts.push(`"${query.trim()}"`);
+ 
+     return parts.length ? parts.join(" / ") : "Todos los próximos eventos";
+-  }, [discipline, query, selectedIntent, vehicleFilter, zone]);
+-
+-  const metrics = [
+-    { label: "eventos visibles", value: vehicleEvents.length },
+-    { label: "provincias", value: provinces.length },
+-    { label: "disciplinas", value: disciplines.length },
+-    { label: "próximos", value: upcoming.length },
+-  ].filter((item) => item.value > 0);
++  }, [discipline, query, vehicleFilter, zone]);
+ 
+   function scrollToCalendar() {
+     document.getElementById("calendario")?.scrollIntoView({ behavior: "smooth", block: "start" });
+   }
+ 
+-  function applyZone(name: string) {
+-    setSelectedZone(name);
+-    setZone(name === "España" ? "Toda España" : name);
+-    scrollToCalendar();
++  function selectVehicle(nextFilter: VehicleMainFilter) {
++    setVehicleFilter(nextFilter);
++    setDiscipline("Todas");
++  }
++
++  function requestLocation() {
++    setLocationMessage("");
++
++    if (!("geolocation" in navigator)) {
++      setLocationMessage("Ubicación no disponible en este navegador.");
++      return;
++    }
++
++    navigator.geolocation.getCurrentPosition(
++      (position) => {
++        const location = {
++          lat: position.coords.latitude,
++          lng: position.coords.longitude,
++        };
++
++        saveLocation(location);
++        setUserLocation(location);
++        setLocationMessage("");
++      },
++      () => {
++        setLocationMessage("No se ha podido activar la ubicación.");
++      },
++      {
++        enableHighAccuracy: false,
++        maximumAge: 1000 * 60 * 30,
++        timeout: 10000,
++      },
++    );
++  }
++
++  function clearLocation() {
++    removeStoredLocation();
++    setUserLocation(null);
++    setLocationMessage("");
+   }
+ 
+   function selectHeroZone(nextZone: string) {
+-    setSelectedZone(nextZone === "Toda España" ? "España" : nextZone);
+     setZone(nextZone);
+   }
+ 
+   function selectHeroDiscipline(nextDiscipline: string) {
+     setDiscipline(nextDiscipline);
+-    setSelectedIntent(null);
+   }
+ 
+   function showThisMonth() {
+@@ -210,30 +202,9 @@ export default function ConceptHomePage() {
+     scrollToCalendar();
+   }
+ 
+-  function clearZone() {
+-    setSelectedZone("España");
+-    setZone("Toda España");
+-    scrollToCalendar();
+-  }
+-
+   function clearFilters() {
+     setVehicleFilter("todos");
+-    setSelectedZone("España");
+-    setZone("Toda España");
+-    setQuery("");
+-    setDiscipline("Todas");
+-    setSelectedIntent(null);
+-    scrollToCalendar();
+-  }
+-
+-  function applyIntent(label: string, terms: string[]) {
+-    if (selectedIntent === label) {
+-      setSelectedIntent(null);
+-      scrollToCalendar();
+-      return;
+-    }
+-
+-    setSelectedIntent(label);
++    setZone(ALL_ZONES);
+     setQuery("");
+     setDiscipline("Todas");
+     scrollToCalendar();
+@@ -245,41 +216,23 @@ export default function ConceptHomePage() {
+       <ConceptHeader onCalendar={scrollToCalendar} />
+       <ConceptHero
+         zones={zones}
+-        metrics={metrics}
+-        highlightedEvents={highlightedEvents}
+-        isLoading={isLoading}
++        disciplines={disciplines}
++        query={query}
++        discipline={discipline}
++        zone={zone}
++        vehicleFilter={vehicleFilter}
++        locationLabel={userLocation ? "Eventos cercanos primero" : zone}
++        locationMessage={locationMessage}
++        userLocationActive={Boolean(userLocation)}
+         onSearch={scrollToCalendar}
+-        onZone={applyZone}
++        onQuery={setQuery}
++        onDiscipline={selectHeroDiscipline}
++        onZone={selectHeroZone}
++        onVehicle={selectVehicle}
++        onUseLocation={requestLocation}
++        onClearLocation={clearLocation}
+       />
+       <main>
+-        <section className="emc-vehicle-strip" aria-label="Explora por tipo">
+-          <div className="emc-container emc-vehicle-inner">
+-            <span>Explora por tipo</span>
+-            <div className="emc-vehicle-tabs">
+-              {VEHICLE_FILTERS.map((item) => (
+-                <button
+-                  className={vehicleFilter === item.id ? "emc-active" : ""}
+-                  key={item.id}
+-                  onClick={() => {
+-                    setVehicleFilter(item.id);
+-                    setSelectedIntent(null);
+-                    setDiscipline("Todas");
+-                  }}
+-                  type="button"
+-                >
+-                  {item.label}
+-                </button>
+-              ))}
+-            </div>
+-          </div>
+-        </section>
+-        <ConceptLocationPanel
+-          userLocation={userLocation}
+-          nearbyEvents={nearbyEvents}
+-          locationMessage={locationMessage}
+-          onLocationChange={setUserLocation}
+-          onLocationMessage={setLocationMessage}
+-        />
+         <ConceptCalendar
+           year={year}
+           month={month}
+@@ -296,42 +249,18 @@ export default function ConceptHomePage() {
+           query={query}
+           discipline={discipline}
+           zone={zone}
++          vehicleFilter={vehicleFilter}
+           disciplines={disciplines}
+           zones={zones}
+-          intents={intents}
+-          selectedIntent={selectedIntent}
+           setQuery={setQuery}
+           setDiscipline={selectHeroDiscipline}
++          onVehicle={selectVehicle}
+           onZoneSelect={selectHeroZone}
+-          onIntent={applyIntent}
+           onThisMonth={showThisMonth}
+           onDay={setSelectedDay}
+           onClearFilters={clearFilters}
+         />
+-        <ConceptZones
+-          zones={zones}
+-          selectedZone={selectedZone}
+-          activeZone={activeZone}
+-          activeLabel={userLocation ? `${activeLabel} / más cercanos primero` : activeLabel}
+-          hasActiveFilters={hasActiveFilters}
+-          filteredCount={filtered.length}
+-          highlightedCount={highlightedEvents.length}
+-          monthCount={monthEvents.length}
+-          disciplineCount={disciplines.length}
+-          onZone={applyZone}
+-          onClearZone={clearZone}
+-          onClearFilters={clearFilters}
+-          onCalendar={scrollToCalendar}
+-        />
+-        <ConceptResults
+-          intents={intents}
+-          filtered={filtered}
+-          activeLabel={userLocation ? `${activeLabel} / más cercanos primero` : activeLabel}
+-          hasActiveFilters={hasActiveFilters}
+-          onClearFilters={clearFilters}
+-          onIntent={applyIntent}
+-          userLocation={userLocation}
+-        />
++        <ConceptResults />
+       </main>
+       <ConceptFooter />
+     </div>
+diff --git a/components/public/concept/ConceptResults.tsx b/components/public/concept/ConceptResults.tsx
+index 3b51ecc..2c5db89 100644
+--- a/components/public/concept/ConceptResults.tsx
++++ b/components/public/concept/ConceptResults.tsx
+@@ -1,113 +1,28 @@
+-import Link from "next/link";
+-import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+-import { getEventDistanceKm, type UserLocation } from "@/lib/geo";
+-import type { EventItem } from "@/types/event";
+-import type { ConceptIntent } from "./concept-model";
+-import { dayLabel, eventHref } from "./concept-model";
+-
+-type ConceptResultsProps = {
+-  intents: ConceptIntent[];
+-  filtered: EventItem[];
+-  activeLabel: string;
+-  hasActiveFilters: boolean;
+-  onClearFilters: () => void;
+-  onIntent: (label: string, terms: string[]) => void;
+-  userLocation: UserLocation | null;
+-};
+-
+-export default function ConceptResults({
+-  intents,
+-  filtered,
+-  activeLabel,
+-  hasActiveFilters,
+-  onClearFilters,
+-  onIntent,
+-  userLocation,
+-}: ConceptResultsProps) {
++export default function ConceptResults() {
+   return (
+-    <>
+-      <section className="emc-section" id="formas">
+-        <div className="emc-container">
+-          <div className="emc-section-head">
+-            <div><div className="emc-kicker">Una experiencia genuina</div><h2>No solo disciplinas. Formas de vivir el motor.</h2></div>
+-            <p>La navegación se organiza por intención del usuario, usando coincidencias reales en títulos, disciplinas y etiquetas.</p>
+-          </div>
+-          <div className="emc-intent-grid">
+-            {intents.map((intent, index) => (
+-              <button className="emc-intent-card" key={intent.label} onClick={() => onIntent(intent.label, intent.terms)} type="button">
+-                <div className="emc-intent-icon" style={{ color: intent.color }}>{String(index + 1).padStart(2, "0")}</div>
+-                <h3>{intent.label}</h3>
+-                <p>{intent.events.length ? "Eventos encontrados con esta intención." : "Sin coincidencias directas en los eventos actuales."}</p>
+-                <div className="emc-intent-number">{intent.events.length}</div>
+-              </button>
+-            ))}
+-          </div>
+-        </div>
+-      </section>
+-
+-      <section className="emc-section emc-results-section">
+-        <div className="emc-container">
+-          <div className="emc-results-context">
+-            <div>
+-              <span className="emc-kicker">Resultados filtrados</span>
+-              <strong>{activeLabel}</strong>
+-              <p>{filtered.length} próximos eventos en esta vista.</p>
++    <section className="emc-section emc-organizer-section" id="organizadores">
++      <div className="emc-container">
++        <div className="emc-panel emc-pro-panel">
++          <div>
++            <div className="emc-kicker">Para organizadores</div>
++            <h2>Publica tu evento donde el usuario ya está buscando</h2>
++            <p className="emc-pro-copy">
++              EventoMotor ordena los planes por fecha, zona, tipo de vehículo y disciplina para que el evento sea fácil de encontrar.
++            </p>
++            <div className="emc-pro-actions">
++              <a className="emc-btn emc-btn-primary" href="mailto:hola@eventomotor.com?subject=Publicar%20evento%20en%20EventoMotor">
++                Publicar evento
++              </a>
+             </div>
+-            {hasActiveFilters ? (
+-              <button className="emc-btn emc-btn-light" onClick={onClearFilters} type="button">
+-                Ver todos
+-              </button>
+-            ) : null}
+-          </div>
+-
+-          <div className="emc-section-head">
+-            <div><div className="emc-kicker">Resultados reales</div><h2>Eventos encontrados</h2></div>
+-            <p>Cards conectadas a la ficha real del evento, manteniendo el lenguaje visual de la propuesta.</p>
+           </div>
+-          <div className="emc-results-grid">
+-            {filtered.slice(0, 9).map((event) => {
+-              const label = dayLabel(event);
+-              const color = getDisciplineColor(event.discipline);
+-              const distance = userLocation ? getEventDistanceKm(event, userLocation) : null;
+-              return (
+-                <Link className="emc-result-card" href={eventHref(event)} key={event.id} style={{ "--emc-card-accent": color.accent } as React.CSSProperties}>
+-                  <div className="emc-result-date">{label.day}<small>{label.month}</small></div>
+-                  <div>
+-                    <div className="emc-result-meta">
+-                      <span className="emc-badge">{event.discipline}</span>
+-                      {distance !== null ? <span className="emc-distance">Aprox. {Math.round(distance)} km</span> : null}
+-                    </div>
+-                    <h3>{event.title}</h3>
+-                    <p>{formatRange(event)} / {event.city}, {event.province}</p>
+-                    <span className="emc-card-action">Ver evento</span>
+-                  </div>
+-                </Link>
+-              );
+-            })}
+-          </div>
+-        </div>
+-      </section>
+-
+-      <section className="emc-section" id="organizadores">
+-        <div className="emc-container">
+-          <div className="emc-panel emc-pro-panel">
+-            <div>
+-              <div className="emc-kicker">Para organizadores</div>
+-              <h2>Ser visible donde el usuario decide su próximo plan</h2>
+-              <p className="emc-pro-copy">Publica tu evento en EventoMotor y llega a usuarios que buscan planes de motor por fecha, zona y disciplina.</p>
+-              <div className="emc-pro-actions">
+-                <a className="emc-btn emc-btn-primary" href="mailto:hola@eventomotor.com?subject=Publicar%20evento%20en%20EventoMotor">Publicar evento</a>
+-              </div>
+-            </div>
+-            <div className="emc-checks">
+-              <div className="emc-check"><strong>Mapa</strong><span>visibilidad por zona</span></div>
+-              <div className="emc-check"><strong>Agenda</strong><span>fechas claras</span></div>
+-              <div className="emc-check"><strong>Filtro</strong><span>disciplina e intención</span></div>
+-              <div className="emc-check"><strong>Ficha</strong><span>detalle del evento</span></div>
+-            </div>
++          <div className="emc-checks">
++            <div className="emc-check"><strong>Fecha</strong><span>calendario claro</span></div>
++            <div className="emc-check"><strong>Zona</strong><span>búsqueda territorial</span></div>
++            <div className="emc-check"><strong>Tipo</strong><span>motos o coches</span></div>
++            <div className="emc-check"><strong>Ficha</strong><span>detalle del evento</span></div>
+           </div>
+         </div>
+-      </section>
+-    </>
++      </div>
++    </section>
+   );
+ }
+diff --git a/components/public/concept/ConceptStyles.tsx b/components/public/concept/ConceptStyles.tsx
+index 47af415..a25b2bf 100644
+--- a/components/public/concept/ConceptStyles.tsx
++++ b/components/public/concept/ConceptStyles.tsx
+@@ -54,24 +54,28 @@ export default function ConceptStyles() {
+ }
+ @keyframes emc-flow { to { background-position: 300% 0; } }
+ 
+-.emc-nav {
++.emc-header-shell {
+   position: fixed;
+   top: 18px;
+   left: 50%;
+   transform: translateX(-50%);
+   width: min(1320px, 92vw);
+-  height: 78px;
+   z-index: 100;
++  padding: 10px;
++  background: rgba(8,11,17,.76);
++  border: 1px solid var(--emc-line);
++  backdrop-filter: blur(28px);
++  border-radius: 28px;
++  box-shadow: 0 18px 70px rgba(0,0,0,.38);
++  transition: border-color .22s ease, background .22s ease;
++}
++.emc-nav {
++  min-height: 60px;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 20px;
+-  padding: 0 18px 0 24px;
+-  background: rgba(8,11,17,.74);
+-  border: 1px solid var(--emc-line);
+-  backdrop-filter: blur(26px);
+-  border-radius: 28px;
+-  box-shadow: 0 18px 70px rgba(0,0,0,.38);
++  padding: 0 8px 0 12px;
+ }
+ .emc-brand-logo,
+ .emc-footer-brand {
+@@ -113,6 +117,174 @@ export default function ConceptStyles() {
+ .emc-navlinks a:hover, .emc-navlink-button:hover { color: #fff; }
+ .emc-navlink-button { border: 0; background: transparent; color: #cbd2de; font-weight: 800; padding: 0; }
+ .emc-nav-actions { display: flex; gap: 10px; }
++.emc-filter-rail {
++  display: flex;
++  justify-content: flex-start;
++  align-items: center;
++  gap: 14px;
++  margin-top: 8px;
++  padding: 9px 10px;
++  border-top: 1px solid rgba(255,255,255,.08);
++  max-height: 76px;
++  opacity: 1;
++  overflow: visible;
++  transform: translateY(0);
++  transition: max-height .24s ease, opacity .18s ease, transform .24s ease, margin .24s ease, padding .24s ease, border-color .24s ease;
++}
++.emc-header-shell:not(.emc-filter-pinned):not(:hover):not(:focus-within) .emc-filter-rail {
++  max-height: 0;
++  margin-top: 0;
++  padding-top: 0;
++  padding-bottom: 0;
++  border-top-color: transparent;
++  opacity: 0;
++  pointer-events: none;
++  transform: translateY(-8px);
++}
++.emc-location-menu { position: relative; }
++.emc-filter-rail .emc-location-menu { margin-left: auto; }
++.emc-location-menu summary {
++  list-style: none;
++  min-width: 270px;
++  min-height: 50px;
++  display: inline-flex;
++  align-items: center;
++  justify-content: flex-start;
++  gap: 12px;
++  padding: 6px 14px 6px 8px;
++  border-radius: 18px;
++  border: 1px solid rgba(255,255,255,.12);
++  background: rgba(255,255,255,.055);
++  color: #f8fafc;
++  font-size: 13px;
++  font-weight: 950;
++  cursor: pointer;
++}
++.emc-location-menu summary::-webkit-details-marker { display: none; }
++.emc-location-menu summary:after { content: "⌄"; color: #aab3c3; font-size: 14px; margin-left: auto; }
++.emc-location-pin {
++  width: 36px;
++  height: 36px;
++  display: grid;
++  place-items: center;
++  flex: 0 0 36px;
++  border-radius: 14px;
++  background: linear-gradient(135deg, var(--emc-orange), var(--emc-orange2));
++  color: #fff;
++  font-size: 16px;
++  box-shadow: 0 12px 26px rgba(255,59,0,.24);
++}
++.emc-location-summary-copy { display: grid; gap: 2px; min-width: 0; }
++.emc-location-summary-copy span {
++  color: #ffc7b5;
++  font-size: 10px;
++  font-weight: 950;
++  text-transform: uppercase;
++  letter-spacing: .08em;
++}
++.emc-location-summary-copy strong {
++  color: #fff;
++  font-size: 14px;
++  font-weight: 950;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++.emc-location-popover {
++  position: absolute;
++  right: 0;
++  top: calc(100% + 10px);
++  width: 260px;
++  z-index: 20;
++  display: grid;
++  gap: 8px;
++  padding: 10px;
++  border-radius: 22px;
++  border: 1px solid rgba(255,255,255,.13);
++  background: rgba(8,11,17,.98);
++  box-shadow: 0 22px 70px rgba(0,0,0,.44);
++}
++.emc-location-popover button {
++  border: 0;
++  border-radius: 16px;
++  background: rgba(255,255,255,.065);
++  color: #f8fafc;
++  padding: 12px 13px;
++  text-align: left;
++  font-size: 13px;
++  font-weight: 900;
++}
++.emc-location-popover button:hover { background: rgba(255,59,0,.14); }
++.emc-location-popover small { color: #ffd0bf; font-size: 12px; font-weight: 850; line-height: 1.45; }
++.emc-location-popover-head {
++  padding: 8px 8px 6px;
++  border-bottom: 1px solid rgba(255,255,255,.08);
++  margin-bottom: 2px;
++}
++.emc-location-popover-head strong {
++  display: block;
++  color: #fff;
++  font-size: 14px;
++  font-weight: 950;
++  margin-bottom: 4px;
++}
++.emc-location-popover-head span {
++  display: block;
++  color: var(--emc-muted);
++  font-size: 12px;
++  font-weight: 800;
++  line-height: 1.45;
++}
++.emc-filter-pin {
++  position: absolute;
++  right: 22px;
++  bottom: -17px;
++  width: 34px;
++  height: 34px;
++  display: grid;
++  place-items: center;
++  border-radius: 50% 50% 46% 46%;
++  border: 1px solid rgba(255,255,255,.18);
++  background: linear-gradient(180deg, #f7fbff, #b8c2d0);
++  color: #dbe2ec !important;
++  box-shadow: 0 12px 30px rgba(0,0,0,.35);
++  transform: rotate(-12deg);
++  z-index: 2;
++  opacity: 1;
++  transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease;
++}
++.emc-header-shell:not(.emc-filter-pinned):not(:hover):not(:focus-within) .emc-filter-pin {
++  opacity: 0;
++  pointer-events: none;
++  transform: translateY(-8px) rotate(-12deg);
++}
++.emc-filter-pin span {
++  position: relative;
++  width: 13px;
++  height: 13px;
++  border-radius: 50%;
++  background: linear-gradient(135deg, var(--emc-orange), var(--emc-orange2));
++  box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
++}
++.emc-filter-pin span:after {
++  content: "";
++  position: absolute;
++  left: 50%;
++  top: 11px;
++  width: 2px;
++  height: 15px;
++  transform: translateX(-50%);
++  border-radius: 999px;
++  background: #d9e2ee;
++}
++.emc-filter-pin.emc-active {
++  background: linear-gradient(180deg, #ff8a45, #ff3b00);
++  color: #fff !important;
++  border-color: rgba(255,255,255,.18);
++  box-shadow: 0 10px 28px rgba(255,59,0,.24);
++}
++.emc-filter-pin.emc-active span { background: #fff; }
++.emc-filter-pin.emc-active span:after { background: #fff0e9; }
+ 
+ .emc-btn,
+ .em-btn-primary,
+@@ -150,8 +322,9 @@ export default function ConceptStyles() {
+   color: #dbe2ec !important;
+ }
+ 
+-.emc-hero { min-height: 82vh; padding: 146px 0 64px; display: flex; align-items: center; position: relative; z-index: 1; }
+-.emc-hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; gap: 54px; align-items: center; }
++.emc-hero { min-height: 86vh; padding: 118px 0 44px; display: flex; align-items: center; position: relative; z-index: 1; }
++.emc-hero-grid { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(360px, .72fr); gap: 36px; align-items: stretch; }
++.emc-hero-main { display: flex; flex-direction: column; justify-content: center; }
+ .emc-event-hero { min-height: 78vh; padding: 148px 0 64px; display: flex; align-items: center; position: relative; z-index: 1; }
+ .emc-event-hero-grid { display: grid; grid-template-columns: minmax(0,1fr) 430px; gap: 54px; align-items: end; }
+ .emc-event-breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--emc-muted); font-size: 13px; font-weight: 850; margin-bottom: 28px; }
+@@ -194,8 +367,9 @@ export default function ConceptStyles() {
+ }
+ .emc-page h1 { font-size: clamp(50px, 7vw, 98px); line-height: .9; letter-spacing: -5.5px; font-weight: 900; margin: 0 0 26px; }
+ .emc-page h1 span { background: linear-gradient(135deg,#fff 0%,#ffd0bf 42%,#ff6e2d 82%); -webkit-background-clip: text; color: transparent; }
+-.emc-hero-copy { max-width: 780px; color: #cbd3df; font-size: 20px; line-height: 1.75; margin-bottom: 30px; }
+-.emc-hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
++.emc-hero h1 { max-width: 760px; font-size: clamp(44px, 5.5vw, 76px); line-height: .92; letter-spacing: -3.8px; margin-bottom: 18px; }
++.emc-hero-copy { max-width: 760px; color: #cbd3df; font-size: 18px; line-height: 1.6; margin-bottom: 0; }
++.emc-hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; margin-bottom: 0; }
+ .emc-trust { display: flex; gap: 10px; flex-wrap: wrap; }
+ .emc-trust span { background: rgba(255,255,255,.055); border: 1px solid var(--emc-line); border-radius: 999px; padding: 10px 13px; color: #dbe2ec; font-size: 13px; font-weight: 900; }
+ .emc-vehicle-strip { position: relative; z-index: 2; margin-top: -40px; padding-bottom: 26px; }
+@@ -218,38 +392,130 @@ export default function ConceptStyles() {
+   letter-spacing: .08em;
+ }
+ .emc-vehicle-tabs { display: inline-flex; gap: 7px; border: 1px solid rgba(255,255,255,.12); border-radius: 20px; background: rgba(0,0,0,.34); padding: 6px; min-width: 360px; }
++.emc-vehicle-tabs-compact { min-width: 280px; }
+ .emc-vehicle-tabs button {
+   flex: 1;
+-  min-height: 46px;
++  min-height: 38px;
+   border: 0;
+-  border-radius: 15px;
+-  background: rgba(255,255,255,.045);
++  border-radius: 14px;
++  background: transparent;
+   color: #eef2f7;
+-  padding: 0 22px;
+-  font-size: 15px;
++  padding: 0 18px;
++  font-size: 13px;
+   font-weight: 900;
+   cursor: pointer;
+-  border: 1px solid rgba(255,255,255,.06);
++  border: 1px solid transparent;
+ }
+ .emc-vehicle-tabs button.emc-active {
+   background: linear-gradient(135deg, #ff3b00, #e10600);
+   color: #fff;
+   border-color: rgba(255,255,255,.18);
+-  box-shadow: 0 14px 36px rgba(225,6,0,.34);
++  box-shadow: 0 10px 28px rgba(225,6,0,.30);
+ }
+ .emc-hero-search {
+-  margin-top: 30px;
++  margin-top: 22px;
+   display: grid;
+-  grid-template-columns: 1.3fr .9fr .9fr auto;
+-  gap: 10px;
+-  max-width: 960px;
+-  padding: 14px;
++  gap: 14px;
++  max-width: 100%;
++  padding: 16px;
+   border: 1px solid var(--emc-line2);
+-  background: rgba(12,16,25,.78);
++  background:
++    linear-gradient(180deg, rgba(18,24,35,.88), rgba(8,12,20,.88));
+   backdrop-filter: blur(18px);
+   border-radius: 30px;
+   box-shadow: var(--emc-shadow);
+ }
++.emc-hero-search .emc-btn { min-height: 64px; align-self: stretch; border-radius: 19px; }
++.emc-hero-decision-row {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr);
++  gap: 12px;
++  align-items: stretch;
++}
++.emc-control-label {
++  display: block;
++  margin: 0 0 8px 4px;
++  color: #ffc7b5;
++  font-size: 11px;
++  font-weight: 950;
++  text-transform: uppercase;
++  letter-spacing: .08em;
++}
++.emc-vehicle-tabs-hero {
++  width: 100%;
++  min-width: 0;
++  min-height: 58px;
++  border-radius: 22px;
++  background: rgba(0,0,0,.30);
++}
++.emc-hero-location-card {
++  min-width: 0;
++}
++.emc-hero-location-actions {
++  display: flex;
++  gap: 8px;
++}
++.emc-location-trigger {
++  min-height: 58px;
++  flex: 1;
++  min-width: 0;
++  display: grid;
++  grid-template-columns: 38px minmax(0, 1fr);
++  column-gap: 11px;
++  align-items: center;
++  text-align: left;
++  border: 1px solid rgba(255,255,255,.12);
++  border-radius: 22px;
++  padding: 7px 13px 7px 8px;
++  background: rgba(255,255,255,.065);
++  color: #fff;
++}
++.emc-location-trigger span {
++  grid-row: span 2;
++  width: 38px;
++  height: 38px;
++  display: grid;
++  place-items: center;
++  border-radius: 15px;
++  background: linear-gradient(135deg, var(--emc-orange), var(--emc-orange2));
++  box-shadow: 0 12px 28px rgba(255,59,0,.25);
++}
++.emc-location-trigger strong {
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  font-size: 14px;
++  font-weight: 950;
++}
++.emc-location-trigger small {
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  color: var(--emc-muted);
++  font-size: 12px;
++  font-weight: 850;
++}
++.emc-location-clear {
++  min-height: 58px;
++  border: 1px solid var(--emc-line);
++  border-radius: 18px;
++  padding: 0 14px;
++  background: rgba(255,255,255,.06);
++  color: #fff;
++  font-size: 12px;
++  font-weight: 900;
++}
++.emc-location-inline-message {
++  margin: 8px 0 0 4px;
++  color: #ffd0bf;
++  font-size: 12px;
++  font-weight: 850;
++}
++.emc-hero-fields {
++  display: grid;
++  grid-template-columns: minmax(0, 1.25fr) minmax(120px, .72fr) minmax(120px, .72fr) minmax(140px, auto);
++  gap: 10px;
++}
+ .emc-field { background: #080c14; border: 1px solid rgba(255,255,255,.085); border-radius: 18px; padding: 14px 15px; }
+ .emc-field label { display: block; color: #8f9aab; font-size: 10px; text-transform: uppercase; letter-spacing: .9px; font-weight: 900; margin-bottom: 8px; }
+ .emc-field input, .emc-field select { width: 100%; background: transparent; border: 0; outline: 0; color: #fff; font-weight: 800; }
+@@ -282,6 +548,42 @@ export default function ConceptStyles() {
+ .emc-metric span { color: var(--emc-muted); font-size: 13px; font-weight: 900; }
+ 
+ .emc-north-star { background: linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.045)); border: 1px solid var(--emc-line2); border-radius: 42px; padding: 16px; box-shadow: var(--emc-shadow); }
++.emc-zone-finder {
++  min-height: 100%;
++  display: flex;
++  flex-direction: column;
++  gap: 16px;
++  padding: 22px;
++  border-radius: 34px;
++  border: 1px solid var(--emc-line2);
++  background:
++    radial-gradient(circle at 68% 28%, rgba(255,59,0,.16), transparent 30%),
++    linear-gradient(180deg, rgba(17,24,36,.86), rgba(8,12,20,.92));
++  box-shadow: var(--emc-shadow);
++}
++.emc-zone-finder-head {
++  display: flex;
++  justify-content: space-between;
++  gap: 18px;
++  align-items: flex-start;
++}
++.emc-zone-finder-head h2 {
++  font-size: clamp(28px, 3.1vw, 42px);
++  letter-spacing: -1.5px;
++}
++.emc-zone-finder-head span {
++  max-width: 150px;
++  padding: 10px 12px;
++  border-radius: 999px;
++  background: rgba(255,255,255,.07);
++  border: 1px solid var(--emc-line);
++  color: #dbe2ec;
++  font-size: 12px;
++  font-weight: 900;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
+ .emc-product { background: #070a11; border: 1px solid rgba(255,255,255,.11); border-radius: 34px; overflow: hidden; }
+ .emc-product-top { height: 58px; background: #101724; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; }
+ .emc-traffic { display: flex; gap: 7px; }
+@@ -292,11 +594,42 @@ export default function ConceptStyles() {
+ .emc-mini-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+ .emc-mini-head h3 { font-size: 16px; font-weight: 900; }
+ .emc-mini-head span { color: var(--emc-muted); font-size: 12px; font-weight: 900; }
+-.emc-micro-map { height: 310px; position: relative; border-radius: 24px; overflow: hidden; border: 1px solid var(--emc-line); background: radial-gradient(circle at 70% 34%,rgba(255,59,0,.28),transparent 18%), radial-gradient(circle at 42% 54%,rgba(75,163,255,.18),transparent 20%), linear-gradient(135deg,#121b2a,#070a11); }
+-.emc-micro-spain { position: absolute; left: 13%; right: 10%; top: 14%; bottom: 13%; border-radius: 44% 56% 43% 57% / 40% 38% 62% 60%; background: linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.035)); border: 1px solid rgba(255,255,255,.22); transform: rotate(-7deg); }
+-.emc-micro-dot { position: absolute; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #fff !important; border: 2px solid #fff; transition: border-color .2s ease, box-shadow .2s ease; }
+-.emc-micro-dot:hover { box-shadow: 0 0 22px rgba(255,255,255,.22); }
+-.emc-md1{left:28%;top:23%}.emc-md2{left:50%;top:43%}.emc-md3{left:71%;top:26%}.emc-md4{left:44%;top:69%}.emc-md5{left:72%;top:64%}
++.emc-micro-map { flex: 1; min-height: 390px; position: relative; border-radius: 28px; overflow: hidden; border: 1px solid var(--emc-line); background: radial-gradient(circle at 70% 34%,rgba(255,59,0,.28),transparent 18%), radial-gradient(circle at 42% 54%,rgba(75,163,255,.18),transparent 20%), linear-gradient(135deg,#121b2a,#070a11); }
++.emc-micro-map:before {
++  content: "";
++  position: absolute;
++  inset: 18px;
++  border-radius: 20px;
++  background-image:
++    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
++    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
++  background-size: 30px 30px;
++  mask-image: radial-gradient(circle at 50% 50%, black, transparent 78%);
++}
++.emc-micro-spain {
++  position: absolute;
++  left: 3%;
++  right: 3%;
++  top: 2%;
++  bottom: 2%;
++  width: 94%;
++  height: 96%;
++  object-fit: contain;
++  opacity: .72;
++  filter:
++    brightness(.88)
++    sepia(.08)
++    saturate(.72)
++    drop-shadow(0 20px 34px rgba(0,0,0,.36));
++}
++.emc-micro-dot { position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 950; color: #fff !important; border: 2px solid #fff; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
++.emc-micro-dot:hover, .emc-micro-dot.emc-active { box-shadow: 0 0 0 6px rgba(255,255,255,.08), 0 0 26px rgba(255,255,255,.28); transform: translateY(-1px); }
++.emc-zone-norte{left:33%;top:22%}
++.emc-zone-centro{left:48%;top:40%}
++.emc-zone-cataluna{left:72%;top:31%}
++.emc-zone-levante{left:72%;top:49%}
++.emc-zone-sur{left:49%;top:62%}
++.emc-zone-canarias{left:22%;top:84%}
+ .emc-timeline { display: grid; gap: 10px; }
+ .emc-timeline-row { display: grid; grid-template-columns: 52px 1fr auto; gap: 11px; align-items: center; background: #0a1019; border: 1px solid var(--emc-line); border-radius: 20px; padding: 10px; transition: border-color .2s ease, background .2s ease; }
+ .emc-timeline-row:hover { background: #121928; border-color: rgba(255,255,255,.18); }
+@@ -307,7 +640,7 @@ export default function ConceptStyles() {
+ .emc-empty { color: var(--emc-muted); font-weight: 800; }
+ 
+ .emc-section { padding: 82px 0; position: relative; z-index: 1; scroll-margin-top: 112px; }
+-.emc-location-section { padding-top: 6px; padding-bottom: 42px; }
++.emc-location-section { padding-top: 138px; padding-bottom: 20px; }
+ .emc-location-panel {
+   padding: 28px;
+   border-radius: 30px;
+@@ -446,14 +779,12 @@ export default function ConceptStyles() {
+   font-weight: 900;
+ }
+ .emc-filter-status {
+-  margin-bottom: 28px;
+-  padding: 20px;
++  margin-bottom: 20px;
++  padding: 16px;
+   border: 1px solid var(--emc-line);
+-  border-radius: 32px;
+-  background:
+-    radial-gradient(circle at 10% 0%, rgba(255,59,0,.14), transparent 26%),
+-    linear-gradient(180deg, rgba(16,23,36,.90), rgba(8,12,20,.86));
+-  box-shadow: 0 20px 70px rgba(0,0,0,.22);
++  border-radius: 24px;
++  background: rgba(8,12,20,.74);
++  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+ }
+ .emc-filter-status-head {
+   display: flex;
+@@ -466,7 +797,7 @@ export default function ConceptStyles() {
+   display: block;
+   margin-top: 4px;
+   color: #fff;
+-  font-size: 24px;
++  font-size: 19px;
+   font-weight: 900;
+   letter-spacing: -1px;
+ }
+@@ -567,7 +898,8 @@ export default function ConceptStyles() {
+ .emc-zone-event strong { font-size: 14px; color: #fff; }
+ .emc-zone-event span { color: var(--emc-muted); font-size: 12px; font-weight: 800; }
+ 
+-.emc-calendar-wrap { display: grid; grid-template-columns: 1fr .92fr; gap: 24px; scroll-margin-top: 112px; }
++.emc-calendar-wrap { display: grid; grid-template-columns: 1.08fr .92fr; gap: 24px; scroll-margin-top: 112px; align-items: start; }
++.emc-calendar-panel { padding: 22px; }
+ .emc-calendar-filter-panel { margin-bottom: 24px; }
+ .emc-calendar-filter-head {
+   display: flex;
+@@ -593,33 +925,25 @@ export default function ConceptStyles() {
+   grid-template-columns: 1.2fr .9fr .9fr;
+   gap: 10px;
+ }
+-.emc-filter-chips {
++.emc-calendar-vehicle-row {
+   display: flex;
+-  flex-wrap: wrap;
+-  gap: 9px;
+-  margin-top: 12px;
+-}
+-.emc-filter-chips button {
+-  border: 1px solid var(--emc-line);
+-  border-radius: 999px;
+-  background: rgba(255,255,255,.055);
+-  color: #dbe2ec !important;
+-  padding: 9px 12px;
+-  font-size: 12px;
+-  font-weight: 900;
+-  transition: background .2s ease, border-color .2s ease, color .2s ease;
++  align-items: center;
++  justify-content: space-between;
++  gap: 12px;
++  margin-bottom: 10px;
+ }
+-.emc-filter-chips button:hover {
+-  background: rgba(255,255,255,.10);
+-  border-color: rgba(255,255,255,.22);
+-  color: #fff !important;
++.emc-calendar-vehicle-row > span {
++  color: #ffc7b5;
++  font-size: 11px;
++  font-weight: 950;
++  text-transform: uppercase;
++  letter-spacing: .08em;
+ }
+-.emc-filter-chips button.emc-active {
+-  background: #fff;
+-  border-color: #fff;
+-  color: #07090f !important;
++.emc-vehicle-tabs-calendar {
++  min-width: 300px;
++  background: rgba(0,0,0,.24);
+ }
+-.emc-calendar-toolbar { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 18px; }
++.emc-calendar-toolbar { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 18px; padding-top: 4px; }
+ .emc-month-title h3 { font-size: 30px; letter-spacing: -1.2px; font-weight: 900; }
+ .emc-month-title p { color: var(--emc-muted); font-weight: 700; margin-top: 4px; }
+ .emc-month-actions { display: flex; gap: 8px; }
+@@ -632,6 +956,18 @@ export default function ConceptStyles() {
+ .emc-day:hover { background: #121928; border-color: rgba(255,255,255,.18); }
+ .emc-day.emc-has { background: linear-gradient(180deg,rgba(255,59,0,.16),#0b1019); border-color: rgba(255,59,0,.32); color: #fff !important; }
+ .emc-day.emc-focus { outline: 2px solid var(--emc-orange); background: linear-gradient(180deg,rgba(255,59,0,.25),#0b1019); }
++.emc-day.emc-today {
++  border-color: rgba(255,181,71,.78);
++  color: #fff !important;
++  background:
++    radial-gradient(circle at 82% 18%, rgba(255,181,71,.30), transparent 28%),
++    linear-gradient(180deg, rgba(255,59,0,.22), #0b1019 72%);
++  box-shadow:
++    inset 0 0 0 1px rgba(255,255,255,.08),
++    inset 0 18px 38px rgba(255,181,71,.08),
++    0 0 0 1px rgba(255,181,71,.12),
++    0 18px 44px rgba(255,59,0,.18);
++}
+ .emc-day small { position: absolute; right: 9px; top: 9px; color: #cbd3df; font-size: 10px; }
+ .emc-dots { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 5px; flex-wrap: wrap; }
+ .emc-edot { width: 7px; height: 7px; border-radius: 50%; }
+@@ -661,20 +997,6 @@ export default function ConceptStyles() {
+ .emc-intent-card p { color: var(--emc-muted); line-height: 1.6; font-size: 14px; }
+ .emc-intent-number { position: absolute; right: 20px; bottom: 18px; font-size: 44px; font-weight: 900; color: rgba(255,255,255,.08); }
+ 
+-.emc-results-section { padding-top: 20px; }
+-.emc-results-context {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  gap: 18px;
+-  margin-bottom: 28px;
+-  padding: 16px 18px;
+-  border-radius: 26px;
+-  border: 1px solid var(--emc-line);
+-  background: rgba(12,16,25,.78);
+-}
+-.emc-results-context strong { display: block; margin-top: 4px; color: #fff; font-size: 22px; font-weight: 900; letter-spacing: -1px; }
+-.emc-results-context p { margin-top: 4px; color: var(--emc-muted); font-size: 13px; font-weight: 800; }
+ .emc-results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+ .emc-result-card { display: grid; grid-template-columns: 72px 1fr; gap: 16px; background: linear-gradient(180deg,#111824,#090d15); border: 1px solid var(--emc-line); border-top: 2px solid var(--emc-card-accent); border-radius: 28px; padding: 18px; transition: background .22s ease, border-color .22s ease; }
+ .emc-result-card:hover { background: linear-gradient(180deg,#151f30,#0b1019); border-color: rgba(255,255,255,.2); transform: none; }
+@@ -698,28 +1020,37 @@ export default function ConceptStyles() {
+ 
+ @media (max-width: 1180px) {
+   .emc-hero-grid, .emc-event-hero-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel { grid-template-columns: 1fr; }
++  .emc-filter-rail { align-items: stretch; }
+   .emc-product-body { grid-template-columns: 1fr; }
+   .emc-intent-grid, .emc-results-grid, .emc-nearby-grid, .emc-event-info-grid { grid-template-columns: repeat(2, 1fr); }
+-  .emc-hero-search, .emc-calendar-fields { grid-template-columns: 1fr 1fr; }
++  .emc-hero-fields, .emc-calendar-fields { grid-template-columns: 1fr 1fr; }
+   .emc-location-actions { justify-content: flex-start; margin-top: 20px; }
+ }
+ @media (max-width: 980px) {
+   .emc-navlinks { display: none; }
+   .emc-nav { padding-left: 16px; }
++  .emc-filter-rail { flex-wrap: wrap; }
++  .emc-location-menu { margin-left: auto; }
+ }
+ @media (max-width: 760px) {
+   .emc-navlinks, .emc-nav-actions .emc-btn-dark { display: none; }
+-  .emc-nav { height: 68px; top: 10px; }
++  .emc-header-shell { top: 10px; border-radius: 24px; }
++  .emc-nav { min-height: 50px; padding-left: 6px; }
++  .emc-filter-rail { display: grid; grid-template-columns: 1fr; gap: 9px; }
++  .emc-location-menu { margin-left: 0; }
++  .emc-location-menu summary { width: 100%; min-width: 0; }
++  .emc-location-popover { left: 0; right: auto; width: 100%; }
+   .emc-nav-actions .emc-btn-primary { padding: 11px 13px; }
+   .emc-brand-logo { min-height: 42px; padding: 6px 10px 6px 7px; }
+   .emc-brand-mark { width: 30px; height: 30px; border-radius: 12px; font-size: 11px; }
+   .emc-brand-word { font-size: 17px; }
+-  .emc-hero { padding-top: 130px; }
++  .emc-hero { padding-top: 122px; }
++  .emc-location-section { padding-top: 170px; }
+   .emc-event-hero { padding-top: 130px; }
+   .emc-event-hero h1 { letter-spacing: -3px; }
+   .emc-page h1 { letter-spacing: -3px; }
+   .emc-hero-copy { font-size: 17px; }
+-  .emc-metrics-strip, .emc-summary-grid, .emc-intent-grid, .emc-checks, .emc-hero-search, .emc-results-grid, .emc-zone-card-grid, .emc-nearby-grid, .emc-event-info-grid { grid-template-columns: 1fr; }
++  .emc-metrics-strip, .emc-summary-grid, .emc-intent-grid, .emc-checks, .emc-hero-fields, .emc-hero-decision-row, .emc-results-grid, .emc-zone-card-grid, .emc-nearby-grid, .emc-event-info-grid { grid-template-columns: 1fr; }
+   .emc-event-summary-card, .emc-event-info-item { border-radius: 24px; }
+   .emc-location-panel { padding: 20px; border-radius: 28px; }
+   .emc-location-copy { display: block; }
+@@ -734,23 +1065,30 @@ export default function ConceptStyles() {
+   .emc-discovery-actions .emc-btn { width: 100%; }
+   .emc-filter-status-head { display: block; }
+   .emc-vehicle-inner { display: block; }
++  .emc-vehicle-tabs-compact { min-width: 0; width: 100%; }
+   .emc-vehicle-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
+   .emc-vehicle-tabs button { padding: 0 10px; }
+   .emc-filter-status .emc-btn { width: 100%; }
+   .emc-calendar-filter-head { display: block; }
+   .emc-calendar-filter-actions { justify-content: stretch; margin-top: 14px; }
+   .emc-calendar-filter-actions .emc-btn { flex: 1; }
++  .emc-calendar-vehicle-row { display: block; }
++  .emc-calendar-vehicle-row .emc-vehicle-tabs { margin-top: 8px; }
++  .emc-vehicle-tabs-calendar { min-width: 0; width: 100%; }
+   .emc-calendar-fields { grid-template-columns: 1fr; }
+   .emc-calendar-toolbar { display: block; }
+   .emc-month-actions { margin-top: 14px; flex-wrap: wrap; }
++  .emc-zone-finder { padding: 16px; border-radius: 28px; }
++  .emc-zone-finder-head { display: block; }
++  .emc-zone-finder-head span { display: inline-flex; margin-top: 10px; max-width: 100%; }
++  .emc-micro-map { min-height: 360px; }
++  .emc-micro-dot { width: 40px; height: 40px; font-size: 12px; }
+   .emc-section-head p, .emc-zone-board-head p { margin-top: 16px; }
+   .emc-zone-board { min-height: auto; }
+   .emc-day { min-height: 58px; padding: 8px; }
+   .emc-event-row { grid-template-columns: 1fr; }
+   .emc-event-actions { align-items: stretch; }
+   .emc-event-actions .emc-card-action, .emc-event-actions .emc-ticket-action { justify-content: center; }
+-  .emc-results-context { display: block; }
+-  .emc-results-context .emc-btn { width: 100%; margin-top: 14px; }
+   .emc-status { display: none; }
+ }
+ `}</style>

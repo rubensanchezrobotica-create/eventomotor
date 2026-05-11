@@ -4,7 +4,7 @@ import { getEventDistanceKm, type UserLocation } from "@/lib/geo";
 import type { EventItem } from "@/types/event";
 import { dayLabel, eventHref } from "./concept-model";
 
-const LOCATION_STORAGE_KEY = "eventomotor:user-location";
+export const LOCATION_STORAGE_KEY = "eventomotor:user-location";
 
 type ConceptLocationPanelProps = {
   userLocation: UserLocation | null;
@@ -34,11 +34,11 @@ export function readStoredLocation() {
   return null;
 }
 
-function saveLocation(location: UserLocation) {
+export function saveLocation(location: UserLocation) {
   window.localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(location));
 }
 
-function removeStoredLocation() {
+export function removeStoredLocation() {
   window.localStorage.removeItem(LOCATION_STORAGE_KEY);
 }
 

@@ -19,6 +19,7 @@ export type EventRow = {
   source: string | null;
   source_url: string | null;
   ticket_url: string | null;
+  image_url?: string | null;
   tags: string[] | null;
   vehicle_type: string | null;
   featured: boolean | null;
@@ -46,6 +47,7 @@ export type EventUpsert = {
   source?: string | null;
   source_url?: string | null;
   ticket_url?: string | null;
+  image_url?: string | null;
   tags?: string[] | null;
   vehicle_type?: string | null;
   featured?: boolean | null;
@@ -120,6 +122,8 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     source: row.source || "Supabase",
     sourceUrl: row.source_url || "",
     ticketUrl: row.ticket_url || "",
+    imageUrl: row.image_url || "",
+    image_url: row.image_url || "",
     tags: row.tags?.length ? row.tags : [row.discipline || "Motociclismo"],
     vehicleType,
     vehicle_type: vehicleType,

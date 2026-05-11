@@ -1,29 +1,44 @@
 type EventomotorLogoProps = {
   className?: string;
-  compact?: boolean;
+  compactOnMobile?: boolean;
   iconOnly?: boolean;
-  tone?: "default" | "white";
+  surface?: "dark" | "light";
 };
 
-const HORIZONTAL_LOGO = "/brand/eventomotor-logo-horizontal.png";
-const HORIZONTAL_WHITE_LOGO = "/brand/eventomotor-logo-horizontal-white.png";
-const ICON_LOGO = "/brand/eventomotor-logo-icon.png";
+const DARK_HEADER_LOGO = "/brand/eventomotor-logo-horizontal-dark-header.png";
+const LIGHT_BG_LOGO = "/brand/eventomotor-logo-horizontal-light-bg.png";
+const MARK_LOGO = "/brand/eventomotor-logo-mark-transparent.png";
 
 export default function EventomotorLogo({
   className = "",
-  compact = false,
+  compactOnMobile = false,
   iconOnly = false,
-  tone = "default",
+  surface = "dark",
 }: EventomotorLogoProps) {
-  const src = compact || iconOnly ? ICON_LOGO : tone === "white" ? HORIZONTAL_WHITE_LOGO : HORIZONTAL_LOGO;
-  const sizeClass = compact || iconOnly ? "h-9 w-9" : "h-9 w-auto sm:h-10";
+  const horizontalSrc = surface === "light" ? LIGHT_BG_LOGO : DARK_HEADER_LOGO;
+  const sizeClassName = iconOnly ? "h-9 w-9" : "h-10 w-auto max-w-[214px]";
+  const logoClassName = `block object-contain ${sizeClassName} em-logo ${iconOnly ? "em-logo-mark" : "em-logo-horizontal"} ${className}`.trim();
+
+  if (iconOnly) {
+    return (
+      <img
+        alt="EventoMotor"
+        className={logoClassName}
+        decoding="async"
+        src={MARK_LOGO}
+      />
+    );
+  }
 
   return (
-    <img
-      alt="EventoMotor"
-      className={`block object-contain ${sizeClass} ${className}`}
-      decoding="async"
-      src={src}
-    />
+    <picture>
+      {compactOnMobile ? <source media="(max-width: 640px)" srcSet={MARK_LOGO} /> : null}
+      <img
+        alt="EventoMotor"
+        className={logoClassName}
+        decoding="async"
+        src={horizontalSrc}
+      />
+    </picture>
   );
 }

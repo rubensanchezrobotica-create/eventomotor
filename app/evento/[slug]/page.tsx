@@ -1,11 +1,16 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+import { getEventImage, getEventImageAlt } from "@/lib/event-images";
+import { getDisciplineSlug, getRegionSlug } from "@/lib/event-listing-slugs";
 import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
@@ -56,6 +61,15 @@ function vehicleLabel(event: EventItem) {
   return VEHICLE_LABELS[vehicleTypeOf(event)] || "Otros";
 }
 
+function absoluteImageUrl(value: string, siteUrl: string) {
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${siteUrl}${value}`;
+}
+
+function isRemoteImage(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
 function formatDatePart(date: string) {
   return new Intl.DateTimeFormat("es-ES", {
     day: "numeric",
@@ -91,26 +105,30 @@ function formatEventDate(event: EventItem) {
 }
 
 function buildDescription(event: EventItem) {
-  const location = [event.city, event.province].filter(Boolean).join("/");
-  return `Encuentra fecha, ubicación, disciplina y fuente oficial de ${event.title}, evento de ${event.discipline} en ${location || "España"}.`;
+  const location = [event.city, event.province].filter(Boolean).join(", ");
+  return `${event.title} es un evento de ${event.discipline} previsto en ${location || "España"} del ${formatEventDate(event)}. Consulta fecha, ubicación, fuente oficial y eventos relacionados en EventoMotor.`;
 }
 
 function buildAboutText(event: EventItem) {
   const location = [event.city, event.province].filter((value) => value && value !== "Por confirmar").join(", ");
-  const venue = event.venue && event.venue !== "Por confirmar" ? ` Se celebrará en ${event.venue}.` : "";
-  return `Evento de ${event.discipline || "motor"} previsto en ${location || "ubicación por confirmar"} del ${formatEventDate(event)}.${venue} Consulta siempre la fuente oficial antes de desplazarte.`;
+  const region = event.region && event.region !== "Por confirmar" ? `, ${event.region}` : "";
+  const source = event.source && event.source !== "Supabase" ? ` La información procede de ${event.source}.` : "";
+
+  return `${event.title} es un evento de ${event.discipline || "motor"} previsto en ${location || "ubicación por confirmar"}${region}, del ${formatEventDate(event)}. Forma parte del calendario de eventos de motor en España para ${vehicleLabel(event).toLowerCase()}. Antes de desplazarte, consulta siempre la fuente oficial por si hubiera cambios de horario, inscripción o programa.${source}`;
 }
 
-function buildJsonLd(event: EventItem, url: string) {
+function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
+    description: buildDescription(event),
     startDate: event.start,
     endDate: event.end || event.start,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     eventStatus: "https://schema.org/EventScheduled",
     url,
+    image: [imageUrl],
     location: {
       "@type": "Place",
       name: event.venue || event.city || "Por confirmar",
@@ -169,15 +187,42 @@ function getRelatedEvents(current: EventItem, events: EventItem[]) {
     .map((item) => item.event);
 }
 
+function internalLinks(event: EventItem) {
+  const type = vehicleTypeOf(event);
+  const typeHref = type === "moto" ? "/eventos-moto" : "/preview-concept#calendario";
+
+  return [
+    {
+      label: `Ver eventos en ${valueOrPending(event.province)}`,
+      meta: "Misma provincia",
+      href: `/eventos-moto/${getRegionSlug(event.province)}`,
+    },
+    {
+      label: `Ver más eventos de ${valueOrPending(event.discipline)}`,
+      meta: "Misma disciplina",
+      href: `/eventos-moto/${getDisciplineSlug(event.discipline)}`,
+    },
+    {
+      label: `Ver eventos de ${vehicleLabel(event).toLowerCase()}`,
+      meta: "Mismo tipo de vehículo",
+      href: typeHref,
+    },
+  ];
+}
+
 export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
 
   if (!event) return {};
 
-  const url = `${getSiteUrl()}/evento/${event.slug || slug}`;
+  const siteUrl = getSiteUrl();
+  const url = `${siteUrl}/evento/${event.slug || slug}`;
   const title = `${event.title} | ${event.discipline} en ${event.province} | EventoMotor`;
   const description = buildDescription(event);
+  const eventImage = getEventImage(event);
+  const eventImageAlt = getEventImageAlt(event);
+  const image = absoluteImageUrl(eventImage, siteUrl);
 
   return {
     title,
@@ -191,11 +236,13 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
       url,
       siteName: "EventoMotor",
       type: "article",
+      images: [{ url: image, alt: eventImageAlt }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [image],
     },
   };
 }
@@ -207,11 +254,16 @@ export default async function EventPage({ params }: EventPageProps) {
 
   if (!event) notFound();
 
-  const url = `${getSiteUrl()}/evento/${event.slug || slug}`;
-  const jsonLd = buildJsonLd(event, url);
+  const siteUrl = getSiteUrl();
+  const url = `${siteUrl}/evento/${event.slug || slug}`;
+  const eventImage = getEventImage(event);
+  const eventImageAlt = getEventImageAlt(event);
+  const imageUrl = absoluteImageUrl(eventImage, siteUrl);
+  const jsonLd = buildJsonLd(event, url, imageUrl);
   const relatedEvents = getRelatedEvents(event, events);
   const color = getDisciplineColor(event.discipline);
   const sourceAvailable = Boolean(event.sourceUrl);
+  const links = internalLinks(event);
 
   return (
     <div className="emc-page">
@@ -226,9 +278,9 @@ export default async function EventPage({ params }: EventPageProps) {
               <div className="emc-event-breadcrumb">
                 <Link href="/">Inicio</Link>
                 <span>/</span>
-                <Link href="/preview-concept#resultados">Eventos</Link>
+                <Link href="/preview-concept#calendario">Calendario</Link>
                 <span>/</span>
-                <span>{event.discipline}</span>
+                <Link href={`/eventos-moto/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link>
                 <span>/</span>
                 <strong>{event.title}</strong>
               </div>
@@ -249,54 +301,48 @@ export default async function EventPage({ params }: EventPageProps) {
               <p className="emc-event-intro">{buildAboutText(event)}</p>
             </div>
 
-            <aside className="emc-event-summary-card">
-              <div className="emc-mini-head">
-                <h3>Ficha del evento</h3>
-                <span>{vehicleLabel(event)}</span>
+            <aside className="emc-event-side">
+              <div className="emc-event-media-card">
+                <Image
+                  alt={eventImageAlt}
+                  className="emc-event-image"
+                  height={720}
+                  priority
+                  sizes="(max-width: 760px) 92vw, 460px"
+                  src={eventImage}
+                  unoptimized={isRemoteImage(eventImage)}
+                  width={1152}
+                />
               </div>
-              <div className="emc-event-summary-list">
-                <SummaryRow label="Fecha" value={formatEventDate(event)} />
-                <SummaryRow label="Lugar" value={valueOrPending(event.venue)} />
-                <SummaryRow label="Ciudad/provincia" value={`${valueOrPending(event.city)} / ${valueOrPending(event.province)}`} />
-                <SummaryRow label="Tipo" value={vehicleLabel(event)} />
-                <SummaryRow label="Fuente" value={valueOrPending(event.source)} />
-              </div>
-              <div className="emc-event-actions">
-                {sourceAvailable ? (
-                  <a className="emc-btn emc-btn-primary" href={event.sourceUrl} rel="noreferrer" target="_blank">
-                    Ver fuente oficial
-                  </a>
-                ) : null}
-                {event.ticketUrl ? (
-                  <a className="emc-btn emc-btn-light" href={event.ticketUrl} rel="noreferrer" target="_blank">
-                    Entradas / inscripción
-                  </a>
-                ) : null}
-                <ShareEventButton title={event.title} url={url} />
-              </div>
-              {!sourceAvailable ? <p className="emc-event-note">Fuente oficial pendiente de revisión.</p> : null}
-            </aside>
-          </div>
-        </section>
 
-        <section className="emc-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Información rápida</div>
-                <h2>Datos clave</h2>
-              </div>
-            </div>
-            <div className="emc-event-info-grid">
-              <Info label="Fecha" value={formatEventDate(event)} />
-              <Info label="Lugar / circuito" value={valueOrPending(event.venue)} />
-              <Info label="Ciudad" value={valueOrPending(event.city)} />
-              <Info label="Provincia" value={valueOrPending(event.province)} />
-              <Info label="Comunidad" value={valueOrPending(event.region)} />
-              <Info label="Disciplina" value={valueOrPending(event.discipline)} />
-              <Info label="Tipo" value={vehicleLabel(event)} />
-              <Info label="Fuente" value={valueOrPending(event.source)} />
-            </div>
+              <section className="emc-event-summary-card">
+                <div className="emc-mini-head">
+                  <h3>Ficha del evento</h3>
+                  <span>{vehicleLabel(event)}</span>
+                </div>
+                <div className="emc-event-summary-list">
+                  <SummaryRow label="Fecha" value={formatEventDate(event)} />
+                  <SummaryRow label="Lugar" value={valueOrPending(event.venue)} />
+                  <SummaryRow label="Ciudad/provincia" value={`${valueOrPending(event.city)} / ${valueOrPending(event.province)}`} />
+                  <SummaryRow label="Tipo" value={vehicleLabel(event)} />
+                  <SummaryRow label="Fuente" value={valueOrPending(event.source)} />
+                </div>
+                <div className="emc-event-actions">
+                  {sourceAvailable ? (
+                    <a className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"} href={event.sourceUrl} rel="noreferrer" target="_blank">
+                      Ver fuente oficial
+                    </a>
+                  ) : null}
+                  {event.ticketUrl ? (
+                    <a className="emc-btn emc-btn-primary" href={event.ticketUrl} rel="noreferrer" target="_blank">
+                      Entradas / inscripción
+                    </a>
+                  ) : null}
+                  <ShareEventButton title={event.title} url={url} />
+                </div>
+                {!sourceAvailable ? <p className="emc-event-note">Fuente oficial pendiente de revisión.</p> : null}
+              </section>
+            </aside>
           </div>
         </section>
 
@@ -306,10 +352,76 @@ export default async function EventPage({ params }: EventPageProps) {
               <div className="emc-kicker">Sobre el evento</div>
               <h2>{event.title}</h2>
               <p>{buildAboutText(event)}</p>
-              {!sourceAvailable ? <small>Fuente oficial pendiente de revisión.</small> : null}
             </section>
 
-            {event.tags.length ? (
+            <section className="emc-panel emc-event-warning-card">
+              <div className="emc-kicker">Antes de ir</div>
+              <h3>Confirma la información oficial</h3>
+              <p>Revisa la fuente oficial antes de desplazarte. Las fechas, horarios o inscripciones pueden cambiar.</p>
+              {sourceAvailable ? (
+                <a className="emc-btn emc-btn-light" href={event.sourceUrl} rel="noreferrer" target="_blank">
+                  Abrir fuente
+                </a>
+              ) : null}
+            </section>
+          </div>
+        </section>
+
+        <section className="emc-section">
+          <div className="emc-container">
+            <div className="emc-section-head">
+              <div>
+                <div className="emc-kicker">Información práctica</div>
+                <h2>Datos clave para planificar</h2>
+              </div>
+            </div>
+            <div className="emc-event-info-grid">
+              <Info label="Fecha" value={formatEventDate(event)} />
+              <Info label="Ubicación" value={valueOrPending(event.venue)} />
+              <Info label="Ciudad" value={valueOrPending(event.city)} />
+              <Info label="Provincia" value={valueOrPending(event.province)} />
+              <Info label="Comunidad" value={valueOrPending(event.region)} />
+              <Info label="Disciplina" value={valueOrPending(event.discipline)} />
+              <Info label="Tipo de vehículo" value={vehicleLabel(event)} />
+              <Info label="Fuente" value={valueOrPending(event.source)} />
+            </div>
+            <div className="emc-practical-actions">
+              {sourceAvailable ? (
+                <a className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"} href={event.sourceUrl} rel="noreferrer" target="_blank">
+                  Ver fuente oficial
+                </a>
+              ) : null}
+              {event.ticketUrl ? (
+                <a className="emc-btn emc-btn-primary" href={event.ticketUrl} rel="noreferrer" target="_blank">
+                  Entradas / inscripción
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="emc-section emc-internal-links-section">
+          <div className="emc-container">
+            <div className="emc-section-head">
+              <div>
+                <div className="emc-kicker">Explorar más</div>
+                <h2>Eventos relacionados por contexto</h2>
+              </div>
+            </div>
+            <div className="emc-internal-links">
+              {links.map((link) => (
+                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
+                  <span>{link.meta}</span>
+                  <strong>{link.label}</strong>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {event.tags.length ? (
+          <section className="emc-section emc-event-tags-section">
+            <div className="emc-container">
               <section className="emc-panel emc-event-tags">
                 <div className="emc-kicker">Etiquetas</div>
                 <div>
@@ -320,9 +432,9 @@ export default async function EventPage({ params }: EventPageProps) {
                   ))}
                 </div>
               </section>
-            ) : null}
-          </div>
-        </section>
+            </div>
+          </section>
+        ) : null}
 
         {relatedEvents.length ? (
           <section className="emc-section" id="relacionados">
@@ -346,7 +458,7 @@ export default async function EventPage({ params }: EventPageProps) {
                       className="emc-result-card"
                       href={eventHref(related)}
                       key={related.id}
-                      style={{ "--emc-card-accent": relatedColor.accent } as React.CSSProperties}
+                      style={{ "--emc-card-accent": relatedColor.accent } as CSSProperties}
                     >
                       <div className="emc-result-date">
                         {label.day}
@@ -404,10 +516,7 @@ export default async function EventPage({ params }: EventPageProps) {
         <div className="emc-container emc-footer-grid">
           <div>
             <div className="emc-footer-brand">
-              <span className="emc-brand-mark" aria-hidden="true">EM</span>
-              <span className="emc-brand-word">
-                Evento<span>Motor</span>
-              </span>
+              <EventomotorLogo />
             </div>
             <p>Calendario de eventos de motor por fecha, zona y disciplina.</p>
           </div>

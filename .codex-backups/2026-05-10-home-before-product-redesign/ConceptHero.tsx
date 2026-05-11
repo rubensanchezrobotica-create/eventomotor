@@ -3,7 +3,6 @@
 import type { ConceptZone } from "./concept-model";
 
 type VehicleMainFilter = "todos" | "moto" | "coche";
-type DateQuickFilter = "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
 
 type ConceptHeroProps = {
   zones: ConceptZone[];
@@ -12,17 +11,14 @@ type ConceptHeroProps = {
   discipline: string;
   zone: string;
   vehicleFilter: VehicleMainFilter;
-  dateFilter: DateQuickFilter;
   locationLabel: string;
   locationMessage: string;
   userLocationActive: boolean;
-  hasHeroImage?: boolean;
   onSearch: () => void;
   onQuery: (value: string) => void;
   onDiscipline: (value: string) => void;
   onZone: (name: string) => void;
   onVehicle: (filter: VehicleMainFilter) => void;
-  onDateFilter: (filter: DateQuickFilter) => void;
   onUseLocation: () => void;
   onClearLocation: () => void;
 };
@@ -33,13 +29,6 @@ const VEHICLE_FILTERS: Array<{ id: VehicleMainFilter; label: string }> = [
   { id: "coche", label: "Coches" },
 ];
 
-const DATE_FILTERS: Array<{ id: DateQuickFilter; label: string }> = [
-  { id: "hoy", label: "Hoy" },
-  { id: "fin-semana", label: "Este fin de semana" },
-  { id: "mes", label: "Este mes" },
-  { id: "30-dias", label: "Próximos 30 días" },
-];
-
 export default function ConceptHero({
   zones,
   disciplines,
@@ -47,32 +36,40 @@ export default function ConceptHero({
   discipline,
   zone,
   vehicleFilter,
-  dateFilter,
   locationLabel,
   locationMessage,
   userLocationActive,
-  hasHeroImage = false,
   onSearch,
   onQuery,
   onDiscipline,
   onZone,
   onVehicle,
-  onDateFilter,
   onUseLocation,
   onClearLocation,
 }: ConceptHeroProps) {
+  function zoneClassName(name: string) {
+    const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    if (normalized.includes("norte")) return "emc-zone-norte";
+    if (normalized.includes("centro")) return "emc-zone-centro";
+    if (normalized.includes("cataluna") || normalized.includes("catalunya") || normalized.includes("aragon")) return "emc-zone-cataluna";
+    if (normalized.includes("levante")) return "emc-zone-levante";
+    if (normalized.includes("sur")) return "emc-zone-sur";
+    if (normalized.includes("canarias")) return "emc-zone-canarias";
+
+    return "emc-zone-centro";
+  }
+
   return (
     <header className="emc-hero">
-      <div className={`emc-hero-visual ${hasHeroImage ? "emc-has-image" : ""}`} aria-hidden="true" />
-      <div className="emc-hero-veil" aria-hidden="true" />
       <div className="emc-container emc-hero-grid">
         <div className="emc-hero-main">
           <div className="emc-eyebrow">Eventos de motor en España</div>
           <h1>
-            Encuentra eventos de motor <span>por fecha, zona y tipo.</span>
+            Eventos de motor cerca de ti. <span>Sin perderte.</span>
           </h1>
           <p className="emc-hero-copy">
-            Rallyes, concentraciones, circuitos, rutas, ferias y competiciones en un solo calendario.
+            Elige motos, coches o todo. Ajusta zona, disciplina o búsqueda y el calendario se actualiza con eventos reales.
           </p>
 
           <form
@@ -117,19 +114,6 @@ export default function ConceptHero({
               </div>
             </div>
 
-            <div className="emc-date-quick-row" aria-label="Filtros rápidos de fecha">
-              {DATE_FILTERS.map((item) => (
-                <button
-                  className={dateFilter === item.id ? "emc-active" : ""}
-                  key={item.id}
-                  onClick={() => onDateFilter(dateFilter === item.id ? "todos" : item.id)}
-                  type="button"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
             <div className="emc-hero-fields">
               <div className="emc-field">
                 <label htmlFor="emc-hero-query">Buscar</label>
@@ -164,6 +148,30 @@ export default function ConceptHero({
             </div>
           </form>
         </div>
+
+        <aside className="emc-zone-finder" aria-label="Selección rápida por zona">
+          <div className="emc-zone-finder-head">
+            <div>
+              <div className="emc-kicker">Mapa vivo</div>
+              <h2>Explora por zona</h2>
+            </div>
+            <span>{zone}</span>
+          </div>
+          <div className="emc-micro-map">
+            <img className="emc-micro-spain" src="/maps/spain-map.svg" alt="" aria-hidden="true" />
+            {zones.map((item) => (
+              <button
+                className={`emc-micro-dot ${zoneClassName(item.name)} ${zone === item.name ? "emc-active" : ""}`}
+                key={item.name}
+                onClick={() => onZone(item.name)}
+                style={{ background: item.color }}
+                type="button"
+              >
+                {item.events.length}
+              </button>
+            ))}
+          </div>
+        </aside>
       </div>
     </header>
   );

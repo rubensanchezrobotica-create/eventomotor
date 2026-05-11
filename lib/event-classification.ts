@@ -118,7 +118,15 @@ function isVehicleType(value: string | null | undefined): value is VehicleType {
 }
 
 function includesAny(text: string, terms: string[]) {
-  return terms.some((term) => text.includes(term));
+  return terms.some((term) => {
+    const normalizedTerm = normalizeText(term);
+
+    if (/^[a-z0-9]+$/.test(normalizedTerm)) {
+      return new RegExp(`(^|[^a-z0-9])${normalizedTerm}([^a-z0-9]|$)`).test(text);
+    }
+
+    return text.includes(normalizedTerm);
+  });
 }
 
 function hasAll(text: string, terms: string[]) {
@@ -127,11 +135,6 @@ function hasAll(text: string, terms: string[]) {
 
 export function getVehicleType(event: EventLike): VehicleType {
   const explicitType = normalizeText(String(event.vehicleType || event.vehicle_type || "").trim());
-
-  if (isVehicleType(explicitType)) {
-    return explicitType;
-  }
-
   const titleText = normalizeText(String(event.title || ""));
   const tagsText = normalizeText(Array.isArray(event.tags) ? event.tags.join(" ") : "");
   const sourceText = normalizeText(String(event.source || ""));
@@ -148,10 +151,16 @@ export function getVehicleType(event: EventLike): VehicleType {
   const isMoto = includesAny(searchableText, MOTO_TERMS);
   const isCoche = includesAny(searchableText, COCHE_TERMS);
 
+  if (isVehicleType(explicitType)) {
+    if (explicitType === "moto" && isCoche && !isMoto) return "coche";
+    if (explicitType === "coche" && isMoto && !isCoche) return "moto";
+    return explicitType;
+  }
+
   if (isKarting) return "karting";
   if (isMixto) return "mixto";
-  if (isMoto) return "moto";
   if (isCoche) return "coche";
+  if (isMoto) return "moto";
 
   return "otros";
 }

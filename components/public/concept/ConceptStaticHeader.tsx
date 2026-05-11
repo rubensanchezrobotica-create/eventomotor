@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EventomotorLogo from "@/components/brand/EventomotorLogo";
 
 export default function ConceptStaticHeader() {
   return (
@@ -6,18 +7,13 @@ export default function ConceptStaticHeader() {
       <div className="emc-topline" />
       <nav className="emc-nav">
         <Link className="emc-brand-logo" href="/" aria-label="EventoMotor inicio">
-          <span className="emc-brand-mark" aria-hidden="true">
-            EM
-          </span>
-          <span className="emc-brand-word">
-            Evento<span>Motor</span>
-          </span>
+          <EventomotorLogo compactOnMobile />
         </Link>
         <div className="emc-navlinks">
           <Link href="/preview-concept#calendario">Calendario</Link>
-          <Link href="/preview-concept#resultados">Eventos</Link>
-          <Link href="/preview-concept#explorar">Zonas</Link>
-          <Link href="/preview-concept#organizadores">Organizadores</Link>
+          <Link href="/preview-concept#disciplinas">Disciplinas</Link>
+          <Link href="/preview-concept#zonas">Zonas</Link>
+          <Link href="/preview-concept#publicar">Publicar</Link>
         </div>
         <div className="emc-nav-actions">
           <Link className="emc-btn emc-btn-dark" href="/preview-concept#calendario">

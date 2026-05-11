@@ -2,12 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
-import ConceptDisciplineExplorer, {
-  DISCIPLINE_CATEGORIES,
-  matchesDisciplineCategory,
-  type DisciplineCategoryId,
-} from "@/components/public/concept/ConceptDisciplineExplorer";
-import ConceptEventExplorer from "@/components/public/concept/ConceptEventExplorer";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptHeader from "@/components/public/concept/ConceptHeader";
 import ConceptHero from "@/components/public/concept/ConceptHero";
@@ -18,12 +12,10 @@ import {
 } from "@/components/public/concept/ConceptLocationPanel";
 import ConceptResults from "@/components/public/concept/ConceptResults";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
-import ConceptZoneExplorer from "@/components/public/concept/ConceptZoneExplorer";
 import {
   API_EVENTS_URL,
   AUTO_REFRESH_MS,
   TODAY,
-  addDays,
   daysForMonth,
   isOnDay,
   parseDate,
@@ -41,60 +33,15 @@ import {
 } from "./concept-model";
 
 type VehicleMainFilter = "todos" | "moto" | "coche";
-type ExplorerView = "lista" | "calendario" | "mapa";
-type DateQuickFilter = "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
 
 const ALL_ZONES = "Toda España";
 
-const DATE_FILTER_LABELS: Record<DateQuickFilter, string> = {
-  todos: "Todas las fechas",
-  hoy: "Hoy",
-  "fin-semana": "Este fin de semana",
-  mes: "Este mes",
-  "30-dias": "Próximos 30 días",
-};
-
-function overlapsRange(event: EventItem, start: Date, end: Date) {
-  const eventStart = parseDate(event.start);
-  const eventEnd = parseDate(event.end);
-  return eventStart.getTime() <= end.getTime() && eventEnd.getTime() >= start.getTime();
-}
-
-function matchesDateFilter(event: EventItem, filter: DateQuickFilter) {
-  const today = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
-
-  if (filter === "todos") return true;
-  if (filter === "hoy") return isOnDay(event, today);
-
-  if (filter === "mes") {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return overlapsRange(event, start, end);
-  }
-
-  if (filter === "30-dias") {
-    return overlapsRange(event, today, addDays(today, 30));
-  }
-
-  const day = today.getDay();
-  const saturday = day === 0 ? addDays(today, -1) : addDays(today, (6 - day + 7) % 7);
-  const sunday = addDays(saturday, 1);
-  return overlapsRange(event, saturday, sunday);
-}
-
-type ConceptHomePageProps = {
-  hasHeroImage?: boolean;
-};
-
-export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePageProps) {
+export default function ConceptHomePage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [query, setQuery] = useState("");
   const [discipline, setDiscipline] = useState("Todas");
-  const [disciplineCategory, setDisciplineCategory] = useState<DisciplineCategoryId | "todas">("todas");
   const [zone, setZone] = useState(ALL_ZONES);
   const [vehicleFilter, setVehicleFilter] = useState<VehicleMainFilter>("todos");
-  const [dateFilter, setDateFilter] = useState<DateQuickFilter>("todos");
-  const [view, setView] = useState<ExplorerView>("calendario");
   const [month, setMonth] = useState(TODAY.getMonth());
   const [year, setYear] = useState(TODAY.getFullYear());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -161,31 +108,13 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
       .filter((event) => {
         const okQuery = q === "" || eventText(event).includes(q);
         const okDiscipline = discipline === "Todas" || event.discipline === discipline;
-        const okCategory = disciplineCategory === "todas" || matchesDisciplineCategory(event, disciplineCategory);
         const okZone = zone === ALL_ZONES || matchesTerms(event, zoneTerms);
-        const okDate = matchesDateFilter(event, dateFilter);
-        return okQuery && okDiscipline && okCategory && okZone && okDate && statusOf(event) !== "finalizado";
+        return okQuery && okDiscipline && okZone && statusOf(event) !== "finalizado";
       })
       .sort((a, b) => parseDate(a.start).getTime() - parseDate(b.start).getTime());
 
     return userLocation ? sortEventsByDistance(dateSortedEvents, userLocation) : dateSortedEvents;
-  }, [dateFilter, discipline, disciplineCategory, query, userLocation, vehicleEvents, zone, zones]);
-
-  useEffect(() => {
-    const firstEvent = filtered[0];
-
-    if (!firstEvent) {
-      setSelectedDay(null);
-      return;
-    }
-
-    if (!selectedDay || !filtered.some((event) => isOnDay(event, selectedDay))) {
-      const date = parseDate(firstEvent.start);
-      setSelectedDay(date);
-      setMonth(date.getMonth());
-      setYear(date.getFullYear());
-    }
-  }, [filtered, selectedDay]);
+  }, [discipline, query, userLocation, vehicleEvents, zone, zones]);
 
   const highlightedEvents = useMemo(() => {
     const featured = filtered.filter((event) => event.featured);
@@ -200,37 +129,19 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
   const selectedDayEvents = useMemo(() => filtered.filter((event) => isOnDay(event, agendaDay)), [agendaDay, filtered]);
   const hasActiveFilters =
     vehicleFilter !== "todos" ||
-    dateFilter !== "todos" ||
     query.trim() !== "" ||
     discipline !== "Todas" ||
-    disciplineCategory !== "todas" ||
     zone !== ALL_ZONES;
   const activeLabel = useMemo(() => {
     const parts = [];
 
     if (vehicleFilter !== "todos") parts.push(vehicleFilter === "moto" ? "Motos" : "Coches");
-    if (dateFilter !== "todos") parts.push(DATE_FILTER_LABELS[dateFilter]);
     if (zone !== ALL_ZONES) parts.push(zone);
     if (discipline !== "Todas") parts.push(discipline);
-    if (disciplineCategory !== "todas") {
-      parts.push(DISCIPLINE_CATEGORIES.find((item) => item.id === disciplineCategory)?.title || "Disciplina");
-    }
     if (query.trim()) parts.push(`"${query.trim()}"`);
 
     return parts.length ? parts.join(" / ") : "Todos los próximos eventos";
-  }, [dateFilter, discipline, disciplineCategory, query, vehicleFilter, zone]);
-  const activeFilterChips = useMemo(() => {
-    const chips: string[] = [];
-
-    if (disciplineCategory !== "todas") {
-      chips.push(`Filtro activo: ${DISCIPLINE_CATEGORIES.find((item) => item.id === disciplineCategory)?.title || "Disciplina"}`);
-    }
-
-    if (discipline !== "Todas") chips.push(`Filtro activo: ${discipline}`);
-    if (zone !== ALL_ZONES) chips.push(`Zona activa: ${zone}`);
-
-    return chips;
-  }, [discipline, disciplineCategory, zone]);
+  }, [discipline, query, vehicleFilter, zone]);
 
   function scrollToCalendar() {
     document.getElementById("calendario")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -281,40 +192,21 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
     setZone(nextZone);
   }
 
-  function selectZoneCard(nextZone: string) {
-    setZone(nextZone);
-    setView("calendario");
-    scrollToCalendar();
-  }
-
   function selectHeroDiscipline(nextDiscipline: string) {
-    setDisciplineCategory("todas");
     setDiscipline(nextDiscipline);
   }
 
-  function selectDisciplineCategory(nextCategory: DisciplineCategoryId) {
-    setDisciplineCategory(nextCategory);
-    setDiscipline("Todas");
-    setQuery("");
-    setView("calendario");
-    scrollToCalendar();
-  }
-
   function showThisMonth() {
-    setDateFilter("mes");
     setMonth(TODAY.getMonth());
     setYear(TODAY.getFullYear());
-    setView("calendario");
     scrollToCalendar();
   }
 
   function clearFilters() {
     setVehicleFilter("todos");
-    setDateFilter("todos");
     setZone(ALL_ZONES);
     setQuery("");
     setDiscipline("Todas");
-    setDisciplineCategory("todas");
     scrollToCalendar();
   }
 
@@ -329,72 +221,44 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
         discipline={discipline}
         zone={zone}
         vehicleFilter={vehicleFilter}
-        dateFilter={dateFilter}
         locationLabel={userLocation ? "Eventos cercanos primero" : zone}
         locationMessage={locationMessage}
         userLocationActive={Boolean(userLocation)}
-        hasHeroImage={hasHeroImage}
         onSearch={scrollToCalendar}
         onQuery={setQuery}
         onDiscipline={selectHeroDiscipline}
         onZone={selectHeroZone}
         onVehicle={selectVehicle}
-        onDateFilter={setDateFilter}
         onUseLocation={requestLocation}
         onClearLocation={clearLocation}
       />
       <main>
-        <ConceptEventExplorer
-          activeLabel={userLocation ? `${activeLabel} / más cercanos primero` : activeLabel}
-          activeFilterChips={activeFilterChips}
-          calendar={(
-            <ConceptCalendar
-              year={year}
-              month={month}
-              setMonth={setMonth}
-              days={days}
-              agendaDay={agendaDay}
-              selectedDayEvents={selectedDayEvents}
-              fallbackEvents={highlightedEvents}
-              monthEventCount={monthEvents.length}
-              monthDisciplineCount={unique(monthEvents.map((event) => event.discipline)).length}
-              filtered={filtered}
-              activeLabel={userLocation ? `${activeLabel} / más cercanos primero` : activeLabel}
-              hasActiveFilters={hasActiveFilters}
-              query={query}
-              discipline={discipline}
-              zone={zone}
-              vehicleFilter={vehicleFilter}
-              disciplines={disciplines}
-              zones={zones}
-              setQuery={setQuery}
-              setDiscipline={selectHeroDiscipline}
-              onVehicle={selectVehicle}
-              onZoneSelect={selectHeroZone}
-              onThisMonth={showThisMonth}
-              onDay={setSelectedDay}
-              onClearFilters={clearFilters}
-            />
-          )}
+        <ConceptCalendar
+          year={year}
+          month={month}
+          setMonth={setMonth}
+          days={days}
+          agendaDay={agendaDay}
+          selectedDayEvents={selectedDayEvents}
+          fallbackEvents={highlightedEvents}
+          monthEventCount={monthEvents.length}
+          monthDisciplineCount={unique(monthEvents.map((event) => event.discipline)).length}
           filtered={filtered}
+          activeLabel={userLocation ? `${activeLabel} / más cercanos primero` : activeLabel}
           hasActiveFilters={hasActiveFilters}
-          userLocation={userLocation}
-          view={view}
+          query={query}
+          discipline={discipline}
           zone={zone}
+          vehicleFilter={vehicleFilter}
+          disciplines={disciplines}
           zones={zones}
+          setQuery={setQuery}
+          setDiscipline={selectHeroDiscipline}
+          onVehicle={selectVehicle}
+          onZoneSelect={selectHeroZone}
+          onThisMonth={showThisMonth}
+          onDay={setSelectedDay}
           onClearFilters={clearFilters}
-          onView={setView}
-          onZone={selectHeroZone}
-        />
-        <ConceptDisciplineExplorer
-          activeCategory={disciplineCategory}
-          events={upcoming}
-          onCategory={selectDisciplineCategory}
-        />
-        <ConceptZoneExplorer
-          activeZone={zone}
-          zones={zones}
-          onZone={selectZoneCard}
         />
         <ConceptResults />
       </main>

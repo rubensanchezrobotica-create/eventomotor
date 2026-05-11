@@ -1,35 +1,48 @@
-import Link from "next/link";
+"use client";
 
-export default function ConceptHeader({ onCalendar }: { onCalendar: () => void }) {
+import Link from "next/link";
+import EventomotorLogo from "@/components/brand/EventomotorLogo";
+
+type ConceptHeaderProps = {
+  onCalendar: () => void;
+};
+
+export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
+  function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <>
       <div className="emc-topline" />
-      <nav className="emc-nav">
-        <Link className="emc-brand-logo" href="/" aria-label="EventoMotor inicio">
-          <span className="emc-brand-mark" aria-hidden="true">
-            EM
-          </span>
-          <span className="emc-brand-word">
-            Evento<span>Motor</span>
-          </span>
-        </Link>
-        <div className="emc-navlinks">
-          <button className="emc-navlink-button" onClick={onCalendar} type="button">
-            Calendario
-          </button>
-          <a href="#explorar">Zonas</a>
-          <a href="#formas">Formas de descubrir</a>
-          <a href="#organizadores">Organizadores</a>
-        </div>
-        <div className="emc-nav-actions">
-          <button className="emc-btn emc-btn-dark" onClick={onCalendar} type="button">
-            Ver agenda
-          </button>
-          <a className="emc-btn emc-btn-primary" href="#organizadores">
-            Publicar
-          </a>
-        </div>
-      </nav>
+      <header className="emc-header-shell">
+        <nav className="emc-nav">
+          <Link className="emc-brand-logo" href="/" aria-label="EventoMotor inicio">
+            <EventomotorLogo compactOnMobile />
+          </Link>
+
+          <div className="emc-navlinks">
+            <button className="emc-navlink-button" onClick={onCalendar} type="button">
+              Calendario
+            </button>
+            <button className="emc-navlink-button" onClick={() => scrollToSection("disciplinas")} type="button">
+              Disciplinas
+            </button>
+            <button className="emc-navlink-button" onClick={() => scrollToSection("zonas")} type="button">
+              Zonas
+            </button>
+            <button className="emc-navlink-button" onClick={() => scrollToSection("publicar")} type="button">
+              Publicar
+            </button>
+          </div>
+
+          <div className="emc-nav-actions">
+            <a className="emc-btn emc-btn-primary" href="#publicar">
+              Publicar
+            </a>
+          </div>
+        </nav>
+      </header>
     </>
   );
 }
