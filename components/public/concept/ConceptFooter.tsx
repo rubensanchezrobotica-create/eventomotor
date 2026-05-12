@@ -1,6 +1,7 @@
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
+import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 
 export default function ConceptFooter() {
@@ -76,6 +77,9 @@ export default function ConceptFooter() {
           ))}
         </nav>
         <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor / La brújula del motor</div>
+        <div className="emc-footer-cookie-settings">
+          <CookieSettingsButton />
+        </div>
       </div>
     </footer>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CookieConsent from "@/components/cookies/CookieConsent";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { absoluteUrl, CONTACT_EMAIL, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, LOGO_URL, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
@@ -77,6 +78,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         {children}
+        <CookieConsent />
         <GoogleAnalytics />
       </body>
     </html>

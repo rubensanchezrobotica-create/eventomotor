@@ -1,3 +1,5 @@
+import { hasAnalyticsConsent } from "@/lib/cookie-consent";
+
 type AnalyticsParams = Record<string, string | number | boolean | null | undefined>;
 
 declare global {
@@ -12,7 +14,7 @@ export function currentPagePath() {
 }
 
 export function trackEvent(name: string, params: AnalyticsParams = {}) {
-  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  if (typeof window === "undefined" || !hasAnalyticsConsent() || typeof window.gtag !== "function") return;
 
   const cleanParams = Object.fromEntries(
     Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ""),
