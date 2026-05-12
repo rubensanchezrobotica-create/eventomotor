@@ -1,5 +1,6 @@
 "use client";
 
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import type { ConceptZone } from "./concept-model";
 
 type VehicleMainFilter = "todos" | "moto" | "coche";
@@ -79,6 +80,10 @@ export default function ConceptHero({
             className="emc-hero-search"
             onSubmit={(event) => {
               event.preventDefault();
+              trackEvent("search_events", {
+                search_term: query.trim(),
+                page_path: currentPagePath(),
+              });
               onSearch();
             }}
           >
@@ -90,7 +95,13 @@ export default function ConceptHero({
                     <button
                       className={vehicleFilter === item.id ? "emc-active" : ""}
                       key={item.id}
-                      onClick={() => onVehicle(item.id)}
+                      onClick={() => {
+                        trackEvent("filter_vehicle_type", {
+                          vehicle_type: item.id,
+                          page_path: currentPagePath(),
+                        });
+                        onVehicle(item.id);
+                      }}
                       type="button"
                     >
                       {item.label}
@@ -142,7 +153,17 @@ export default function ConceptHero({
               </div>
               <div className="emc-field">
                 <label htmlFor="emc-hero-zone">Zona</label>
-                <select id="emc-hero-zone" onChange={(event) => onZone(event.target.value)} value={zone}>
+                <select
+                  id="emc-hero-zone"
+                  onChange={(event) => {
+                    trackEvent("filter_zone", {
+                      zone: event.target.value,
+                      page_path: currentPagePath(),
+                    });
+                    onZone(event.target.value);
+                  }}
+                  value={zone}
+                >
                   <option value="Toda España">Toda España</option>
                   {zones.map((item) => (
                     <option key={item.name}>{item.name}</option>
@@ -151,7 +172,17 @@ export default function ConceptHero({
               </div>
               <div className="emc-field">
                 <label htmlFor="emc-hero-discipline">Disciplina</label>
-                <select id="emc-hero-discipline" onChange={(event) => onDiscipline(event.target.value)} value={discipline}>
+                <select
+                  id="emc-hero-discipline"
+                  onChange={(event) => {
+                    trackEvent("filter_discipline", {
+                      discipline: event.target.value,
+                      page_path: currentPagePath(),
+                    });
+                    onDiscipline(event.target.value);
+                  }}
+                  value={discipline}
+                >
                   <option>Todas</option>
                   {disciplines.map((item) => (
                     <option key={item}>{item}</option>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import type { ConceptZone } from "./concept-model";
 
 const ZONE_CARDS = [
@@ -43,6 +44,10 @@ export default function ConceptZoneExplorer({ activeZone, zones, onZone }: Conce
                 className={`emc-zone-explorer-card ${isActive ? "emc-active" : ""}`}
                 href={`/zonas/${card.slug}`}
                 key={card.name}
+                onClick={() => trackEvent("filter_zone", {
+                  zone: card.name,
+                  page_path: currentPagePath(),
+                })}
               >
                 <span className="emc-zone-explorer-count">{count}</span>
                 <span className="emc-zone-explorer-copy">

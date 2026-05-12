@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackLink from "@/components/analytics/TrackLink";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 
 type ConceptStaticHeaderProps = {
@@ -25,9 +26,14 @@ export default function ConceptStaticHeader({ compactActions = false }: ConceptS
               Ver agenda
             </Link>
           )}
-          <Link className="emc-btn emc-btn-primary" href="/publicar-evento">
+          <TrackLink
+            className="emc-btn emc-btn-primary"
+            eventName="click_publish_event"
+            eventParams={{ source: "static_header_cta" }}
+            href="/publicar-evento"
+          >
             Publicar
-          </Link>
+          </TrackLink>
         </div>
       </nav>
     </>

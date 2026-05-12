@@ -1,3 +1,5 @@
+import TrackLink from "@/components/analytics/TrackLink";
+
 export default function ConceptResults() {
   return (
     <section className="emc-section emc-organizer-section" id="publicar">
@@ -10,9 +12,14 @@ export default function ConceptResults() {
               Publica tu evento y aparece en el calendario, el mapa, las búsquedas por zona y las fichas optimizadas de EventoMotor.
             </p>
             <div className="emc-pro-actions">
-              <a className="emc-btn emc-btn-primary" href="/publicar-evento">
+              <TrackLink
+                className="emc-btn emc-btn-primary"
+                eventName="click_publish_event"
+                eventParams={{ source: "organizer_cta" }}
+                href="/publicar-evento"
+              >
                 Publicar evento
-              </a>
+              </TrackLink>
             </div>
           </div>
           <div className="emc-checks">

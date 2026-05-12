@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventDistanceKm, type UserLocation } from "@/lib/geo";
 import type { EventItem } from "@/types/event";
@@ -112,6 +113,14 @@ export default function ConceptEventExplorer({
                       className={`emc-list-card ${event.featured ? "emc-featured-list-card" : ""}`}
                       href={eventHref(event)}
                       key={event.id}
+                      onClick={() => trackEvent("click_event_detail", {
+                        event_slug: event.slug,
+                        event_title: event.title,
+                        discipline: event.discipline,
+                        zone: event.region || event.province,
+                        vehicle_type: event.vehicleType || event.vehicle_type || "otros",
+                        page_path: currentPagePath(),
+                      })}
                       style={{ "--emc-card-accent": color.accent } as CSSProperties}
                     >
                       <div className="emc-result-date">{label.day}<small>{label.month}</small></div>
@@ -142,7 +151,13 @@ export default function ConceptEventExplorer({
                   <button
                     className={`emc-micro-dot ${zoneClassName(item.name)} ${zone === item.name ? "emc-active" : ""}`}
                     key={item.name}
-                    onClick={() => onZone(item.name)}
+                    onClick={() => {
+                      trackEvent("filter_zone", {
+                        zone: item.name,
+                        page_path: currentPagePath(),
+                      });
+                      onZone(item.name);
+                    }}
                     style={{ background: item.color }}
                     type="button"
                   >
@@ -151,12 +166,33 @@ export default function ConceptEventExplorer({
                 ))}
               </div>
               <div className="emc-zone-list">
-                <button className={zone === "Toda España" ? "emc-active" : ""} onClick={() => onZone("Toda España")} type="button">
+                <button
+                  className={zone === "Toda España" ? "emc-active" : ""}
+                  onClick={() => {
+                    trackEvent("filter_zone", {
+                      zone: "Toda España",
+                      page_path: currentPagePath(),
+                    });
+                    onZone("Toda España");
+                  }}
+                  type="button"
+                >
                   <strong>Toda España</strong>
                   <span>{filtered.length} eventos visibles</span>
                 </button>
                 {zones.map((item) => (
-                  <button className={zone === item.name ? "emc-active" : ""} key={item.name} onClick={() => onZone(item.name)} type="button">
+                  <button
+                    className={zone === item.name ? "emc-active" : ""}
+                    key={item.name}
+                    onClick={() => {
+                      trackEvent("filter_zone", {
+                        zone: item.name,
+                        page_path: currentPagePath(),
+                      });
+                      onZone(item.name);
+                    }}
+                    type="button"
+                  >
                     <strong>{item.name}</strong>
                     <span>{item.upcoming.length} próximos / {item.provinces.slice(0, 3).join(", ")}</span>
                   </button>

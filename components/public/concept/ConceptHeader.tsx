@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 
 type ConceptHeaderProps = {
   onCalendar: () => void;
@@ -37,7 +38,11 @@ export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
           </div>
 
           <div className="emc-nav-actions">
-            <Link className="emc-btn emc-btn-primary" href="/publicar-evento">
+            <Link
+              className="emc-btn emc-btn-primary"
+              href="/publicar-evento"
+              onClick={() => trackEvent("click_publish_event", { page_path: currentPagePath(), source: "header_cta" })}
+            >
               Publicar
             </Link>
           </div>

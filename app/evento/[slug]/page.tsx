@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
+import TrackLink from "@/components/analytics/TrackLink";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
@@ -18,6 +20,13 @@ import type { EventItem } from "@/types/event";
 
 type EventPageProps = {
   params: Promise<{ slug: string }>;
+};
+
+type EventOfferData = EventItem & {
+  price?: number | string | null;
+  priceCurrency?: string | null;
+  validFrom?: string | null;
+  isFree?: boolean | null;
 };
 
 const VEHICLE_LABELS: Record<string, string> = {
@@ -150,11 +159,29 @@ function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
   }
 
   if (event.ticketUrl) {
-    jsonLd.offers = {
+    const offerData = event as EventOfferData;
+    const offer: Record<string, unknown> = {
       "@type": "Offer",
       url: event.ticketUrl,
       availability: "https://schema.org/InStock",
     };
+
+    const hasNumericPrice = offerData.price !== null && offerData.price !== undefined && offerData.price !== "";
+    const numericPrice = hasNumericPrice ? Number(offerData.price) : Number.NaN;
+    const hasRealPrice = Number.isFinite(numericPrice) && (numericPrice > 0 || offerData.isFree === true);
+
+    if (hasRealPrice) {
+      offer.price = String(offerData.price);
+      if (offerData.priceCurrency) {
+        offer.priceCurrency = offerData.priceCurrency;
+      }
+    }
+
+    if (offerData.validFrom) {
+      offer.validFrom = offerData.validFrom;
+    }
+
+    jsonLd.offers = offer;
   }
 
   return jsonLd;
@@ -265,6 +292,11 @@ export default async function EventPage({ params }: EventPageProps) {
   const color = getDisciplineColor(event.discipline);
   const sourceAvailable = Boolean(event.sourceUrl);
   const links = internalLinks(event);
+  const trackingEventParams = {
+    event_slug: event.slug || slug,
+    event_title: event.title,
+    source: event.source,
+  };
 
   return (
     <div className="emc-page">
@@ -330,14 +362,28 @@ export default async function EventPage({ params }: EventPageProps) {
                 </div>
                 <div className="emc-event-actions">
                   {sourceAvailable ? (
-                    <a className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"} href={event.sourceUrl} rel="noreferrer" target="_blank">
+                    <TrackAnchor
+                      className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"}
+                      eventName="click_official_source"
+                      eventParams={trackingEventParams}
+                      href={event.sourceUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       Ver fuente oficial
-                    </a>
+                    </TrackAnchor>
                   ) : null}
                   {event.ticketUrl ? (
-                    <a className="emc-btn emc-btn-primary" href={event.ticketUrl} rel="noreferrer" target="_blank">
+                    <TrackAnchor
+                      className="emc-btn emc-btn-primary"
+                      eventName="click_tickets"
+                      eventParams={trackingEventParams}
+                      href={event.ticketUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       Entradas / inscripción
-                    </a>
+                    </TrackAnchor>
                   ) : null}
                   <ShareEventButton title={event.title} url={url} />
                 </div>
@@ -360,9 +406,16 @@ export default async function EventPage({ params }: EventPageProps) {
               <h3>Confirma la información oficial</h3>
               <p>Revisa la fuente oficial antes de desplazarte. Las fechas, horarios o inscripciones pueden cambiar.</p>
               {sourceAvailable ? (
-                <a className="emc-btn emc-btn-light" href={event.sourceUrl} rel="noreferrer" target="_blank">
+                <TrackAnchor
+                  className="emc-btn emc-btn-light"
+                  eventName="click_official_source"
+                  eventParams={trackingEventParams}
+                  href={event.sourceUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   Abrir fuente
-                </a>
+                </TrackAnchor>
               ) : null}
             </section>
           </div>
@@ -388,14 +441,28 @@ export default async function EventPage({ params }: EventPageProps) {
             </div>
             <div className="emc-practical-actions">
               {sourceAvailable ? (
-                <a className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"} href={event.sourceUrl} rel="noreferrer" target="_blank">
+                <TrackAnchor
+                  className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"}
+                  eventName="click_official_source"
+                  eventParams={trackingEventParams}
+                  href={event.sourceUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   Ver fuente oficial
-                </a>
+                </TrackAnchor>
               ) : null}
               {event.ticketUrl ? (
-                <a className="emc-btn emc-btn-primary" href={event.ticketUrl} rel="noreferrer" target="_blank">
+                <TrackAnchor
+                  className="emc-btn emc-btn-primary"
+                  eventName="click_tickets"
+                  eventParams={trackingEventParams}
+                  href={event.ticketUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   Entradas / inscripción
-                </a>
+                </TrackAnchor>
               ) : null}
             </div>
           </div>
@@ -455,8 +522,16 @@ export default async function EventPage({ params }: EventPageProps) {
                   const label = dayLabel(related);
 
                   return (
-                    <Link
+                    <TrackLink
                       className="emc-result-card"
+                      eventName="click_event_detail"
+                      eventParams={{
+                        event_slug: related.slug,
+                        event_title: related.title,
+                        discipline: related.discipline,
+                        zone: related.region || related.province,
+                        vehicle_type: vehicleTypeOf(related),
+                      }}
                       href={eventHref(related)}
                       key={related.id}
                       style={{ "--emc-card-accent": relatedColor.accent } as CSSProperties}
@@ -474,7 +549,7 @@ export default async function EventPage({ params }: EventPageProps) {
                         <p>{formatRange(related)} / {related.city}, {related.province}</p>
                         <span className="emc-card-action">Ver evento</span>
                       </div>
-                    </Link>
+                    </TrackLink>
                   );
                 })}
               </div>
@@ -521,7 +596,7 @@ export default async function EventPage({ params }: EventPageProps) {
             </div>
             <p>Calendario de eventos de motor por fecha, zona y disciplina.</p>
             <p className="emc-footer-contact">
-              Contacto y publicación de eventos: <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>
+              Contacto y publicación de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "event_detail_footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
             </p>
           </div>
           <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor</div>

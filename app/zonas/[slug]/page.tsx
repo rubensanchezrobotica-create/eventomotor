@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
@@ -50,8 +51,16 @@ function EventCard({ event }: { event: EventItem }) {
   const label = dayLabel(event);
 
   return (
-    <Link
+    <TrackLink
       className="emc-result-card"
+      eventName="click_event_detail"
+      eventParams={{
+        event_slug: event.slug,
+        event_title: event.title,
+        discipline: event.discipline,
+        zone: event.region || event.province,
+        vehicle_type: event.vehicleType || event.vehicle_type || "otros",
+      }}
       href={eventHref(event)}
       style={{ "--emc-card-accent": color.accent } as CSSProperties}
     >
@@ -68,7 +77,7 @@ function EventCard({ event }: { event: EventItem }) {
         <p>{formatRange(event)} / {event.city}, {event.province}</p>
         <span className="emc-card-action">Ver evento</span>
       </div>
-    </Link>
+    </TrackLink>
   );
 }
 

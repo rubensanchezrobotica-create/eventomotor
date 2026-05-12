@@ -1,4 +1,6 @@
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
+import TrackLink from "@/components/analytics/TrackLink";
 
 export default function ConceptFooter() {
   const footerColumns = [
@@ -41,16 +43,27 @@ export default function ConceptFooter() {
           </div>
           <p>Calendario nacional de eventos de motor: rallyes, motos, coches, rutas, circuito y concentraciones.</p>
           <p className="emc-footer-contact">
-            Contacto y publicación de eventos: <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>
+            Contacto y publicación de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
           </p>
         </div>
         <nav className="emc-footer-links" aria-label="Enlaces de pie de página">
           {footerColumns.map((column) => (
             <div className="emc-footer-column" key={column.title}>
               <strong>{column.title}</strong>
-              {column.links.map((link) => (
-                <a href={link.href} key={link.label}>{link.label}</a>
-              ))}
+              {column.links.map((link) =>
+                link.href === "/publicar-evento" ? (
+                  <TrackLink
+                    eventName="click_publish_event"
+                    eventParams={{ source: "footer_link" }}
+                    href={link.href}
+                    key={link.label}
+                  >
+                    {link.label}
+                  </TrackLink>
+                ) : (
+                  <a href={link.href} key={link.label}>{link.label}</a>
+                ),
+              )}
             </div>
           ))}
         </nav>

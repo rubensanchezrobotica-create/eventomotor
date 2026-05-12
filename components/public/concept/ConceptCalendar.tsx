@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import { MONTHS, TODAY, WEEK_DAYS, formatRange, isOnDay, parseDate } from "@/lib/date-utils";
 import type { EventItem } from "@/types/event";
 import type { ConceptZone } from "./concept-model";
@@ -49,6 +50,10 @@ function vehicleLabel(event: EventItem) {
 
 function vehicleKind(event: EventItem) {
   return event.vehicleType || event.vehicle_type || "otros";
+}
+
+function eventZone(event: EventItem) {
+  return event.region || event.province || "";
 }
 
 function vehicleDotColor(event: EventItem) {
@@ -157,6 +162,11 @@ export default function ConceptCalendar({
 
   function openDay(day: Date, dayEvents: EventItem[]) {
     if (!dayEvents.length) return;
+    trackEvent("open_calendar_day", {
+      date: day.toISOString().slice(0, 10),
+      events_count: dayEvents.length,
+      page_path: currentPagePath(),
+    });
     onDay(day);
     setSelectedDate(day);
   }
@@ -185,7 +195,13 @@ export default function ConceptCalendar({
                   <button
                     className={modalVehicleFilter === item.id ? "emc-active" : ""}
                     key={item.id}
-                    onClick={() => setModalVehicleFilter(item.id as "todos" | "moto" | "coche")}
+                    onClick={() => {
+                      trackEvent("filter_vehicle_type", {
+                        vehicle_type: item.id,
+                        page_path: currentPagePath(),
+                      });
+                      setModalVehicleFilter(item.id as "todos" | "moto" | "coche");
+                    }}
                     type="button"
                   >
                     {item.label}
@@ -231,17 +247,49 @@ export default function ConceptCalendar({
                     <p className="emc-event-source">
                       {event.source ? `Fuente: ${event.source}` : null}
                       {event.sourceUrl ? (
-                        <a href={event.sourceUrl} rel="noreferrer" target="_blank">Fuente oficial</a>
+                        <a
+                          href={event.sourceUrl}
+                          onClick={() => trackEvent("click_official_source", {
+                            event_slug: event.slug,
+                            event_title: event.title,
+                            source: event.source,
+                            page_path: currentPagePath(),
+                          })}
+                          rel="noreferrer"
+                          target="_blank"
+                        >Fuente oficial</a>
                       ) : null}
                     </p>
                   ) : null}
                 </div>
                 <div className="emc-event-actions">
-                  <Link className="emc-card-action" href={eventHref(event)}>
+                  <Link
+                    className="emc-card-action"
+                    href={eventHref(event)}
+                    onClick={() => trackEvent("click_event_detail", {
+                      event_slug: event.slug,
+                      event_title: event.title,
+                      discipline: event.discipline,
+                      zone: eventZone(event),
+                      vehicle_type: vehicleKind(event),
+                      page_path: currentPagePath(),
+                    })}
+                  >
                     Ver evento
                   </Link>
                   {event.ticketUrl ? (
-                    <a className="emc-ticket-action" href={event.ticketUrl} rel="noreferrer" target="_blank">
+                    <a
+                      className="emc-ticket-action"
+                      href={event.ticketUrl}
+                      onClick={() => trackEvent("click_tickets", {
+                        event_slug: event.slug,
+                        event_title: event.title,
+                        source: event.source,
+                        page_path: currentPagePath(),
+                      })}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       Entradas
                     </a>
                   ) : null}

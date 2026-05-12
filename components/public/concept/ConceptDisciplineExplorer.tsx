@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import type { EventItem } from "@/types/event";
 import { eventText } from "./concept-model";
 
@@ -124,6 +125,10 @@ export default function ConceptDisciplineExplorer({
                 className={`emc-discipline-card ${isActive ? "emc-active" : ""}`}
                 href={`/disciplinas/${category.id}`}
                 key={category.id}
+                onClick={() => trackEvent("filter_discipline", {
+                  discipline: category.title,
+                  page_path: currentPagePath(),
+                })}
                 style={{ "--emc-discipline-image": `url("${category.image}")` } as CSSProperties}
               >
                 <span className="emc-discipline-count">{count} eventos</span>

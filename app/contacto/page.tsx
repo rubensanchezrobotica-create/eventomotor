@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
@@ -32,9 +33,14 @@ export default function ContactoPage() {
                 Para dudas, correcciones de eventos, colaboraciones o propuestas, puedes escribirnos directamente.
               </p>
               <div className="emc-contact-actions">
-                <a className="emc-btn emc-btn-primary" href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}>
+                <TrackAnchor
+                  className="emc-btn emc-btn-primary"
+                  eventName="click_contact_email"
+                  eventParams={{ location: "contact_page_cta" }}
+                  href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
+                >
                   Escribir email
-                </a>
+                </TrackAnchor>
                 <Link className="emc-btn emc-btn-dark" href="/">
                   Volver al calendario
                 </Link>
@@ -43,7 +49,13 @@ export default function ContactoPage() {
 
             <aside className="emc-panel emc-contact-card" aria-label="Correo de contacto">
               <span>Email</span>
-              <a href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}>{CONTACT_EMAIL}</a>
+              <TrackAnchor
+                eventName="click_contact_email"
+                eventParams={{ location: "contact_page_card" }}
+                href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
+              >
+                {CONTACT_EMAIL}
+              </TrackAnchor>
               <p>Contacto y publicación de eventos de motor en España.</p>
             </aside>
           </div>

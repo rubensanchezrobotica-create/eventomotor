@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
@@ -98,9 +99,14 @@ export default function PublicarEventoPage() {
                 Si organizas un evento de motor, envíanos la información oficial y revisaremos su publicación en el calendario, el mapa por zonas y una ficha individual del evento.
               </p>
               <div className="emc-contact-actions">
-                <a className="emc-btn emc-btn-primary" href={EVENT_MAILTO}>
+                <TrackAnchor
+                  className="emc-btn emc-btn-primary"
+                  eventName="click_publish_event"
+                  eventParams={{ source: "publish_page_cta" }}
+                  href={EVENT_MAILTO}
+                >
                   Enviar evento
-                </a>
+                </TrackAnchor>
                 <Link className="emc-contact-secondary-link" href="/contacto">
                   Tengo otra consulta
                 </Link>
@@ -109,7 +115,13 @@ export default function PublicarEventoPage() {
 
             <aside className="emc-panel emc-contact-card" aria-label="Correo para publicar eventos">
               <span>EMAIL PARA ORGANIZADORES</span>
-              <a href={EVENT_MAILTO}>{CONTACT_EMAIL}</a>
+              <TrackAnchor
+                eventName="click_contact_email"
+                eventParams={{ location: "publish_page_email_card" }}
+                href={EVENT_MAILTO}
+              >
+                {CONTACT_EMAIL}
+              </TrackAnchor>
               <p>Incluye la fuente oficial para poder revisar la información con criterio.</p>
               <small>Respondemos normalmente en 24-48 h.</small>
             </aside>

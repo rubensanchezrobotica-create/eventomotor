@@ -1,4 +1,5 @@
-import Link from "next/link";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
+import TrackLink from "@/components/analytics/TrackLink";
 import EventBadge from "@/components/EventBadge";
 import { formatRange, formatStatus, getDisciplineColor, statusOf } from "@/lib/date-utils";
 import { createEventSlug } from "@/lib/slug";
@@ -43,11 +44,22 @@ export default function EventCard({
             ) : null}
           </div>
 
-          <Link className="block" href={eventHref}>
+          <TrackLink
+            className="block"
+            eventName="click_event_detail"
+            eventParams={{
+              event_slug: event.slug,
+              event_title: event.title,
+              discipline: event.discipline,
+              zone: event.region || event.province,
+              vehicle_type: event.vehicleType || event.vehicle_type || "otros",
+            }}
+            href={eventHref}
+          >
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white transition group-hover:text-red-100">
               {event.title}
             </h3>
-          </Link>
+          </TrackLink>
 
           <p className="mt-2 truncate text-sm text-[#A6A6A6]">
             {event.venue} / {event.city}, {event.province}
@@ -56,21 +68,35 @@ export default function EventCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-4 py-3">
-        <Link
+        <TrackLink
           className="rounded-md bg-white px-3 py-2 text-xs font-bold text-zinc-950 transition hover:bg-red-100"
+          eventName="click_event_detail"
+          eventParams={{
+            event_slug: event.slug,
+            event_title: event.title,
+            discipline: event.discipline,
+            zone: event.region || event.province,
+            vehicle_type: event.vehicleType || event.vehicle_type || "otros",
+          }}
           href={eventHref}
         >
           Ver evento
-        </Link>
+        </TrackLink>
         {event.ticketUrl ? (
-          <a
+          <TrackAnchor
             className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100 transition hover:border-red-400/60"
+            eventName="click_tickets"
+            eventParams={{
+              event_slug: event.slug,
+              event_title: event.title,
+              source: event.source,
+            }}
             href={event.ticketUrl}
             rel="noreferrer"
             target="_blank"
           >
             Entradas
-          </a>
+          </TrackAnchor>
         ) : null}
       </div>
     </article>
