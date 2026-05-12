@@ -10,7 +10,7 @@ export default function ConceptResults() {
               Publica tu evento y aparece en el calendario, el mapa, las búsquedas por zona y las fichas optimizadas de EventoMotor.
             </p>
             <div className="emc-pro-actions">
-              <a className="emc-btn emc-btn-primary" href="mailto:hola@eventomotor.com?subject=Publicar%20evento%20en%20EventoMotor">
+              <a className="emc-btn emc-btn-primary" href="/publicar-evento">
                 Publicar evento
               </a>
             </div>

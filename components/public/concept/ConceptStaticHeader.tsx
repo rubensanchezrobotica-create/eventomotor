@@ -1,7 +1,11 @@
 import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 
-export default function ConceptStaticHeader() {
+type ConceptStaticHeaderProps = {
+  compactActions?: boolean;
+};
+
+export default function ConceptStaticHeader({ compactActions = false }: ConceptStaticHeaderProps) {
   return (
     <>
       <div className="emc-topline" />
@@ -10,18 +14,20 @@ export default function ConceptStaticHeader() {
           <EventomotorLogo compactOnMobile />
         </Link>
         <div className="emc-navlinks">
-          <Link href="/preview-concept#calendario">Calendario</Link>
-          <Link href="/preview-concept#disciplinas">Disciplinas</Link>
-          <Link href="/preview-concept#zonas">Zonas</Link>
-          <Link href="/preview-concept#publicar">Publicar</Link>
+          <Link href="/#calendario">Calendario</Link>
+          <Link href="/#disciplinas">Disciplinas</Link>
+          <Link href="/#zonas">Zonas</Link>
+          <Link href="/contacto">Contacto</Link>
         </div>
         <div className="emc-nav-actions">
-          <Link className="emc-btn emc-btn-dark" href="/preview-concept#calendario">
-            Ver agenda
-          </Link>
-          <a className="emc-btn emc-btn-primary" href="mailto:hola@eventomotor.com?subject=Publicar%20evento%20en%20EventoMotor">
+          {compactActions ? null : (
+            <Link className="emc-btn emc-btn-dark" href="/#calendario">
+              Ver agenda
+            </Link>
+          )}
+          <Link className="emc-btn emc-btn-primary" href="/publicar-evento">
             Publicar
-          </a>
+          </Link>
         </div>
       </nav>
     </>

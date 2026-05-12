@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import type { ConceptZone } from "./concept-model";
 
 const ZONE_CARDS = [
-  { name: "Norte", fallback: "A Coruña / Asturias / Navarra" },
-  { name: "Centro", fallback: "Madrid / Castilla y León / Castilla-La Mancha" },
-  { name: "Cataluña / Aragón", fallback: "Barcelona / Girona / Zaragoza" },
-  { name: "Levante", fallback: "Valencia / Alicante / Murcia" },
-  { name: "Sur", fallback: "Andalucía / Extremadura" },
-  { name: "Canarias", fallback: "Tenerife / Gran Canaria" },
+  { name: "Norte", slug: "norte", fallback: "A Coruña / Asturias / Navarra" },
+  { name: "Centro", slug: "centro", fallback: "Madrid / Castilla y León / Castilla-La Mancha" },
+  { name: "Cataluña / Aragón", slug: "cataluna-aragon", fallback: "Barcelona / Girona / Zaragoza" },
+  { name: "Levante", slug: "levante", fallback: "Valencia / Alicante / Murcia" },
+  { name: "Sur", slug: "sur", fallback: "Andalucía / Extremadura" },
+  { name: "Canarias", slug: "canarias", fallback: "Tenerife / Gran Canaria" },
 ];
 
 type ConceptZoneExplorerProps = {
@@ -37,12 +38,11 @@ export default function ConceptZoneExplorer({ activeZone, zones, onZone }: Conce
             const isActive = activeZone === card.name;
 
             return (
-              <button
+              <Link
                 aria-pressed={isActive}
                 className={`emc-zone-explorer-card ${isActive ? "emc-active" : ""}`}
+                href={`/zonas/${card.slug}`}
                 key={card.name}
-                onClick={() => onZone(card.name)}
-                type="button"
               >
                 <span className="emc-zone-explorer-count">{count}</span>
                 <span className="emc-zone-explorer-copy">
@@ -50,7 +50,7 @@ export default function ConceptZoneExplorer({ activeZone, zones, onZone }: Conce
                   <small>{provinces}</small>
                 </span>
                 <span className="emc-zone-explorer-action">Ver eventos en la zona</span>
-              </button>
+              </Link>
             );
           })}
         </div>

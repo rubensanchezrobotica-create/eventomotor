@@ -31,15 +31,15 @@ export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
             <button className="emc-navlink-button" onClick={() => scrollToSection("zonas")} type="button">
               Zonas
             </button>
-            <button className="emc-navlink-button" onClick={() => scrollToSection("publicar")} type="button">
-              Publicar
-            </button>
+            <Link className="emc-navlink-button" href="/contacto">
+              Contacto
+            </Link>
           </div>
 
           <div className="emc-nav-actions">
-            <a className="emc-btn emc-btn-primary" href="#publicar">
+            <Link className="emc-btn emc-btn-primary" href="/publicar-evento">
               Publicar
-            </a>
+            </Link>
           </div>
         </nav>
       </header>

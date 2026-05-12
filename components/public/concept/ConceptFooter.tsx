@@ -5,21 +5,21 @@ export default function ConceptFooter() {
     {
       title: "EventoMotor",
       links: [
-        { label: "Calendario", href: "#calendario" },
-        { label: "Contacto", href: "mailto:hola@eventomotor.com" },
+        { label: "Calendario", href: "/#calendario" },
+        { label: "Contacto", href: "/contacto" },
       ],
     },
     {
       title: "Explorar",
       links: [
-        { label: "Zonas", href: "#zonas" },
-        { label: "Disciplinas", href: "#disciplinas" },
+        { label: "Zonas", href: "/#zonas" },
+        { label: "Disciplinas", href: "/#disciplinas" },
       ],
     },
     {
       title: "Organizadores",
       links: [
-        { label: "Publicar evento", href: "#publicar" },
+        { label: "Publicar evento", href: "/publicar-evento" },
       ],
     },
     {
@@ -40,6 +40,9 @@ export default function ConceptFooter() {
             <EventomotorLogo />
           </div>
           <p>Calendario nacional de eventos de motor: rallyes, motos, coches, rutas, circuito y concentraciones.</p>
+          <p className="emc-footer-contact">
+            Contacto y publicación de eventos: <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>
+          </p>
         </div>
         <nav className="emc-footer-links" aria-label="Enlaces de pie de página">
           {footerColumns.map((column) => (

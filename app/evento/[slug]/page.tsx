@@ -106,7 +106,7 @@ function formatEventDate(event: EventItem) {
 
 function buildDescription(event: EventItem) {
   const location = [event.city, event.province].filter(Boolean).join(", ");
-  return `${event.title} es un evento de ${event.discipline} previsto en ${location || "España"} del ${formatEventDate(event)}. Consulta fecha, ubicación, fuente oficial y eventos relacionados en EventoMotor.`;
+  return `Consulta fecha, ubicación, fuente oficial y entradas del ${event.title} en ${location || "España"}. Evento de ${event.discipline} en el calendario EventoMotor.`;
 }
 
 function buildAboutText(event: EventItem) {
@@ -189,7 +189,7 @@ function getRelatedEvents(current: EventItem, events: EventItem[]) {
 
 function internalLinks(event: EventItem) {
   const type = vehicleTypeOf(event);
-  const typeHref = type === "moto" ? "/eventos-moto" : "/preview-concept#calendario";
+  const typeHref = type === "moto" ? "/eventos-moto" : "/#calendario";
 
   return [
     {
@@ -218,7 +218,8 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
-  const title = `${event.title} | ${event.discipline} en ${event.province} | EventoMotor`;
+  const year = event.start ? new Date(`${event.start}T12:00:00`).getFullYear() : "";
+  const title = `${event.title}${year ? ` ${year}` : ""}`;
   const description = buildDescription(event);
   const eventImage = getEventImage(event);
   const eventImageAlt = getEventImageAlt(event);
@@ -278,7 +279,7 @@ export default async function EventPage({ params }: EventPageProps) {
               <div className="emc-event-breadcrumb">
                 <Link href="/">Inicio</Link>
                 <span>/</span>
-                <Link href="/preview-concept#calendario">Calendario</Link>
+                <Link href="/#calendario">Calendario</Link>
                 <span>/</span>
                 <Link href={`/eventos-moto/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link>
                 <span>/</span>
@@ -444,7 +445,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   <div className="emc-kicker">Eventos relacionados</div>
                   <h2>También puede interesarte</h2>
                 </div>
-                <Link className="emc-btn emc-btn-dark" href="/preview-concept#calendario">
+                <Link className="emc-btn emc-btn-dark" href="/#calendario">
                   Ver calendario
                 </Link>
               </div>
@@ -489,10 +490,10 @@ export default async function EventPage({ params }: EventPageProps) {
                 <h2>¿Buscas más planes de motor?</h2>
                 <p className="emc-pro-copy">Explora el calendario completo o filtra por eventos de moto y coche.</p>
                 <div className="emc-pro-actions">
-                  <Link className="emc-btn emc-btn-primary" href="/preview-concept#calendario">
+                  <Link className="emc-btn emc-btn-primary" href="/#calendario">
                     Ver calendario
                   </Link>
-                  <Link className="emc-btn emc-btn-dark" href="/preview-concept#resultados">
+                  <Link className="emc-btn emc-btn-dark" href="/#calendario">
                     Ver más eventos {vehicleLabel(event).toLowerCase()}
                   </Link>
                 </div>
@@ -519,8 +520,11 @@ export default async function EventPage({ params }: EventPageProps) {
               <EventomotorLogo />
             </div>
             <p>Calendario de eventos de motor por fecha, zona y disciplina.</p>
+            <p className="emc-footer-contact">
+              Contacto y publicación de eventos: <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>
+            </p>
           </div>
-          <div>© {new Date().getFullYear()} EventoMotor</div>
+          <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor</div>
         </div>
       </footer>
     </div>

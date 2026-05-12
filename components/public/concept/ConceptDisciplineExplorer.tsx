@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import type { EventItem } from "@/types/event";
 import { eventText } from "./concept-model";
 
@@ -118,20 +119,19 @@ export default function ConceptDisciplineExplorer({
             const isActive = activeCategory === category.id;
 
             return (
-              <button
+              <Link
                 aria-pressed={isActive}
                 className={`emc-discipline-card ${isActive ? "emc-active" : ""}`}
+                href={`/disciplinas/${category.id}`}
                 key={category.id}
-                onClick={() => onCategory(category.id)}
                 style={{ "--emc-discipline-image": `url("${category.image}")` } as CSSProperties}
-                type="button"
               >
                 <span className="emc-discipline-count">{count} eventos</span>
                 <span className="emc-discipline-body">
                   <strong>{category.title}</strong>
                   <small>{category.description}</small>
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
