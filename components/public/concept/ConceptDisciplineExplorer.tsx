@@ -110,7 +110,7 @@ export default function ConceptDisciplineExplorer({
             <h2>Explora por disciplina</h2>
           </div>
           <p>
-            Encuentra eventos por tipo de experiencia: rallyes, circuito, concentraciones, rutas, offroad, clásicos, karting y ferias.
+            Explora disciplinas con eventos próximos publicados en EventoMotor: rallyes, circuito, concentraciones, rutas, offroad, clásicos, karting y ferias.
           </p>
         </div>
 
@@ -131,7 +131,7 @@ export default function ConceptDisciplineExplorer({
                 })}
                 style={{ "--emc-discipline-image": `url("${category.image}")` } as CSSProperties}
               >
-                <span className="emc-discipline-count">{count} eventos</span>
+                <span className="emc-discipline-count">{count} próximos</span>
                 <span className="emc-discipline-body">
                   <strong>{category.title}</strong>
                   <small>{category.description}</small>

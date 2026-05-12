@@ -170,3 +170,10 @@ export function normalizeSeoText(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
+
+export function normalizeDisciplineSlug(value: string) {
+  return normalizeSeoText(value)
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}

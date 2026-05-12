@@ -7,15 +7,17 @@ import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
-import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+import { formatRange, getDisciplineColor, statusOf } from "@/lib/date-utils";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
-import { normalizeSeoText, SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
+import { normalizeDisciplineSlug, normalizeSeoText, SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
 
 type DisciplinePageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return SEO_DISCIPLINES.map((discipline) => ({ slug: discipline.slug }));
@@ -45,13 +47,28 @@ function matchesTerms(event: EventItem, terms: readonly string[]) {
   return terms.some((term) => text.includes(normalizeSeoText(term)));
 }
 
+function matchesDiscipline(event: EventItem, discipline: (typeof SEO_DISCIPLINES)[number]) {
+  const eventDisciplineSlug = normalizeDisciplineSlug(event.discipline);
+  const eventVehicleTypeSlug = normalizeDisciplineSlug(event.vehicleType || event.vehicle_type || "");
+
+  if (eventDisciplineSlug === discipline.slug || normalizeSeoText(event.discipline) === normalizeSeoText(discipline.title)) {
+    return true;
+  }
+
+  if (discipline.slug === "karting" && (eventDisciplineSlug === "karting" || eventVehicleTypeSlug === "karting")) {
+    return true;
+  }
+
+  return matchesTerms(event, discipline.terms);
+}
+
 function EventCard({ event }: { event: EventItem }) {
   const color = getDisciplineColor(event.discipline);
   const label = dayLabel(event);
 
   return (
     <TrackLink
-      className="emc-result-card"
+      className="emc-result-card emc-taxonomy-card"
       eventName="click_event_detail"
       eventParams={{
         event_slug: event.slug,
@@ -109,48 +126,75 @@ export default async function DisciplinePage({ params }: DisciplinePageProps) {
   if (!discipline) notFound();
 
   const events = (await getVisibleEvents())
-    .filter((event) => matchesTerms(event, discipline.terms))
+    .filter((event) => statusOf(event) !== "finalizado")
+    .filter((event) => matchesDiscipline(event, discipline))
     .sort((a, b) => a.start.localeCompare(b.start));
   const relatedEvents = events.slice(0, 6);
   const otherDisciplines = SEO_DISCIPLINES.filter((item) => item.slug !== discipline.slug);
+  const eventsTitle = `Eventos de ${discipline.title.toLowerCase()} próximos`;
 
   return (
     <div className="emc-page">
       <ConceptStyles />
       <ConceptStaticHeader />
-      <main className="emc-contact-page">
-        <section className="emc-contact-hero emc-seo-hero">
-          <div className="emc-container">
-            <div className="emc-kicker">Disciplina</div>
-            <h1>{discipline.h1}</h1>
-            <p className="emc-contact-lead">{discipline.intro}</p>
-            <div className="emc-contact-actions">
-              <Link className="emc-btn emc-btn-primary" href="/#calendario">
-                Ver calendario
-              </Link>
-              <Link className="emc-contact-secondary-link" href="/disciplinas">
-                Todas las disciplinas
-              </Link>
+      <main className="emc-contact-page emc-taxonomy-page">
+        <section className="emc-taxonomy-hero">
+          <div className="emc-container emc-taxonomy-hero-grid">
+            <div>
+              <div className="emc-event-breadcrumb">
+                <Link href="/">Inicio</Link>
+                <span>/</span>
+                <Link href="/disciplinas">Disciplinas</Link>
+                <span>/</span>
+                <strong>{discipline.title}</strong>
+              </div>
+              <div className="emc-kicker">Disciplina</div>
+              <h1>{discipline.h1}</h1>
+              <p className="emc-taxonomy-lead">{discipline.description}</p>
+              <div className="emc-contact-actions emc-taxonomy-actions">
+                <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                  Ver calendario
+                </Link>
+                <Link className="emc-contact-secondary-link" href="/disciplinas">
+                  Todas las disciplinas
+                </Link>
+              </div>
             </div>
+            <aside className="emc-taxonomy-stats" aria-label="Resumen de disciplina">
+              <div>
+                <strong>{events.length}</strong>
+                <span>eventos próximos</span>
+              </div>
+              <div>
+                <strong>{discipline.title}</strong>
+                <span>disciplina</span>
+              </div>
+            </aside>
           </div>
         </section>
 
         <section className="emc-section emc-contact-section">
           <div className="emc-container">
-            <div className="emc-section-head">
+            <div className="emc-section-head emc-taxonomy-section-head">
               <div>
                 <div className="emc-kicker">Eventos</div>
-                <h2>{events.length ? `${events.length} eventos encontrados` : "Eventos relacionados"}</h2>
+                <h2>{eventsTitle}</h2>
               </div>
-              <p>Listado filtrado por disciplina con enlaces a fichas individuales, ubicación y fuente oficial cuando está disponible.</p>
+              <p>
+                <span className="emc-opportunity-count-badge">{events.length} próximos</span>
+                Listado filtrado por disciplina con enlaces a fichas individuales, ubicación y fuente oficial cuando está disponible.
+              </p>
             </div>
             <div className="emc-results-grid">
               {events.length ? (
                 events.map((event) => <EventCard event={event} key={event.id} />)
               ) : (
-                <div className="emc-panel emc-publish-criteria">
-                  <h2>Sin eventos visibles ahora mismo</h2>
-                  <p>Vuelve al calendario principal para explorar eventos de otras disciplinas o zonas.</p>
+                <div className="emc-panel emc-taxonomy-empty">
+                  <h2>No hay eventos próximos de esta disciplina</h2>
+                  <p>Vuelve al calendario general o revisa otras disciplinas.</p>
+                  <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                    Ver calendario
+                  </Link>
                 </div>
               )}
             </div>

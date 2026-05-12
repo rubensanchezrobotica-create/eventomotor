@@ -1870,6 +1870,152 @@ export default function ConceptStyles() {
   background: rgba(255,255,255,.92);
   box-shadow: 0 10px 24px rgba(255,255,255,.08);
 }
+.emc-taxonomy-page { overflow: hidden; }
+.emc-taxonomy-hero {
+  position: relative;
+  padding: 126px 0 48px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255,91,31,.14), transparent 28%),
+    radial-gradient(circle at 10% 0%, rgba(255,255,255,.055), transparent 24%);
+}
+.emc-taxonomy-hero:after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 140px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(4,7,12,.72));
+}
+.emc-taxonomy-hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 38px;
+  align-items: end;
+}
+.emc-taxonomy-hero h1 {
+  max-width: 740px;
+  margin: 0;
+  font-size: clamp(42px, 4.9vw, 68px);
+  line-height: .95;
+  letter-spacing: -2.7px;
+  font-weight: 950;
+}
+.emc-taxonomy-lead {
+  max-width: 700px;
+  margin-top: 16px;
+  color: #d7dee9;
+  font-size: clamp(17px, 1.55vw, 21px);
+  line-height: 1.45;
+  font-weight: 780;
+}
+.emc-taxonomy-actions { margin-top: 24px; }
+.emc-taxonomy-stats {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(17,24,36,.62), rgba(7,10,17,.88));
+  box-shadow: 0 20px 76px rgba(0,0,0,.28);
+  backdrop-filter: blur(18px);
+}
+.emc-taxonomy-stats div {
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  background: radial-gradient(circle at 100% 0%, rgba(255,91,31,.16), transparent 38%), rgba(8,12,20,.72);
+}
+.emc-taxonomy-stats strong {
+  color: #fff;
+  font-size: clamp(23px, 2vw, 31px);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -1.2px;
+}
+.emc-taxonomy-stats span {
+  color: var(--emc-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.emc-taxonomy-section-head h2 {
+  font-size: clamp(34px, 4vw, 54px);
+}
+.emc-taxonomy-section-head p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+.emc-taxonomy-card {
+  min-height: 220px;
+  grid-template-columns: 62px 1fr;
+  gap: 16px;
+  padding: 18px;
+  border-color: rgba(255,255,255,.14);
+  border-top: 2px solid color-mix(in srgb, var(--emc-card-accent) 72%, rgba(255,255,255,.18));
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--emc-card-accent) 12%, transparent), transparent 34%),
+    linear-gradient(180deg, rgba(18,27,42,.92), rgba(10,15,24,.96));
+  box-shadow: 0 22px 70px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.055);
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease, background .22s ease;
+}
+.emc-taxonomy-card > div:last-child { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; }
+.emc-taxonomy-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,91,31,.34);
+  box-shadow: 0 30px 90px rgba(0,0,0,.38), 0 0 34px color-mix(in srgb, var(--emc-card-accent) 18%, transparent);
+}
+.emc-taxonomy-card .emc-result-date { width: 62px; height: 62px; border-radius: 18px; font-size: 24px; }
+.emc-taxonomy-card .emc-result-meta { gap: 6px; margin-bottom: 12px; }
+.emc-taxonomy-card .emc-badge {
+  padding: 5px 7px;
+  border-color: rgba(255,255,255,.10);
+  background: rgba(255,255,255,.045);
+  color: #c9d2df;
+  font-size: 9px;
+  letter-spacing: .01em;
+}
+.emc-taxonomy-card h3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 42px;
+  margin: 0 0 10px;
+  font-size: 17px;
+  letter-spacing: -.55px;
+}
+.emc-taxonomy-card p { min-height: 38px; margin: 0 0 16px; line-height: 1.48; }
+.emc-taxonomy-card .emc-card-action { margin-top: auto; padding: 8px 13px; }
+.emc-taxonomy-empty {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255,59,0,.09), rgba(12,18,29,.94) 44%, rgba(7,10,17,.98));
+}
+.emc-taxonomy-empty h2 {
+  max-width: 680px;
+  font-size: clamp(26px, 3vw, 40px);
+  line-height: 1.02;
+  letter-spacing: -1.4px;
+}
+.emc-taxonomy-empty p {
+  max-width: 620px;
+  margin: 12px 0 18px;
+  color: #cbd3df;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 700;
+}
 .emc-opportunity-editorial-section,
 .emc-opportunity-use-section,
 .emc-opportunity-faq-section { padding-top: 16px; }
@@ -2054,7 +2200,7 @@ export default function ConceptStyles() {
 .emc-footer-cookie-settings { grid-column: 3; justify-self: end; margin-top: -10px; }
 
 @media (max-width: 1180px) {
-  .emc-hero-grid, .emc-event-hero-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel, .emc-contact-grid, .emc-contact-list-panel, .emc-publish-process, .emc-opportunity-hero-grid, .emc-opportunity-editorial { grid-template-columns: 1fr; }
+  .emc-hero-grid, .emc-event-hero-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel, .emc-contact-grid, .emc-contact-list-panel, .emc-publish-process, .emc-opportunity-hero-grid, .emc-opportunity-editorial, .emc-taxonomy-hero-grid { grid-template-columns: 1fr; }
   .emc-list-view, .emc-map-view { grid-template-columns: 1fr; }
   .emc-filter-rail { align-items: stretch; }
   .emc-product-body { grid-template-columns: 1fr; }
@@ -2069,6 +2215,7 @@ export default function ConceptStyles() {
   .emc-footer-legal { text-align: left; }
   .emc-footer-cookie-settings { grid-column: auto; justify-self: start; margin-top: -22px; }
   .emc-opportunity-stats { max-width: 680px; }
+  .emc-taxonomy-stats { max-width: 680px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-opportunity-links-section .emc-internal-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-hero-fields, .emc-calendar-fields { grid-template-columns: 1fr 1fr; }
   .emc-location-actions { justify-content: flex-start; margin-top: 20px; }
@@ -2107,6 +2254,14 @@ export default function ConceptStyles() {
   .emc-location-section { padding-top: 170px; }
   .emc-event-hero { padding-top: 130px; }
   .emc-contact-hero { min-height: auto; padding: 118px 0 44px; }
+  .emc-taxonomy-hero { padding: 100px 0 32px; }
+  .emc-taxonomy-hero h1 { font-size: clamp(34px, 10vw, 44px); line-height: .97; letter-spacing: -1.8px; }
+  .emc-taxonomy-lead { margin-top: 13px; font-size: 16px; line-height: 1.45; }
+  .emc-taxonomy-actions { margin-top: 18px; }
+  .emc-taxonomy-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 9px; border-radius: 23px; }
+  .emc-taxonomy-stats div { min-height: 78px; padding: 12px; border-radius: 18px; }
+  .emc-taxonomy-stats strong { font-size: 21px; letter-spacing: -.7px; }
+  .emc-taxonomy-stats span { font-size: 10px; letter-spacing: .06em; }
   .emc-opportunity-hero { padding: 100px 0 32px; }
   .emc-opportunity-hero h1 { font-size: clamp(34px, 10vw, 44px); line-height: .97; letter-spacing: -1.8px; }
   .emc-opportunity-lead { margin-top: 13px; font-size: 16px; line-height: 1.45; }
@@ -2117,16 +2272,23 @@ export default function ConceptStyles() {
   .emc-opportunity-stat-date strong { font-size: 18px; }
   .emc-opportunity-stat span { font-size: 10px; letter-spacing: .06em; }
   .emc-opportunity-events-head h2,
+  .emc-taxonomy-section-head h2,
   .emc-opportunity-editorial h2,
   .emc-opportunity-use-section .emc-section-head h2,
   .emc-opportunity-faq-section .emc-section-head h2 { font-size: clamp(30px, 9vw, 38px); letter-spacing: -1.5px; }
+  .emc-taxonomy-section-head p { display: block; }
   .emc-opportunity-events-head p { display: block; }
   .emc-opportunity-count-badge { margin: 0 0 10px; min-height: 28px; font-size: 11px; }
   .emc-opportunity-card { min-height: auto; grid-template-columns: 54px 1fr; gap: 12px; padding: 15px; border-radius: 22px; }
+  .emc-taxonomy-card { min-height: auto; grid-template-columns: 54px 1fr; gap: 12px; padding: 15px; border-radius: 22px; }
   .emc-opportunity-card .emc-result-date { width: 56px; height: 56px; border-radius: 16px; font-size: 22px; }
+  .emc-taxonomy-card .emc-result-date { width: 56px; height: 56px; border-radius: 16px; font-size: 22px; }
   .emc-opportunity-card h3 { min-height: auto; font-size: 16px; margin-top: 10px; }
+  .emc-taxonomy-card h3 { min-height: auto; font-size: 16px; margin-top: 10px; }
   .emc-opportunity-card p { min-height: auto; }
+  .emc-taxonomy-card p { min-height: auto; }
   .emc-opportunity-card .emc-badge { font-size: 10px; padding: 6px 8px; }
+  .emc-taxonomy-card .emc-badge { font-size: 10px; padding: 6px 8px; }
   .emc-opportunity-use-section .emc-container,
   .emc-opportunity-faq-section .emc-container,
   .emc-opportunity-links-section .emc-container { padding: 20px; border-radius: 28px; }
