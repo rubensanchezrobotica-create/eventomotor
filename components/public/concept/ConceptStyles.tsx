@@ -1715,7 +1715,7 @@ export default function ConceptStyles() {
 .emc-footer-contact a:hover { color: #fff !important; }
 .emc-footer-links {
   display: grid;
-  grid-template-columns: repeat(4, minmax(110px, max-content));
+  grid-template-columns: repeat(5, minmax(110px, max-content));
   gap: 22px;
 }
 .emc-footer-column {

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getListingLinks } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
+import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 import { SEO_DISCIPLINES, SEO_ZONES } from "@/lib/seo-taxonomy";
 
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
@@ -40,6 +41,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sitemapEntry(`/zonas/${zone.slug}`, now, "weekly", 0.75),
     ),
   ];
+  const opportunityEntries = OPPORTUNITY_PAGES.map((page) =>
+    sitemapEntry(`/${page.slug}`, now, "daily", 0.85),
+  );
   const listingEntries = [...links.disciplines, ...links.regions].map((link) =>
     sitemapEntry(`/eventos-moto/${link.slug}`, now, "weekly", 0.8),
   );
@@ -49,5 +53,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sitemapEntry(`/evento/${event.slug}`, new Date(event.start), "weekly", 0.7),
     );
 
-  return [...staticEntries, ...taxonomyEntries, ...listingEntries, ...eventEntries];
+  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...listingEntries, ...eventEntries];
 }

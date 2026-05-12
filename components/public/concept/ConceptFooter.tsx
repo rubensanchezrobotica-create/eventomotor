@@ -1,6 +1,7 @@
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
+import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 
 export default function ConceptFooter() {
   const footerColumns = [
@@ -23,6 +24,13 @@ export default function ConceptFooter() {
       links: [
         { label: "Publicar evento", href: "/publicar-evento" },
       ],
+    },
+    {
+      title: "Búsquedas populares",
+      links: OPPORTUNITY_PAGES.map((page) => ({
+        label: page.h1,
+        href: `/${page.slug}`,
+      })),
     },
     {
       title: "Legal",
