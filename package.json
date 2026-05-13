@@ -11,6 +11,8 @@
     "import:rallyes-coches": "tsx scripts/import-rallyes-coches-seed.ts",
     "import:karting:dry": "node scripts/import-karting-events.mjs --dry-run",
     "import:karting": "node scripts/import-karting-events.mjs --import",
+    "import:ferias:dry": "node scripts/import-ferias-events.mjs --dry-run",
+    "import:ferias": "node scripts/import-ferias-events.mjs --import",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
