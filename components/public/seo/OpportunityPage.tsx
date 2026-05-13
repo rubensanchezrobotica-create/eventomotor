@@ -142,7 +142,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               <h1>{page.h1}</h1>
               <p className="emc-opportunity-lead">{page.lead}</p>
               <div className="emc-contact-actions emc-opportunity-actions">
-                <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                <Link className="emc-btn emc-btn-primary" href="/calendario">
                   Ver calendario completo
                 </Link>
                 <Link className="emc-contact-secondary-link" href="/publicar-evento">
@@ -186,7 +186,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
                 <h2>No hay eventos destacados con estos filtros ahora mismo.</h2>
                 <p>Puedes consultar el calendario completo para ver próximos eventos por fecha, zona y disciplina.</p>
                 <div className="emc-contact-actions">
-                  <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                  <Link className="emc-btn emc-btn-primary" href="/calendario">
                     Consultar calendario completo
                   </Link>
                 </div>

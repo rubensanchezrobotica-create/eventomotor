@@ -9,7 +9,7 @@ export default function ConceptFooter() {
     {
       title: "EventoMotor",
       links: [
-        { label: "Calendario", href: "/#calendario" },
+        { label: "Calendario", href: "/calendario" },
         { label: "Contacto", href: "/contacto" },
       ],
     },

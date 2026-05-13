@@ -126,7 +126,7 @@ export default async function ZonePage({ params }: ZonePageProps) {
             <h1>{zone.h1}</h1>
             <p className="emc-contact-lead">{zone.intro}</p>
             <div className="emc-contact-actions">
-              <Link className="emc-btn emc-btn-primary" href="/#calendario">
+              <Link className="emc-btn emc-btn-primary" href="/calendario">
                 Ver calendario
               </Link>
               <Link className="emc-contact-secondary-link" href="/zonas">
@@ -175,7 +175,7 @@ export default async function ZonePage({ params }: ZonePageProps) {
                   </Link>
                 ))}
                 {cities.slice(0, Math.max(0, 9 - provinces.length)).map((city) => (
-                  <Link className="emc-internal-link-card" href="/#calendario" key={city}>
+                  <Link className="emc-internal-link-card" href="/calendario" key={city}>
                     <span>Ciudad</span>
                     <strong>{city}</strong>
                   </Link>

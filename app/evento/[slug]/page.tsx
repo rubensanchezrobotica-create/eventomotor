@@ -216,7 +216,7 @@ function getRelatedEvents(current: EventItem, events: EventItem[]) {
 
 function internalLinks(event: EventItem) {
   const type = vehicleTypeOf(event);
-  const typeHref = type === "moto" ? "/eventos-moto" : "/#calendario";
+  const typeHref = type === "moto" ? "/eventos-moto" : "/calendario";
 
   return [
     {
@@ -311,7 +311,7 @@ export default async function EventPage({ params }: EventPageProps) {
               <div className="emc-event-breadcrumb">
                 <Link href="/">Inicio</Link>
                 <span>/</span>
-                <Link href="/#calendario">Calendario</Link>
+                <Link href="/calendario">Calendario</Link>
                 <span>/</span>
                 <Link href={`/eventos-moto/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link>
                 <span>/</span>
@@ -512,7 +512,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   <div className="emc-kicker">Eventos relacionados</div>
                   <h2>También puede interesarte</h2>
                 </div>
-                <Link className="emc-btn emc-btn-dark" href="/#calendario">
+                <Link className="emc-btn emc-btn-dark" href="/calendario">
                   Ver calendario
                 </Link>
               </div>
@@ -565,10 +565,10 @@ export default async function EventPage({ params }: EventPageProps) {
                 <h2>¿Buscas más planes de motor?</h2>
                 <p className="emc-pro-copy">Explora el calendario completo o filtra por eventos de moto y coche.</p>
                 <div className="emc-pro-actions">
-                  <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                  <Link className="emc-btn emc-btn-primary" href="/calendario">
                     Ver calendario
                   </Link>
-                  <Link className="emc-btn emc-btn-dark" href="/#calendario">
+                  <Link className="emc-btn emc-btn-dark" href="/calendario">
                     Ver más eventos {vehicleLabel(event).toLowerCase()}
                   </Link>
                 </div>

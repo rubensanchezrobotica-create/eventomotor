@@ -115,7 +115,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Puedo publicar un evento de este fin de semana?", answer: "Sí. Si organizas un evento con fecha, ubicación y fuente verificable, puedes enviarlo desde la página de publicar evento." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/#calendario" },
+      { label: "Calendario general", href: "/calendario" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -151,7 +151,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar una concentración motera?", answer: "Puedes enviar nombre, fecha, ubicación, disciplina, fuente oficial y cartel desde la página de publicar evento." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/#calendario" },
+      { label: "Calendario general", href: "/calendario" },
       { label: "Concentraciones moteras", href: "/disciplinas/concentraciones" },
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -187,7 +187,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo saber si un rally tiene inscripción o entradas?", answer: "La ficha puede mostrar enlace de entradas o inscripción si está disponible; si no, conviene revisar la fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/#calendario" },
+      { label: "Calendario general", href: "/calendario" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Eventos en el norte", href: "/zonas/norte" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -223,7 +223,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar un evento en Barcelona?", answer: "Los organizadores pueden enviar la información oficial desde publicar evento para que se revise su inclusión." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/#calendario" },
+      { label: "Calendario general", href: "/calendario" },
       { label: "Cataluña / Aragón", href: "/zonas/cataluna-aragon" },
       { label: "Circuito", href: "/disciplinas/circuito" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -259,7 +259,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo enviar un evento de Valencia?", answer: "Puedes enviarlo a EventoMotor desde la página de publicar evento con fecha, ubicación y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/#calendario" },
+      { label: "Calendario general", href: "/calendario" },
       { label: "Levante", href: "/zonas/levante" },
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },

@@ -15,14 +15,14 @@ export default function ConceptStaticHeader({ compactActions = false }: ConceptS
           <EventomotorLogo compactOnMobile />
         </Link>
         <div className="emc-navlinks">
-          <Link href="/#calendario">Calendario</Link>
+          <Link href="/calendario">Calendario</Link>
           <Link href="/#disciplinas">Disciplinas</Link>
           <Link href="/#zonas">Zonas</Link>
           <Link href="/contacto">Contacto</Link>
         </div>
         <div className="emc-nav-actions">
           {compactActions ? null : (
-            <Link className="emc-btn emc-btn-dark" href="/#calendario">
+            <Link className="emc-btn emc-btn-dark" href="/calendario">
               Ver agenda
             </Link>
           )}

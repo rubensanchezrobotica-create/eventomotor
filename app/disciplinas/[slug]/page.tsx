@@ -152,7 +152,7 @@ export default async function DisciplinePage({ params }: DisciplinePageProps) {
               <h1>{discipline.h1}</h1>
               <p className="emc-taxonomy-lead">{discipline.description}</p>
               <div className="emc-contact-actions emc-taxonomy-actions">
-                <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                <Link className="emc-btn emc-btn-primary" href="/calendario">
                   Ver calendario
                 </Link>
                 <Link className="emc-contact-secondary-link" href="/disciplinas">
@@ -192,7 +192,7 @@ export default async function DisciplinePage({ params }: DisciplinePageProps) {
                 <div className="emc-panel emc-taxonomy-empty">
                   <h2>No hay eventos próximos de esta disciplina</h2>
                   <p>Vuelve al calendario general o revisa otras disciplinas.</p>
-                  <Link className="emc-btn emc-btn-primary" href="/#calendario">
+                  <Link className="emc-btn emc-btn-primary" href="/calendario">
                     Ver calendario
                   </Link>
                 </div>
