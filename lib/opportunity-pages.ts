@@ -95,6 +95,10 @@ const extendedConcentrationTerms = [
   "solidario",
   "yuncler",
 ];
+const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
+const motoCircuitTerms = ["moto", "motos", "motociclismo", "rodada moto", "rodadas moto", "tandas moto"];
+const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
+const feriaTerms = ["feria", "ferias", "salon", "salón", "automovil", "automóvil", "moto", "clasicos", "clásicos", "recambios", "exposicion", "exposición", "motor show", "expo"];
 
 export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
@@ -562,6 +566,156 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     filter: (event) =>
       includesAny(event, ["comunitat valenciana", "comunidad valenciana", "valencia", "alicante", "castellon", "castellón", "cheste", "ricardo tormo"]),
   },
+  {
+    slug: "rodadas-moto-2026",
+    h1: "Rodadas moto 2026",
+    title: "Rodadas moto 2026 | Tandas y circuito | EventoMotor",
+    description:
+      "Consulta rodadas moto 2026 en Espana: tandas libres, trackdays moto, cursos de conduccion en circuito y eventos con fuente oficial.",
+    eyebrow: "Circuito moto",
+    lead:
+      "Calendario de rodadas moto 2026 con tandas libres, trackdays y cursos de conduccion en circuito publicados en EventoMotor.",
+    resultsTitle: "Rodadas moto 2026 encontradas",
+    intro:
+      "Las rodadas moto 2026 reunen tandas libres, trackdays de moto y cursos de conduccion en circuito para motoristas que quieren rodar con seguridad y planificar fechas con antelacion. Esta pagina filtra eventos publicados en EventoMotor que combinan intencion de circuito con senales de moto, rodadas, tandas o formacion. No inventamos organizadores, precios ni horarios: solo mostramos eventos visibles en el calendario con datos suficientes para enlazar a una ficha individual. Desde cada evento puedes revisar fecha, circuito o recinto, ciudad, provincia, disciplina, fuente oficial y enlaces disponibles antes de reservar plaza o desplazarte.",
+    editorialBlocks: [
+      { title: "Rodadas y tandas", text: "Prioriza eventos con senales de rodadas, tandas libres, trackdays moto o cursos de conduccion." },
+      { title: "En circuito", text: "La seleccion busca actividad vinculada a circuito y vehiculo moto cuando existe esa informacion." },
+      { title: "Fuente oficial", text: "Las fichas enlazan a la fuente disponible para confirmar horarios, requisitos o inscripcion." },
+    ],
+    usageSteps: [
+      { title: "Revisa la fecha", text: "Consulta proximas rodadas y compara disponibilidad por calendario." },
+      { title: "Comprueba el circuito", text: "Mira recinto, ciudad y provincia antes de organizar el desplazamiento." },
+      { title: "Valida inscripcion", text: "Abre la fuente oficial para confirmar plazas, requisitos y horarios." },
+    ],
+    faqs: [
+      { question: "Donde ver rodadas moto 2026?", answer: "EventoMotor agrupa rodadas, tandas libres, trackdays y cursos de conduccion de moto publicados con fecha, ubicacion y fuente cuando existe." },
+      { question: "Incluye cursos de conduccion moto en circuito?", answer: "Si, si el evento visible menciona curso de conduccion, circuito y moto, puede aparecer en esta pagina." },
+      { question: "Aparecen trackdays moto?", answer: "Si, los trackdays de moto relacionados con circuito y publicados en los datos visibles se incluyen en el listado." },
+      { question: "Como publicar una rodada de moto?", answer: "Puedes enviar la informacion oficial desde publicar evento para que se revise antes de publicarla." },
+    ],
+    relatedLinks: [
+      { label: "Circuito", href: "/disciplinas/circuito" },
+      { label: "Trackdays en Espana 2026", href: "/trackdays-espana-2026" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) =>
+      isYear(event, 2026) &&
+      includesAny(event, circuitTerms) &&
+      includesAny(event, motoCircuitTerms),
+  },
+  {
+    slug: "trackdays-espana-2026",
+    h1: "Trackdays en Espana 2026",
+    title: "Trackdays en Espana 2026 | Tandas libres y circuito | EventoMotor",
+    description:
+      "Consulta trackdays en Espana 2026: tandas libres de coche y moto, circuito, cursos de conduccion, racing experience y drift day.",
+    eyebrow: "Circuito 2026",
+    lead:
+      "Calendario de trackdays en Espana 2026 con tandas libres, circuito, cursos de conduccion, experiencias racing y drift day cuando existen.",
+    resultsTitle: "Trackdays y tandas libres 2026",
+    intro:
+      "Los trackdays en Espana 2026 reunen tandas libres, eventos de circuito, cursos de conduccion, racing experiences y jornadas para coches o motos orientadas a rodar en pista. Esta landing filtra eventos publicados en EventoMotor relacionados con trackday, circuito, tandas libres, formacion o drift day cuando aparecen en los datos. El objetivo es ofrecer una pagina practica para usuarios que buscan calendario de circuito sin mezclarlo con todo el calendario nacional. Cada evento enlaza a una ficha individual con fecha, ubicacion, disciplina, tipo de vehiculo, fuente oficial y enlaces disponibles. Antes de reservar, revisa siempre la fuente del organizador.",
+    editorialBlocks: [
+      { title: "Tandas y circuito", text: "Agrupa eventos con senales de trackday, tandas libres, circuito, cursos o racing experience." },
+      { title: "Coche y moto", text: "Puede incluir trackdays de coche, moto o mixtos si estan publicados en EventoMotor." },
+      { title: "Datos verificables", text: "La ficha individual ayuda a confirmar fecha, recinto, fuente oficial y posibles enlaces de inscripcion." },
+    ],
+    usageSteps: [
+      { title: "Filtra por fecha", text: "Ordena mentalmente los proximos trackdays y tandas libres disponibles." },
+      { title: "Revisa vehiculo", text: "Comprueba si el evento esta orientado a coche, moto o formato mixto." },
+      { title: "Confirma condiciones", text: "Consulta la fuente oficial para requisitos, horarios, plazas o inscripcion." },
+    ],
+    faqs: [
+      { question: "Donde ver trackdays en Espana 2026?", answer: "Esta pagina reune trackdays, tandas libres y eventos de circuito publicados en EventoMotor con fecha y ubicacion." },
+      { question: "Incluye trackdays de coche y moto?", answer: "Si, puede incluir eventos de coche, moto o mixtos segun el tipo de vehiculo publicado en los datos." },
+      { question: "Aparecen cursos de conduccion?", answer: "Si el evento menciona curso de conduccion o formacion en circuito y esta visible, puede aparecer listado." },
+      { question: "Como publicar un trackday?", answer: "Los organizadores pueden enviarlo desde publicar evento con fuente oficial y datos verificables." },
+    ],
+    relatedLinks: [
+      { label: "Circuito", href: "/disciplinas/circuito" },
+      { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) => isYear(event, 2026) && includesAny(event, circuitTerms),
+  },
+  {
+    slug: "karting-espana-2026",
+    h1: "Karting en Espana 2026",
+    title: "Karting en Espana 2026 | Campeonatos y carreras | EventoMotor",
+    description:
+      "Consulta karting en Espana 2026: campeonatos, carreras, endurance karting, karting de alquiler y eventos con fuente oficial.",
+    eyebrow: "Karting 2026",
+    lead:
+      "Calendario de karting en Espana 2026 con campeonatos, carreras, endurance, karting de alquiler y eventos publicados por fecha.",
+    resultsTitle: "Eventos de karting 2026",
+    intro:
+      "El karting en Espana 2026 incluye campeonatos, carreras sociales, pruebas endurance, karting de alquiler y eventos vinculados a circuitos o escuelas. Esta pagina filtra eventos visibles en EventoMotor con disciplina, categoria, tags o texto relacionado con karting. No anadimos pruebas manualmente ni inventamos calendarios: aparecen solo eventos existentes con informacion suficiente para enlazar a su ficha. Desde cada card puedes revisar fecha, ciudad, provincia, recinto, disciplina, fuente oficial y enlaces disponibles para ampliar informacion o confirmar inscripcion.",
+    editorialBlocks: [
+      { title: "Campeonatos y carreras", text: "Incluye eventos de karting competitivo, carreras sociales y citas de campeonato cuando existen en los datos." },
+      { title: "Endurance y alquiler", text: "Tambien puede recoger endurance karting o karting de alquiler si estan publicados." },
+      { title: "Ficha del evento", text: "Cada resultado enlaza a una ficha con fecha, ubicacion, fuente oficial y enlaces disponibles." },
+    ],
+    usageSteps: [
+      { title: "Busca por fecha", text: "Localiza los proximos eventos de karting publicados en el calendario." },
+      { title: "Revisa ubicacion", text: "Comprueba circuito, ciudad y provincia antes de organizar la asistencia." },
+      { title: "Confirma fuente", text: "Abre la ficha y revisa la informacion oficial disponible." },
+    ],
+    faqs: [
+      { question: "Donde ver karting en Espana 2026?", answer: "EventoMotor lista eventos de karting publicados con fecha, ubicacion y fuente oficial cuando existe." },
+      { question: "Incluye campeonatos de karting?", answer: "Si, si el evento visible menciona campeonato, carrera o disciplina Karting, puede aparecer en esta pagina." },
+      { question: "Aparece endurance karting?", answer: "Si hay eventos de endurance karting publicados en los datos, se incluyen en el listado." },
+      { question: "Como publicar un evento de karting?", answer: "Puedes enviarlo desde publicar evento aportando fecha, ubicacion y fuente verificable." },
+    ],
+    relatedLinks: [
+      { label: "Disciplina Karting", href: "/disciplinas/karting" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) => isYear(event, 2026) && includesAny(event, kartingTerms),
+  },
+  {
+    slug: "ferias-motor-espana-2026",
+    h1: "Ferias del motor en Espana 2026",
+    title: "Ferias del motor en Espana 2026 | Salones y exposiciones | EventoMotor",
+    description:
+      "Consulta ferias del motor en Espana 2026: salones del automovil, ferias de motos, clasicos, recambios, exposiciones y motor show.",
+    eyebrow: "Ferias 2026",
+    lead:
+      "Calendario de ferias del motor en Espana 2026 con salones, exposiciones, clasicos, recambios, motos y coches.",
+    resultsTitle: "Ferias del motor 2026",
+    intro:
+      "Las ferias del motor en Espana 2026 reunen salones del automovil, ferias de motos, eventos de clasicos, exposiciones, ferias de recambios, muestras y motor shows orientados a aficionados, profesionales y compradores. Esta pagina filtra eventos visibles en EventoMotor relacionados con feria, salon, exposicion, recambios, clasicos o motor show. El objetivo es ofrecer una entrada clara para busquedas de ferias motor Espana 2026 sin inventar eventos ni ampliar informacion no verificada. Cada ficha permite revisar fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles antes de planificar la visita.",
+    editorialBlocks: [
+      { title: "Salones y exposiciones", text: "Agrupa eventos relacionados con ferias, salones, exposiciones, muestras y motor shows." },
+      { title: "Coches, motos y clasicos", text: "Puede incluir ferias de automovil, moto, clasicos, recambios o formatos mixtos." },
+      { title: "Fuente oficial", text: "Las fichas enlazan a la fuente disponible para confirmar horarios, entradas o ubicacion." },
+    ],
+    usageSteps: [
+      { title: "Revisa fechas", text: "Consulta las proximas ferias y salones publicados por orden temporal." },
+      { title: "Comprueba ubicacion", text: "Mira ciudad, provincia y recinto antes de organizar la visita." },
+      { title: "Valida entradas", text: "Abre la fuente oficial o enlace de entradas si existe en la ficha." },
+    ],
+    faqs: [
+      { question: "Donde ver ferias del motor en Espana 2026?", answer: "Esta pagina reune ferias, salones y exposiciones del motor publicadas en EventoMotor con fecha y ubicacion." },
+      { question: "Incluye salones del automovil?", answer: "Si, si el evento visible esta relacionado con salon del automovil, exposicion o feria del motor, puede aparecer listado." },
+      { question: "Aparecen ferias de clasicos y recambios?", answer: "Si los datos publicados mencionan clasicos, recambios o exposicion, se incluyen cuando encajan con la busqueda." },
+      { question: "Como publicar una feria del motor?", answer: "Puedes enviar la informacion oficial desde publicar evento para que se revise su publicacion." },
+    ],
+    relatedLinks: [
+      { label: "Disciplina Ferias", href: "/disciplinas/ferias" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) => isYear(event, 2026) && includesAny(event, feriaTerms),
+  },
+
 ];
 
 export function getOpportunityPage(slug: string) {
