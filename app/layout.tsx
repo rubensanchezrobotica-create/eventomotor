@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import CookieConsent from "@/components/cookies/CookieConsent";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import { absoluteUrl, CONTACT_EMAIL, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, LOGO_URL, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
@@ -16,6 +17,11 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: SITE_NAME,
     description: DEFAULT_DESCRIPTION,
@@ -50,6 +56,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#050505" },
+    { media: "(prefers-color-scheme: light)", color: "#ff3b00" },
+  ],
+};
+
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -80,6 +93,7 @@ export default function RootLayout({
         {children}
         <CookieConsent />
         <GoogleAnalytics />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
