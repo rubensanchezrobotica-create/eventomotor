@@ -1,37 +1,56 @@
+import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
-import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 
 export default function ConceptFooter() {
   const footerColumns = [
     {
-      title: "EventoMotor",
+      title: "Calendario",
       links: [
         { label: "Calendario", href: "/calendario" },
-        { label: "Contacto", href: "/contacto" },
+        { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       ],
     },
     {
-      title: "Explorar",
+      title: "Rallyes",
       links: [
-        { label: "Zonas", href: "/#zonas" },
-        { label: "Disciplinas", href: "/#disciplinas" },
+        { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
+        { label: "Rallysprint en Espana 2026", href: "/rallysprint-espana-2026" },
+        { label: "Rallyes en Valencia 2026", href: "/rallyes-valencia-2026" },
+      ],
+    },
+    {
+      title: "Motos",
+      links: [
+        { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+        { label: "Concentraciones", href: "/disciplinas/concentraciones" },
+        { label: "Rutas moteras", href: "/disciplinas/rutas" },
+      ],
+    },
+    {
+      title: "Zonas",
+      links: [
+        { label: "Eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
+        { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },
+      ],
+    },
+    {
+      title: "Disciplinas",
+      links: [
+        { label: "Karting", href: "/disciplinas/karting" },
+        { label: "Ferias del motor", href: "/disciplinas/ferias" },
+        { label: "Circuito", href: "/disciplinas/circuito" },
+        { label: "Offroad", href: "/disciplinas/offroad" },
       ],
     },
     {
       title: "Organizadores",
       links: [
         { label: "Publicar evento", href: "/publicar-evento" },
+        { label: "Contacto", href: "/contacto" },
       ],
-    },
-    {
-      title: "Búsquedas populares",
-      links: OPPORTUNITY_PAGES.map((page) => ({
-        label: page.h1,
-        href: `/${page.slug}`,
-      })),
     },
     {
       title: "Legal",
@@ -52,10 +71,10 @@ export default function ConceptFooter() {
           </div>
           <p>Calendario nacional de eventos de motor: rallyes, motos, coches, rutas, circuito y concentraciones.</p>
           <p className="emc-footer-contact">
-            Contacto y publicación de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
+            Contacto y publicacion de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
           </p>
         </div>
-        <nav className="emc-footer-links" aria-label="Enlaces de pie de página">
+        <nav className="emc-footer-links" aria-label="Enlaces de pie de pagina">
           {footerColumns.map((column) => (
             <div className="emc-footer-column" key={column.title}>
               <strong>{column.title}</strong>
@@ -70,13 +89,13 @@ export default function ConceptFooter() {
                     {link.label}
                   </TrackLink>
                 ) : (
-                  <a href={link.href} key={link.label}>{link.label}</a>
+                  <Link href={link.href} key={link.label}>{link.label}</Link>
                 ),
               )}
             </div>
           ))}
         </nav>
-        <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor / La brújula del motor</div>
+        <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor / La brujula del motor</div>
         <div className="emc-footer-cookie-settings">
           <CookieSettingsButton />
         </div>

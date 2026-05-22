@@ -127,8 +127,11 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     ],
     relatedLinks: [
       { label: "Calendario general", href: "/calendario" },
-      { label: "Rallyes", href: "/disciplinas/rallyes" },
-      { label: "Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+      { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
+      { label: "Rallysprint en España 2026", href: "/rallysprint-espana-2026" },
+      { label: "Eventos de karting", href: "/disciplinas/karting" },
+      { label: "Ferias del motor", href: "/disciplinas/ferias" },
       { label: "Eventos en Valencia", href: "/eventos-motor-valencia" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
@@ -315,6 +318,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     ],
     relatedLinks: [
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
+      { label: "Rallysprint en España 2026", href: "/rallysprint-espana-2026" },
       { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },
       { label: "Disciplina Rallyes", href: "/disciplinas/rallyes" },
       { label: "Zona Levante", href: "/zonas/levante" },

@@ -419,6 +419,17 @@ export default function ConceptStyles() {
 .emc-event-warning-card p { color: #cbd3df; line-height: 1.65; font-size: 15px; font-weight: 700; margin-bottom: 18px; }
 .emc-practical-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .emc-internal-links-section { padding-top: 0; }
+.emc-home-seo-section { padding-top: 34px; }
+.emc-home-seo-section .emc-container {
+  padding: 30px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255,91,31,.08), transparent 32%),
+    linear-gradient(180deg, rgba(12,18,29,.52), rgba(6,9,15,.74));
+  box-shadow: 0 22px 72px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.emc-home-seo-links { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .emc-internal-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .emc-internal-link-card {
   min-height: 138px;
@@ -2320,15 +2331,15 @@ export default function ConceptStyles() {
 .emc-opportunity-links-section .emc-internal-links { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .emc-footer { border-top: 1px solid var(--emc-line); padding: 52px 0; color: var(--emc-muted); position: relative; z-index: 1; }
-.emc-footer-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(420px, auto) auto; align-items: start; gap: 34px; }
+.emc-footer-grid { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 2fr); align-items: start; gap: 34px; }
 .emc-footer p { margin-top: 14px; max-width: 470px; line-height: 1.7; }
 .emc-footer-contact { color: #dbe2ec; font-weight: 800; }
 .emc-footer-contact a { color: #ffd0bf !important; font-weight: 950; }
 .emc-footer-contact a:hover { color: #fff !important; }
 .emc-footer-links {
   display: grid;
-  grid-template-columns: repeat(5, minmax(110px, max-content));
-  gap: 22px;
+  grid-template-columns: repeat(7, minmax(96px, max-content));
+  gap: 18px;
 }
 .emc-footer-column {
   display: grid;
@@ -2347,8 +2358,8 @@ export default function ConceptStyles() {
   font-weight: 850;
 }
 .emc-footer-links a:hover { color: #fff !important; }
-.emc-footer-legal { color: var(--emc-muted); font-size: 13px; font-weight: 750; text-align: right; }
-.emc-footer-cookie-settings { grid-column: 3; justify-self: end; margin-top: -10px; }
+.emc-footer-legal { grid-column: 2; color: var(--emc-muted); font-size: 13px; font-weight: 750; text-align: right; }
+.emc-footer-cookie-settings { grid-column: 2; justify-self: end; margin-top: -10px; }
 
 @media (max-width: 1180px) {
   .emc-hero-grid, .emc-event-hero-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel, .emc-contact-grid, .emc-contact-list-panel, .emc-publish-process, .emc-opportunity-hero-grid, .emc-opportunity-editorial, .emc-taxonomy-hero-grid { grid-template-columns: 1fr; }

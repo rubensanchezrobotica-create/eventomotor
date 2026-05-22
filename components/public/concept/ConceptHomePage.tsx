@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
 import ConceptDisciplineExplorer, {
   DISCIPLINE_CATEGORIES,
@@ -43,6 +44,17 @@ import {
 type VehicleMainFilter = "todos" | "moto" | "coche";
 type ExplorerView = "lista" | "calendario" | "mapa";
 type DateQuickFilter = "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
+const POPULAR_SEARCH_LINKS = [
+  { eyebrow: "Fin de semana", label: "eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+  { eyebrow: "Motos", label: "concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+  { eyebrow: "Rallyes", label: "rallyes en Espana 2026", href: "/rallyes-espana-2026" },
+  { eyebrow: "Rallysprint", label: "rallysprint en Espana 2026", href: "/rallysprint-espana-2026" },
+  { eyebrow: "Valencia", label: "rallyes en Valencia 2026", href: "/rallyes-valencia-2026" },
+  { eyebrow: "Barcelona", label: "eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
+  { eyebrow: "Valencia", label: "eventos de motor en Valencia", href: "/eventos-motor-valencia" },
+  { eyebrow: "Karting", label: "eventos de karting", href: "/disciplinas/karting" },
+  { eyebrow: "Ferias", label: "ferias del motor", href: "/disciplinas/ferias" },
+];
 
 const ALL_ZONES = "Toda España";
 
@@ -396,6 +408,25 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
           zones={zones}
           onZone={selectZoneCard}
         />
+        <section className="emc-section emc-internal-links-section emc-home-seo-section">
+          <div className="emc-container">
+            <div className="emc-section-head">
+              <div>
+                <div className="emc-kicker">Búsquedas populares</div>
+                <h2>Explora eventos de motor</h2>
+              </div>
+              <p>Accesos directos a calendarios y búsquedas con actividad real dentro de EventoMotor.</p>
+            </div>
+            <div className="emc-internal-links emc-home-seo-links">
+              {POPULAR_SEARCH_LINKS.map((link) => (
+                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
+                  <span>{link.eyebrow}</span>
+                  <strong>{link.label}</strong>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
         <ConceptResults />
       </main>
       <ConceptFooter />
