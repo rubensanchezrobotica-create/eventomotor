@@ -1928,6 +1928,99 @@ export default function ConceptStyles() {
   font-size: clamp(20px, 1.7vw, 26px);
   text-transform: capitalize;
 }
+.emc-weekend-hub-section,
+.emc-weekend-group-section { padding-top: 18px; }
+.emc-weekend-hub-section .emc-container,
+.emc-weekend-group-section .emc-container {
+  padding: 30px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255,91,31,.10), transparent 30%),
+    linear-gradient(180deg, rgba(12,18,29,.60), rgba(6,9,15,.82));
+  box-shadow: 0 24px 86px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.055);
+}
+.emc-weekend-update {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 26px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  color: #dbe2ec;
+  font-size: 13px;
+  font-weight: 850;
+}
+.emc-weekend-update strong { color: #ffc1ad; font-size: 12px; font-weight: 950; }
+.emc-weekend-featured { margin-bottom: 26px; }
+.emc-weekend-featured .emc-section-head h2,
+.emc-weekend-group-section .emc-section-head h2 { font-size: clamp(30px, 3.6vw, 48px); }
+.emc-weekend-grid,
+.emc-weekend-group-layout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.emc-weekend-group-layout { grid-template-columns: 1fr 1fr; }
+.emc-weekend-panel,
+.emc-weekend-group-layout > div {
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 26px;
+  background: rgba(8,12,20,.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+}
+.emc-weekend-panel h2,
+.emc-weekend-group-layout h3 {
+  margin-top: 8px;
+  color: #fff;
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 950;
+  letter-spacing: -.8px;
+}
+.emc-weekend-mini-list { display: grid; gap: 9px; margin-top: 16px; }
+.emc-weekend-mini-list a {
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 17px;
+  background: rgba(255,255,255,.04);
+  transition: border-color .2s ease, background .2s ease;
+}
+.emc-weekend-mini-list a:hover { border-color: rgba(255,91,31,.32); background: rgba(255,91,31,.07); }
+.emc-weekend-mini-list strong { color: #fff; font-size: 14px; font-weight: 900; line-height: 1.25; }
+.emc-weekend-mini-list span,
+.emc-weekend-empty { color: var(--emc-muted); font-size: 12px; font-weight: 750; line-height: 1.45; }
+.emc-weekend-empty { margin-top: 16px; }
+.emc-weekend-count-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.emc-weekend-count-card {
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
+  border: 1px solid rgba(255,91,31,.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,91,31,.08), rgba(255,255,255,.035));
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.emc-weekend-count-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,91,31,.34);
+  box-shadow: 0 18px 50px rgba(0,0,0,.26);
+}
+.emc-weekend-count-card.emc-muted { opacity: .62; border-color: rgba(255,255,255,.10); }
+.emc-weekend-count-card strong { color: #fff; font-size: 26px; line-height: 1; font-weight: 950; }
+.emc-weekend-count-card span { color: #cbd3df; font-size: 12px; line-height: 1.25; font-weight: 850; }
 .emc-opportunity-events-head h2 { font-size: clamp(34px, 4vw, 56px); }
 .emc-opportunity-events-head p {
   display: flex;
@@ -2363,6 +2456,7 @@ export default function ConceptStyles() {
 
 @media (max-width: 1180px) {
   .emc-hero-grid, .emc-event-hero-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel, .emc-contact-grid, .emc-contact-list-panel, .emc-publish-process, .emc-opportunity-hero-grid, .emc-opportunity-editorial, .emc-taxonomy-hero-grid { grid-template-columns: 1fr; }
+  .emc-weekend-grid, .emc-weekend-group-layout { grid-template-columns: 1fr; }
   .emc-list-view, .emc-map-view { grid-template-columns: 1fr; }
   .emc-filter-rail { align-items: stretch; }
   .emc-product-body { grid-template-columns: 1fr; }
@@ -2378,6 +2472,7 @@ export default function ConceptStyles() {
   .emc-footer-cookie-settings { grid-column: auto; justify-self: start; margin-top: -22px; }
   .emc-opportunity-stats { max-width: 680px; }
   .emc-taxonomy-stats { max-width: 620px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emc-weekend-count-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-opportunity-links-section .emc-internal-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-hero-fields, .emc-calendar-fields { grid-template-columns: 1fr 1fr; }
   .emc-location-actions { justify-content: flex-start; margin-top: 20px; }
@@ -2435,6 +2530,12 @@ export default function ConceptStyles() {
   .emc-opportunity-stat strong { font-size: 21px; letter-spacing: -.7px; }
   .emc-opportunity-stat-date strong { font-size: 18px; }
   .emc-opportunity-stat span { font-size: 10px; letter-spacing: .06em; }
+  .emc-weekend-hub-section .emc-container,
+  .emc-weekend-group-section .emc-container { padding: 20px; border-radius: 28px; }
+  .emc-weekend-update { display: grid; padding: 12px; }
+  .emc-weekend-panel,
+  .emc-weekend-group-layout > div { padding: 18px; border-radius: 22px; }
+  .emc-weekend-count-grid { grid-template-columns: 1fr; }
   .emc-opportunity-events-head h2,
   .emc-taxonomy-section-head h2,
   .emc-opportunity-editorial h2,

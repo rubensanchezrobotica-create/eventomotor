@@ -76,7 +76,7 @@ function isNextSevenDays(event: EventItem, now: Date) {
 }
 
 function weekendOpportunity(event: EventItem, now: Date) {
-  return isNextWeekend(event, now) || isNextSevenDays(event, now);
+  return isNextWeekend(event, now);
 }
 
 function isYear(event: EventItem, year: number) {
@@ -104,12 +104,12 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "eventos-motor-este-fin-de-semana",
     h1: "Eventos de motor este fin de semana",
-    title: "Eventos de motor este fin de semana | Agenda y planes | EventoMotor",
+    title: "Eventos de motor este fin de semana en España | EventoMotor",
     description:
-      "Consulta la agenda de eventos de motor este fin de semana en Espana: rallyes, concentraciones, circuitos, rutas, ferias, motos y coches.",
+      "Consulta eventos de motor este fin de semana en España: rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos y circuito, con fecha, ubicación y fuente oficial.",
     eyebrow: "Busqueda popular",
     lead:
-      "Agenda actualizada para encontrar eventos de motor, planes de motor y competiciones este fin de semana, ordenados por fecha, ubicacion y fuente oficial.",
+      "Consulta rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos y eventos de circuito programados para este fin de semana en España.",
     resultsTitle: "Eventos de motor para este fin de semana",
     intro:
       "Si buscas eventos del motor este fin de semana, esta pagina reune planes proximos en Espana con una intencion muy concreta: encontrar algo real a lo que ir sin perder tiempo entre fuentes dispersas. Puedes consultar rallyes, concentraciones moteras, eventos de circuito, rutas, ferias, clasicos, karting y competiciones que encajan en el sabado y domingo mas cercano o en los proximos dias si el calendario esta mas justo. Cada evento enlaza a una ficha individual donde se prioriza la fecha, la ubicacion, la disciplina y la fuente oficial. Antes de desplazarte, revisa siempre la informacion del organizador, ya que horarios, inscripciones, entradas o recorridos pueden cambiar.",
@@ -124,19 +124,21 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { title: "Valida la fuente", text: "Antes de salir, confirma siempre cambios de ultima hora en el enlace oficial." },
     ],
     faqs: [
-      { question: "Que eventos de motor hay este fin de semana?", answer: "Depende del calendario publicado, pero EventoMotor puede incluir rallyes, concentraciones, circuitos, rutas, ferias, karting, clasicos y competiciones de motos o coches." },
-      { question: "Donde ver la agenda de motor de este fin de semana?", answer: "Esta pagina agrupa eventos visibles de EventoMotor para el fin de semana mas cercano y proximos dias, con enlaces a fichas individuales y fuentes oficiales cuando existen." },
-      { question: "La pagina muestra solo sabado y domingo?", answer: "Se prioriza el fin de semana mas cercano y se amplia a los proximos dias cuando no hay suficientes eventos visibles." },
-      { question: "Puedo publicar un evento de este fin de semana?", answer: "Si. Si organizas un evento con fecha, ubicacion y fuente verificable, puedes enviarlo desde la pagina de publicar evento." },
+      { question: "¿Qué eventos de motor hay este fin de semana?", answer: "Depende de los eventos publicados, pero la agenda puede incluir rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos, offroad, rutas y eventos de circuito." },
+      { question: "¿Dónde ver concentraciones moteras este fin de semana?", answer: "En esta página aparecen concentraciones, motoalmuerzos o quedadas moteras si están publicadas para el fin de semana. También puedes revisar la landing de concentraciones moteras 2026." },
+      { question: "¿Hay rallyes este fin de semana?", answer: "Si hay rallyes, rallysprints, subidas o pruebas relacionadas publicadas para el fin de semana, se muestran en el listado y en los grupos por disciplina." },
+      { question: "¿Se incluyen eventos de coches y motos?", answer: "Sí. EventoMotor puede mostrar eventos de motos, coches, mixtos, karting u otros formatos cuando están publicados con fecha y fuente verificable." },
+      { question: "¿Cómo publicar un evento en EventoMotor?", answer: "Si organizas un evento de motor, puedes enviarlo desde publicar evento con fecha, ubicación, disciplina y fuente oficial para que se revise." },
     ],
     relatedLinks: [
       { label: "Calendario general", href: "/calendario" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
       { label: "Rallysprint en España 2026", href: "/rallysprint-espana-2026" },
-      { label: "Eventos de karting", href: "/disciplinas/karting" },
-      { label: "Ferias del motor", href: "/disciplinas/ferias" },
-      { label: "Eventos en Valencia", href: "/eventos-motor-valencia" },
+      { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },
+      { label: "Trackdays en España 2026", href: "/trackdays-espana-2026" },
+      { label: "Karting en España 2026", href: "/karting-espana-2026" },
+      { label: "Ferias del motor 2026", href: "/ferias-motor-espana-2026" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event, now) => weekendOpportunity(event, now),

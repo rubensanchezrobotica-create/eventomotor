@@ -66,6 +66,204 @@ function EventCard({ event }: { event: EventItem }) {
   );
 }
 
+function eventText(event: EventItem) {
+  return [
+    event.title,
+    event.championship,
+    event.discipline,
+    event.venue,
+    event.city,
+    event.province,
+    event.region,
+    event.vehicleType,
+    event.vehicle_type,
+    ...(event.tags || []),
+  ].join(" ").toLowerCase();
+}
+
+function hasAny(event: EventItem, terms: string[]) {
+  const text = eventText(event);
+  return terms.some((term) => text.includes(term.toLowerCase()));
+}
+
+function eventDate(event: EventItem, field: "start" | "end") {
+  return new Date(`${event[field] || event.start}T12:00:00`);
+}
+
+function overlapsDay(event: EventItem, date: Date) {
+  const start = eventDate(event, "start");
+  const end = eventDate(event, "end");
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayEnd = new Date(dayStart);
+  dayEnd.setHours(23, 59, 59, 999);
+  return start.getTime() <= dayEnd.getTime() && end.getTime() >= dayStart.getTime();
+}
+
+function weekendDays(now: Date) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = today.getDay();
+  const daysUntilSaturday = day === 6 ? 0 : day === 0 ? 6 : 6 - day;
+  const saturday = new Date(today);
+  saturday.setDate(today.getDate() + daysUntilSaturday);
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() + 1);
+  return { saturday, sunday };
+}
+
+function groupCount(events: EventItem[], terms: string[]) {
+  return events.filter((event) => hasAny(event, terms)).length;
+}
+
+function provinceList(events: EventItem[]) {
+  return Array.from(new Set(events.map((event) => event.province).filter(Boolean))).slice(0, 8);
+}
+
+function featuredWeekendEvents(events: EventItem[]) {
+  const featured = events.filter((event) => event.featured);
+  return (featured.length ? featured : events).slice(0, 3);
+}
+
+function itemListJsonLd(page: OpportunityPageConfig, events: EventItem[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: page.h1,
+    itemListElement: events.slice(0, 20).map((event, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${SITE_URL}${eventHref(event)}`,
+      name: event.title,
+    })),
+  };
+}
+
+function CompactEventList({ events }: { events: EventItem[] }) {
+  if (!events.length) {
+    return <p className="emc-weekend-empty">Sin eventos en este grupo ahora mismo.</p>;
+  }
+
+  return (
+    <div className="emc-weekend-mini-list">
+      {events.slice(0, 4).map((event) => (
+        <Link href={eventHref(event)} key={event.id}>
+          <strong>{event.title}</strong>
+          <span>{formatRange(event)} / {event.city}, {event.province}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function CountGrid({ items }: { items: Array<{ label: string; count: number; href?: string }> }) {
+  return (
+    <div className="emc-weekend-count-grid">
+      {items.map((item) => (
+        <Link className={item.count ? "emc-weekend-count-card" : "emc-weekend-count-card emc-muted"} href={item.href || "/calendario"} key={item.label}>
+          <strong>{item.count}</strong>
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
+  const { saturday, sunday } = weekendDays(now);
+  const saturdayEvents = events.filter((event) => overlapsDay(event, saturday));
+  const sundayEvents = events.filter((event) => overlapsDay(event, sunday));
+  const multiDayEvents = events.filter((event) => eventDate(event, "end").getTime() > eventDate(event, "start").getTime());
+  const provinces = provinceList(events);
+  const featured = featuredWeekendEvents(events);
+  const disciplineGroups = [
+    { label: "Rallyes", href: "/rallyes-espana-2026", count: groupCount(events, ["rally", "rallye", "rallysprint", "subida", "baja"]) },
+    { label: "Concentraciones", href: "/concentraciones-moteras-2026", count: groupCount(events, ["concentracion", "concentración", "motoalmuerzo", "quedada", "biker", "custom"]) },
+    { label: "Circuito / Rodadas", href: "/rodadas-moto-2026", count: groupCount(events, ["circuito", "rodada", "tandas", "trackday", "track day"]) },
+    { label: "Karting", href: "/karting-espana-2026", count: groupCount(events, ["karting", "kart"]) },
+    { label: "Ferias", href: "/ferias-motor-espana-2026", count: groupCount(events, ["feria", "salon", "salón", "expo", "exposicion", "exposición"]) },
+    { label: "Clásicos", href: "/disciplinas/clasicos", count: groupCount(events, ["clasico", "clásico", "classic", "historico", "histórico"]) },
+    { label: "Offroad", href: "/disciplinas/offroad", count: groupCount(events, ["enduro", "motocross", "trial", "offroad", "4x4"]) },
+    { label: "Rutas", href: "/disciplinas/rutas", count: groupCount(events, ["ruta", "mototurismo", "touring"]) },
+  ];
+  const zoneGroups = [
+    { label: "Cataluña / Aragón", count: groupCount(events, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida", "aragon", "aragón", "zaragoza", "huesca", "teruel"]) },
+    { label: "Levante", count: groupCount(events, ["valencia", "alicante", "castellon", "castellón", "murcia", "levante"]) },
+    { label: "Centro", count: groupCount(events, ["madrid", "castilla", "toledo", "guadalajara", "cuenca", "avila", "ávila", "segovia"]) },
+    { label: "Norte", count: groupCount(events, ["galicia", "asturias", "cantabria", "pais vasco", "país vasco", "navarra", "la rioja", "burgos", "leon", "león"]) },
+    { label: "Sur", count: groupCount(events, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]) },
+    { label: "Canarias", count: groupCount(events, ["canarias", "tenerife", "gran canaria", "las palmas"]) },
+  ];
+
+  return (
+    <>
+      <section className="emc-section emc-weekend-hub-section">
+        <div className="emc-container">
+          <div className="emc-weekend-update">
+            <span>Agenda actualizada automáticamente con eventos publicados en EventoMotor.</span>
+            {provinces.length ? <strong>{provinces.join(" / ")}</strong> : null}
+          </div>
+
+          {featured.length ? (
+            <div className="emc-weekend-featured">
+              <div className="emc-section-head">
+                <div>
+                  <div className="emc-kicker">Selección rápida</div>
+                  <h2>Eventos destacados del fin de semana</h2>
+                </div>
+                <p>Usamos eventos marcados como destacados cuando existen; si no, mostramos las próximas citas publicadas.</p>
+              </div>
+              <div className="emc-results-grid">
+                {featured.map((event) => (
+                  <EventCard event={event} key={event.id} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="emc-weekend-grid">
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Por día</div>
+              <h2>Sábado</h2>
+              <CompactEventList events={saturdayEvents} />
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Por día</div>
+              <h2>Domingo</h2>
+              <CompactEventList events={sundayEvents} />
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Varios días</div>
+              <h2>Eventos de varios días</h2>
+              <CompactEventList events={multiDayEvents} />
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="emc-section emc-weekend-group-section">
+        <div className="emc-container">
+          <div className="emc-section-head">
+            <div>
+              <div className="emc-kicker">Explora rápido</div>
+              <h2>Eventos por disciplina y zona</h2>
+            </div>
+            <p>Resumen útil para decidir qué ver este fin de semana sin recorrer todo el calendario.</p>
+          </div>
+          <div className="emc-weekend-group-layout">
+            <div>
+              <h3>Por disciplina</h3>
+              <CountGrid items={disciplineGroups} />
+            </div>
+            <div>
+              <h3>Por zona</h3>
+              <CountGrid items={zoneGroups} />
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function breadcrumbJsonLd(page: OpportunityPageConfig) {
   return {
     "@context": "https://schema.org",
@@ -111,6 +309,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
       ? visibleEvents.filter((event) => page.fallbackFilter?.(event, now) && !primaryEvents.some((item) => item.id === event.id))
       : [];
   const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
+  const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: events.length.toString() },
@@ -130,6 +329,12 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(page)) }}
+        />
+      ) : null}
+      {isWeekendPage && events.length ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(page, events)) }}
         />
       ) : null}
       <ConceptStaticHeader />
@@ -165,6 +370,8 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
             </aside>
           </div>
         </section>
+
+        {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
 
         <section className="emc-section emc-contact-section">
           <div className="emc-container">
