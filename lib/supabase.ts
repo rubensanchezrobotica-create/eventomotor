@@ -59,6 +59,47 @@ export type EventUpsert = {
   updated_at?: string;
 };
 
+export type EventSubmissionRow = {
+  id: string;
+  event_name: string;
+  start_date: string | null;
+  end_date: string | null;
+  city: string | null;
+  province: string | null;
+  venue: string | null;
+  discipline: string | null;
+  vehicle_type: string | null;
+  source_url: string;
+  ticket_url: string | null;
+  description: string | null;
+  organizer_name: string | null;
+  contact_email: string;
+  contact_phone: string | null;
+  poster_url: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventSubmissionInsert = {
+  event_name: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  city?: string | null;
+  province?: string | null;
+  venue?: string | null;
+  discipline?: string | null;
+  vehicle_type?: string | null;
+  source_url: string;
+  ticket_url?: string | null;
+  description?: string | null;
+  organizer_name?: string | null;
+  contact_email: string;
+  contact_phone?: string | null;
+  poster_url?: string | null;
+  status?: string;
+};
+
 type Database = {
   public: {
     Tables: {
@@ -66,6 +107,12 @@ type Database = {
         Row: EventRow;
         Insert: EventUpsert;
         Update: Partial<EventUpsert>;
+        Relationships: [];
+      };
+      event_submissions: {
+        Row: EventSubmissionRow;
+        Insert: EventSubmissionInsert;
+        Update: Partial<EventSubmissionInsert>;
         Relationships: [];
       };
     };

@@ -89,35 +89,36 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "eventos-motor-este-fin-de-semana",
     h1: "Eventos de motor este fin de semana",
-    title: "Eventos de motor este fin de semana | EventoMotor",
+    title: "Eventos de motor este fin de semana | Agenda y planes | EventoMotor",
     description:
-      "Consulta eventos de motor este fin de semana en España: rallyes, concentraciones, circuitos, rutas, ferias, motos y coches.",
-    eyebrow: "Búsqueda popular",
+      "Consulta la agenda de eventos de motor este fin de semana en Espana: rallyes, concentraciones, circuitos, rutas, ferias, motos y coches.",
+    eyebrow: "Busqueda popular",
     lead:
-      "Una selección actualizada de eventos de motor para este fin de semana: motos, coches, competición, rutas y ferias ordenadas por fecha, ubicación y fuente.",
+      "Agenda actualizada para encontrar eventos de motor, planes de motor y competiciones este fin de semana, ordenados por fecha, ubicacion y fuente oficial.",
     resultsTitle: "Eventos de motor para este fin de semana",
     intro:
-      "Si buscas planes de motor para este fin de semana, esta página reúne eventos próximos en España con una intención muy concreta: encontrar algo real a lo que ir sin perder tiempo entre fuentes dispersas. Aquí puedes consultar rallyes, concentraciones moteras, eventos de circuito, rutas, ferias, clásicos, karting y competiciones que encajan en el sábado y domingo más cercano o en los próximos días si el calendario está más justo. Cada evento enlaza a una ficha individual donde se prioriza la fecha, la ubicación, la disciplina y la fuente oficial. Antes de desplazarte, revisa siempre la información del organizador, ya que horarios, inscripciones, entradas o recorridos pueden cambiar.",
+      "Si buscas eventos del motor este fin de semana, esta pagina reune planes proximos en Espana con una intencion muy concreta: encontrar algo real a lo que ir sin perder tiempo entre fuentes dispersas. Puedes consultar rallyes, concentraciones moteras, eventos de circuito, rutas, ferias, clasicos, karting y competiciones que encajan en el sabado y domingo mas cercano o en los proximos dias si el calendario esta mas justo. Cada evento enlaza a una ficha individual donde se prioriza la fecha, la ubicacion, la disciplina y la fuente oficial. Antes de desplazarte, revisa siempre la informacion del organizador, ya que horarios, inscripciones, entradas o recorridos pueden cambiar.",
     editorialBlocks: [
-      { title: "Fechas cercanas", text: "La selección prioriza el sábado y domingo más próximos, con apoyo de los siguientes días si hay poca actividad visible." },
-      { title: "Planes variados", text: "Agrupa competiciones, concentraciones, rutas, circuito, clásicos, ferias y eventos mixtos para motos y coches." },
-      { title: "Fuente revisable", text: "Cada ficha intenta llevarte a la información oficial para confirmar horarios, ubicación, inscripción o entradas." },
+      { title: "Agenda de fin de semana", text: "La seleccion prioriza sabado y domingo, con apoyo de los siguientes dias cuando hay pocos eventos visibles." },
+      { title: "Planes de motor", text: "Agrupa competiciones, concentraciones, rutas, circuito, clasicos, ferias y eventos mixtos para motos y coches." },
+      { title: "Fuente revisable", text: "Cada ficha intenta llevarte a la informacion oficial para confirmar horarios, ubicacion, inscripcion o entradas." },
     ],
     usageSteps: [
-      { title: "Elige una fecha", text: "Revisa primero los eventos más cercanos y abre la ficha que encaje con tu plan." },
+      { title: "Elige una fecha", text: "Revisa primero los eventos mas cercanos y abre la ficha que encaje con tu plan." },
       { title: "Comprueba la zona", text: "Usa ciudad y provincia para valorar desplazamiento, ruta y horarios." },
-      { title: "Valida la fuente", text: "Antes de salir, confirma siempre cambios de última hora en el enlace oficial." },
+      { title: "Valida la fuente", text: "Antes de salir, confirma siempre cambios de ultima hora en el enlace oficial." },
     ],
     faqs: [
-      { question: "¿Qué eventos de motor hay este fin de semana?", answer: "Depende del calendario publicado, pero EventoMotor puede incluir rallyes, concentraciones, circuitos, rutas, ferias, karting, clásicos y competiciones de motos o coches." },
-      { question: "¿La página muestra solo sábado y domingo?", answer: "Se prioriza el fin de semana más cercano y se amplía a los próximos días cuando no hay suficientes eventos visibles." },
-      { question: "¿Los eventos tienen fuente oficial?", answer: "Las fichas de EventoMotor muestran la fuente disponible cuando existe para que puedas revisar horarios, inscripción o entradas." },
-      { question: "¿Puedo publicar un evento de este fin de semana?", answer: "Sí. Si organizas un evento con fecha, ubicación y fuente verificable, puedes enviarlo desde la página de publicar evento." },
+      { question: "Que eventos de motor hay este fin de semana?", answer: "Depende del calendario publicado, pero EventoMotor puede incluir rallyes, concentraciones, circuitos, rutas, ferias, karting, clasicos y competiciones de motos o coches." },
+      { question: "Donde ver la agenda de motor de este fin de semana?", answer: "Esta pagina agrupa eventos visibles de EventoMotor para el fin de semana mas cercano y proximos dias, con enlaces a fichas individuales y fuentes oficiales cuando existen." },
+      { question: "La pagina muestra solo sabado y domingo?", answer: "Se prioriza el fin de semana mas cercano y se amplia a los proximos dias cuando no hay suficientes eventos visibles." },
+      { question: "Puedo publicar un evento de este fin de semana?", answer: "Si. Si organizas un evento con fecha, ubicacion y fuente verificable, puedes enviarlo desde la pagina de publicar evento." },
     ],
     relatedLinks: [
       { label: "Calendario general", href: "/calendario" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Eventos en Valencia", href: "/eventos-motor-valencia" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event, now) => weekendOpportunity(event, now),
@@ -193,6 +194,46 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) => isYear(event, 2026) && includesAny(event, rallyTerms),
+  },
+  {
+    slug: "rallyes-valencia-2026",
+    h1: "Rallyes en Valencia 2026",
+    title: "Rallyes en Valencia 2026 | Rally Ciudad de Valencia y Ceramica | EventoMotor",
+    description:
+      "Consulta rallyes en Valencia y Comunitat Valenciana 2026: Rally Ciudad de Valencia, Rally de la Ceramica, rallysprints, subidas y pruebas con fuente oficial.",
+    eyebrow: "Rallyes Comunidad Valenciana",
+    lead:
+      "Calendario de rallyes en Valencia 2026 y pruebas relacionadas en la Comunitat Valenciana, ordenadas por fecha, ubicacion y fuente oficial.",
+    resultsTitle: "Rallyes encontrados en Valencia y Comunitat Valenciana",
+    intro:
+      "Las busquedas de rally Valencia 2026, Rally Ciudad de Valencia, Rally de la Ceramica o rallyes en la Comunitat Valenciana necesitan una referencia clara y verificable. Esta pagina reune eventos publicados en EventoMotor que combinan intencion de rally, rallysprint, subidas, regularidad, bajas o rally TT con Valencia, Castellon, Alicante y el entorno valenciano. No inventamos pruebas: solo aparecen eventos visibles en el calendario con datos suficientes para enlazar a su ficha individual. Desde cada ficha puedes revisar fecha, ciudad, provincia, disciplina, fuente oficial y enlaces disponibles antes de planificar desplazamiento o inscripcion.",
+    editorialBlocks: [
+      { title: "Rallyes valencianos", text: "La seleccion busca pruebas relacionadas con Valencia y la Comunitat Valenciana, incluyendo rallyes, rallysprints, subidas y bajas cuando existen en los datos." },
+      { title: "Busquedas concretas", text: "La pagina ayuda a usuarios que buscan Rally Ciudad de Valencia, Rally de la Ceramica o rallysprints valencianos de 2026." },
+      { title: "Fuente oficial", text: "Cada evento enlaza a una ficha donde se prioriza fuente, fecha y ubicacion para confirmar informacion antes de asistir." },
+    ],
+    usageSteps: [
+      { title: "Revisa la fecha", text: "Empieza por los eventos proximos y comprueba si la prueba encaja con tu calendario." },
+      { title: "Confirma ubicacion", text: "Mira ciudad, provincia y recinto o zona de referencia antes de organizar el desplazamiento." },
+      { title: "Abre la ficha", text: "La ficha individual recoge fuente oficial y enlaces disponibles cuando existen." },
+    ],
+    faqs: [
+      { question: "Donde ver rallyes en Valencia en 2026?", answer: "Esta pagina reune rallyes, rallysprints, subidas y pruebas relacionadas con Valencia o Comunitat Valenciana que esten publicadas en EventoMotor." },
+      { question: "Aparece el Rally Ciudad de Valencia 2026?", answer: "Si el evento esta publicado en los datos visibles y encaja con la busqueda, aparecera listado con enlace a su ficha individual." },
+      { question: "Aparece el Rally de la Ceramica 2026?", answer: "Si hay una ficha visible relacionada con el Rally de la Ceramica o su zona, se mostrara en esta pagina sin inventar informacion." },
+      { question: "La pagina incluye rallysprint y subidas?", answer: "Si, puede incluir rallysprint, subidas, regularidad, bajas o rally TT cuando estan relacionados con Valencia o la Comunitat Valenciana." },
+    ],
+    relatedLinks: [
+      { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
+      { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },
+      { label: "Disciplina Rallyes", href: "/disciplinas/rallyes" },
+      { label: "Zona Levante", href: "/zonas/levante" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) =>
+      isYear(event, 2026) &&
+      includesAny(event, rallyTerms) &&
+      includesAny(event, ["valencia", "comunitat valenciana", "comunidad valenciana", "castellon", "alicante", "ceramica", "levante"]),
   },
   {
     slug: "eventos-motor-barcelona",

@@ -115,7 +115,7 @@ function formatEventDate(event: EventItem) {
 
 function buildDescription(event: EventItem) {
   const location = [event.city, event.province].filter(Boolean).join(", ");
-  return `Consulta fecha, ubicación, fuente oficial y entradas del ${event.title} en ${location || "España"}. Evento de ${event.discipline} en el calendario EventoMotor.`;
+  return `Consulta fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles del evento ${event.title} en ${location || "Espana"}.`;
 }
 
 function buildAboutText(event: EventItem) {
@@ -245,8 +245,7 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
-  const year = event.start ? new Date(`${event.start}T12:00:00`).getFullYear() : "";
-  const title = `${event.title}${year ? ` ${year}` : ""}`;
+  const title = `${event.title} | Fecha, ubicacion y fuente oficial | EventoMotor`;
   const description = buildDescription(event);
   const eventImage = getEventImage(event);
   const eventImageAlt = getEventImageAlt(event);

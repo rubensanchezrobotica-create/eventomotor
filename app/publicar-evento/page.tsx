@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
+import EventSubmissionForm from "@/components/public/EventSubmissionForm";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
@@ -103,7 +104,7 @@ export default function PublicarEventoPage() {
                   className="emc-btn emc-btn-primary"
                   eventName="click_publish_event"
                   eventParams={{ source: "publish_page_cta" }}
-                  href={EVENT_MAILTO}
+                  href="#enviar-evento"
                 >
                   Enviar evento
                 </TrackAnchor>
@@ -125,6 +126,12 @@ export default function PublicarEventoPage() {
               <p>Incluye la fuente oficial para poder revisar la información con criterio.</p>
               <small>Respondemos normalmente en 24-48 h.</small>
             </aside>
+          </div>
+        </section>
+
+        <section className="emc-section emc-contact-section" id="enviar-evento">
+          <div className="emc-container">
+            <EventSubmissionForm />
           </div>
         </section>
 
