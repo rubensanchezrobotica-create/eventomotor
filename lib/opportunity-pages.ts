@@ -15,6 +15,7 @@ export type OpportunityPage = {
   faqs: Array<{ question: string; answer: string }>;
   relatedLinks: Array<{ label: string; href: string }>;
   filter: (event: EventItem, now: Date) => boolean;
+  fallbackFilter?: (event: EventItem, now: Date) => boolean;
 };
 
 function eventSearchText(event: EventItem) {
@@ -83,7 +84,17 @@ function isYear(event: EventItem, year: number) {
 }
 
 const rallyTerms = ["rally", "rallye", "rallysprint", "subida", "regularidad", "baja", "montaña", "montana"];
+const rallysprintTerms = ["rallysprint", "rally sprint", "sprint", "villa de grado", "grado"];
 const concentrationTerms = ["concentración", "concentracion", "motoalmuerzo", "quedada", "moteras", "motera", "biker", "custom"];
+const extendedConcentrationTerms = [
+  ...concentrationTerms,
+  "matinal",
+  "encuentro motero",
+  "fiesta motera",
+  "solidaria",
+  "solidario",
+  "yuncler",
+];
 
 export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
@@ -160,6 +171,45 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     filter: (event, now) => weekendOpportunity(event, now) && includesAny(event, concentrationTerms),
   },
   {
+    slug: "concentraciones-moteras-2026",
+    h1: "Concentraciones moteras 2026",
+    title: "Concentraciones moteras 2026 | Calendario en España | EventoMotor",
+    description:
+      "Consulta concentraciones moteras 2026 en España: motoalmuerzos, quedadas, matinales, eventos biker y citas moteras con fecha y fuente oficial.",
+    eyebrow: "Calendario motero 2026",
+    lead:
+      "Calendario de concentraciones moteras 2026 con motoalmuerzos, quedadas, matinales y eventos biker organizados por fecha, ubicación y fuente.",
+    resultsTitle: "Concentraciones moteras 2026 encontradas",
+    intro:
+      "Las concentraciones moteras 2026 reúnen planes de fin de semana, motoalmuerzos, quedadas, matinales, encuentros biker, eventos custom y citas solidarias para motoristas. Esta página agrupa eventos publicados en EventoMotor que encajan con la intención de búsqueda de concentración motera, incluyendo consultas concretas como concentración motera Yuncler 2026 cuando existe información visible en el calendario. No inventamos eventos ni programas: solo listamos citas con datos suficientes para enlazar a su ficha individual. Desde cada evento puedes revisar fecha, ciudad, provincia, disciplina, tipo de vehículo, fuente oficial y enlaces disponibles antes de organizar ruta o desplazamiento.",
+    editorialBlocks: [
+      { title: "Planes moteros", text: "Se priorizan concentraciones, motoalmuerzos, quedadas, matinales, encuentros biker, custom y eventos solidarios relacionados con motos." },
+      { title: "Calendario 2026", text: "La selección se centra en eventos visibles de 2026 para quienes buscan fechas concretas durante la temporada." },
+      { title: "Información verificable", text: "Cada ficha intenta aportar fuente oficial, ubicación y enlaces disponibles para confirmar detalles antes de asistir." },
+    ],
+    usageSteps: [
+      { title: "Busca por fecha", text: "Consulta las próximas concentraciones y localiza planes que encajen con tu ruta." },
+      { title: "Revisa la ficha", text: "Comprueba ciudad, provincia, fuente oficial y enlaces disponibles antes de desplazarte." },
+      { title: "Envía tu evento", text: "Si organizas una concentración motera, puedes enviarla para revisión desde publicar evento." },
+    ],
+    faqs: [
+      { question: "Dónde ver concentraciones moteras 2026?", answer: "EventoMotor agrupa concentraciones, motoalmuerzos, quedadas, matinales y eventos biker de 2026 publicados con fecha, ubicación y fuente cuando existe." },
+      { question: "Aparece la concentración motera Yuncler 2026?", answer: "Si la cita está publicada en los eventos visibles y encaja con los datos de concentración motera, aparecerá listada con enlace a su ficha." },
+      { question: "Incluye motoalmuerzos y quedadas moteras?", answer: "Sí. La página puede incluir motoalmuerzos, quedadas, matinales, eventos custom, biker o solidarios si están en los datos." },
+      { question: "Cómo publicar una concentración motera?", answer: "Puedes enviar nombre, fecha, ubicación, fuente oficial y cartel desde la página de publicar evento para que se revise." },
+    ],
+    relatedLinks: [
+      { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+      { label: "Calendario general", href: "/calendario" },
+    ],
+    filter: (event) =>
+      isYear(event, 2026) &&
+      includesAny(event, extendedConcentrationTerms) &&
+      includesAny(event, ["moto", "motera", "moteras", "biker", "custom", "concentracion", "concentración", "motoalmuerzo"]),
+  },
+  {
     slug: "rallyes-espana-2026",
     h1: "Rallyes en España 2026",
     title: "Rallyes en España 2026 | Calendario de rallyes | EventoMotor",
@@ -194,6 +244,46 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) => isYear(event, 2026) && includesAny(event, rallyTerms),
+  },
+  {
+    slug: "rallysprint-espana-2026",
+    h1: "Rallysprint en España 2026",
+    title: "Rallysprint en España 2026 | Calendario rallysprint | EventoMotor",
+    description:
+      "Consulta rallysprint en España 2026: calendario, pruebas como Rallysprint Villa de Grado, fechas, ubicaciones y fuentes oficiales.",
+    eyebrow: "Rallysprint 2026",
+    lead:
+      "Calendario de rallysprint en España 2026 con pruebas publicadas en EventoMotor, priorizando rallysprints y citas relacionadas cuando el calendario es limitado.",
+    resultsTitle: "Calendario rallysprint 2026",
+    intro:
+      "Las búsquedas de rallysprint España 2026, rallysprint Villa de Grado 2026 o rallysprint Grado 2026 necesitan una página centrada en pruebas cortas, fechas y fuentes fiables. Esta landing reúne eventos publicados en EventoMotor que encajan con rallysprint, rally sprint, Villa de Grado o Grado. Si el calendario específico queda corto, puede apoyarse en pruebas de rally relacionadas de 2026 para que el usuario no llegue a una página vacía, pero siempre sin inventar citas ni resultados. Cada card enlaza a una ficha individual donde se puede revisar fecha, ubicación, disciplina, fuente oficial y enlaces disponibles antes de planificar asistencia o inscripción.",
+    editorialBlocks: [
+      { title: "Prioridad rallysprint", text: "La selección da preferencia a eventos que mencionan rallysprint, rally sprint, Villa de Grado o Grado." },
+      { title: "Temporada 2026", text: "Los resultados se centran en eventos de 2026 y se ordenan por fecha para facilitar consulta rápida." },
+      { title: "Ficha verificable", text: "Cada evento enlaza a una ficha con ubicación, disciplina, fuente oficial y enlaces disponibles cuando existen." },
+    ],
+    usageSteps: [
+      { title: "Localiza la prueba", text: "Empieza por fecha y provincia para encontrar rallysprints publicados en el calendario." },
+      { title: "Abre el detalle", text: "Revisa la ficha individual para confirmar fuente, ubicación y posibles enlaces de inscripción." },
+      { title: "Explora rallyes", text: "Si buscas más pruebas, salta al calendario general de rallyes en España 2026." },
+    ],
+    faqs: [
+      { question: "Dónde ver rallysprint en España 2026?", answer: "Esta página agrupa rallysprints publicados en EventoMotor con fecha, ubicación y fuente oficial cuando está disponible." },
+      { question: "Aparece Rallysprint Villa de Grado 2026?", answer: "Si el evento está publicado en los datos visibles y encaja con la búsqueda, aparecerá listado con enlace a su ficha." },
+      { question: "La página incluye rallyes si no hay suficientes rallysprint?", answer: "Sí, puede incluir eventos de rally relacionados de 2026 solo como apoyo cuando el listado específico de rallysprint es limitado." },
+      { question: "Cómo confirmar horarios o inscripción?", answer: "Abre la ficha del evento y revisa la fuente oficial o enlaces disponibles antes de desplazarte." },
+    ],
+    relatedLinks: [
+      { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
+      { label: "Disciplina Rallyes", href: "/disciplinas/rallyes" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    filter: (event) => isYear(event, 2026) && includesAny(event, rallysprintTerms),
+    fallbackFilter: (event) =>
+      isYear(event, 2026) &&
+      includesAny(event, rallyTerms) &&
+      !includesAny(event, rallysprintTerms),
   },
   {
     slug: "rallyes-valencia-2026",

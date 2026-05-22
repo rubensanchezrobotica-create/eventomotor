@@ -104,9 +104,13 @@ function faqJsonLd(page: OpportunityPageConfig) {
 
 export default async function OpportunityPage({ page }: { page: OpportunityPageConfig }) {
   const now = new Date();
-  const events = (await getVisibleEvents())
-    .filter((event) => page.filter(event, now))
-    .sort((a, b) => a.start.localeCompare(b.start));
+  const visibleEvents = await getVisibleEvents();
+  const primaryEvents = visibleEvents.filter((event) => page.filter(event, now));
+  const fallbackEvents =
+    page.fallbackFilter && primaryEvents.length < 6
+      ? visibleEvents.filter((event) => page.fallbackFilter?.(event, now) && !primaryEvents.some((item) => item.id === event.id))
+      : [];
+  const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: events.length.toString() },
