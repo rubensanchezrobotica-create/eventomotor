@@ -19,6 +19,7 @@ export default function ConceptStaticHeader({ compactActions = false }: ConceptS
           <Link href="/#disciplinas">Disciplinas</Link>
           <Link href="/#zonas">Zonas</Link>
           <Link href="/contacto">Contacto</Link>
+          <Link href="/mis-eventos">Mis eventos</Link>
         </div>
         <div className="emc-nav-actions">
           {compactActions ? null : (

@@ -26,7 +26,7 @@ export default function ShareEventButton({ title, url }: ShareEventButtonProps) 
   }
 
   return (
-    <span className="inline-flex flex-col gap-1">
+    <span className="emc-share-action">
       <button
         className="emc-btn emc-btn-dark"
         onClick={shareEvent}
@@ -34,7 +34,7 @@ export default function ShareEventButton({ title, url }: ShareEventButtonProps) 
       >
         Compartir
       </button>
-      {message ? <span className="text-xs font-semibold text-emerald-200">{message}</span> : null}
+      {message ? <span className="emc-share-message">{message}</span> : null}
     </span>
   );
 }

@@ -6,13 +6,14 @@ import { notFound } from "next/navigation";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
+import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventImage, getEventImageAlt } from "@/lib/event-images";
-import { getDisciplineSlug, getRegionSlug } from "@/lib/event-listing-slugs";
+import { getDisciplineSlug } from "@/lib/event-listing-slugs";
 import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
@@ -126,6 +127,11 @@ function buildAboutText(event: EventItem) {
   return `${event.title} es un evento de ${event.discipline || "motor"} previsto en ${location || "ubicación por confirmar"}${region}, del ${formatEventDate(event)}. Forma parte del calendario de eventos de motor en España para ${vehicleLabel(event).toLowerCase()}. Antes de desplazarte, consulta siempre la fuente oficial por si hubiera cambios de horario, inscripción o programa.${source}`;
 }
 
+function buildHeroSummary(event: EventItem) {
+  const location = [event.city, event.province].filter(Boolean).join(", ");
+  return `Evento de ${event.discipline || "motor"} previsto en ${location || "Espana"} del ${formatEventDate(event)}. Consulta la fuente oficial antes de desplazarte.`;
+}
+
 function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -202,32 +208,84 @@ function relatedScore(current: EventItem, candidate: EventItem) {
   return -1;
 }
 
-function getRelatedEvents(current: EventItem, events: EventItem[]) {
+function eventWeekendRange(event: EventItem) {
+  const start = new Date(`${event.start}T12:00:00`);
+  const day = start.getDay();
+  const saturday = new Date(start);
+  saturday.setDate(start.getDate() + (day === 0 ? -1 : 6 - day));
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() + 1);
+  return { saturday, sunday };
+}
+
+function eventOverlapsRange(event: EventItem, start: Date, end: Date) {
+  const eventStart = new Date(`${event.start}T12:00:00`);
+  const eventEnd = new Date(`${event.end || event.start}T12:00:00`);
+  return eventStart.getTime() <= end.getTime() && eventEnd.getTime() >= start.getTime();
+}
+
+function relatedByProvince(current: EventItem, events: EventItem[]) {
   const today = new Date().toISOString().slice(0, 10);
 
   return events
-    .filter((event) => event.id !== current.id && event.start >= today)
-    .map((event) => ({ event, score: relatedScore(current, event) }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.event.start.localeCompare(b.event.start))
-    .slice(0, 6)
-    .map((item) => item.event);
+    .filter((event) => event.id !== current.id && event.start >= today && event.province === current.province)
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .slice(0, 4);
+}
+
+function relatedByDiscipline(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return events
+    .filter((event) => event.id !== current.id && event.start >= today && event.discipline === current.discipline)
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .slice(0, 4);
+}
+
+function relatedByWeekend(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { saturday, sunday } = eventWeekendRange(current);
+
+  return events
+    .filter((event) => event.id !== current.id && event.start >= today && eventOverlapsRange(event, saturday, sunday))
+    .sort((a, b) => relatedScore(current, b) - relatedScore(current, a) || a.start.localeCompare(b.start))
+    .slice(0, 4);
+}
+
+function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
+  return [
+    {
+      title: `Más eventos en ${valueOrPending(current.province)}`,
+      eyebrow: "Misma provincia",
+      events: relatedByProvince(current, events),
+    },
+    {
+      title: `Más eventos de ${valueOrPending(current.discipline)}`,
+      eyebrow: "Misma disciplina",
+      events: relatedByDiscipline(current, events),
+    },
+    {
+      title: "Eventos del mismo fin de semana",
+      eyebrow: "Fechas cercanas",
+      events: relatedByWeekend(current, events),
+    },
+  ].filter((group) => group.events.length);
 }
 
 function internalLinks(event: EventItem) {
   const type = vehicleTypeOf(event);
-  const typeHref = type === "moto" ? "/eventos-moto" : "/calendario";
+  const typeHref = "/calendario";
 
-  return [
+  const links = [
     {
       label: `Ver eventos en ${valueOrPending(event.province)}`,
       meta: "Misma provincia",
-      href: `/eventos-moto/${getRegionSlug(event.province)}`,
+      href: "/calendario",
     },
     {
       label: `Ver más eventos de ${valueOrPending(event.discipline)}`,
       meta: "Misma disciplina",
-      href: `/eventos-moto/${getDisciplineSlug(event.discipline)}`,
+      href: `/disciplinas/${getDisciplineSlug(event.discipline)}`,
     },
     {
       label: `Ver eventos de ${vehicleLabel(event).toLowerCase()}`,
@@ -235,6 +293,8 @@ function internalLinks(event: EventItem) {
       href: typeHref,
     },
   ];
+
+  return links.filter((link, index, list) => list.findIndex((item) => item.href === link.href) === index);
 }
 
 export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
@@ -287,7 +347,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const eventImageAlt = getEventImageAlt(event);
   const imageUrl = absoluteImageUrl(eventImage, siteUrl);
   const jsonLd = buildJsonLd(event, url, imageUrl);
-  const relatedEvents = getRelatedEvents(event, events);
+  const relatedGroups = getRelatedEventGroups(event, events);
   const color = getDisciplineColor(event.discipline);
   const sourceAvailable = Boolean(event.sourceUrl);
   const links = internalLinks(event);
@@ -295,6 +355,20 @@ export default async function EventPage({ params }: EventPageProps) {
     event_slug: event.slug || slug,
     event_title: event.title,
     source: event.source,
+  };
+  const savedEvent = {
+    slug: event.slug || slug,
+    title: event.title,
+    start: event.start,
+    end: event.end || event.start,
+    city: event.city,
+    province: event.province,
+    venue: event.venue,
+    discipline: event.discipline,
+    category: (event as EventItem & { category?: string }).category,
+    vehicle_type: vehicleTypeOf(event),
+    source_url: event.sourceUrl,
+    ticket_url: event.ticketUrl,
   };
 
   return (
@@ -312,7 +386,7 @@ export default async function EventPage({ params }: EventPageProps) {
                 <span>/</span>
                 <Link href="/calendario">Calendario</Link>
                 <span>/</span>
-                <Link href={`/eventos-moto/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link>
+                <Link href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link>
                 <span>/</span>
                 <strong>{event.title}</strong>
               </div>
@@ -330,7 +404,7 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.championship || event.source ? (
                 <p className="emc-event-subline">{[event.championship, event.source].filter(Boolean).join(" / ")}</p>
               ) : null}
-              <p className="emc-event-intro">{buildAboutText(event)}</p>
+              <p className="emc-event-intro">{buildHeroSummary(event)}</p>
             </div>
 
             <aside className="emc-event-side">
@@ -362,7 +436,7 @@ export default async function EventPage({ params }: EventPageProps) {
                 <div className="emc-event-actions">
                   {sourceAvailable ? (
                     <TrackAnchor
-                      className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"}
+                      className="emc-btn emc-btn-primary"
                       eventName="click_official_source"
                       eventParams={trackingEventParams}
                       href={event.sourceUrl}
@@ -374,7 +448,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   ) : null}
                   {event.ticketUrl ? (
                     <TrackAnchor
-                      className="emc-btn emc-btn-primary"
+                      className="emc-btn emc-btn-dark"
                       eventName="click_tickets"
                       eventParams={trackingEventParams}
                       href={event.ticketUrl}
@@ -384,15 +458,18 @@ export default async function EventPage({ params }: EventPageProps) {
                       Entradas / inscripción
                     </TrackAnchor>
                   ) : null}
+                  <EventRetentionActions event={savedEvent} />
                   <ShareEventButton title={event.title} url={url} />
                 </div>
+                <p className="emc-event-note">Confirma horarios, inscripciones y cambios en la fuente oficial antes de desplazarte.</p>
                 {!sourceAvailable ? <p className="emc-event-note">Fuente oficial pendiente de revisión.</p> : null}
               </section>
             </aside>
           </div>
         </section>
 
-        <section className="emc-section emc-event-detail-section">
+        {/*
+        <section className="emc-section emc-event-detail-section emc-event-detail-section-hidden">
           <div className="emc-container emc-event-detail-grid">
             <section className="emc-panel emc-event-copy-card">
               <div className="emc-kicker">Sobre el evento</div>
@@ -419,13 +496,14 @@ export default async function EventPage({ params }: EventPageProps) {
             </section>
           </div>
         </section>
+        */}
 
-        <section className="emc-section">
+        <section className="emc-section emc-event-key-section">
           <div className="emc-container">
             <div className="emc-section-head">
               <div>
                 <div className="emc-kicker">Información práctica</div>
-                <h2>Datos clave para planificar</h2>
+                <h2>Datos practicos</h2>
               </div>
             </div>
             <div className="emc-event-info-grid">
@@ -441,7 +519,7 @@ export default async function EventPage({ params }: EventPageProps) {
             <div className="emc-practical-actions">
               {sourceAvailable ? (
                 <TrackAnchor
-                  className={event.ticketUrl ? "emc-btn emc-btn-dark" : "emc-btn emc-btn-primary"}
+                  className="emc-btn emc-btn-primary"
                   eventName="click_official_source"
                   eventParams={trackingEventParams}
                   href={event.sourceUrl}
@@ -453,7 +531,7 @@ export default async function EventPage({ params }: EventPageProps) {
               ) : null}
               {event.ticketUrl ? (
                 <TrackAnchor
-                  className="emc-btn emc-btn-primary"
+                  className="emc-btn emc-btn-dark"
                   eventName="click_tickets"
                   eventParams={trackingEventParams}
                   href={event.ticketUrl}
@@ -467,7 +545,7 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         </section>
 
-        <section className="emc-section emc-internal-links-section">
+        <section className="emc-section emc-internal-links-section emc-internal-links-section-early">
           <div className="emc-container">
             <div className="emc-section-head">
               <div>
@@ -476,8 +554,8 @@ export default async function EventPage({ params }: EventPageProps) {
               </div>
             </div>
             <div className="emc-internal-links">
-              {links.map((link) => (
-                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
+              {links.map((link, index) => (
+                <Link className="emc-internal-link-card" href={link.href} key={`${link.href}-${link.label}-${index}`}>
                   <span>{link.meta}</span>
                   <strong>{link.label}</strong>
                 </Link>
@@ -503,60 +581,88 @@ export default async function EventPage({ params }: EventPageProps) {
           </section>
         ) : null}
 
-        {relatedEvents.length ? (
-          <section className="emc-section" id="relacionados">
+        {relatedGroups.length ? (
+          <section className="emc-section emc-event-related-section" id="relacionados">
             <div className="emc-container">
               <div className="emc-section-head">
                 <div>
                   <div className="emc-kicker">Eventos relacionados</div>
-                  <h2>También puede interesarte</h2>
+                  <h2>Más eventos para seguir explorando</h2>
                 </div>
                 <Link className="emc-btn emc-btn-dark" href="/calendario">
                   Ver calendario
                 </Link>
               </div>
-              <div className="emc-results-grid">
-                {relatedEvents.map((related) => {
-                  const relatedColor = getDisciplineColor(related.discipline);
-                  const label = dayLabel(related);
+              <div className="emc-related-group-stack">
+                {relatedGroups.map((group) => (
+                  <section className="emc-related-group" key={group.title}>
+                    <div className="emc-kicker">{group.eyebrow}</div>
+                    <h3>{group.title}</h3>
+                    <div className="emc-results-grid">
+                      {group.events.map((related) => {
+                        const relatedColor = getDisciplineColor(related.discipline);
+                        const label = dayLabel(related);
 
-                  return (
-                    <TrackLink
-                      className="emc-result-card"
-                      eventName="click_event_detail"
-                      eventParams={{
-                        event_slug: related.slug,
-                        event_title: related.title,
-                        discipline: related.discipline,
-                        zone: related.region || related.province,
-                        vehicle_type: vehicleTypeOf(related),
-                      }}
-                      href={eventHref(related)}
-                      key={related.id}
-                      style={{ "--emc-card-accent": relatedColor.accent } as CSSProperties}
-                    >
-                      <div className="emc-result-date">
-                        {label.day}
-                        <small>{label.month}</small>
-                      </div>
-                      <div>
-                        <div className="emc-result-meta">
-                          <span className="emc-badge">{related.discipline}</span>
-                          <span className="emc-badge">{vehicleLabel(related)}</span>
-                        </div>
-                        <h3>{related.title}</h3>
-                        <p>{formatRange(related)} / {related.city}, {related.province}</p>
-                        <span className="emc-card-action">Ver evento</span>
-                      </div>
-                    </TrackLink>
-                  );
-                })}
+                        return (
+                          <TrackLink
+                            className="emc-result-card"
+                            eventName="click_related_event"
+                            eventParams={{
+                              event_slug: related.slug,
+                              event_title: related.title,
+                              discipline: related.discipline,
+                              zone: related.region || related.province,
+                              vehicle_type: vehicleTypeOf(related),
+                              source: group.eyebrow,
+                            }}
+                            href={eventHref(related)}
+                            key={`${group.title}-${related.id}`}
+                            style={{ "--emc-card-accent": relatedColor.accent } as CSSProperties}
+                          >
+                            <div className="emc-result-date">
+                              {label.day}
+                              <small>{label.month}</small>
+                            </div>
+                            <div>
+                              <div className="emc-result-meta">
+                                <span className="emc-badge">{related.discipline}</span>
+                                <span className="emc-badge">{vehicleLabel(related)}</span>
+                              </div>
+                              <h3>{related.title}</h3>
+                              <p>{formatRange(related)} / {related.city}, {related.province}</p>
+                              <span className="emc-card-action">Ver evento</span>
+                            </div>
+                          </TrackLink>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
             </div>
           </section>
         ) : null}
 
-        <section className="emc-section">
+        <section className="emc-section emc-internal-links-section">
+          <div className="emc-container">
+            <div className="emc-section-head">
+              <div>
+                <div className="emc-kicker">Explorar mas</div>
+                <h2>Seguir buscando eventos</h2>
+              </div>
+            </div>
+            <div className="emc-internal-links">
+              {links.map((link, index) => (
+                <Link className="emc-internal-link-card" href={link.href} key={`${link.href}-${link.label}-${index}`}>
+                  <span>{link.meta}</span>
+                  <strong>{link.label}</strong>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="emc-section emc-event-cta-section">
           <div className="emc-container">
             <div className="emc-panel emc-pro-panel emc-event-cta">
               <div>

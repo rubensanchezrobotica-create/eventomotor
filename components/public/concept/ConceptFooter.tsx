@@ -11,6 +11,7 @@ export default function ConceptFooter() {
       links: [
         { label: "Calendario", href: "/calendario" },
         { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+        { label: "Mis eventos", href: "/mis-eventos" },
       ],
     },
     {
