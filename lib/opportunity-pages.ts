@@ -182,12 +182,12 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "concentraciones-moteras-2026",
     h1: "Concentraciones moteras 2026",
-    title: "Concentraciones moteras 2026 | Calendario en España | EventoMotor",
+    title: "Concentraciones moteras 2026 | Calendario de matinales y motoalmuerzos | EventoMotor",
     description:
-      "Consulta concentraciones moteras 2026 en España: motoalmuerzos, quedadas, matinales, eventos biker y citas moteras con fecha y fuente oficial.",
+      "Consulta el calendario de concentraciones moteras 2026 en España: concentraciones de motos, matinales moteras, motoalmuerzos, quedadas y eventos biker con fecha y fuente oficial.",
     eyebrow: "Calendario motero 2026",
     lead:
-      "Calendario de concentraciones moteras 2026 con motoalmuerzos, quedadas, matinales y eventos biker organizados por fecha, ubicación y fuente.",
+      "Calendario de concentraciones moteras 2026 en España con motoalmuerzos, matinales moteras, quedadas, encuentros biker y eventos custom organizados por fecha, ubicación y fuente.",
     resultsTitle: "Concentraciones moteras 2026 encontradas",
     intro:
       "Las concentraciones moteras 2026 reúnen planes de fin de semana, motoalmuerzos, quedadas, matinales, encuentros biker, eventos custom y citas solidarias para motoristas. Esta página agrupa eventos publicados en EventoMotor que encajan con la intención de búsqueda de concentración motera, incluyendo consultas concretas como concentración motera Yuncler 2026 cuando existe información visible en el calendario. No inventamos eventos ni programas: solo listamos citas con datos suficientes para enlazar a su ficha individual. Desde cada evento puedes revisar fecha, ciudad, provincia, disciplina, tipo de vehículo, fuente oficial y enlaces disponibles antes de organizar ruta o desplazamiento.",
@@ -202,16 +202,20 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { title: "Envía tu evento", text: "Si organizas una concentración motera, puedes enviarla para revisión desde publicar evento." },
     ],
     faqs: [
-      { question: "Dónde ver concentraciones moteras 2026?", answer: "EventoMotor agrupa concentraciones, motoalmuerzos, quedadas, matinales y eventos biker de 2026 publicados con fecha, ubicación y fuente cuando existe." },
-      { question: "Aparece la concentración motera Yuncler 2026?", answer: "Si la cita está publicada en los eventos visibles y encaja con los datos de concentración motera, aparecerá listada con enlace a su ficha." },
-      { question: "Incluye motoalmuerzos y quedadas moteras?", answer: "Sí. La página puede incluir motoalmuerzos, quedadas, matinales, eventos custom, biker o solidarios si están en los datos." },
-      { question: "Cómo publicar una concentración motera?", answer: "Puedes enviar nombre, fecha, ubicación, fuente oficial y cartel desde la página de publicar evento para que se revise." },
+      { question: "¿Dónde ver concentraciones moteras en 2026?", answer: "EventoMotor agrupa concentraciones de motos, motoalmuerzos, matinales, quedadas y eventos biker publicados con fecha, ubicación y fuente cuando existe." },
+      { question: "¿Qué diferencia hay entre concentración, motoalmuerzo y matinal motera?", answer: "Una concentración suele reunir motoristas durante una jornada o fin de semana; un motoalmuerzo o matinal suele ser una cita más breve, normalmente de mañana, con punto de encuentro y ambiente motero." },
+      { question: "¿Se incluyen concentraciones custom y biker?", answer: "Sí. Si están publicadas con datos verificables, la página puede incluir eventos custom, biker, solidarios, quedadas y encuentros moteros." },
+      { question: "¿Cómo publicar una concentración motera?", answer: "Puedes enviar nombre, fecha, ubicación, fuente oficial, cartel y datos de contacto desde publicar evento para que la revisemos antes de incorporarla al calendario." },
+      { question: "¿Cómo confirmar horarios e inscripciones?", answer: "Antes de desplazarte, revisa siempre la fuente oficial enlazada en la ficha del evento, porque horarios, inscripciones o puntos de encuentro pueden cambiar." },
     ],
     relatedLinks: [
-      { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Publicar evento", href: "/publicar-evento" },
+      { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Eventos de motor en Cataluña", href: "/eventos-motor-cataluna" },
+      { label: "Eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
+      { label: "Eventos de motor en Andalucía", href: "/eventos-motor-andalucia" },
       { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) =>
       isYear(event, 2026) &&

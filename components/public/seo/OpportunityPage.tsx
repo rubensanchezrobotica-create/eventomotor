@@ -17,7 +17,7 @@ function uniqueCount(values: Array<string | undefined>) {
 
 function nextEventLabel(events: EventItem[]) {
   const first = events[0];
-  if (!first) return "Sin fecha";
+  if (!first) return "Sin próximas citas";
 
   return new Intl.DateTimeFormat("es-ES", {
     day: "numeric",
@@ -90,6 +90,11 @@ function eventDate(event: EventItem, field: "start" | "end") {
   return new Date(`${event[field] || event.start}T12:00:00`);
 }
 
+function isUpcomingEvent(event: EventItem, now: Date) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return eventDate(event, "end").getTime() >= today.getTime();
+}
+
 function overlapsDay(event: EventItem, date: Date) {
   const start = eventDate(event, "start");
   const end = eventDate(event, "end");
@@ -123,6 +128,37 @@ function featuredWeekendEvents(events: EventItem[]) {
   return (featured.length ? featured : events).slice(0, 3);
 }
 
+function monthLabel(date: Date) {
+  return new Intl.DateTimeFormat("es-ES", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function monthKey(event: EventItem) {
+  const date = eventDate(event, "start");
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function groupEventsByMonth(events: EventItem[]) {
+  const groups = new Map<string, { label: string; events: EventItem[] }>();
+
+  for (const event of events) {
+    const key = monthKey(event);
+    if (!groups.has(key)) {
+      groups.set(key, { label: monthLabel(eventDate(event, "start")), events: [] });
+    }
+    groups.get(key)?.events.push(event);
+  }
+
+  return Array.from(groups.entries()).map(([key, group]) => ({
+    key,
+    label: group.label,
+    count: group.events.length,
+    events: group.events,
+  }));
+}
+
 function itemListJsonLd(page: OpportunityPageConfig, events: EventItem[]) {
   return {
     "@context": "https://schema.org",
@@ -137,9 +173,9 @@ function itemListJsonLd(page: OpportunityPageConfig, events: EventItem[]) {
   };
 }
 
-function CompactEventList({ events }: { events: EventItem[] }) {
+function CompactEventList({ events, emptyText = "Sin eventos en este grupo ahora mismo." }: { events: EventItem[]; emptyText?: string }) {
   if (!events.length) {
-    return <p className="emc-weekend-empty">Sin eventos en este grupo ahora mismo.</p>;
+    return <p className="emc-weekend-empty">{emptyText}</p>;
   }
 
   return (
@@ -164,6 +200,81 @@ function CountGrid({ items }: { items: Array<{ label: string; count: number; hre
         </Link>
       ))}
     </div>
+  );
+}
+
+function ConcentracionesSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
+  const upcomingEvents = events.filter((event) => isUpcomingEvent(event, now));
+  const { saturday, sunday } = weekendDays(now);
+  const weekendEvents = upcomingEvents.filter((event) => overlapsDay(event, saturday) || overlapsDay(event, sunday));
+  const matinalEvents = upcomingEvents.filter((event) =>
+    hasAny(event, ["matinal", "motoalmuerzo", "almuerzo", "quedada", "encuentro motero", "ruta solidaria"]),
+  );
+  const monthGroups = groupEventsByMonth(upcomingEvents).slice(0, 6);
+  const provinces = provinceList(upcomingEvents);
+  const nextEvent = upcomingEvents[0];
+
+  return (
+    <>
+      <section className="emc-section emc-weekend-hub-section">
+        <div className="emc-container">
+          <div className="emc-weekend-update">
+            <span>Calendario actualizado con concentraciones, matinales y motoalmuerzos publicados en EventoMotor.</span>
+            {provinces.length ? <strong>{provinces.join(" / ")}</strong> : null}
+          </div>
+
+          <div className="emc-weekend-grid">
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Resumen</div>
+              <h2>{upcomingEvents.length} concentraciones próximas</h2>
+              <p className="emc-weekend-empty">{provinces.length} provincias con eventos moteros visibles en esta página.</p>
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Próxima cita</div>
+              <h2>{nextEvent ? nextEvent.title : "Sin próximas citas publicadas"}</h2>
+              {nextEvent ? (
+                <div className="emc-weekend-mini-list">
+                  <Link href={eventHref(nextEvent)}>
+                    <strong>{formatRange(nextEvent)}</strong>
+                    <span>{nextEvent.city}, {nextEvent.province}</span>
+                  </Link>
+                </div>
+              ) : null}
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Próximas fechas</div>
+              <h2>{monthGroups.slice(0, 3).map((group) => group.label.split(" ")[0]).join(" / ") || "Sin próximos meses"}</h2>
+              <p className="emc-weekend-empty">Solo se muestran meses con concentraciones futuras publicadas.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="emc-section emc-weekend-group-section">
+        <div className="emc-container">
+          <div className="emc-weekend-group-layout">
+            <div>
+              <div className="emc-kicker">Este fin de semana</div>
+              <h3>Concentraciones moteras este fin de semana</h3>
+              <CompactEventList
+                emptyText="No hay concentraciones publicadas para este fin de semana. Consulta el calendario completo."
+                events={weekendEvents}
+              />
+              <div className="emc-contact-actions emc-opportunity-actions">
+                <Link className="emc-contact-secondary-link" href="/eventos-motor-este-fin-de-semana">
+                  Ver todos los eventos del fin de semana
+                </Link>
+              </div>
+            </div>
+            <div>
+              <div className="emc-kicker">Matinales y motoalmuerzos</div>
+              <h3>Planes moteros de mañana y quedadas</h3>
+              <CompactEventList events={matinalEvents} />
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -308,14 +419,17 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
     page.fallbackFilter && primaryEvents.length < 6
       ? visibleEvents.filter((event) => page.fallbackFilter?.(event, now) && !primaryEvents.some((item) => item.id === event.id))
       : [];
-  const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
   const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
+  const isConcentracionesPage = page.slug === "concentraciones-moteras-2026";
+  const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
+  const displayEvents = isConcentracionesPage ? events.filter((event) => isUpcomingEvent(event, now)) : events;
+  const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && displayEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
-    { label: "Eventos", value: events.length.toString() },
-    { label: "Provincias", value: uniqueCount(events.map((event) => event.province)).toString() },
-    { label: "Disciplinas", value: uniqueCount(events.map((event) => event.discipline)).toString() },
-    { label: "Próxima cita", value: nextEventLabel(events) },
+    { label: "Eventos", value: displayEvents.length.toString() },
+    { label: "Provincias", value: uniqueCount(displayEvents.map((event) => event.province)).toString() },
+    { label: "Disciplinas", value: uniqueCount(displayEvents.map((event) => event.discipline)).toString() },
+    { label: "Próxima cita", value: nextEventLabel(displayEvents) },
   ];
 
   return (
@@ -331,10 +445,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(page)) }}
         />
       ) : null}
-      {isWeekendPage && events.length ? (
+      {hasItemListSchema ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(page, events)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(page, displayEvents)) }}
         />
       ) : null}
       <ConceptStaticHeader />
@@ -372,6 +486,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
         </section>
 
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
+        {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
 
         <section className="emc-section emc-contact-section">
           <div className="emc-container">
@@ -381,14 +496,14 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
                 <h2>{page.resultsTitle}</h2>
               </div>
               <p>
-                <span className="emc-opportunity-count-badge">{events.length} eventos</span>
+                <span className="emc-opportunity-count-badge">{displayEvents.length} eventos</span>
                 Resultados publicados en EventoMotor y enlazados a fichas individuales cuando existe información suficiente.
               </p>
             </div>
 
-            {events.length ? (
+            {displayEvents.length ? (
               <div className="emc-results-grid">
-                {events.map((event) => (
+                {displayEvents.map((event) => (
                   <EventCard event={event} key={event.id} />
                 ))}
               </div>
