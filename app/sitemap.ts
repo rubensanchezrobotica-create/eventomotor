@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { getListingLinks } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
 import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
@@ -23,7 +22,6 @@ function sitemapEntry(
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const events = await getVisibleEvents();
-  const links = getListingLinks(events);
   const now = new Date();
   const staticEntries = [
     sitemapEntry("/", now, "daily", 1),
@@ -35,7 +33,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry("/cookies", now, "yearly", 0.3),
     sitemapEntry("/disciplinas", now, "weekly", 0.8),
     sitemapEntry("/zonas", now, "weekly", 0.8),
-    sitemapEntry("/eventos-moto", now, "daily", 0.9),
   ];
   const taxonomyEntries = [
     ...SEO_DISCIPLINES.map((discipline) =>
@@ -48,14 +45,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const opportunityEntries = OPPORTUNITY_PAGES.map((page) =>
     sitemapEntry(`/${page.slug}`, now, "daily", 0.85),
   );
-  const listingEntries = [...links.disciplines, ...links.regions].map((link) =>
-    sitemapEntry(`/eventos-moto/${link.slug}`, now, "weekly", 0.8),
-  );
   const eventEntries = events
     .filter((event) => Boolean(event.slug))
     .map((event) =>
       sitemapEntry(`/evento/${event.slug}`, new Date(event.start), "weekly", 0.7),
     );
 
-  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...listingEntries, ...eventEntries];
+  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...eventEntries];
 }
