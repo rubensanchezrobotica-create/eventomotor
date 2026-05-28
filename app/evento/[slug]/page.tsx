@@ -119,6 +119,40 @@ function buildDescription(event: EventItem) {
   return `Consulta fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles del evento ${event.title} en ${location || "Espana"}.`;
 }
 
+function normalizeText(value: string | null | undefined) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isRallyeLaCeramica(event: EventItem) {
+  const title = normalizeText(event.title);
+  return (title.includes("rallye la ceramica") || title.includes("rally la ceramica") || title.includes("rallye ceramica") || title.includes("rally ceramica"));
+}
+
+function isComunidadValencianaEvent(event: EventItem) {
+  const text = normalizeText([event.city, event.province, event.region, event.venue].filter(Boolean).join(" "));
+  return ["castellon", "valencia", "alicante", "comunidad valenciana", "comunitat valenciana", "levante"].some((value) => text.includes(value));
+}
+
+function buildEventSeoTitle(event: EventItem) {
+  if (isRallyeLaCeramica(event)) {
+    return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
+  return `${event.title} | Fecha, ubicacion y fuente oficial | EventoMotor`;
+}
+
+function buildEventSeoDescription(event: EventItem) {
+  if (isRallyeLaCeramica(event)) {
+    const location = [event.city, event.province].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial del Rallye La Cerámica 2026${location ? ` en ${location}` : ""}. Revisa la información publicada antes de desplazarte.`;
+  }
+
+  return buildDescription(event);
+}
+
 function buildAboutText(event: EventItem) {
   const location = [event.city, event.province].filter((value) => value && value !== "Por confirmar").join(", ");
   const region = event.region && event.region !== "Por confirmar" ? `, ${event.region}` : "";
@@ -275,8 +309,42 @@ function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
 function internalLinks(event: EventItem) {
   const type = vehicleTypeOf(event);
   const typeHref = "/calendario";
+  const rallyeLaCeramica = isRallyeLaCeramica(event);
 
   const links = [
+    ...(rallyeLaCeramica
+      ? [
+          {
+            label: "Rallyes en España 2026",
+            meta: "Calendario de rallyes",
+            href: "/rallyes-espana-2026",
+          },
+          {
+            label: "Disciplina Rallyes",
+            meta: "Más pruebas similares",
+            href: "/disciplinas/rallyes",
+          },
+          ...(isComunidadValencianaEvent(event)
+            ? [
+                {
+                  label: "Rallyes en Valencia 2026",
+                  meta: "Comunidad Valenciana",
+                  href: "/rallyes-valencia-2026",
+                },
+                {
+                  label: "Eventos de motor en Comunidad Valenciana",
+                  meta: "Zona relacionada",
+                  href: "/eventos-motor-comunidad-valenciana",
+                },
+              ]
+            : []),
+          {
+            label: "Eventos de motor este fin de semana",
+            meta: "Agenda general",
+            href: "/eventos-motor-este-fin-de-semana",
+          },
+        ]
+      : []),
     {
       label: `Ver eventos en ${valueOrPending(event.province)}`,
       meta: "Misma provincia",
@@ -305,8 +373,8 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
-  const title = `${event.title} | Fecha, ubicacion y fuente oficial | EventoMotor`;
-  const description = buildDescription(event);
+  const title = buildEventSeoTitle(event);
+  const description = buildEventSeoDescription(event);
   const eventImage = getEventImage(event);
   const eventImageAlt = getEventImageAlt(event);
   const image = absoluteImageUrl(eventImage, siteUrl);
@@ -351,6 +419,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const color = getDisciplineColor(event.discipline);
   const sourceAvailable = Boolean(event.sourceUrl);
   const links = internalLinks(event);
+  const showCeramicaSeoNote = isRallyeLaCeramica(event);
   const trackingEventParams = {
     event_slug: event.slug || slug,
     event_title: event.title,
@@ -405,6 +474,11 @@ export default async function EventPage({ params }: EventPageProps) {
                 <p className="emc-event-subline">{[event.championship, event.source].filter(Boolean).join(" / ")}</p>
               ) : null}
               <p className="emc-event-intro">{buildHeroSummary(event)}</p>
+              {showCeramicaSeoNote ? (
+                <p className="emc-event-seo-note">
+                  Consulta la información publicada del Rallye La Cerámica 2026 y confirma siempre horarios, recorrido e inscripciones en la fuente oficial.
+                </p>
+              ) : null}
             </div>
 
             <aside className="emc-event-side">

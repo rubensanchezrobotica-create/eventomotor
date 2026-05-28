@@ -375,6 +375,19 @@ export default function ConceptStyles() {
 .emc-event-location { margin-top: 12px; color: #dbe2ec; font-size: clamp(17px, 1.7vw, 21px); line-height: 1.35; font-weight: 850; max-width: 760px; }
 .emc-event-subline { margin-top: 10px; color: var(--emc-muted); font-size: 14px; font-weight: 850; }
 .emc-event-intro { margin-top: 12px; max-width: 680px; color: #cbd3df; font-size: 15px; line-height: 1.5; font-weight: 650; }
+.emc-event-seo-note {
+  max-width: 720px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-left-color: rgba(255,91,31,.55);
+  border-radius: 16px;
+  background: rgba(255,255,255,.045);
+  color: #f1f5f9;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 750;
+}
 .emc-event-side { display: grid; gap: 10px; }
 .emc-event-media-card {
   position: relative;
