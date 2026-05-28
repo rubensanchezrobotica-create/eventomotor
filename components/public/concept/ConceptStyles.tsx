@@ -303,6 +303,21 @@ export default function ConceptStyles() {
   border: 1px solid var(--emc-line);
   color: #fff !important;
 }
+.emc-btn-ticket {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,91,31,.24), transparent 46%),
+    linear-gradient(180deg, rgba(94,24,18,.42), rgba(255,255,255,.055));
+  border: 1px solid rgba(255,126,86,.58);
+  color: #fff !important;
+  box-shadow: 0 15px 38px rgba(255,59,0,.17), inset 0 1px 0 rgba(255,255,255,.13);
+}
+.emc-btn-ticket:hover {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,91,31,.34), transparent 46%),
+    linear-gradient(180deg, rgba(145,37,24,.48), rgba(255,255,255,.075));
+  border-color: rgba(255,163,126,.78);
+  box-shadow: 0 18px 44px rgba(255,59,0,.23), 0 0 0 1px rgba(255,91,31,.12), inset 0 1px 0 rgba(255,255,255,.16);
+}
 .emc-btn-light, .em-btn-light {
   background: #fff;
   color: #06080d !important;
@@ -426,6 +441,15 @@ export default function ConceptStyles() {
 .emc-event-summary-card .emc-event-actions .emc-btn-primary {
   grid-column: 1 / -1;
   order: 0;
+}
+.emc-event-summary-card .emc-event-actions .emc-btn-ticket {
+  grid-column: 1 / -1;
+  order: 1;
+  min-height: 54px;
+}
+.emc-event-summary-card .emc-retention-actions .emc-btn,
+.emc-event-summary-card .emc-share-action {
+  order: 2;
 }
 .emc-event-summary-card .emc-event-actions .emc-btn,
 .emc-practical-actions .emc-btn,

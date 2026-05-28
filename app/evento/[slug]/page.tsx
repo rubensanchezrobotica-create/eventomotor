@@ -126,9 +126,40 @@ function normalizeText(value: string | null | undefined) {
     .toLowerCase();
 }
 
+function eventSearchText(event: EventItem) {
+  const extra = event as EventItem & { category?: string | null; tags?: string[] | null };
+  return normalizeText(
+    [
+      event.title,
+      event.discipline,
+      event.championship,
+      event.venue,
+      event.city,
+      event.province,
+      event.region,
+      extra.category,
+      ...(extra.tags || []),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
 function isRallyeLaCeramica(event: EventItem) {
   const title = normalizeText(event.title);
   return (title.includes("rallye la ceramica") || title.includes("rally la ceramica") || title.includes("rallye ceramica") || title.includes("rally ceramica"));
+}
+
+function isJaramaTrackdayEvent(event: EventItem) {
+  const text = eventSearchText(event);
+  const hasJarama = text.includes("jarama");
+  const hasTrackdaySignal = ["tandas privadas", "tandas", "rodadas", "rodada", "trackday", "trackdays", "circuito"].some((value) => text.includes(value));
+  return text.includes("tandas privadas jarama") || (hasJarama && hasTrackdaySignal);
+}
+
+function hasCircuitSignal(event: EventItem) {
+  const text = eventSearchText(event);
+  return text.includes("circuito") || text.includes("jarama");
 }
 
 function isComunidadValencianaEvent(event: EventItem) {
@@ -136,9 +167,20 @@ function isComunidadValencianaEvent(event: EventItem) {
   return ["castellon", "valencia", "alicante", "comunidad valenciana", "comunitat valenciana", "levante"].some((value) => text.includes(value));
 }
 
+function isMadridEvent(event: EventItem) {
+  const text = normalizeText([event.city, event.province, event.region, event.venue].filter(Boolean).join(" "));
+  return ["madrid", "san sebastian de los reyes", "jarama"].some((value) => text.includes(value));
+}
+
 function buildEventSeoTitle(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
+  if (isJaramaTrackdayEvent(event)) {
+    return hasCircuitSignal(event)
+      ? "Tandas Privadas Jarama 2026 | Fecha, circuito y fuente oficial | EventoMotor"
+      : "Tandas Privadas Jarama 2026 | Fecha, ubicacion y fuente oficial | EventoMotor";
   }
 
   return `${event.title} | Fecha, ubicacion y fuente oficial | EventoMotor`;
@@ -148,6 +190,11 @@ function buildEventSeoDescription(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     const location = [event.city, event.province].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Rallye La Cerámica 2026${location ? ` en ${location}` : ""}. Revisa la información publicada antes de desplazarte.`;
+  }
+
+  if (isJaramaTrackdayEvent(event)) {
+    const location = [event.venue, event.city, event.province].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial de las Tandas Privadas Jarama 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Revisa la información publicada antes de desplazarte.`;
   }
 
   return buildDescription(event);
@@ -164,6 +211,18 @@ function buildAboutText(event: EventItem) {
 function buildHeroSummary(event: EventItem) {
   const location = [event.city, event.province].filter(Boolean).join(", ");
   return `Evento de ${event.discipline || "motor"} previsto en ${location || "Espana"} del ${formatEventDate(event)}. Consulta la fuente oficial antes de desplazarte.`;
+}
+
+function buildEventSeoNote(event: EventItem) {
+  if (isRallyeLaCeramica(event)) {
+    return "Consulta la información publicada del Rallye La Cerámica 2026 y confirma siempre horarios, recorrido e inscripciones en la fuente oficial.";
+  }
+
+  if (isJaramaTrackdayEvent(event)) {
+    return "Consulta la información publicada de las Tandas Privadas Jarama 2026 y confirma siempre horarios, inscripción, plazas y requisitos en la fuente oficial.";
+  }
+
+  return null;
 }
 
 function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
@@ -286,8 +345,50 @@ function relatedByWeekend(current: EventItem, events: EventItem[]) {
     .slice(0, 4);
 }
 
+function relatedByCircuitTrackday(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return events
+    .filter((event) => {
+      if (event.id === current.id || event.start < today) return false;
+      const text = eventSearchText(event);
+      return ["circuito", "tandas", "rodadas", "rodada", "trackday", "trackdays", "jarama"].some((value) => text.includes(value));
+    })
+    .sort((a, b) => {
+      const aMadrid = isMadridEvent(a) ? 1 : 0;
+      const bMadrid = isMadridEvent(b) ? 1 : 0;
+      return bMadrid - aMadrid || a.start.localeCompare(b.start);
+    })
+    .slice(0, 4);
+}
+
+function dedupeRelatedGroups(groups: { title: string; eyebrow: string; events: EventItem[] }[]) {
+  const seen = new Set<string>();
+
+  return groups
+    .map((group) => ({
+      ...group,
+      events: group.events.filter((event) => {
+        const key = event.slug || event.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }),
+    }))
+    .filter((group) => group.events.length);
+}
+
 function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
-  return [
+  return dedupeRelatedGroups([
+    ...(isJaramaTrackdayEvent(current)
+      ? [
+          {
+            title: "Más tandas, rodadas y eventos de circuito",
+            eyebrow: "Circuito y trackdays",
+            events: relatedByCircuitTrackday(current, events),
+          },
+        ]
+      : []),
     {
       title: `Más eventos en ${valueOrPending(current.province)}`,
       eyebrow: "Misma provincia",
@@ -303,15 +404,49 @@ function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
       eyebrow: "Fechas cercanas",
       events: relatedByWeekend(current, events),
     },
-  ].filter((group) => group.events.length);
+  ]);
 }
 
 function internalLinks(event: EventItem) {
   const type = vehicleTypeOf(event);
   const typeHref = "/calendario";
   const rallyeLaCeramica = isRallyeLaCeramica(event);
+  const jaramaTrackday = isJaramaTrackdayEvent(event);
 
   const links = [
+    ...(jaramaTrackday
+      ? [
+          {
+            label: "Trackdays en España 2026",
+            meta: "Tandas y circuito",
+            href: "/trackdays-espana-2026",
+          },
+          {
+            label: "Rodadas moto 2026",
+            meta: "Rodadas y tandas",
+            href: "/rodadas-moto-2026",
+          },
+          ...(isMadridEvent(event)
+            ? [
+                {
+                  label: "Eventos de motor en Madrid",
+                  meta: "Zona relacionada",
+                  href: "/eventos-motor-madrid",
+                },
+              ]
+            : []),
+          {
+            label: "Eventos de circuito",
+            meta: "Disciplina relacionada",
+            href: "/disciplinas/circuito",
+          },
+          {
+            label: "Eventos de motor este fin de semana",
+            meta: "Agenda general",
+            href: "/eventos-motor-este-fin-de-semana",
+          },
+        ]
+      : []),
     ...(rallyeLaCeramica
       ? [
           {
@@ -419,7 +554,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const color = getDisciplineColor(event.discipline);
   const sourceAvailable = Boolean(event.sourceUrl);
   const links = internalLinks(event);
-  const showCeramicaSeoNote = isRallyeLaCeramica(event);
+  const eventSeoNote = buildEventSeoNote(event);
   const trackingEventParams = {
     event_slug: event.slug || slug,
     event_title: event.title,
@@ -474,9 +609,9 @@ export default async function EventPage({ params }: EventPageProps) {
                 <p className="emc-event-subline">{[event.championship, event.source].filter(Boolean).join(" / ")}</p>
               ) : null}
               <p className="emc-event-intro">{buildHeroSummary(event)}</p>
-              {showCeramicaSeoNote ? (
+              {eventSeoNote ? (
                 <p className="emc-event-seo-note">
-                  Consulta la información publicada del Rallye La Cerámica 2026 y confirma siempre horarios, recorrido e inscripciones en la fuente oficial.
+                  {eventSeoNote}
                 </p>
               ) : null}
             </div>
@@ -522,7 +657,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   ) : null}
                   {event.ticketUrl ? (
                     <TrackAnchor
-                      className="emc-btn emc-btn-dark"
+                      className="emc-btn emc-btn-ticket"
                       eventName="click_tickets"
                       eventParams={trackingEventParams}
                       href={event.ticketUrl}
@@ -605,7 +740,7 @@ export default async function EventPage({ params }: EventPageProps) {
               ) : null}
               {event.ticketUrl ? (
                 <TrackAnchor
-                  className="emc-btn emc-btn-dark"
+                  className="emc-btn emc-btn-ticket"
                   eventName="click_tickets"
                   eventParams={trackingEventParams}
                   href={event.ticketUrl}
