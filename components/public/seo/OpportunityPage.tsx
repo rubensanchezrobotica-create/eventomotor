@@ -5,6 +5,7 @@ import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
+import { eventAnalyticsParams } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { OPPORTUNITY_PAGES, type OpportunityPage as OpportunityPageConfig } from "@/lib/opportunity-pages";
 import { getVisibleEvents } from "@/lib/public-events";
@@ -39,8 +40,7 @@ function EventCard({ event }: { event: EventItem }) {
       className={event.featured ? "emc-result-card emc-opportunity-card emc-opportunity-card-featured" : "emc-result-card emc-opportunity-card"}
       eventName="click_event_detail"
       eventParams={{
-        event_slug: event.slug,
-        event_title: event.title,
+        ...eventAnalyticsParams(event),
         discipline: event.discipline,
         zone: event.region || event.province,
         vehicle_type: vehicleType || "otros",

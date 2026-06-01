@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { downloadIcsFile } from "@/lib/calendar-export";
-import { currentPagePath, trackEvent } from "@/lib/analytics";
+import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analytics";
 import { isEventSaved, removeSavedEvent, saveEvent, type SavedEvent } from "@/lib/saved-events";
 
 type EventRetentionActionsProps = {
@@ -21,8 +21,7 @@ export default function EventRetentionActions({ event, source = "event_detail" }
     saveEvent(event);
     setSaved(true);
     trackEvent("save_event", {
-      event_slug: event.slug,
-      event_title: event.title,
+      ...eventAnalyticsParams(event),
       discipline: event.discipline,
       page_path: currentPagePath(),
       source,
@@ -33,8 +32,7 @@ export default function EventRetentionActions({ event, source = "event_detail" }
     removeSavedEvent(event.slug);
     setSaved(false);
     trackEvent("remove_saved_event", {
-      event_slug: event.slug,
-      event_title: event.title,
+      ...eventAnalyticsParams(event),
       page_path: currentPagePath(),
       source,
     });
@@ -43,8 +41,7 @@ export default function EventRetentionActions({ event, source = "event_detail" }
   function addToCalendar() {
     downloadIcsFile(`${event.slug || "evento-eventomotor"}.ics`, [event]);
     trackEvent("add_to_calendar", {
-      event_slug: event.slug,
-      event_title: event.title,
+      ...eventAnalyticsParams(event),
       page_path: currentPagePath(),
       source,
     });

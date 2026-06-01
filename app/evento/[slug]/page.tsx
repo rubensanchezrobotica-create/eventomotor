@@ -11,6 +11,7 @@ import ShareEventButton from "@/components/ShareEventButton";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
+import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventImage, getEventImageAlt } from "@/lib/event-images";
 import { getDisciplineSlug } from "@/lib/event-listing-slugs";
@@ -150,6 +151,11 @@ function isRallyeLaCeramica(event: EventItem) {
   return (title.includes("rallye la ceramica") || title.includes("rally la ceramica") || title.includes("rallye ceramica") || title.includes("rally ceramica"));
 }
 
+function isRallyPicosDeEuropa(event: EventItem) {
+  const title = normalizeText(event.title);
+  return title.includes("rally picos de europa") || title.includes("rallye picos de europa") || title.includes("rally de los picos de europa");
+}
+
 function isJaramaTrackdayEvent(event: EventItem) {
   const text = eventSearchText(event);
   const hasJarama = text.includes("jarama");
@@ -172,9 +178,18 @@ function isMadridEvent(event: EventItem) {
   return ["madrid", "san sebastian de los reyes", "jarama"].some((value) => text.includes(value));
 }
 
+function isNorthernEvent(event: EventItem) {
+  const text = normalizeText([event.city, event.province, event.region, event.venue].filter(Boolean).join(" "));
+  return ["asturias", "cantabria", "galicia", "ourense", "pontevedra", "a coruna", "lugo", "pais vasco", "euskadi", "navarra", "leon", "burgos", "palencia"].some((value) => text.includes(value));
+}
+
 function buildEventSeoTitle(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
+  if (isRallyPicosDeEuropa(event)) {
+    return "Rally Picos de Europa 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -190,6 +205,11 @@ function buildEventSeoDescription(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     const location = [event.city, event.province].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Rallye La Cerámica 2026${location ? ` en ${location}` : ""}. Revisa la información publicada antes de desplazarte.`;
+  }
+
+  if (isRallyPicosDeEuropa(event)) {
+    const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial del Rally Picos de Europa 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Rally del norte de España con información publicada para planificar la asistencia.`;
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -216,6 +236,10 @@ function buildHeroSummary(event: EventItem) {
 function buildEventSeoNote(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     return "Consulta la información publicada del Rallye La Cerámica 2026 y confirma siempre horarios, recorrido e inscripciones en la fuente oficial.";
+  }
+
+  if (isRallyPicosDeEuropa(event)) {
+    return "Consulta la información publicada del Rally Picos de Europa 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -362,6 +386,24 @@ function relatedByCircuitTrackday(current: EventItem, events: EventItem[]) {
     .slice(0, 4);
 }
 
+function relatedByNorthernRally(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return events
+    .filter((event) => {
+      if (event.id === current.id || event.start < today) return false;
+      const text = eventSearchText(event);
+      const rallySignal = ["rally", "rallye", "rallysprint", "subida"].some((value) => text.includes(value));
+      return rallySignal && (isNorthernEvent(event) || event.discipline === current.discipline);
+    })
+    .sort((a, b) => {
+      const aNorth = isNorthernEvent(a) ? 1 : 0;
+      const bNorth = isNorthernEvent(b) ? 1 : 0;
+      return bNorth - aNorth || a.start.localeCompare(b.start);
+    })
+    .slice(0, 4);
+}
+
 function dedupeRelatedGroups(groups: { title: string; eyebrow: string; events: EventItem[] }[]) {
   const seen = new Set<string>();
 
@@ -389,6 +431,15 @@ function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
           },
         ]
       : []),
+    ...(isRallyPicosDeEuropa(current)
+      ? [
+          {
+            title: "Rallyes y pruebas del norte",
+            eyebrow: "Rallyes cercanos",
+            events: relatedByNorthernRally(current, events),
+          },
+        ]
+      : []),
     {
       title: `Más eventos en ${valueOrPending(current.province)}`,
       eyebrow: "Misma provincia",
@@ -412,8 +463,42 @@ function internalLinks(event: EventItem) {
   const typeHref = "/calendario";
   const rallyeLaCeramica = isRallyeLaCeramica(event);
   const jaramaTrackday = isJaramaTrackdayEvent(event);
+  const rallyPicosDeEuropa = isRallyPicosDeEuropa(event);
 
   const links = [
+    ...(rallyPicosDeEuropa
+      ? [
+          {
+            label: "Rallyes en España 2026",
+            meta: "Calendario de rallyes",
+            href: "/rallyes-espana-2026",
+          },
+          {
+            label: "Disciplina Rallyes",
+            meta: "Más pruebas similares",
+            href: "/disciplinas/rallyes",
+          },
+          ...(isNorthernEvent(event)
+            ? [
+                {
+                  label: "Eventos de motor en el norte",
+                  meta: "Zona relacionada",
+                  href: "/zonas/norte",
+                },
+              ]
+            : []),
+          {
+            label: "Eventos de motor este fin de semana",
+            meta: "Agenda general",
+            href: "/eventos-motor-este-fin-de-semana",
+          },
+          {
+            label: "Calendario completo",
+            meta: "Todos los eventos",
+            href: "/calendario",
+          },
+        ]
+      : []),
     ...(jaramaTrackday
       ? [
           {
@@ -556,9 +641,12 @@ export default async function EventPage({ params }: EventPageProps) {
   const links = internalLinks(event);
   const eventSeoNote = buildEventSeoNote(event);
   const trackingEventParams = {
-    event_slug: event.slug || slug,
-    event_title: event.title,
+    ...eventAnalyticsParams(event, { event_slug: event.slug || slug }),
     source: event.source,
+  };
+  const ticketTrackingEventParams = {
+    ...trackingEventParams,
+    ticket_url_domain: urlDomain(event.ticketUrl),
   };
   const savedEvent = {
     slug: event.slug || slug,
@@ -659,7 +747,7 @@ export default async function EventPage({ params }: EventPageProps) {
                     <TrackAnchor
                       className="emc-btn emc-btn-ticket"
                       eventName="click_tickets"
-                      eventParams={trackingEventParams}
+                      eventParams={ticketTrackingEventParams}
                       href={event.ticketUrl}
                       rel="noreferrer"
                       target="_blank"
@@ -742,7 +830,7 @@ export default async function EventPage({ params }: EventPageProps) {
                 <TrackAnchor
                   className="emc-btn emc-btn-ticket"
                   eventName="click_tickets"
-                  eventParams={trackingEventParams}
+                  eventParams={ticketTrackingEventParams}
                   href={event.ticketUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -817,8 +905,10 @@ export default async function EventPage({ params }: EventPageProps) {
                             className="emc-result-card"
                             eventName="click_related_event"
                             eventParams={{
-                              event_slug: related.slug,
-                              event_title: related.title,
+                              ...eventAnalyticsParams(related),
+                              related_event_slug: related.slug,
+                              related_event_title: related.title,
+                              source_event_slug: event.slug || slug,
                               discipline: related.discipline,
                               zone: related.region || related.province,
                               vehicle_type: vehicleTypeOf(related),

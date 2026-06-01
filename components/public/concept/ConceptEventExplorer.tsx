@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { currentPagePath, trackEvent } from "@/lib/analytics";
+import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventDistanceKm, type UserLocation } from "@/lib/geo";
 import type { EventItem } from "@/types/event";
@@ -114,8 +114,7 @@ export default function ConceptEventExplorer({
                       href={eventHref(event)}
                       key={event.id}
                       onClick={() => trackEvent("click_event_detail", {
-                        event_slug: event.slug,
-                        event_title: event.title,
+                        ...eventAnalyticsParams(event),
                         discipline: event.discipline,
                         zone: event.region || event.province,
                         vehicle_type: event.vehicleType || event.vehicle_type || "otros",

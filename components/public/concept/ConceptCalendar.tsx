@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { currentPagePath, trackEvent } from "@/lib/analytics";
+import { currentPagePath, eventAnalyticsParams, trackEvent, urlDomain } from "@/lib/analytics";
 import { MONTHS, TODAY, WEEK_DAYS, formatRange, isOnDay, parseDate } from "@/lib/date-utils";
 import type { EventItem } from "@/types/event";
 import type { ConceptZone } from "./concept-model";
@@ -250,8 +250,7 @@ export default function ConceptCalendar({
                         <a
                           href={event.sourceUrl}
                           onClick={() => trackEvent("click_official_source", {
-                            event_slug: event.slug,
-                            event_title: event.title,
+                            ...eventAnalyticsParams(event),
                             source: event.source,
                             page_path: currentPagePath(),
                           })}
@@ -267,8 +266,7 @@ export default function ConceptCalendar({
                     className="emc-card-action"
                     href={eventHref(event)}
                     onClick={() => trackEvent("click_event_detail", {
-                      event_slug: event.slug,
-                      event_title: event.title,
+                      ...eventAnalyticsParams(event),
                       discipline: event.discipline,
                       zone: eventZone(event),
                       vehicle_type: vehicleKind(event),
@@ -282,9 +280,9 @@ export default function ConceptCalendar({
                       className="emc-ticket-action"
                       href={event.ticketUrl}
                       onClick={() => trackEvent("click_tickets", {
-                        event_slug: event.slug,
-                        event_title: event.title,
+                        ...eventAnalyticsParams(event),
                         source: event.source,
+                        ticket_url_domain: urlDomain(event.ticketUrl),
                         page_path: currentPagePath(),
                       })}
                       rel="noreferrer"

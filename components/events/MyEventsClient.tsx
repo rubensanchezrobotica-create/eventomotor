@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { downloadIcsFile } from "@/lib/calendar-export";
-import { currentPagePath, trackEvent } from "@/lib/analytics";
+import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analytics";
 import { getSavedEvents, removeSavedEvent, type SavedEvent } from "@/lib/saved-events";
 
 function formatSavedDate(event: SavedEvent) {
@@ -27,16 +27,20 @@ export default function MyEventsClient() {
   }, []);
 
   function remove(slug: string) {
+    const removedEvent = events.find((event) => event.slug === slug);
     const next = removeSavedEvent(slug);
     setEvents(next);
-    trackEvent("remove_saved_event", { event_slug: slug, page_path: currentPagePath(), source: "my_events" });
+    trackEvent("remove_saved_event", {
+      ...(removedEvent ? eventAnalyticsParams(removedEvent) : { event_slug: slug }),
+      page_path: currentPagePath(),
+      source: "my_events",
+    });
   }
 
   function addToCalendar(event: SavedEvent) {
     downloadIcsFile(`${event.slug}.ics`, [event]);
     trackEvent("add_to_calendar", {
-      event_slug: event.slug,
-      event_title: event.title,
+      ...eventAnalyticsParams(event),
       page_path: currentPagePath(),
       source: "my_events",
     });
@@ -102,7 +106,18 @@ export default function MyEventsClient() {
               <p>{formatSavedDate(event)} / {event.city}, {event.province}</p>
             </div>
             <div className="emc-my-event-actions">
-              <Link className="emc-card-action" href={`/evento/${event.slug}`}>
+              <Link
+                className="emc-card-action"
+                href={`/evento/${event.slug}`}
+                onClick={() => trackEvent("click_event_detail", {
+                  ...eventAnalyticsParams(event),
+                  discipline: event.discipline,
+                  zone: event.province,
+                  vehicle_type: event.vehicle_type || "otros",
+                  page_path: currentPagePath(),
+                  source: "my_events",
+                })}
+              >
                 Ver evento
               </Link>
               {hasValidCalendarDate(event) ? (

@@ -7,6 +7,7 @@ import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref, unique } from "@/components/public/concept/concept-model";
+import { eventAnalyticsParams } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getRegionSlug } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
@@ -55,8 +56,7 @@ function EventCard({ event }: { event: EventItem }) {
       className="emc-result-card"
       eventName="click_event_detail"
       eventParams={{
-        event_slug: event.slug,
-        event_title: event.title,
+        ...eventAnalyticsParams(event),
         discipline: event.discipline,
         zone: event.region || event.province,
         vehicle_type: event.vehicleType || event.vehicle_type || "otros",

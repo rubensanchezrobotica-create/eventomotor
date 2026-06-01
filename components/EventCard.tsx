@@ -1,6 +1,7 @@
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventBadge from "@/components/EventBadge";
+import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
 import { formatRange, formatStatus, getDisciplineColor, statusOf } from "@/lib/date-utils";
 import { createEventSlug } from "@/lib/slug";
 import type { EventItem } from "@/types/event";
@@ -48,8 +49,7 @@ export default function EventCard({
             className="block"
             eventName="click_event_detail"
             eventParams={{
-              event_slug: event.slug,
-              event_title: event.title,
+              ...eventAnalyticsParams(event),
               discipline: event.discipline,
               zone: event.region || event.province,
               vehicle_type: event.vehicleType || event.vehicle_type || "otros",
@@ -72,8 +72,7 @@ export default function EventCard({
           className="rounded-md bg-white px-3 py-2 text-xs font-bold text-zinc-950 transition hover:bg-red-100"
           eventName="click_event_detail"
           eventParams={{
-            event_slug: event.slug,
-            event_title: event.title,
+            ...eventAnalyticsParams(event),
             discipline: event.discipline,
             zone: event.region || event.province,
             vehicle_type: event.vehicleType || event.vehicle_type || "otros",
@@ -87,9 +86,9 @@ export default function EventCard({
             className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100 transition hover:border-red-400/60"
             eventName="click_tickets"
             eventParams={{
-              event_slug: event.slug,
-              event_title: event.title,
+              ...eventAnalyticsParams(event),
               source: event.source,
+              ticket_url_domain: urlDomain(event.ticketUrl),
             }}
             href={event.ticketUrl}
             rel="noreferrer"
