@@ -301,9 +301,9 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "rallyes-valencia-2026",
     h1: "Rallyes en Valencia 2026",
-    title: "Rallyes en Valencia 2026 | Rally Ciudad de Valencia y Ceramica | EventoMotor",
+    title: "Rally Valencia 2026 | Rallye Ciudad de Valencia | EventoMotor",
     description:
-      "Consulta rallyes en Valencia y Comunitat Valenciana 2026: Rally Ciudad de Valencia, Rally de la Ceramica, rallysprints, subidas y pruebas con fuente oficial.",
+      "Consulta rallyes Valencia 2026 y pruebas de la Comunitat Valenciana: Rallye Ciudad de Valencia, Rally de la Ceramica, rallysprints y subidas con fuente oficial.",
     eyebrow: "Rallyes Comunidad Valenciana",
     lead:
       "Calendario de rallyes en Valencia 2026 y pruebas relacionadas en la Comunitat Valenciana, ordenadas por fecha, ubicacion y fuente oficial.",
@@ -327,6 +327,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "La pagina incluye rallysprint y subidas?", answer: "Si, puede incluir rallysprint, subidas, regularidad, bajas o rally TT cuando estan relacionados con Valencia o la Comunitat Valenciana." },
     ],
     relatedLinks: [
+      { label: "Rallye Ciudad de Valencia 2026", href: "/evento/rallye-ciudad-de-valencia-2026-10-23" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Rallysprint en España 2026", href: "/rallysprint-espana-2026" },
       { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },

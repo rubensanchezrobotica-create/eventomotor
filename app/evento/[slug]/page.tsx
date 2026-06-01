@@ -156,6 +156,11 @@ function isRallyPicosDeEuropa(event: EventItem) {
   return title.includes("rally picos de europa") || title.includes("rallye picos de europa") || title.includes("rally de los picos de europa");
 }
 
+function isRallyeCiudadDeValencia(event: EventItem) {
+  const title = normalizeText(event.title);
+  return title.includes("rallye ciudad de valencia") || title.includes("rally ciudad de valencia");
+}
+
 function isJaramaTrackdayEvent(event: EventItem) {
   const text = eventSearchText(event);
   const hasJarama = text.includes("jarama");
@@ -192,6 +197,10 @@ function buildEventSeoTitle(event: EventItem) {
     return "Rally Picos de Europa 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
 
+  if (isRallyeCiudadDeValencia(event)) {
+    return "Rallye Ciudad de Valencia 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
   if (isJaramaTrackdayEvent(event)) {
     return hasCircuitSignal(event)
       ? "Tandas Privadas Jarama 2026 | Fecha, circuito y fuente oficial | EventoMotor"
@@ -210,6 +219,11 @@ function buildEventSeoDescription(event: EventItem) {
   if (isRallyPicosDeEuropa(event)) {
     const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Rally Picos de Europa 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Rally del norte de España con información publicada para planificar la asistencia.`;
+  }
+
+  if (isRallyeCiudadDeValencia(event)) {
+    const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial del Rallye Ciudad de Valencia 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Revisa la información publicada antes de planificar asistencia o desplazamiento.`;
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -240,6 +254,10 @@ function buildEventSeoNote(event: EventItem) {
 
   if (isRallyPicosDeEuropa(event)) {
     return "Consulta la información publicada del Rally Picos de Europa 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
+  }
+
+  if (isRallyeCiudadDeValencia(event)) {
+    return "Consulta la información publicada del Rallye Ciudad de Valencia 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -464,8 +482,38 @@ function internalLinks(event: EventItem) {
   const rallyeLaCeramica = isRallyeLaCeramica(event);
   const jaramaTrackday = isJaramaTrackdayEvent(event);
   const rallyPicosDeEuropa = isRallyPicosDeEuropa(event);
+  const rallyeCiudadDeValencia = isRallyeCiudadDeValencia(event);
 
   const links = [
+    ...(rallyeCiudadDeValencia
+      ? [
+          {
+            label: "Rallyes Valencia 2026",
+            meta: "Landing relacionada",
+            href: "/rallyes-valencia-2026",
+          },
+          {
+            label: "Rallyes en España 2026",
+            meta: "Calendario de rallyes",
+            href: "/rallyes-espana-2026",
+          },
+          {
+            label: "Eventos de motor en Comunidad Valenciana",
+            meta: "Zona relacionada",
+            href: "/eventos-motor-comunidad-valenciana",
+          },
+          {
+            label: "Disciplina Rallyes",
+            meta: "Más pruebas similares",
+            href: "/disciplinas/rallyes",
+          },
+          {
+            label: "Calendario completo",
+            meta: "Todos los eventos",
+            href: "/calendario",
+          },
+        ]
+      : []),
     ...(rallyPicosDeEuropa
       ? [
           {

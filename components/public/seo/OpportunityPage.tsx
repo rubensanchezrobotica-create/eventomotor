@@ -16,8 +16,14 @@ function uniqueCount(values: Array<string | undefined>) {
   return new Set(values.filter(Boolean).map((value) => value?.trim()).filter(Boolean)).size;
 }
 
-function nextEventLabel(events: EventItem[]) {
-  const first = events[0];
+function upcomingEventsByDate(events: EventItem[], now: Date) {
+  return events
+    .filter((event) => isUpcomingEvent(event, now))
+    .sort((a, b) => a.start.localeCompare(b.start));
+}
+
+function nextEventLabel(events: EventItem[], now: Date) {
+  const first = upcomingEventsByDate(events, now)[0];
   if (!first) return "Sin próximas citas";
 
   return new Intl.DateTimeFormat("es-ES", {
@@ -171,6 +177,20 @@ function itemListJsonLd(page: OpportunityPageConfig, events: EventItem[]) {
       name: event.title,
     })),
   };
+}
+
+function orderDisplayEvents(events: EventItem[], now: Date) {
+  const upcoming = upcomingEventsByDate(events, now);
+  const past = events
+    .filter((event) => !isUpcomingEvent(event, now))
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  return [...upcoming, ...past];
+}
+
+function isRallyeCiudadDeValencia(event: EventItem) {
+  const text = eventText(event);
+  return text.includes("rallye ciudad de valencia") || text.includes("rally ciudad de valencia");
 }
 
 function CompactEventList({ events, emptyText = "Sin eventos en este grupo ahora mismo." }: { events: EventItem[]; emptyText?: string }) {
@@ -422,14 +442,20 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
   const isConcentracionesPage = page.slug === "concentraciones-moteras-2026";
   const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
-  const displayEvents = isConcentracionesPage ? events.filter((event) => isUpcomingEvent(event, now)) : events;
+  const displayEvents = orderDisplayEvents(isConcentracionesPage ? events.filter((event) => isUpcomingEvent(event, now)) : events, now);
+  const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
+  const mainEvents = isRallyesValenciaPage ? upcomingEventsByDate(displayEvents, now) : displayEvents;
+  const pastEvents = isRallyesValenciaPage
+    ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
+    : [];
+  const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
   const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && displayEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: displayEvents.length.toString() },
     { label: "Provincias", value: uniqueCount(displayEvents.map((event) => event.province)).toString() },
     { label: "Disciplinas", value: uniqueCount(displayEvents.map((event) => event.discipline)).toString() },
-    { label: "Próxima cita", value: nextEventLabel(displayEvents) },
+    { label: "Próxima cita", value: nextEventLabel(displayEvents, now) },
   ];
 
   return (
@@ -488,22 +514,35 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
         {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
 
+        {rallyValenciaFeatured ? (
+          <section className="emc-section emc-weekend-hub-section">
+            <div className="emc-container">
+              <div className="emc-weekend-update">
+                <span>Rally destacado en Valencia 2026</span>
+                <Link href={eventHref(rallyValenciaFeatured)}>
+                  {rallyValenciaFeatured.title} / {formatRange(rallyValenciaFeatured)}
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="emc-section emc-contact-section">
           <div className="emc-container">
             <div className="emc-section-head emc-opportunity-events-head">
               <div>
                 <div className="emc-kicker">Resultados filtrados</div>
-                <h2>{page.resultsTitle}</h2>
+                <h2>{isRallyesValenciaPage ? "Próximos rallyes en Valencia y Comunitat Valenciana" : page.resultsTitle}</h2>
               </div>
               <p>
-                <span className="emc-opportunity-count-badge">{displayEvents.length} eventos</span>
+                <span className="emc-opportunity-count-badge">{mainEvents.length} eventos</span>
                 Resultados publicados en EventoMotor y enlazados a fichas individuales cuando existe información suficiente.
               </p>
             </div>
 
-            {displayEvents.length ? (
+            {mainEvents.length ? (
               <div className="emc-results-grid">
-                {displayEvents.map((event) => (
+                {mainEvents.map((event) => (
                   <EventCard event={event} key={event.id} />
                 ))}
               </div>
@@ -520,6 +559,31 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
             )}
           </div>
         </section>
+
+        {pastEvents.length ? (
+          <section className="emc-section emc-internal-links-section">
+            <div className="emc-container">
+              <div className="emc-section-head emc-opportunity-events-head">
+                <div>
+                  <div className="emc-kicker">Histórico 2026</div>
+                  <h2>Eventos ya celebrados en 2026</h2>
+                </div>
+                <p>
+                  <span className="emc-opportunity-count-badge">{pastEvents.length} eventos</span>
+                  Se mantienen como referencia y enlazan a sus fichas, pero no forman parte de los próximos rallyes.
+                </p>
+              </div>
+              <div className="emc-weekend-mini-list">
+                {pastEvents.map((event) => (
+                  <Link href={eventHref(event)} key={event.id}>
+                    <strong>{event.title}</strong>
+                    <span>{formatRange(event)} / {event.city}, {event.province}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="emc-section emc-opportunity-editorial-section">
           <div className="emc-container">
