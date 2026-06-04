@@ -161,6 +161,11 @@ function isRallyeCiudadDeValencia(event: EventItem) {
   return title.includes("rallye ciudad de valencia") || title.includes("rally ciudad de valencia");
 }
 
+function isGallineroMotoFest(event: EventItem) {
+  const title = normalizeText(event.title);
+  return title.includes("gallinero moto fest");
+}
+
 function isJaramaTrackdayEvent(event: EventItem) {
   const text = eventSearchText(event);
   const hasJarama = text.includes("jarama");
@@ -188,6 +193,11 @@ function isNorthernEvent(event: EventItem) {
   return ["asturias", "cantabria", "galicia", "ourense", "pontevedra", "a coruna", "lugo", "pais vasco", "euskadi", "navarra", "leon", "burgos", "palencia"].some((value) => text.includes(value));
 }
 
+function isCataloniaEvent(event: EventItem) {
+  const text = normalizeText([event.city, event.province, event.region, event.venue].filter(Boolean).join(" "));
+  return ["cataluna", "catalunya", "barcelona", "girona", "tarragona", "lleida", "ribes de freser"].some((value) => text.includes(value));
+}
+
 function buildEventSeoTitle(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
     return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
@@ -199,6 +209,10 @@ function buildEventSeoTitle(event: EventItem) {
 
   if (isRallyeCiudadDeValencia(event)) {
     return "Rallye Ciudad de Valencia 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
+  if (isGallineroMotoFest(event)) {
+    return "Gallinero Moto Fest 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -224,6 +238,11 @@ function buildEventSeoDescription(event: EventItem) {
   if (isRallyeCiudadDeValencia(event)) {
     const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Rallye Ciudad de Valencia 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Revisa la información publicada antes de planificar asistencia o desplazamiento.`;
+  }
+
+  if (isGallineroMotoFest(event)) {
+    const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial del Gallinero Moto Fest 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Evento motero publicado en EventoMotor para confirmar detalles antes de asistir.`;
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -258,6 +277,10 @@ function buildEventSeoNote(event: EventItem) {
 
   if (isRallyeCiudadDeValencia(event)) {
     return "Consulta la información publicada del Rallye Ciudad de Valencia 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
+  }
+
+  if (isGallineroMotoFest(event)) {
+    return "Consulta la información publicada del Gallinero Moto Fest 2026 y confirma siempre horarios, programa, inscripciones y cambios en la fuente oficial.";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -422,6 +445,26 @@ function relatedByNorthernRally(current: EventItem, events: EventItem[]) {
     .slice(0, 4);
 }
 
+function relatedByCataloniaMoto(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return events
+    .filter((event) => {
+      if (event.id === current.id || event.start < today) return false;
+      const text = eventSearchText(event);
+      const motoSignal = ["moto", "motera", "moteras", "concentracion", "concentración", "mototurismo", "ruta", "biker"].some((value) => text.includes(normalizeText(value)));
+      return motoSignal && (isCataloniaEvent(event) || event.province === current.province || event.discipline === current.discipline);
+    })
+    .sort((a, b) => {
+      const aGirona = normalizeText(a.province).includes("girona") ? 1 : 0;
+      const bGirona = normalizeText(b.province).includes("girona") ? 1 : 0;
+      const aCatalonia = isCataloniaEvent(a) ? 1 : 0;
+      const bCatalonia = isCataloniaEvent(b) ? 1 : 0;
+      return bGirona - aGirona || bCatalonia - aCatalonia || a.start.localeCompare(b.start);
+    })
+    .slice(0, 4);
+}
+
 function dedupeRelatedGroups(groups: { title: string; eyebrow: string; events: EventItem[] }[]) {
   const seen = new Set<string>();
 
@@ -458,6 +501,15 @@ function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
           },
         ]
       : []),
+    ...(isGallineroMotoFest(current)
+      ? [
+          {
+            title: "Eventos moteros en Cataluña y Girona",
+            eyebrow: "Moto y zona",
+            events: relatedByCataloniaMoto(current, events),
+          },
+        ]
+      : []),
     {
       title: `Más eventos en ${valueOrPending(current.province)}`,
       eyebrow: "Misma provincia",
@@ -483,8 +535,38 @@ function internalLinks(event: EventItem) {
   const jaramaTrackday = isJaramaTrackdayEvent(event);
   const rallyPicosDeEuropa = isRallyPicosDeEuropa(event);
   const rallyeCiudadDeValencia = isRallyeCiudadDeValencia(event);
+  const gallineroMotoFest = isGallineroMotoFest(event);
 
   const links = [
+    ...(gallineroMotoFest
+      ? [
+          {
+            label: "Concentraciones moteras 2026",
+            meta: "Calendario motero",
+            href: "/concentraciones-moteras-2026",
+          },
+          {
+            label: "Eventos de motor en Cataluña",
+            meta: "Zona relacionada",
+            href: "/eventos-motor-cataluna",
+          },
+          {
+            label: "Eventos de motor este fin de semana",
+            meta: "Agenda general",
+            href: "/eventos-motor-este-fin-de-semana",
+          },
+          {
+            label: "Disciplina Concentraciones",
+            meta: "Más eventos moteros",
+            href: "/disciplinas/concentraciones",
+          },
+          {
+            label: "Calendario completo",
+            meta: "Todos los eventos",
+            href: "/calendario",
+          },
+        ]
+      : []),
     ...(rallyeCiudadDeValencia
       ? [
           {
