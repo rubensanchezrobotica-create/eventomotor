@@ -443,6 +443,8 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     relatedLinks: [
       { label: "Calendario general", href: "/calendario" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+      { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Karting", href: "/disciplinas/karting" },
@@ -494,13 +496,13 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "eventos-motor-cataluna",
     h1: "Eventos de motor en Cataluña",
-    title: "Eventos de motor en Cataluña | EventoMotor",
+    title: "Eventos de motor en Cataluña 2026 | Este fin de semana y calendario | EventoMotor",
     description:
-      "Consulta eventos de motor en Cataluña: Barcelona, Girona, Tarragona, Lleida, rallyes, karting, concentraciones moteras y ferias.",
+      "Consulta eventos de motor en Cataluña: concentraciones moteras, rallyes, coches, motos, rutas, ferias y citas del fin de semana en Barcelona, Girona, Tarragona y Lleida, con fecha, ubicación y fuente oficial.",
     eyebrow: "Eventos por region",
     lead:
-      "Una vista regional para descubrir eventos de motor en Cataluña: Barcelona, Girona, Tarragona y Lleida con citas por fecha y fuente.",
-    resultsTitle: "Eventos de motor en Cataluña",
+      "Una vista regional para descubrir eventos de motor en Cataluña, incluyendo citas de este fin de semana en Barcelona, Girona, Tarragona y Lleida cuando hay eventos publicados.",
+    resultsTitle: "Próximos eventos de motor en Cataluña",
     intro:
       "Cataluña es una de las zonas con mas actividad del calendario de motor, con eventos en Barcelona, Girona, Tarragona y Lleida, ademas de competiciones, karting, concentraciones moteras, rallyes, circuito, ferias y clasicos. Esta pagina agrupa eventos publicados en EventoMotor que tienen relacion con Cataluña, Catalunya o sus provincias principales. La intencion es ofrecer una entrada regional clara para usuarios que buscan eventos motor Cataluña, eventos motor Barcelona o rallyes en Cataluña sin mezclar resultados de otras zonas. Cada card enlaza a una ficha individual con fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles si existen.",
     editorialBlocks: [

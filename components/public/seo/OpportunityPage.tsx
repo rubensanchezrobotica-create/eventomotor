@@ -395,6 +395,68 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
   );
 }
 
+function CataloniaSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
+  const upcomingEvents = upcomingEventsByDate(events, now);
+  const { saturday, sunday } = weekendDays(now);
+  const weekendEvents = upcomingEvents.filter((event) => overlapsDay(event, saturday) || overlapsDay(event, sunday));
+  const quickGroups = [
+    {
+      label: "Concentraciones moteras",
+      href: "/disciplinas/concentraciones",
+      count: weekendEvents.filter((event) => hasAny(event, ["concentracion", "concentración", "motoalmuerzo", "motera", "moteras", "biker"])).length,
+    },
+    {
+      label: "Rallyes",
+      href: "/disciplinas/rallyes",
+      count: weekendEvents.filter((event) => hasAny(event, ["rally", "rallye", "rallysprint", "subida"])).length,
+    },
+    {
+      label: "Eventos de coches",
+      href: "/calendario",
+      count: weekendEvents.filter((event) => (event.vehicleType || event.vehicle_type) === "coche" || hasAny(event, ["coche", "coches", "4x4", "clasico", "clásico"])).length,
+    },
+    {
+      label: "Cerca de Girona",
+      href: "/calendario",
+      count: weekendEvents.filter((event) => hasAny(event, ["girona", "ribes de freser"])).length,
+    },
+  ].filter((item) => item.count > 0);
+
+  return (
+    <section className="emc-section emc-weekend-group-section">
+      <div className="emc-container">
+        <div className="emc-section-head">
+          <div>
+            <div className="emc-kicker">Fin de semana</div>
+            <h2>Eventos de motor este fin de semana en Cataluña</h2>
+          </div>
+          <p>Selección regional con eventos publicados para el sábado y domingo más cercano.</p>
+        </div>
+        <div className="emc-weekend-group-layout">
+          <div>
+            <h3>Agenda regional del fin de semana</h3>
+            <CompactEventList
+              emptyText="No hay eventos publicados para este fin de semana en Cataluña. Revisa el calendario completo o vuelve a consultar más adelante."
+              events={weekendEvents}
+            />
+            <div className="emc-contact-actions emc-opportunity-actions">
+              <Link className="emc-contact-secondary-link" href="/eventos-motor-este-fin-de-semana">
+                Ver agenda nacional del fin de semana
+              </Link>
+            </div>
+          </div>
+          {quickGroups.length ? (
+            <div>
+              <h3>Accesos rápidos por intención</h3>
+              <CountGrid items={quickGroups} />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function breadcrumbJsonLd(page: OpportunityPageConfig) {
   return {
     "@context": "https://schema.org",
@@ -444,8 +506,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
   const displayEvents = orderDisplayEvents(isConcentracionesPage ? events.filter((event) => isUpcomingEvent(event, now)) : events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
-  const mainEvents = isRallyesValenciaPage ? upcomingEventsByDate(displayEvents, now) : displayEvents;
-  const pastEvents = isRallyesValenciaPage
+  const isCataloniaPage = page.slug === "eventos-motor-cataluna";
+  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage;
+  const mainEvents = separatesPastEvents ? upcomingEventsByDate(displayEvents, now) : displayEvents;
+  const pastEvents = separatesPastEvents
     ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
     : [];
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
@@ -513,6 +577,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
 
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
         {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
+        {isCataloniaPage ? <CataloniaSeoHub events={displayEvents} now={now} /> : null}
 
         {rallyValenciaFeatured ? (
           <section className="emc-section emc-weekend-hub-section">
@@ -570,7 +635,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
                 </div>
                 <p>
                   <span className="emc-opportunity-count-badge">{pastEvents.length} eventos</span>
-                  Se mantienen como referencia y enlazan a sus fichas, pero no forman parte de los próximos rallyes.
+                  Se mantienen como referencia y enlazan a sus fichas, pero no forman parte de los próximos eventos.
                 </p>
               </div>
               <div className="emc-weekend-mini-list">
