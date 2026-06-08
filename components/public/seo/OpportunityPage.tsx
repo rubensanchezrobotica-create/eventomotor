@@ -193,6 +193,16 @@ function isRallyeCiudadDeValencia(event: EventItem) {
   return text.includes("rallye ciudad de valencia") || text.includes("rally ciudad de valencia");
 }
 
+function isRallysprintCarreno(event: EventItem) {
+  const text = eventText(event);
+  return (
+    text.includes("rallysprint carreno") ||
+    text.includes("rallysprint carreño") ||
+    text.includes("rally sprint carreno") ||
+    text.includes("rally sprint carreño")
+  );
+}
+
 function CompactEventList({ events, emptyText = "Sin eventos en este grupo ahora mismo." }: { events: EventItem[]; emptyText?: string }) {
   if (!events.length) {
     return <p className="emc-weekend-empty">{emptyText}</p>;
@@ -513,6 +523,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
     ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
     : [];
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
+  const rallysprintCarrenoFeatured = page.slug === "rallysprint-espana-2026" ? displayEvents.find(isRallysprintCarreno) : null;
   const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && displayEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
@@ -578,6 +589,19 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
         {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
         {isCataloniaPage ? <CataloniaSeoHub events={displayEvents} now={now} /> : null}
+
+        {rallysprintCarrenoFeatured ? (
+          <section className="emc-section emc-weekend-hub-section">
+            <div className="emc-container">
+              <div className="emc-weekend-update">
+                <span>Rallysprint destacado en España 2026</span>
+                <Link href={eventHref(rallysprintCarrenoFeatured)}>
+                  {rallysprintCarrenoFeatured.title} / {formatRange(rallysprintCarrenoFeatured)}
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {rallyValenciaFeatured ? (
           <section className="emc-section emc-weekend-hub-section">

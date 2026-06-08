@@ -84,7 +84,7 @@ function isYear(event: EventItem, year: number) {
 }
 
 const rallyTerms = ["rally", "rallye", "rallysprint", "subida", "regularidad", "baja", "montaña", "montana"];
-const rallysprintTerms = ["rallysprint", "rally sprint", "sprint", "villa de grado", "grado"];
+const rallysprintTerms = ["rallysprint", "rally sprint", "sprint", "villa de grado", "grado", "carreno", "carreño"];
 const concentrationTerms = ["concentración", "concentracion", "motoalmuerzo", "quedada", "moteras", "motera", "biker", "custom"];
 const extendedConcentrationTerms = [
   ...concentrationTerms,
@@ -263,15 +263,15 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     h1: "Rallysprint en España 2026",
     title: "Rallysprint en España 2026 | Calendario rallysprint | EventoMotor",
     description:
-      "Consulta rallysprint en España 2026: calendario, pruebas como Rallysprint Villa de Grado, fechas, ubicaciones y fuentes oficiales.",
+      "Consulta rallysprint en España 2026: Rallysprint Carreño, Villa de Grado, fechas, ubicaciones y fuentes oficiales.",
     eyebrow: "Rallysprint 2026",
     lead:
       "Calendario de rallysprint en España 2026 con pruebas publicadas en EventoMotor, priorizando rallysprints y citas relacionadas cuando el calendario es limitado.",
     resultsTitle: "Calendario rallysprint 2026",
     intro:
-      "Las búsquedas de rallysprint España 2026, rallysprint Villa de Grado 2026 o rallysprint Grado 2026 necesitan una página centrada en pruebas cortas, fechas y fuentes fiables. Esta landing reúne eventos publicados en EventoMotor que encajan con rallysprint, rally sprint, Villa de Grado o Grado. Si el calendario específico queda corto, puede apoyarse en pruebas de rally relacionadas de 2026 para que el usuario no llegue a una página vacía, pero siempre sin inventar citas ni resultados. Cada card enlaza a una ficha individual donde se puede revisar fecha, ubicación, disciplina, fuente oficial y enlaces disponibles antes de planificar asistencia o inscripción.",
+      "Las búsquedas de rallysprint España 2026, Rallysprint Carreño 2026, rallysprint Villa de Grado 2026 o rallysprint Grado 2026 necesitan una página centrada en pruebas cortas, fechas y fuentes fiables. Esta landing reúne eventos publicados en EventoMotor que encajan con rallysprint, rally sprint, Carreño, Villa de Grado o Grado. Si el calendario específico queda corto, puede apoyarse en pruebas de rally relacionadas de 2026 para que el usuario no llegue a una página vacía, pero siempre sin inventar citas ni resultados. Cada card enlaza a una ficha individual donde se puede revisar fecha, ubicación, disciplina, fuente oficial y enlaces disponibles antes de planificar asistencia o inscripción.",
     editorialBlocks: [
-      { title: "Prioridad rallysprint", text: "La selección da preferencia a eventos que mencionan rallysprint, rally sprint, Villa de Grado o Grado." },
+      { title: "Prioridad rallysprint", text: "La selección da preferencia a eventos que mencionan rallysprint, rally sprint, Carreño, Villa de Grado o Grado." },
       { title: "Temporada 2026", text: "Los resultados se centran en eventos de 2026 y se ordenan por fecha para facilitar consulta rápida." },
       { title: "Ficha verificable", text: "Cada evento enlaza a una ficha con ubicación, disciplina, fuente oficial y enlaces disponibles cuando existen." },
     ],
@@ -282,11 +282,13 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     ],
     faqs: [
       { question: "Dónde ver rallysprint en España 2026?", answer: "Esta página agrupa rallysprints publicados en EventoMotor con fecha, ubicación y fuente oficial cuando está disponible." },
+      { question: "Aparece Rallysprint Carreño 2026?", answer: "Si el evento está publicado y visible, aparece listado con enlace a su ficha para revisar fecha, ubicación y fuente oficial." },
       { question: "Aparece Rallysprint Villa de Grado 2026?", answer: "Si el evento está publicado en los datos visibles y encaja con la búsqueda, aparecerá listado con enlace a su ficha." },
       { question: "La página incluye rallyes si no hay suficientes rallysprint?", answer: "Sí, puede incluir eventos de rally relacionados de 2026 solo como apoyo cuando el listado específico de rallysprint es limitado." },
       { question: "Cómo confirmar horarios o inscripción?", answer: "Abre la ficha del evento y revisa la fuente oficial o enlaces disponibles antes de desplazarte." },
     ],
     relatedLinks: [
+      { label: "Rallysprint Carreño 2026", href: "/evento/rallysprint-carreno-2026-07-04" },
       { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
       { label: "Disciplina Rallyes", href: "/disciplinas/rallyes" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },

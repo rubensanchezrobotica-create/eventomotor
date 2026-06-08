@@ -156,6 +156,11 @@ function isRallyPicosDeEuropa(event: EventItem) {
   return title.includes("rally picos de europa") || title.includes("rallye picos de europa") || title.includes("rally de los picos de europa");
 }
 
+function isRallysprintCarreno(event: EventItem) {
+  const title = normalizeText(event.title);
+  return title.includes("rallysprint carreno") || title.includes("rally sprint carreno");
+}
+
 function isRallyeCiudadDeValencia(event: EventItem) {
   const title = normalizeText(event.title);
   return title.includes("rallye ciudad de valencia") || title.includes("rally ciudad de valencia");
@@ -207,6 +212,10 @@ function buildEventSeoTitle(event: EventItem) {
     return "Rally Picos de Europa 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
 
+  if (isRallysprintCarreno(event)) {
+    return "Rallysprint Carreño 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+  }
+
   if (isRallyeCiudadDeValencia(event)) {
     return "Rallye Ciudad de Valencia 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
@@ -233,6 +242,11 @@ function buildEventSeoDescription(event: EventItem) {
   if (isRallyPicosDeEuropa(event)) {
     const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Rally Picos de Europa 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Rally del norte de España con información publicada para planificar la asistencia.`;
+  }
+
+  if (isRallysprintCarreno(event)) {
+    const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
+    return `Consulta fecha, ubicación y fuente oficial del Rallysprint Carreño 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Prueba de rallysprint publicada en EventoMotor para confirmar la información antes de asistir.`;
   }
 
   if (isRallyeCiudadDeValencia(event)) {
@@ -273,6 +287,10 @@ function buildEventSeoNote(event: EventItem) {
 
   if (isRallyPicosDeEuropa(event)) {
     return "Consulta la información publicada del Rally Picos de Europa 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
+  }
+
+  if (isRallysprintCarreno(event)) {
+    return "Consulta la información publicada del Rallysprint Carreño 2026 y confirma siempre horarios, recorrido, inscripciones y cambios en la fuente oficial.";
   }
 
   if (isRallyeCiudadDeValencia(event)) {
@@ -445,6 +463,29 @@ function relatedByNorthernRally(current: EventItem, events: EventItem[]) {
     .slice(0, 4);
 }
 
+function relatedByRallysprintNorth(current: EventItem, events: EventItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return events
+    .filter((event) => {
+      if (event.id === current.id || event.start < today) return false;
+      const text = eventSearchText(event);
+      const rallysprintSignal = ["rallysprint", "rally sprint"].some((value) => text.includes(value));
+      const rallySignal = ["rally", "rallye", "subida"].some((value) => text.includes(value));
+      return rallysprintSignal || (rallySignal && (isNorthernEvent(event) || event.discipline === current.discipline));
+    })
+    .sort((a, b) => {
+      const aText = eventSearchText(a);
+      const bText = eventSearchText(b);
+      const aSprint = aText.includes("rallysprint") || aText.includes("rally sprint") ? 1 : 0;
+      const bSprint = bText.includes("rallysprint") || bText.includes("rally sprint") ? 1 : 0;
+      const aNorth = isNorthernEvent(a) ? 1 : 0;
+      const bNorth = isNorthernEvent(b) ? 1 : 0;
+      return bSprint - aSprint || bNorth - aNorth || a.start.localeCompare(b.start);
+    })
+    .slice(0, 4);
+}
+
 function relatedByCataloniaMoto(current: EventItem, events: EventItem[]) {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -501,6 +542,15 @@ function getRelatedEventGroups(current: EventItem, events: EventItem[]) {
           },
         ]
       : []),
+    ...(isRallysprintCarreno(current)
+      ? [
+          {
+            title: "Rallysprint y rallyes del norte",
+            eyebrow: "Rallysprint cercano",
+            events: relatedByRallysprintNorth(current, events),
+          },
+        ]
+      : []),
     ...(isGallineroMotoFest(current)
       ? [
           {
@@ -536,8 +586,43 @@ function internalLinks(event: EventItem) {
   const rallyPicosDeEuropa = isRallyPicosDeEuropa(event);
   const rallyeCiudadDeValencia = isRallyeCiudadDeValencia(event);
   const gallineroMotoFest = isGallineroMotoFest(event);
+  const rallysprintCarreno = isRallysprintCarreno(event);
 
   const links = [
+    ...(rallysprintCarreno
+      ? [
+          {
+            label: "Rallysprint en España 2026",
+            meta: "Landing relacionada",
+            href: "/rallysprint-espana-2026",
+          },
+          {
+            label: "Rallyes en España 2026",
+            meta: "Calendario de rallyes",
+            href: "/rallyes-espana-2026",
+          },
+          {
+            label: "Eventos de motor en el norte",
+            meta: "Zona relacionada",
+            href: "/zonas/norte",
+          },
+          {
+            label: "Disciplina Rallyes",
+            meta: "Más pruebas similares",
+            href: "/disciplinas/rallyes",
+          },
+          {
+            label: "Eventos de motor este fin de semana",
+            meta: "Agenda general",
+            href: "/eventos-motor-este-fin-de-semana",
+          },
+          {
+            label: "Calendario completo",
+            meta: "Todos los eventos",
+            href: "/calendario",
+          },
+        ]
+      : []),
     ...(gallineroMotoFest
       ? [
           {
