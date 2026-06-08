@@ -243,6 +243,12 @@ function ConcentracionesSeoHub({ events, now }: { events: EventItem[]; now: Date
   const monthGroups = groupEventsByMonth(upcomingEvents).slice(0, 6);
   const provinces = provinceList(upcomingEvents);
   const nextEvent = upcomingEvents[0];
+  const zoneLinks = [
+    { label: "Cataluña", href: "/eventos-motor-cataluna", count: groupCount(upcomingEvents, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida"]) },
+    { label: "Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana", count: groupCount(upcomingEvents, ["valencia", "alicante", "castellon", "castellón", "comunitat valenciana", "comunidad valenciana"]) },
+    { label: "Andalucía", href: "/eventos-motor-andalucia", count: groupCount(upcomingEvents, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]) },
+    { label: "Madrid", href: "/eventos-motor-madrid", count: groupCount(upcomingEvents, ["madrid"]) },
+  ].filter((item) => item.count > 0);
 
   return (
     <>
@@ -296,6 +302,20 @@ function ConcentracionesSeoHub({ events, now }: { events: EventItem[]; now: Date
                 </Link>
               </div>
             </div>
+            {zoneLinks.length ? (
+              <div>
+                <div className="emc-kicker">Zonas activas</div>
+                <h3>Zonas con próximas concentraciones</h3>
+                <div className="emc-weekend-mini-list">
+                  {zoneLinks.map((zone) => (
+                    <Link href={zone.href} key={zone.href}>
+                      <strong>{zone.label}</strong>
+                      <span>{zone.count} eventos próximos</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div>
               <div className="emc-kicker">Matinales y motoalmuerzos</div>
               <h3>Planes moteros de mañana y quedadas</h3>
@@ -514,17 +534,17 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
   const isConcentracionesPage = page.slug === "concentraciones-moteras-2026";
   const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
-  const displayEvents = orderDisplayEvents(isConcentracionesPage ? events.filter((event) => isUpcomingEvent(event, now)) : events, now);
+  const displayEvents = orderDisplayEvents(events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
   const isCataloniaPage = page.slug === "eventos-motor-cataluna";
-  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage;
+  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage || isConcentracionesPage;
   const mainEvents = separatesPastEvents ? upcomingEventsByDate(displayEvents, now) : displayEvents;
   const pastEvents = separatesPastEvents
     ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
     : [];
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
   const rallysprintCarrenoFeatured = page.slug === "rallysprint-espana-2026" ? displayEvents.find(isRallysprintCarreno) : null;
-  const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && displayEvents.length > 0;
+  const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && mainEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: displayEvents.length.toString() },
@@ -549,7 +569,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
       {hasItemListSchema ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(page, displayEvents)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(page, mainEvents)) }}
         />
       ) : null}
       <ConceptStaticHeader />
