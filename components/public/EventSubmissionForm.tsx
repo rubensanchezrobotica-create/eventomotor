@@ -176,19 +176,19 @@ export default function EventSubmissionForm() {
 
         <label className="emc-submission-field emc-field-wide">
           <span>Web oficial o fuente *</span>
-          <input name="source_url" placeholder="https://..." required type="url" />
+          <input inputMode="url" name="source_url" placeholder="web oficial, Instagram, Facebook..." required type="text" />
           {errorFor("source_url")}
         </label>
 
         <label className="emc-submission-field">
           <span>Entradas / inscripción</span>
-          <input name="ticket_url" placeholder="https://..." type="url" />
+          <input inputMode="url" name="ticket_url" placeholder="enlace de inscripción o entradas" type="text" />
           {errorFor("ticket_url")}
         </label>
 
         <label className="emc-submission-field">
           <span>Cartel o imagen</span>
-          <input name="poster_url" placeholder="https://..." type="url" />
+          <input inputMode="url" name="poster_url" placeholder="enlace al cartel o imagen" type="text" />
           {errorFor("poster_url")}
         </label>
 
