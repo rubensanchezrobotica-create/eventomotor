@@ -1870,6 +1870,7 @@ export default function ConceptStyles() {
 .emc-contact-secondary-link:hover { color: #fff !important; }
 .emc-contact-card { padding: 30px; border-radius: 32px; background: linear-gradient(180deg, rgba(17,24,36,.92), rgba(7,10,17,.96)); box-shadow: var(--emc-shadow); }
 .emc-contact-card span { display: block; color: var(--emc-orange2); font-size: 12px; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 16px; }
+.emc-contact-card h2 { margin: 0 0 10px; color: #fff; font-size: clamp(28px, 2.4vw, 36px); line-height: 1.02; letter-spacing: -1px; font-weight: 950; }
 .emc-contact-card a { display: inline-flex; color: #fff !important; font-size: clamp(22px, 2.2vw, 30px); font-weight: 950; letter-spacing: -1px; overflow-wrap: anywhere; }
 .emc-contact-card a:hover { color: #ffd0bf !important; }
 .emc-contact-card p { color: var(--emc-muted); line-height: 1.7; font-weight: 700; margin-top: 18px; }
@@ -2010,16 +2011,23 @@ export default function ConceptStyles() {
 }
 .emc-publish-section { padding-top: 10px; }
 .emc-publish-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.emc-publish-benefits-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .emc-publish-card { min-height: 150px; padding: 18px; border: 1px solid rgba(255,91,31,.18); border-radius: 24px; background: radial-gradient(circle at 100% 0%, rgba(255,91,31,.18), transparent 42%), linear-gradient(180deg, rgba(16,23,35,.86), rgba(7,11,18,.96)); box-shadow: 0 20px 70px rgba(0,0,0,.24); }
 .emc-publish-card span { display: block; width: 9px; height: 9px; border-radius: 999px; background: var(--emc-orange); box-shadow: 0 0 22px rgba(255,59,0,.52); margin-bottom: 40px; }
 .emc-publish-card strong { display: block; color: #fff; font-size: clamp(18px, 1.7vw, 24px); line-height: 1.08; letter-spacing: -.8px; font-weight: 950; }
 .emc-publish-card small { display: block; margin-top: 12px; color: var(--emc-muted); font-size: 12px; font-weight: 850; line-height: 1.35; }
+.emc-publish-accepted { padding: 32px; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px; align-items: start; background: linear-gradient(135deg, rgba(255,91,31,.08), rgba(10,15,24,.92) 42%, rgba(6,9,15,.98)); }
+.emc-publish-accepted h2 { max-width: 680px; }
+.emc-publish-accepted p { margin-top: 14px; color: #cbd3df; line-height: 1.7; font-size: 16px; font-weight: 700; }
+.emc-publish-chip-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.emc-publish-chip-grid span { display: inline-flex; align-items: center; min-height: 38px; padding: 9px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.055); color: #fff; font-size: 13px; line-height: 1; font-weight: 900; }
 .emc-publish-process { padding: 30px; display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
 .emc-publish-process-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .emc-publish-process-step { min-height: 118px; padding: 14px; border: 1px solid rgba(255,255,255,.09); border-radius: 20px; background: rgba(8,12,20,.76); }
 .emc-publish-process-step span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: rgba(255,91,31,.16); border: 1px solid rgba(255,91,31,.28); color: #ffd0bf; font-size: 12px; font-weight: 950; margin-bottom: 18px; }
 .emc-publish-process-step strong { display: block; color: #fff; font-size: 15px; line-height: 1.18; font-weight: 950; }
 .emc-publish-criteria { padding: 34px; background: linear-gradient(135deg, rgba(255,59,0,.10), rgba(12,18,29,.94) 42%, rgba(7,10,17,.98)); }
+.emc-publish-kicker-spaced { margin-top: 30px; }
 .emc-publish-criteria h2 { max-width: 780px; }
 .emc-publish-criteria p { max-width: 920px; margin-top: 18px; color: #cbd3df; line-height: 1.75; font-size: 17px; font-weight: 700; }
 
@@ -2644,6 +2652,8 @@ export default function ConceptStyles() {
   .emc-discipline-card { min-height: 252px; }
   .emc-zone-explorer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-publish-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emc-publish-benefits-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emc-publish-accepted { grid-template-columns: 1fr; }
   .emc-publish-process-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emc-footer-grid { grid-template-columns: 1fr; }
   .emc-footer-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2802,9 +2812,14 @@ export default function ConceptStyles() {
   .emc-submission-actions .emc-btn { width: 100%; }
   .emc-publish-section { padding-top: 0; }
   .emc-publish-grid { grid-template-columns: 1fr; gap: 10px; }
+  .emc-publish-benefits-grid { grid-template-columns: 1fr; }
   .emc-publish-card { min-height: 104px; padding: 16px; border-radius: 22px; }
   .emc-publish-card span { margin-bottom: 18px; }
   .emc-publish-card small { margin-top: 8px; }
+  .emc-publish-accepted { padding: 22px; border-radius: 28px; gap: 18px; }
+  .emc-publish-accepted p { font-size: 15px; line-height: 1.65; }
+  .emc-publish-chip-grid { gap: 8px; }
+  .emc-publish-chip-grid span { min-height: 34px; font-size: 12px; padding: 8px 10px; }
   .emc-publish-process { padding: 22px; border-radius: 28px; gap: 18px; }
   .emc-publish-process-grid { grid-template-columns: 1fr; gap: 9px; }
   .emc-publish-process-step { min-height: auto; padding: 13px; border-radius: 18px; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: center; }
