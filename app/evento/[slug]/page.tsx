@@ -171,6 +171,16 @@ function isGallineroMotoFest(event: EventItem) {
   return title.includes("gallinero moto fest");
 }
 
+function isClassicAlcoyEvent(event: EventItem) {
+  const title = normalizeText(event.title);
+  return (
+    event.slug === "xiv-concentracion-automoviles-motocicletas-clasicas-alcoy-2026-06-21" ||
+    title.includes("xiv concentracion anual de automoviles y motocicletas clasicas") ||
+    title.includes("xiv concentracion de automoviles y motocicletas clasicas") ||
+    title.includes("classic alcoy")
+  );
+}
+
 function isJaramaTrackdayEvent(event: EventItem) {
   const text = eventSearchText(event);
   const hasJarama = text.includes("jarama");
@@ -224,6 +234,10 @@ function buildEventSeoTitle(event: EventItem) {
     return "Gallinero Moto Fest 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
   }
 
+  if (isClassicAlcoyEvent(event)) {
+    return "XIV Concentración Automóviles y Motocicletas Clásicas 2026 | Alcoy | EventoMotor";
+  }
+
   if (isJaramaTrackdayEvent(event)) {
     return hasCircuitSignal(event)
       ? "Tandas Privadas Jarama 2026 | Fecha, circuito y fuente oficial | EventoMotor"
@@ -257,6 +271,10 @@ function buildEventSeoDescription(event: EventItem) {
   if (isGallineroMotoFest(event)) {
     const location = [event.city, event.province, event.region].filter(Boolean).join(", ");
     return `Consulta fecha, ubicación y fuente oficial del Gallinero Moto Fest 2026${location ? ` en ${location}` : ""}, del ${formatEventDate(event)}. Evento motero publicado en EventoMotor para confirmar detalles antes de asistir.`;
+  }
+
+  if (isClassicAlcoyEvent(event)) {
+    return "Consulta la XIV Concentración Anual de Automóviles y Motocicletas Clásicas 2026 en Alcoy: fecha, ubicación, programa, inscripción y fuente oficial.";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -299,6 +317,10 @@ function buildEventSeoNote(event: EventItem) {
 
   if (isGallineroMotoFest(event)) {
     return "Consulta la información publicada del Gallinero Moto Fest 2026 y confirma siempre horarios, programa, inscripciones y cambios en la fuente oficial.";
+  }
+
+  if (isClassicAlcoyEvent(event)) {
+    return "Consulta la información publicada de la XIV Concentración Anual de Automóviles y Motocicletas Clásicas 2026 y confirma siempre programa, inscripción y cambios en la fuente oficial.";
   }
 
   if (isJaramaTrackdayEvent(event)) {
@@ -586,9 +608,34 @@ function internalLinks(event: EventItem) {
   const rallyPicosDeEuropa = isRallyPicosDeEuropa(event);
   const rallyeCiudadDeValencia = isRallyeCiudadDeValencia(event);
   const gallineroMotoFest = isGallineroMotoFest(event);
+  const classicAlcoyEvent = isClassicAlcoyEvent(event);
   const rallysprintCarreno = isRallysprintCarreno(event);
 
   const links = [
+    ...(classicAlcoyEvent
+      ? [
+          {
+            label: "Concentraciones moteras 2026",
+            meta: "Calendario relacionado",
+            href: "/concentraciones-moteras-2026",
+          },
+          {
+            label: "Eventos de clásicos",
+            meta: "Disciplina relacionada",
+            href: "/disciplinas/clasicos",
+          },
+          {
+            label: "Eventos de motor en Comunidad Valenciana",
+            meta: "Zona relacionada",
+            href: "/eventos-motor-comunidad-valenciana",
+          },
+          {
+            label: "Calendario completo",
+            meta: "Todos los eventos",
+            href: "/calendario",
+          },
+        ]
+      : []),
     ...(rallysprintCarreno
       ? [
           {

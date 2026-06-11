@@ -1,4 +1,5 @@
 type EventImageInput = {
+  slug?: string | null;
   title?: string | null;
   discipline?: string | null;
   championship?: string | null;
@@ -20,6 +21,11 @@ const FALLBACK_IMAGES = {
   feria: "/images/disciplines/eventomotor-fallback-feria.webp",
   ruta: "/images/disciplines/eventomotor-fallback-ruta.webp",
   general: "/images/disciplines/eventomotor-fallback-general.webp",
+};
+
+const EVENT_IMAGES_BY_SLUG: Record<string, string> = {
+  "xiv-concentracion-automoviles-motocicletas-clasicas-alcoy-2026-06-21":
+    "/event-images/xiv-concentracion-classic-alcoy-2026.png",
 };
 
 function normalizeText(value: string) {
@@ -53,6 +59,10 @@ export function getEventImage(event: EventImageInput): string {
 
   if (realImage) {
     return realImage;
+  }
+
+  if (event.slug && EVENT_IMAGES_BY_SLUG[event.slug]) {
+    return EVENT_IMAGES_BY_SLUG[event.slug];
   }
 
   const text = eventSearchText(event);
