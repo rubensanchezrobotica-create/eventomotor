@@ -4,6 +4,8 @@ import type { EventSubmissionRow } from "@/lib/supabase";
 const ADMIN_SUBMISSIONS_SELECT =
   "id,event_name,start_date,end_date,city,province,venue,discipline,vehicle_type,source_url,ticket_url,description,organizer_name,contact_email,contact_phone,poster_url,status,created_at,updated_at";
 
+const ALLOWED_STATUSES = new Set(["pending", "reviewed", "published", "discarded"]);
+
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
 }
@@ -63,6 +65,47 @@ export async function GET(request: Request) {
     return Response.json({
       ok: true,
       submissions: (data ?? []) as EventSubmissionRow[],
+    });
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : String(error), 500);
+  }
+}
+
+export async function PATCH(request: Request) {
+  const auth = validateAdminSecret(request);
+
+  if (!auth.ok) {
+    return jsonError(auth.error, auth.status);
+  }
+
+  try {
+    const payload = (await request.json()) as { id?: unknown; status?: unknown };
+    const id = typeof payload.id === "string" ? payload.id.trim() : "";
+    const status = typeof payload.status === "string" ? payload.status.trim() : "";
+
+    if (!id) {
+      return jsonError("Missing submission id.", 400);
+    }
+
+    if (!ALLOWED_STATUSES.has(status)) {
+      return jsonError("Invalid status. Use pending, reviewed, published or discarded.", 400);
+    }
+
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("event_submissions")
+      .update({ status })
+      .eq("id", id)
+      .select(ADMIN_SUBMISSIONS_SELECT)
+      .single();
+
+    if (error) {
+      return jsonError(error.message, 500);
+    }
+
+    return Response.json({
+      ok: true,
+      submission: data as EventSubmissionRow,
     });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : String(error), 500);

@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
 
 const DATA_QUALITY_OPTIONS = ["needs_review", "reviewed", "published", "draft", "pending_date", "cancelled"];
 const VEHICLE_TYPE_OPTIONS = ["moto", "coche", "mixto", "karting", "otros"];
@@ -620,15 +621,23 @@ export default function AdminPage() {
               Revisa, filtra, corrige y publica eventos importados sin perder contexto.
             </p>
           </div>
-          {isAuthenticated ? (
-            <button
-              className="min-h-9 w-fit rounded-md border border-white/[0.08] bg-white/[0.04] px-3 text-xs font-bold text-zinc-100 hover:border-white/[0.16]"
-              onClick={() => loadEvents()}
-              type="button"
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="min-h-9 w-fit rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-bold text-zinc-100 hover:border-white/[0.16]"
+              href="/admin/event-submissions"
             >
-              Refrescar eventos
-            </button>
-          ) : null}
+              Solicitudes recibidas
+            </Link>
+            {isAuthenticated ? (
+              <button
+                className="min-h-9 w-fit rounded-md border border-white/[0.08] bg-white/[0.04] px-3 text-xs font-bold text-zinc-100 hover:border-white/[0.16]"
+                onClick={() => loadEvents()}
+                type="button"
+              >
+                Refrescar eventos
+              </button>
+            ) : null}
+          </div>
         </header>
 
         <section className="rounded-lg border border-white/[0.07] bg-white/[0.035] p-3.5">

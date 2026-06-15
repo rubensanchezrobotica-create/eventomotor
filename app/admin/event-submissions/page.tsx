@@ -1,5 +1,5 @@
 import EventSubmissionsAdmin from "@/components/admin/EventSubmissionsAdmin";
 
-export default function AdminSubmissionsPage() {
+export default function AdminEventSubmissionsPage() {
   return <EventSubmissionsAdmin />;
 }
