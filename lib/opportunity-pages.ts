@@ -16,6 +16,7 @@ export type OpportunityPage = {
   relatedLinks: Array<{ label: string; href: string }>;
   filter: (event: EventItem, now: Date) => boolean;
   fallbackFilter?: (event: EventItem, now: Date) => boolean;
+  relatedFilter?: (event: EventItem, now: Date) => boolean;
 };
 
 function eventSearchText(event: EventItem) {
@@ -86,6 +87,18 @@ function isYear(event: EventItem, year: number) {
 const rallyTerms = ["rally", "rallye", "rallysprint", "subida", "regularidad", "baja", "montaña", "montana"];
 const rallysprintTerms = ["rallysprint", "rally sprint", "sprint", "villa de grado", "grado", "carreno", "carreño"];
 const concentrationTerms = ["concentración", "concentracion", "motoalmuerzo", "quedada", "moteras", "motera", "biker", "custom"];
+const motoalmuerzoTerms = [
+  "motoalmuerzo",
+  "moto almuerzo",
+  "almuerzo motero",
+  "matinal motera",
+  "matinal motero",
+  "matinal",
+  "quedada motera de mañana",
+  "quedada motera de manana",
+  "concentración motera con almuerzo",
+  "concentracion motera con almuerzo",
+];
 const extendedConcentrationTerms = [
   ...concentrationTerms,
   "matinal",
@@ -209,6 +222,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar una concentración motera en EventoMotor?", answer: "Puedes enviar nombre, fecha, ubicación, fuente oficial, cartel y datos de contacto desde publicar evento para que la revisemos antes de incorporarla al calendario." },
     ],
     relatedLinks: [
+      { label: "Motoalmuerzos y matinales moteras 2026", href: "/motoalmuerzos-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Eventos de motor en Cataluña", href: "/eventos-motor-cataluna" },
@@ -221,6 +235,50 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       isYear(event, 2026) &&
       includesAny(event, extendedConcentrationTerms) &&
       includesAny(event, ["moto", "motera", "moteras", "biker", "custom", "concentracion", "concentración", "motoalmuerzo"]),
+  },
+  {
+    slug: "motoalmuerzos-2026",
+    h1: "Motoalmuerzos 2026",
+    title: "Motoalmuerzos 2026 | Calendario de motoalmuerzos y matinales | EventoMotor",
+    description:
+      "Consulta motoalmuerzos 2026 en España: matinales moteras, quedadas, concentraciones con almuerzo, fechas, provincias y fuentes oficiales.",
+    eyebrow: "Agenda motera 2026",
+    lead:
+      "Encuentra motoalmuerzos, matinales moteras y quedadas con almuerzo en España. Consulta fechas, provincias, inscripción y fuente oficial de cada evento.",
+    resultsTitle: "Próximos motoalmuerzos y matinales moteras",
+    intro:
+      "Esta página recopila motoalmuerzos 2026, matinales moteras, quedadas de mañana y concentraciones con almuerzo publicadas en EventoMotor. La selección se basa en eventos reales del calendario que incluyen señales claras en su nombre, disciplina, etiquetas o información disponible, sin inventar horarios, rutas ni inscripciones. Cada card enlaza a una ficha individual donde puedes revisar fecha, ciudad, provincia, fuente oficial y enlace de inscripción cuando exista. Los motoalmuerzos suelen depender mucho del cartel o canal del club organizador, así que conviene confirmar siempre punto de encuentro, horario, precio y posibles cambios antes de desplazarte.",
+    editorialBlocks: [
+      { title: "Eventos de mañana", text: "Se priorizan motoalmuerzos, matinales, quedadas y encuentros moteros pensados para salir temprano o compartir almuerzo." },
+      { title: "Datos verificables", text: "La página muestra solo eventos publicados en EventoMotor y enlaza a la fuente oficial cuando existe en la ficha." },
+      { title: "Contexto motero", text: "Si hay pocos motoalmuerzos puros, se muestran concentraciones relacionadas en un bloque secundario diferenciado." },
+    ],
+    usageSteps: [
+      { title: "Ordena por fecha", text: "Empieza por los próximos eventos y revisa provincia o ciudad para encontrar planes cercanos." },
+      { title: "Abre la ficha", text: "Comprueba inscripción, fuente oficial, ubicación y cualquier enlace disponible antes de organizar la salida." },
+      { title: "Publica tu cita", text: "Si tu club organiza un motoalmuerzo o matinal, puedes enviarlo para revisión desde EventoMotor." },
+    ],
+    faqs: [
+      { question: "¿Dónde ver motoalmuerzos 2026?", answer: "En EventoMotor puedes consultar motoalmuerzos, matinales moteras y quedadas con almuerzo publicadas con fecha, provincia y fuente oficial cuando está disponible." },
+      { question: "¿Qué diferencia hay entre motoalmuerzo, matinal motera y concentración motera?", answer: "Un motoalmuerzo suele girar alrededor de una reunión de mañana con almuerzo; una matinal motera es un encuentro de mañana, y una concentración puede incluir más actividades, rutas o varios días." },
+      { question: "¿Cómo confirmar horarios e inscripción?", answer: "Abre la ficha del evento y revisa siempre la fuente oficial o el enlace de inscripción, porque horarios, precio, plazas o ubicación pueden cambiar." },
+      { question: "¿Puedo publicar un motoalmuerzo en EventoMotor?", answer: "Sí. Puedes enviar la información desde publicar evento con nombre, fecha, ubicación, fuente oficial y datos de contacto para que se revise antes de publicarlo." },
+    ],
+    relatedLinks: [
+      { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Calendario general", href: "/calendario" },
+      { label: "Publicar un motoalmuerzo", href: "/publicar-evento" },
+      { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
+      { label: "Eventos de motor en Cataluña", href: "/eventos-motor-cataluna" },
+      { label: "Eventos de motor en Andalucía", href: "/eventos-motor-andalucia" },
+    ],
+    filter: (event) => isYear(event, 2026) && includesAny(event, motoalmuerzoTerms),
+    relatedFilter: (event) =>
+      isYear(event, 2026) &&
+      includesAny(event, extendedConcentrationTerms) &&
+      includesAny(event, ["moto", "motera", "moteras", "biker", "custom", "concentracion", "concentración"]),
   },
   {
     slug: "rallyes-espana-2026",

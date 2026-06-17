@@ -328,6 +328,107 @@ function ConcentracionesSeoHub({ events, now }: { events: EventItem[]; now: Date
   );
 }
 
+function MotoalmuerzosSeoHub({ events, relatedEvents, now }: { events: EventItem[]; relatedEvents: EventItem[]; now: Date }) {
+  const upcomingEvents = upcomingEventsByDate(events, now);
+  const upcomingRelatedEvents = upcomingEventsByDate(relatedEvents, now).slice(0, 4);
+  const { saturday, sunday } = weekendDays(now);
+  const weekendEvents = upcomingEvents.filter((event) => overlapsDay(event, saturday) || overlapsDay(event, sunday));
+  const nextEvent = upcomingEvents[0];
+  const provinces = provinceList(upcomingEvents);
+  const zoneLinks = [
+    { label: "Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana", count: groupCount(upcomingEvents, ["valencia", "alicante", "castellon", "castellón", "comunitat valenciana", "comunidad valenciana"]) },
+    { label: "Cataluña", href: "/eventos-motor-cataluna", count: groupCount(upcomingEvents, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida"]) },
+    { label: "Andalucía", href: "/eventos-motor-andalucia", count: groupCount(upcomingEvents, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]) },
+    { label: "Madrid", href: "/eventos-motor-madrid", count: groupCount(upcomingEvents, ["madrid"]) },
+  ].filter((item) => item.count > 0);
+
+  return (
+    <>
+      <section className="emc-section emc-weekend-hub-section">
+        <div className="emc-container">
+          <div className="emc-weekend-update">
+            <span>Agenda de motoalmuerzos, matinales y quedadas de mañana publicados en EventoMotor.</span>
+            {provinces.length ? <strong>{provinces.join(" / ")}</strong> : <Link href="/calendario">Ver calendario completo</Link>}
+          </div>
+
+          <div className="emc-weekend-grid">
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Resumen</div>
+              <h2>{upcomingEvents.length} eventos próximos</h2>
+              <p className="emc-weekend-empty">Motoalmuerzos y matinales detectados por nombre, tags, disciplina o contexto del evento.</p>
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Próximo motoalmuerzo</div>
+              <h2>{nextEvent ? nextEvent.title : "Sin próximas citas publicadas"}</h2>
+              {nextEvent ? (
+                <div className="emc-weekend-mini-list">
+                  <Link href={eventHref(nextEvent)}>
+                    <strong>{formatRange(nextEvent)}</strong>
+                    <span>{nextEvent.city}, {nextEvent.province}</span>
+                  </Link>
+                </div>
+              ) : null}
+            </article>
+            <article className="emc-weekend-panel">
+              <div className="emc-kicker">Calendario completo</div>
+              <h2>Agenda motera</h2>
+              <div className="emc-contact-actions emc-opportunity-actions">
+                <Link className="emc-contact-secondary-link" href="/calendario">
+                  Ver calendario completo
+                </Link>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="emc-section emc-weekend-group-section">
+        <div className="emc-container">
+          <div className="emc-weekend-group-layout">
+            <div>
+              <div className="emc-kicker">Este fin de semana</div>
+              <h3>Motoalmuerzos este fin de semana</h3>
+              <CompactEventList
+                emptyText="No hay motoalmuerzos publicados para este fin de semana. Revisa el calendario completo o vuelve más adelante."
+                events={weekendEvents}
+              />
+              <div className="emc-contact-actions emc-opportunity-actions">
+                <Link className="emc-contact-secondary-link" href="/eventos-motor-este-fin-de-semana">
+                  Ver eventos de motor este fin de semana
+                </Link>
+              </div>
+            </div>
+            {zoneLinks.length ? (
+              <div>
+                <div className="emc-kicker">Zonas</div>
+                <h3>Zonas con motoalmuerzos próximos</h3>
+                <div className="emc-weekend-mini-list">
+                  {zoneLinks.map((zone) => (
+                    <Link href={zone.href} key={zone.href}>
+                      <strong>{zone.label}</strong>
+                      <span>{zone.count} eventos próximos</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <div>
+              <div className="emc-kicker">Relacionados</div>
+              <h3>Concentraciones moteras relacionadas</h3>
+              <CompactEventList events={upcomingRelatedEvents} />
+              <div className="emc-contact-actions emc-opportunity-actions">
+                <Link className="emc-contact-secondary-link" href="/concentraciones-moteras-2026">
+                  Ver concentraciones moteras 2026
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
   const { saturday, sunday } = weekendDays(now);
   const saturdayEvents = events.filter((event) => overlapsDay(event, saturday));
@@ -531,20 +632,24 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
     page.fallbackFilter && primaryEvents.length < 6
       ? visibleEvents.filter((event) => page.fallbackFilter?.(event, now) && !primaryEvents.some((item) => item.id === event.id))
       : [];
+  const relatedEvents = page.relatedFilter
+    ? visibleEvents.filter((event) => page.relatedFilter?.(event, now) && !primaryEvents.some((item) => item.id === event.id))
+    : [];
   const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
   const isConcentracionesPage = page.slug === "concentraciones-moteras-2026";
+  const isMotoalmuerzosPage = page.slug === "motoalmuerzos-2026";
   const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
   const displayEvents = orderDisplayEvents(events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
   const isCataloniaPage = page.slug === "eventos-motor-cataluna";
-  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage || isConcentracionesPage;
+  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage || isConcentracionesPage || isMotoalmuerzosPage;
   const mainEvents = separatesPastEvents ? upcomingEventsByDate(displayEvents, now) : displayEvents;
   const pastEvents = separatesPastEvents
     ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
     : [];
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
   const rallysprintCarrenoFeatured = page.slug === "rallysprint-espana-2026" ? displayEvents.find(isRallysprintCarreno) : null;
-  const hasItemListSchema = (isWeekendPage || isConcentracionesPage) && mainEvents.length > 0;
+  const hasItemListSchema = (isWeekendPage || isConcentracionesPage || isMotoalmuerzosPage) && mainEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: displayEvents.length.toString() },
@@ -587,10 +692,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               <p className="emc-opportunity-lead">{page.lead}</p>
               <div className="emc-contact-actions emc-opportunity-actions">
                 <Link className="emc-btn emc-btn-primary" href="/calendario">
-                  Ver calendario completo
+                  {isMotoalmuerzosPage ? "Ver próximos motoalmuerzos" : "Ver calendario completo"}
                 </Link>
                 <Link className="emc-contact-secondary-link" href="/publicar-evento">
-                  Publicar evento
+                  {isMotoalmuerzosPage ? "Publicar un motoalmuerzo" : "Publicar evento"}
                 </Link>
               </div>
             </div>
@@ -608,6 +713,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
 
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
         {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
+        {isMotoalmuerzosPage ? <MotoalmuerzosSeoHub events={displayEvents} relatedEvents={relatedEvents} now={now} /> : null}
         {isCataloniaPage ? <CataloniaSeoHub events={displayEvents} now={now} /> : null}
 
         {rallysprintCarrenoFeatured ? (
