@@ -117,15 +117,15 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "eventos-motor-este-fin-de-semana",
     h1: "Eventos de motor este fin de semana",
-    title: "Eventos de motor este fin de semana en España | EventoMotor",
+    title: "Eventos de motor este fin de semana | Agenda en España | EventoMotor",
     description:
-      "Consulta eventos de motor este fin de semana en España: rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos y circuito, con fecha, ubicación y fuente oficial.",
-    eyebrow: "Busqueda popular",
+      "Consulta eventos de motor este fin de semana en España: concentraciones moteras, rallyes, motoalmuerzos, tandas, ferias y actividades por provincia y fuente oficial.",
+    eyebrow: "Búsqueda popular",
     lead:
-      "Consulta rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos y eventos de circuito programados para este fin de semana en España.",
+      "Encuentra concentraciones moteras, rallyes, motoalmuerzos, rodadas, ferias y otros eventos de motor previstos para este fin de semana en España.",
     resultsTitle: "Eventos de motor para este fin de semana",
     intro:
-      "Si buscas eventos del motor este fin de semana, esta pagina reune planes proximos en Espana con una intencion muy concreta: encontrar algo real a lo que ir sin perder tiempo entre fuentes dispersas. Puedes consultar rallyes, concentraciones moteras, eventos de circuito, rutas, ferias, clasicos, karting y competiciones que encajan en el sabado y domingo mas cercano o en los proximos dias si el calendario esta mas justo. Cada evento enlaza a una ficha individual donde se prioriza la fecha, la ubicacion, la disciplina y la fuente oficial. Antes de desplazarte, revisa siempre la informacion del organizador, ya que horarios, inscripciones, entradas o recorridos pueden cambiar.",
+      "Si buscas eventos del motor este fin de semana, esta página reúne planes próximos en España con una intención muy concreta: encontrar algo real a lo que ir sin perder tiempo entre fuentes dispersas. Puedes consultar concentraciones moteras, motoalmuerzos, rallyes, rodadas, ferias, clásicos y eventos de circuito que encajan en el sábado y domingo más cercano. Cada evento enlaza a una ficha individual donde se prioriza la fecha, la ubicación, la disciplina y la fuente oficial. Antes de desplazarte, revisa siempre la información del organizador, ya que horarios, inscripciones, entradas o recorridos pueden cambiar.",
     editorialBlocks: [
       { title: "Agenda de fin de semana", text: "La seleccion prioriza sabado y domingo, con apoyo de los siguientes dias cuando hay pocos eventos visibles." },
       { title: "Planes de motor", text: "Agrupa competiciones, concentraciones, rutas, circuito, clasicos, ferias y eventos mixtos para motos y coches." },
@@ -137,15 +137,15 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { title: "Valida la fuente", text: "Antes de salir, confirma siempre cambios de ultima hora en el enlace oficial." },
     ],
     faqs: [
-      { question: "¿Qué eventos de motor hay este fin de semana?", answer: "Depende de los eventos publicados, pero la agenda puede incluir rallyes, concentraciones moteras, karting, rodadas, ferias, clásicos, offroad, rutas y eventos de circuito." },
-      { question: "¿Dónde ver concentraciones moteras este fin de semana?", answer: "En esta página aparecen concentraciones, motoalmuerzos o quedadas moteras si están publicadas para el fin de semana. También puedes revisar la landing de concentraciones moteras 2026." },
-      { question: "¿Hay rallyes este fin de semana?", answer: "Si hay rallyes, rallysprints, subidas o pruebas relacionadas publicadas para el fin de semana, se muestran en el listado y en los grupos por disciplina." },
-      { question: "¿Se incluyen eventos de coches y motos?", answer: "Sí. EventoMotor puede mostrar eventos de motos, coches, mixtos, karting u otros formatos cuando están publicados con fecha y fuente verificable." },
-      { question: "¿Cómo publicar un evento en EventoMotor?", answer: "Si organizas un evento de motor, puedes enviarlo desde publicar evento con fecha, ubicación, disciplina y fuente oficial para que se revise." },
+      { question: "¿Dónde ver eventos de motor este fin de semana?", answer: "En esta página se agrupan eventos publicados para el sábado y domingo más cercano, con enlace a la ficha individual de cada evento." },
+      { question: "¿Qué tipos de eventos aparecen en EventoMotor?", answer: "La agenda puede incluir concentraciones moteras, motoalmuerzos, rallyes, rallysprints, rodadas, tandas, ferias, clásicos, rutas y otros eventos de motor." },
+      { question: "¿Cómo confirmar horarios e inscripción?", answer: "Abre la ficha del evento y revisa la fuente oficial o el enlace de inscripción, porque horarios, precios, plazas o ubicaciones pueden cambiar." },
+      { question: "¿Puedo publicar un evento para este fin de semana?", answer: "Sí. Si organizas una concentración, rallye, rodada, feria o motoalmuerzo, puedes enviarlo desde publicar evento para que se revise antes de aparecer en el calendario." },
     ],
     relatedLinks: [
       { label: "Calendario general", href: "/calendario" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+      { label: "Motoalmuerzos 2026", href: "/motoalmuerzos-2026" },
       { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
       { label: "Rallysprint en España 2026", href: "/rallysprint-espana-2026" },
       { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },

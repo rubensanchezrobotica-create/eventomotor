@@ -435,25 +435,36 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
   const sundayEvents = events.filter((event) => overlapsDay(event, sunday));
   const multiDayEvents = events.filter((event) => eventDate(event, "end").getTime() > eventDate(event, "start").getTime());
   const provinces = provinceList(events);
-  const featured = featuredWeekendEvents(events);
-  const disciplineGroups = [
-    { label: "Rallyes", href: "/rallyes-espana-2026", count: groupCount(events, ["rally", "rallye", "rallysprint", "subida", "baja"]) },
-    { label: "Concentraciones", href: "/concentraciones-moteras-2026", count: groupCount(events, ["concentracion", "concentración", "motoalmuerzo", "quedada", "biker", "custom"]) },
-    { label: "Circuito / Rodadas", href: "/rodadas-moto-2026", count: groupCount(events, ["circuito", "rodada", "tandas", "trackday", "track day"]) },
-    { label: "Karting", href: "/karting-espana-2026", count: groupCount(events, ["karting", "kart"]) },
-    { label: "Ferias", href: "/ferias-motor-espana-2026", count: groupCount(events, ["feria", "salon", "salón", "expo", "exposicion", "exposición"]) },
-    { label: "Clásicos", href: "/disciplinas/clasicos", count: groupCount(events, ["clasico", "clásico", "classic", "historico", "histórico"]) },
-    { label: "Offroad", href: "/disciplinas/offroad", count: groupCount(events, ["enduro", "motocross", "trial", "offroad", "4x4"]) },
-    { label: "Rutas", href: "/disciplinas/rutas", count: groupCount(events, ["ruta", "mototurismo", "touring"]) },
-  ];
+  const typeGroups = [
+    {
+      label: "Concentraciones y motoalmuerzos",
+      href: "/concentraciones-moteras-2026",
+      events: events.filter((event) => hasAny(event, ["concentracion", "concentración", "motoalmuerzo", "almuerzo motero", "matinal", "quedada", "biker", "custom"])),
+    },
+    {
+      label: "Rallyes y rallysprint",
+      href: "/rallyes-espana-2026",
+      events: events.filter((event) => hasAny(event, ["rally", "rallye", "rallysprint", "subida", "baja"])),
+    },
+    {
+      label: "Circuito, tandas y trackdays",
+      href: "/trackdays-espana-2026",
+      events: events.filter((event) => hasAny(event, ["circuito", "rodada", "tandas", "trackday", "track day"])),
+    },
+    {
+      label: "Ferias, clásicos y otros eventos",
+      href: "/ferias-motor-espana-2026",
+      events: events.filter((event) => hasAny(event, ["feria", "salon", "salón", "expo", "exposicion", "exposición", "clasico", "clásico", "classic", "historico", "histórico", "karting", "kart", "offroad", "4x4"])),
+    },
+  ].filter((group) => group.events.length > 0);
   const zoneGroups = [
-    { label: "Cataluña / Aragón", count: groupCount(events, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida", "aragon", "aragón", "zaragoza", "huesca", "teruel"]) },
-    { label: "Levante", count: groupCount(events, ["valencia", "alicante", "castellon", "castellón", "murcia", "levante"]) },
-    { label: "Centro", count: groupCount(events, ["madrid", "castilla", "toledo", "guadalajara", "cuenca", "avila", "ávila", "segovia"]) },
-    { label: "Norte", count: groupCount(events, ["galicia", "asturias", "cantabria", "pais vasco", "país vasco", "navarra", "la rioja", "burgos", "leon", "león"]) },
-    { label: "Sur", count: groupCount(events, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]) },
-    { label: "Canarias", count: groupCount(events, ["canarias", "tenerife", "gran canaria", "las palmas"]) },
-  ];
+    { label: "Cataluña / Aragón", href: "/eventos-motor-cataluna", count: groupCount(events, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida", "aragon", "aragón", "zaragoza", "huesca", "teruel"]) },
+    { label: "Levante", href: "/eventos-motor-comunidad-valenciana", count: groupCount(events, ["valencia", "alicante", "castellon", "castellón", "murcia", "levante"]) },
+    { label: "Centro", href: "/eventos-motor-madrid", count: groupCount(events, ["madrid", "castilla", "toledo", "guadalajara", "cuenca", "avila", "ávila", "segovia"]) },
+    { label: "Norte", href: "/zonas/norte", count: groupCount(events, ["galicia", "asturias", "cantabria", "pais vasco", "país vasco", "navarra", "la rioja", "burgos", "leon", "león"]) },
+    { label: "Sur", href: "/eventos-motor-andalucia", count: groupCount(events, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]) },
+    { label: "Canarias", href: "/zonas/canarias", count: groupCount(events, ["canarias", "tenerife", "gran canaria", "las palmas"]) },
+  ].filter((group) => group.count > 0);
 
   return (
     <>
@@ -463,23 +474,6 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
             <span>Agenda actualizada automáticamente con eventos publicados en EventoMotor.</span>
             {provinces.length ? <strong>{provinces.join(" / ")}</strong> : null}
           </div>
-
-          {featured.length ? (
-            <div className="emc-weekend-featured">
-              <div className="emc-section-head">
-                <div>
-                  <div className="emc-kicker">Selección rápida</div>
-                  <h2>Eventos destacados del fin de semana</h2>
-                </div>
-                <p>Usamos eventos marcados como destacados cuando existen; si no, mostramos las próximas citas publicadas.</p>
-              </div>
-              <div className="emc-results-grid">
-                {featured.map((event) => (
-                  <EventCard event={event} key={event.id} />
-                ))}
-              </div>
-            </div>
-          ) : null}
 
           <div className="emc-weekend-grid">
             <article className="emc-weekend-panel">
@@ -506,18 +500,50 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
           <div className="emc-section-head">
             <div>
               <div className="emc-kicker">Explora rápido</div>
-              <h2>Eventos por disciplina y zona</h2>
+              <h2>Encuentra rápido lo que buscas</h2>
             </div>
-            <p>Resumen útil para decidir qué ver este fin de semana sin recorrer todo el calendario.</p>
+            <p>Accesos ligeros por tipo de evento y zona, sin separar el foco del listado principal.</p>
           </div>
           <div className="emc-weekend-group-layout">
+            {typeGroups.map((group) => (
+              <div key={group.label}>
+                <h3>{group.label}</h3>
+                <div className="emc-weekend-mini-list">
+                  {group.events.slice(0, 3).map((event) => (
+                    <Link href={eventHref(event)} key={event.id}>
+                      <strong>{event.title}</strong>
+                      <span>{formatRange(event)} / {event.city}, {event.province}</span>
+                    </Link>
+                  ))}
+                  <Link href={group.href}>
+                    <strong>Ver más</strong>
+                    <span>{group.events.length} eventos relacionados</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
+            {zoneGroups.length ? (
+              <div>
+                <h3>Por zona</h3>
+                <div className="emc-weekend-mini-list">
+                  {zoneGroups.map((zone) => (
+                    <Link href={zone.href} key={zone.label}>
+                      <strong>{zone.label}</strong>
+                      <span>{zone.count} eventos</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div>
-              <h3>Por disciplina</h3>
-              <CountGrid items={disciplineGroups} />
-            </div>
-            <div>
-              <h3>Por zona</h3>
-              <CountGrid items={zoneGroups} />
+              <div className="emc-kicker">Organizadores</div>
+              <h3>¿Organizas un evento de motor este fin de semana?</h3>
+              <p className="emc-weekend-empty">Publica gratis tu concentración, rallye, rodada, feria o motoalmuerzo en EventoMotor.</p>
+              <div className="emc-contact-actions emc-opportunity-actions">
+                <Link className="emc-btn emc-btn-primary" href="/publicar-evento">
+                  Publicar evento
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -691,11 +717,11 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               <h1>{page.h1}</h1>
               <p className="emc-opportunity-lead">{page.lead}</p>
               <div className="emc-contact-actions emc-opportunity-actions">
-                <Link className="emc-btn emc-btn-primary" href="/calendario">
-                  {isMotoalmuerzosPage ? "Ver próximos motoalmuerzos" : "Ver calendario completo"}
+                <Link className="emc-btn emc-btn-primary" href={isWeekendPage ? "#eventos" : "/calendario"}>
+                  {isWeekendPage ? "Ver eventos de este fin de semana" : isMotoalmuerzosPage ? "Ver próximos motoalmuerzos" : "Ver calendario completo"}
                 </Link>
-                <Link className="emc-contact-secondary-link" href="/publicar-evento">
-                  {isMotoalmuerzosPage ? "Publicar un motoalmuerzo" : "Publicar evento"}
+                <Link className="emc-contact-secondary-link" href={isWeekendPage ? "/calendario" : "/publicar-evento"}>
+                  {isWeekendPage ? "Ver calendario completo" : isMotoalmuerzosPage ? "Publicar un motoalmuerzo" : "Publicar evento"}
                 </Link>
               </div>
             </div>
@@ -742,7 +768,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
           </section>
         ) : null}
 
-        <section className="emc-section emc-contact-section">
+        <section className="emc-section emc-contact-section" id="eventos">
           <div className="emc-container">
             <div className="emc-section-head emc-opportunity-events-head">
               <div>
@@ -763,12 +789,29 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               </div>
             ) : (
               <div className="emc-panel emc-publish-criteria">
-                <h2>No hay eventos destacados con estos filtros ahora mismo.</h2>
-                <p>Puedes consultar el calendario completo para ver próximos eventos por fecha, zona y disciplina.</p>
+                <h2>{isWeekendPage ? "No hay eventos publicados para este fin de semana." : "No hay eventos destacados con estos filtros ahora mismo."}</h2>
+                <p>
+                  {isWeekendPage
+                    ? "Puedes revisar el calendario completo, consultar concentraciones y motoalmuerzos, o volver más adelante."
+                    : "Puedes consultar el calendario completo para ver próximos eventos por fecha, zona y disciplina."}
+                </p>
                 <div className="emc-contact-actions">
                   <Link className="emc-btn emc-btn-primary" href="/calendario">
                     Consultar calendario completo
                   </Link>
+                  {isWeekendPage ? (
+                    <>
+                      <Link className="emc-contact-secondary-link" href="/concentraciones-moteras-2026">
+                        Concentraciones moteras
+                      </Link>
+                      <Link className="emc-contact-secondary-link" href="/motoalmuerzos-2026">
+                        Motoalmuerzos 2026
+                      </Link>
+                      <Link className="emc-contact-secondary-link" href="/publicar-evento">
+                        Publicar evento
+                      </Link>
+                    </>
+                  ) : null}
                 </div>
               </div>
             )}
