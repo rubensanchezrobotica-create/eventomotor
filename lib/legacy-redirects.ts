@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
 const LEGACY_LOCATION_REDIRECTS: Record<string, string> = {
+  girona: "/eventos-motor-cataluna",
+  "la-baneza": "/zonas/norte",
   osuna: "/zonas/sur",
   "pais-vasco": "/zonas/norte",
   valencia: "/eventos-motor-valencia",
 };
 
 const LEGACY_TYPE_REDIRECTS: Record<string, string> = {
+  clasicas: "/disciplinas/clasicos",
   circuito: "/disciplinas/circuito",
   clasicos: "/disciplinas/clasicos",
   "clasicos-coches": "/disciplinas/clasicos",
@@ -19,7 +22,9 @@ const LEGACY_TYPE_REDIRECTS: Record<string, string> = {
   mototurismo: "/disciplinas/rutas",
   "pais-vasco": "/zonas/norte",
   rally: "/disciplinas/rallyes",
+  "rally-raid": "/disciplinas/rallyes",
   rallyes: "/disciplinas/rallyes",
+  sbk: "/disciplinas/circuito",
   superbike: "/disciplinas/circuito",
   trial: "/disciplinas/offroad",
   "vehiculos-historicos": "/disciplinas/clasicos",
@@ -49,9 +54,18 @@ const LEGACY_MOTO_REDIRECTS: Record<string, string> = {
   zaragoza: "/calendario",
 };
 
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export function legacySlug(request: Request) {
   const pathname = new URL(request.url).pathname.replace(/\/+$/g, "");
-  return decodeURIComponent(pathname.split("/").filter(Boolean)[1] || "").toLowerCase();
+  const segments = pathname.split("/").filter(Boolean);
+  return safeDecode(segments.slice(1).join("/") || "").toLowerCase();
 }
 
 export function legacyRedirect(request: Request, destination: string) {
