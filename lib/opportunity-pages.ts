@@ -49,6 +49,10 @@ function eventStart(event: EventItem) {
   return new Date(`${event.start}T12:00:00`);
 }
 
+function eventEnd(event: EventItem) {
+  return new Date(`${event.end || event.start}T12:00:00`);
+}
+
 function nextWeekendRange(now: Date) {
   const today = startOfDay(now);
   const day = today.getDay();
@@ -64,7 +68,9 @@ function nextWeekendRange(now: Date) {
 function isNextWeekend(event: EventItem, now: Date) {
   const { saturday, sunday } = nextWeekendRange(now);
   const start = eventStart(event);
-  return start.getTime() >= saturday.getTime() && start.getTime() <= sunday.getTime();
+  const end = eventEnd(event);
+
+  return start.getTime() <= sunday.getTime() && end.getTime() >= saturday.getTime();
 }
 
 function isNextSevenDays(event: EventItem, now: Date) {

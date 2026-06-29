@@ -2,6 +2,7 @@ import type { EventItem } from "@/types/event";
 import { isDateText, parseDate } from "@/lib/date-utils";
 import { getVehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
+import { resolveFeaturedStatus } from "@/lib/temporary-featured-events";
 
 function slugify(text: string) {
   return String(text || "")
@@ -47,7 +48,7 @@ export function normalizeRemoteEvent(raw: unknown, index: number): EventItem | n
     tags: Array.isArray(record.tags) ? record.tags.map(String) : [discipline],
     vehicleType: String(record.vehicleType || record.vehicle_type || ""),
     vehicle_type: String(record.vehicle_type || record.vehicleType || ""),
-    featured: Boolean(record.featured),
+    featured: resolveFeaturedStatus(String(record.slug || createEventSlug(title, start)), Boolean(record.featured)),
   };
 
   const vehicleType = getVehicleType(event);

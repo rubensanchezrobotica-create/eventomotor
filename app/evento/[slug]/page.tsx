@@ -945,6 +945,7 @@ export default async function EventPage({ params }: EventPageProps) {
                 <strong>{event.title}</strong>
               </div>
               <div className="emc-event-chip-row">
+                {event.featured ? <span className="emc-badge emc-featured-badge">Evento destacado</span> : null}
                 <span className="emc-badge">{vehicleLabel(event)}</span>
                 <span className="emc-badge" style={{ borderColor: `${color.accent}66`, backgroundColor: `${color.accent}18` }}>
                   {event.discipline}

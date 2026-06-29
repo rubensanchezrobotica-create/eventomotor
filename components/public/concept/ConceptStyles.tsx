@@ -2179,6 +2179,25 @@ export default function ConceptStyles() {
   transition: border-color .2s ease, background .2s ease;
 }
 .emc-weekend-mini-list a:hover { border-color: rgba(255,91,31,.32); background: rgba(255,91,31,.07); }
+.emc-weekend-mini-list a.emc-weekend-mini-event-featured {
+  border-color: rgba(255,125,53,.58);
+  background: linear-gradient(135deg, rgba(255,91,31,.16), rgba(255,255,255,.045));
+  box-shadow: 0 14px 34px rgba(255,91,31,.12), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.emc-weekend-mini-event-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.emc-weekend-featured-label {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255,170,86,.45);
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(255,132,48,.14);
+  color: #ffd1ac;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .emc-weekend-mini-list strong { color: #fff; font-size: 14px; font-weight: 900; line-height: 1.25; }
 .emc-weekend-mini-list span,
 .emc-weekend-empty { color: var(--emc-muted); font-size: 12px; font-weight: 750; line-height: 1.45; }

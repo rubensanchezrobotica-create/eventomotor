@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getVehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
+import { resolveFeaturedStatus } from "@/lib/temporary-featured-events";
 import type { EventItem } from "@/types/event";
 
 export type EventRow = {
@@ -174,7 +175,7 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     tags: row.tags?.length ? row.tags : [row.discipline || "Motociclismo"],
     vehicleType,
     vehicle_type: vehicleType,
-    featured: Boolean(row.featured),
+    featured: resolveFeaturedStatus(row.slug, row.featured),
     visible: row.visible !== false,
     importMethod: row.import_method || "",
     dataQuality:

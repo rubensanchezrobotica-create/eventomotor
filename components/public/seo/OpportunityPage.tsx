@@ -60,6 +60,7 @@ function EventCard({ event }: { event: EventItem }) {
       </div>
       <div>
         <div className="emc-result-meta">
+          {event.featured ? <span className="emc-badge emc-featured-badge">Destacado</span> : null}
           <span className="emc-badge">{event.discipline}</span>
           {vehicleType ? <span className="emc-badge">{vehicleType}</span> : null}
           <span className="emc-badge">{event.province}</span>
@@ -203,16 +204,19 @@ function isRallysprintCarreno(event: EventItem) {
   );
 }
 
-function CompactEventList({ events, emptyText = "Sin eventos en este grupo ahora mismo." }: { events: EventItem[]; emptyText?: string }) {
+function CompactEventList({ events, emptyText = "Sin eventos en este grupo ahora mismo.", limit = 4 }: { events: EventItem[]; emptyText?: string; limit?: number }) {
   if (!events.length) {
     return <p className="emc-weekend-empty">{emptyText}</p>;
   }
 
   return (
     <div className="emc-weekend-mini-list">
-      {events.slice(0, 4).map((event) => (
-        <Link href={eventHref(event)} key={event.id}>
-          <strong>{event.title}</strong>
+      {events.slice(0, limit).map((event) => (
+        <Link className={event.featured ? "emc-weekend-mini-event-featured" : undefined} href={eventHref(event)} key={event.id}>
+          <div className="emc-weekend-mini-event-title">
+            <strong>{event.title}</strong>
+            {event.featured ? <span className="emc-weekend-featured-label">Evento destacado</span> : null}
+          </div>
           <span>{formatRange(event)} / {event.city}, {event.province}</span>
         </Link>
       ))}
@@ -328,6 +332,32 @@ function ConcentracionesSeoHub({ events, now }: { events: EventItem[]; now: Date
   );
 }
 
+function locationDateKey(event: EventItem) {
+  const normalize = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+  return [event.start, event.end || event.start, normalize(event.city), normalize(event.province)].join("|");
+}
+
+function preferPublishedWeekendEvents(events: EventItem[]) {
+  const deduped = new Map<string, EventItem>();
+
+  for (const event of events) {
+    const key = locationDateKey(event);
+    const current = deduped.get(key);
+
+    if (!current || (event.dataQuality === "published" && current.dataQuality !== "published")) {
+      deduped.set(key, event);
+    }
+  }
+
+  return [...deduped.values()].sort((left, right) => left.start.localeCompare(right.start));
+}
+
 function MotoalmuerzosSeoHub({ events, relatedEvents, now }: { events: EventItem[]; relatedEvents: EventItem[]; now: Date }) {
   const upcomingEvents = upcomingEventsByDate(events, now);
   const upcomingRelatedEvents = upcomingEventsByDate(relatedEvents, now).slice(0, 4);
@@ -431,9 +461,11 @@ function MotoalmuerzosSeoHub({ events, relatedEvents, now }: { events: EventItem
 
 function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
   const { saturday, sunday } = weekendDays(now);
-  const saturdayEvents = events.filter((event) => overlapsDay(event, saturday));
-  const sundayEvents = events.filter((event) => overlapsDay(event, sunday));
-  const multiDayEvents = events.filter((event) => eventDate(event, "end").getTime() > eventDate(event, "start").getTime());
+  const multiDayEvents = events
+    .filter((event) => eventDate(event, "end").getTime() > eventDate(event, "start").getTime())
+    .sort((left, right) => Number(right.featured) - Number(left.featured) || left.start.localeCompare(right.start));
+  const saturdayEvents = events.filter((event) => eventDate(event, "end").getTime() === eventDate(event, "start").getTime() && overlapsDay(event, saturday));
+  const sundayEvents = events.filter((event) => eventDate(event, "end").getTime() === eventDate(event, "start").getTime() && overlapsDay(event, sunday));
   const provinces = provinceList(events);
   const typeGroups = [
     {
@@ -479,17 +511,17 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
             <article className="emc-weekend-panel">
               <div className="emc-kicker">Por día</div>
               <h2>Sábado</h2>
-              <CompactEventList events={saturdayEvents} />
+              <CompactEventList events={saturdayEvents} limit={12} />
             </article>
             <article className="emc-weekend-panel">
               <div className="emc-kicker">Por día</div>
               <h2>Domingo</h2>
-              <CompactEventList events={sundayEvents} />
+              <CompactEventList events={sundayEvents} limit={12} />
             </article>
             <article className="emc-weekend-panel">
               <div className="emc-kicker">Varios días</div>
               <h2>Eventos de varios días</h2>
-              <CompactEventList events={multiDayEvents} />
+              <CompactEventList events={multiDayEvents} limit={12} />
             </article>
           </div>
         </div>
@@ -664,7 +696,8 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const isWeekendPage = page.slug === "eventos-motor-este-fin-de-semana";
   const isConcentracionesPage = page.slug === "concentraciones-moteras-2026";
   const isMotoalmuerzosPage = page.slug === "motoalmuerzos-2026";
-  const events = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
+  const rawEvents = [...primaryEvents, ...fallbackEvents].sort((a, b) => a.start.localeCompare(b.start));
+  const events = isWeekendPage ? preferPublishedWeekendEvents(rawEvents) : rawEvents;
   const displayEvents = orderDisplayEvents(events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
   const isCataloniaPage = page.slug === "eventos-motor-cataluna";
