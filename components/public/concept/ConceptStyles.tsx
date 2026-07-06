@@ -379,7 +379,7 @@ export default function ConceptStyles() {
 }
 .emc-hero-grid { display: block; position: relative; z-index: 2; }
 .emc-hero-main { display: flex; flex-direction: column; justify-content: center; max-width: 1040px; }
-.emc-event-hero { min-height: auto; padding: 84px 0 12px; display: flex; align-items: flex-start; position: relative; z-index: 1; }
+.emc-event-hero { min-height: auto; padding: 84px 0 6px; display: flex; align-items: flex-start; position: relative; z-index: 1; }
 .emc-event-hero-grid { display: grid; grid-template-columns: minmax(0,1fr) 410px; gap: 28px; align-items: start; }
 .emc-event-breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--emc-muted); font-size: 12px; font-weight: 850; margin-bottom: 12px; }
 .emc-event-breadcrumb a:hover { color: #fff; }
@@ -2717,7 +2717,7 @@ export default function ConceptStyles() {
   .emc-hero-visual { inset: -40px -28% auto 22%; height: 360px; opacity: .14; filter: saturate(.9) contrast(.95); }
   .emc-hero-veil { background: linear-gradient(180deg, rgba(5,6,9,.92) 0%, #050609 78%); }
   .emc-location-section { padding-top: 170px; }
-  .emc-event-hero { padding-top: 84px; padding-bottom: 10px; }
+  .emc-event-hero { padding-top: 84px; padding-bottom: 6px; }
   .emc-event-hero-grid { gap: 16px; }
   .emc-event-hero h1 { font-size: clamp(31px, 8.8vw, 38px); line-height: .98; letter-spacing: -1.4px; }
   .emc-event-intro { margin-top: 12px; font-size: 15px; line-height: 1.5; }

@@ -39,6 +39,38 @@ const VEHICLE_LABELS: Record<string, string> = {
   otros: "Otros",
 };
 
+const EVENT_STATUS_LABELS: Record<string, string> = {
+  confirmed: "Confirmado",
+  tentative: "Pendiente de confirmar",
+  postponed: "Aplazado",
+  cancelled: "Cancelado",
+};
+
+const EVENT_STATUS_SCHEMA: Record<string, string> = {
+  confirmed: "https://schema.org/EventScheduled",
+  tentative: "https://schema.org/EventScheduled",
+  postponed: "https://schema.org/EventPostponed",
+  cancelled: "https://schema.org/EventCancelled",
+};
+
+const EVENT_STATUS_STYLES: Record<string, CSSProperties> = {
+  confirmed: { borderColor: "rgba(34,197,94,.45)", backgroundColor: "rgba(34,197,94,.14)", color: "#bbf7d0" },
+  tentative: { borderColor: "rgba(245,158,11,.45)", backgroundColor: "rgba(245,158,11,.12)", color: "#fde68a" },
+  postponed: { borderColor: "rgba(249,115,22,.50)", backgroundColor: "rgba(249,115,22,.14)", color: "#fed7aa" },
+  cancelled: { borderColor: "rgba(239,68,68,.50)", backgroundColor: "rgba(239,68,68,.14)", color: "#fecaca" },
+};
+
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  official: "Oficial",
+  organizer: "Organizador",
+  federation: "Federación",
+  circuit: "Circuito",
+  municipality: "Ayuntamiento",
+  media: "Medio / noticia",
+  aggregator: "Agregador",
+  unknown: "Desconocido",
+};
+
 async function getVisibleEvents(): Promise<EventItem[]> {
   const supabase = createSupabaseServerClient();
 
@@ -62,6 +94,70 @@ async function getEventBySlug(slug: string): Promise<EventItem | null> {
 
 function valueOrPending(value: string | null | undefined) {
   return value?.trim() || "Por confirmar";
+}
+
+function cleanText(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function hasUsefulText(value: string | null | undefined, minLength = 24) {
+  return cleanText(value).length >= minLength;
+}
+
+function sameNormalizedText(left: string | null | undefined, right: string | null | undefined) {
+  return Boolean(left && right && normalizeText(left) === normalizeText(right));
+}
+
+function effectiveOfficialUrl(event: EventItem) {
+  return cleanText(event.officialUrl) || cleanText(event.sourceUrl);
+}
+
+function effectiveRegistrationUrl(event: EventItem) {
+  return cleanText(event.registrationUrl) || cleanText(event.ticketUrl);
+}
+
+function eventStatusLabel(event: EventItem) {
+  const status = cleanText(event.eventStatus);
+  return status ? EVENT_STATUS_LABELS[status] || null : null;
+}
+
+function eventStatusStyle(event: EventItem) {
+  const status = cleanText(event.eventStatus);
+  return status ? EVENT_STATUS_STYLES[status] : undefined;
+}
+
+function sourceTypeLabel(event: EventItem) {
+  const sourceType = cleanText(event.sourceType);
+  return sourceType ? SOURCE_TYPE_LABELS[sourceType] || null : null;
+}
+
+function schemaEventStatus(event: EventItem) {
+  return EVENT_STATUS_SCHEMA[cleanText(event.eventStatus)] || "https://schema.org/EventScheduled";
+}
+
+function formatVerifiedAt(value: string | null | undefined) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function hasCoordinates(event: EventItem) {
+  return typeof event.latitude === "number" && typeof event.longitude === "number" && Number.isFinite(event.latitude) && Number.isFinite(event.longitude);
+}
+
+function googleMapsUrl(event: EventItem) {
+  if (!hasCoordinates(event)) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
 }
 
 function vehicleTypeOf(event: EventItem) {
@@ -118,6 +214,28 @@ function formatEventDate(event: EventItem) {
 function buildDescription(event: EventItem) {
   const location = [event.city, event.province].filter(Boolean).join(", ");
   return `Consulta fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles del evento ${event.title} en ${location || "Espana"}.`;
+}
+
+function buildMetadataDescription(event: EventItem) {
+  const v2Description = cleanText(event.shortDescription) || cleanText(event.longDescription);
+
+  if (v2Description) {
+    return v2Description.length > 170 ? `${v2Description.slice(0, 167).trim()}...` : v2Description;
+  }
+
+  return buildEventSeoDescription(event);
+}
+
+function buildPublicAboutText(event: EventItem) {
+  const longDescription = cleanText(event.longDescription);
+  const shortDescription = cleanText(event.shortDescription);
+  const notes = cleanText(event.notes);
+
+  if (longDescription) return longDescription;
+  if (shortDescription) return shortDescription;
+  if (hasUsefulText(notes, 80) && !sameNormalizedText(notes, buildHeroSummary(event))) return notes;
+
+  return "";
 }
 
 function normalizeText(value: string | null | undefined) {
@@ -331,42 +449,58 @@ function buildEventSeoNote(event: EventItem) {
 }
 
 function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
+  const registrationUrl = effectiveRegistrationUrl(event);
+  const officialUrl = effectiveOfficialUrl(event);
+  const organizerName = cleanText(event.organizerName) || cleanText(event.source);
+  const organizerUrl = cleanText(event.organizerUrl) || cleanText(event.sourceUrl);
+  const location: Record<string, unknown> = {
+    "@type": "Place",
+    name: event.venue || event.city || "Por confirmar",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: cleanText(event.address) || undefined,
+      addressLocality: event.city || undefined,
+      addressRegion: event.province || undefined,
+      addressCountry: cleanText(event.country) || "ES",
+    },
+  };
+
+  if (hasCoordinates(event)) {
+    location.geo = {
+      "@type": "GeoCoordinates",
+      latitude: event.latitude,
+      longitude: event.longitude,
+    };
+  }
+
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
-    description: buildDescription(event),
+    description: buildMetadataDescription(event),
     startDate: event.start,
     endDate: event.end || event.start,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    eventStatus: "https://schema.org/EventScheduled",
-    url,
+    eventStatus: schemaEventStatus(event),
+    url: officialUrl || url,
+    mainEntityOfPage: url,
     image: [imageUrl],
-    location: {
-      "@type": "Place",
-      name: event.venue || event.city || "Por confirmar",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: event.city || undefined,
-        addressRegion: event.province || undefined,
-        addressCountry: "ES",
-      },
-    },
+    location,
   };
 
-  if (event.source) {
+  if (organizerName) {
     jsonLd.organizer = {
       "@type": "Organization",
-      name: event.source,
-      url: event.sourceUrl || undefined,
+      name: organizerName,
+      url: organizerUrl || undefined,
     };
   }
 
-  if (event.ticketUrl) {
+  if (registrationUrl) {
     const offerData = event as EventOfferData;
     const offer: Record<string, unknown> = {
       "@type": "Offer",
-      url: event.ticketUrl,
+      url: registrationUrl,
       availability: "https://schema.org/InStock",
     };
 
@@ -856,7 +990,7 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
   const title = buildEventSeoTitle(event);
-  const description = buildEventSeoDescription(event);
+  const description = buildMetadataDescription(event);
   const eventImage = getEventImage(event);
   const eventImageAlt = getEventImageAlt(event);
   const image = absoluteImageUrl(eventImage, siteUrl);
@@ -899,16 +1033,23 @@ export default async function EventPage({ params }: EventPageProps) {
   const jsonLd = buildJsonLd(event, url, imageUrl);
   const relatedGroups = getRelatedEventGroups(event, events);
   const color = getDisciplineColor(event.discipline);
-  const sourceAvailable = Boolean(event.sourceUrl);
+  const officialUrl = effectiveOfficialUrl(event);
+  const registrationUrl = effectiveRegistrationUrl(event);
+  const sourceAvailable = Boolean(officialUrl);
   const links = internalLinks(event);
   const eventSeoNote = buildEventSeoNote(event);
+  const aboutText = buildPublicAboutText(event);
+  const eventStatus = eventStatusLabel(event);
+  const eventSourceType = sourceTypeLabel(event);
+  const verifiedAt = formatVerifiedAt(event.verifiedAt);
+  const mapsUrl = googleMapsUrl(event);
   const trackingEventParams = {
     ...eventAnalyticsParams(event, { event_slug: event.slug || slug }),
     source: event.source,
   };
   const ticketTrackingEventParams = {
     ...trackingEventParams,
-    ticket_url_domain: urlDomain(event.ticketUrl),
+    ticket_url_domain: urlDomain(registrationUrl),
   };
   const savedEvent = {
     slug: event.slug || slug,
@@ -921,8 +1062,8 @@ export default async function EventPage({ params }: EventPageProps) {
     discipline: event.discipline,
     category: (event as EventItem & { category?: string }).category,
     vehicle_type: vehicleTypeOf(event),
-    source_url: event.sourceUrl,
-    ticket_url: event.ticketUrl,
+    source_url: officialUrl,
+    ticket_url: registrationUrl,
   };
 
   return (
@@ -950,6 +1091,11 @@ export default async function EventPage({ params }: EventPageProps) {
                 <span className="emc-badge" style={{ borderColor: `${color.accent}66`, backgroundColor: `${color.accent}18` }}>
                   {event.discipline}
                 </span>
+                {eventStatus ? (
+                  <span className="emc-badge" style={eventStatusStyle(event)}>
+                    {eventStatus}
+                  </span>
+                ) : null}
               </div>
               <p className="emc-event-date-line">{formatEventDate(event).toUpperCase()}</p>
               <h1>{event.title}</h1>
@@ -992,6 +1138,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   <SummaryRow label="Ciudad/provincia" value={`${valueOrPending(event.city)} / ${valueOrPending(event.province)}`} />
                   <SummaryRow label="Tipo" value={vehicleLabel(event)} />
                   <SummaryRow label="Fuente" value={valueOrPending(event.source)} />
+                  {verifiedAt ? <SummaryRow label="Última verificación" value={verifiedAt} /> : null}
                 </div>
                 <div className="emc-event-actions">
                   {sourceAvailable ? (
@@ -999,19 +1146,19 @@ export default async function EventPage({ params }: EventPageProps) {
                       className="emc-btn emc-btn-primary"
                       eventName="click_official_source"
                       eventParams={trackingEventParams}
-                      href={event.sourceUrl}
+                      href={officialUrl}
                       rel="noreferrer"
                       target="_blank"
                     >
                       Ver fuente oficial
                     </TrackAnchor>
                   ) : null}
-                  {event.ticketUrl ? (
+                  {registrationUrl ? (
                     <TrackAnchor
                       className="emc-btn emc-btn-ticket"
                       eventName="click_tickets"
                       eventParams={ticketTrackingEventParams}
-                      href={event.ticketUrl}
+                      href={registrationUrl}
                       rel="noreferrer"
                       target="_blank"
                     >
@@ -1020,7 +1167,24 @@ export default async function EventPage({ params }: EventPageProps) {
                   ) : null}
                   <EventRetentionActions event={savedEvent} />
                   <ShareEventButton title={event.title} url={url} />
+                  {mapsUrl ? (
+                    <TrackAnchor
+                      className="emc-btn emc-btn-dark"
+                      eventName="click_event_maps"
+                      eventParams={trackingEventParams}
+                      href={mapsUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Abrir en Google Maps
+                    </TrackAnchor>
+                  ) : null}
                 </div>
+                {eventSourceType ? (
+                  <p className="emc-event-note">
+                    Fuente: {eventSourceType}
+                  </p>
+                ) : null}
                 <p className="emc-event-note">Confirma horarios, inscripciones y cambios en la fuente oficial antes de desplazarte.</p>
                 {!sourceAvailable ? <p className="emc-event-note">Fuente oficial pendiente de revisión.</p> : null}
               </section>
@@ -1046,7 +1210,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   className="emc-btn emc-btn-light"
                   eventName="click_official_source"
                   eventParams={trackingEventParams}
-                  href={event.sourceUrl}
+                  href={officialUrl}
                   rel="noreferrer"
                   target="_blank"
                 >
@@ -1057,6 +1221,27 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         </section>
         */}
+
+        {aboutText || event.scheduleText ? (
+          <section className="emc-section emc-event-detail-section">
+            <div className="emc-container emc-event-detail-grid">
+              {aboutText ? (
+                <section className="emc-panel emc-event-copy-card">
+                  <div className="emc-kicker">Sobre el evento</div>
+                  <p style={{ whiteSpace: "pre-line" }}>{aboutText}</p>
+                </section>
+              ) : null}
+
+              {event.scheduleText ? (
+                <section className="emc-panel emc-event-warning-card">
+                  <div className="emc-kicker">Programa / horarios</div>
+                  <h3>Horarios publicados</h3>
+                  <p style={{ whiteSpace: "pre-line" }}>{event.scheduleText}</p>
+                </section>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         <section className="emc-section emc-event-key-section">
           <div className="emc-container">
@@ -1069,8 +1254,10 @@ export default async function EventPage({ params }: EventPageProps) {
             <div className="emc-event-info-grid">
               <Info label="Fecha" value={formatEventDate(event)} />
               <Info label="Ubicación" value={valueOrPending(event.venue)} />
+              {event.address ? <Info label="Dirección" value={event.address} /> : null}
               <Info label="Ciudad" value={valueOrPending(event.city)} />
               <Info label="Provincia" value={valueOrPending(event.province)} />
+              <Info label="País" value={event.country || "ES"} />
               <Info label="Comunidad" value={valueOrPending(event.region)} />
               <Info label="Disciplina" value={valueOrPending(event.discipline)} />
               <Info label="Tipo de vehículo" value={vehicleLabel(event)} />
@@ -1082,19 +1269,19 @@ export default async function EventPage({ params }: EventPageProps) {
                   className="emc-btn emc-btn-primary"
                   eventName="click_official_source"
                   eventParams={trackingEventParams}
-                  href={event.sourceUrl}
+                  href={officialUrl}
                   rel="noreferrer"
                   target="_blank"
                 >
                   Ver fuente oficial
                 </TrackAnchor>
               ) : null}
-              {event.ticketUrl ? (
+              {registrationUrl ? (
                 <TrackAnchor
                   className="emc-btn emc-btn-ticket"
                   eventName="click_tickets"
                   eventParams={ticketTrackingEventParams}
-                  href={event.ticketUrl}
+                  href={registrationUrl}
                   rel="noreferrer"
                   target="_blank"
                 >
@@ -1104,6 +1291,29 @@ export default async function EventPage({ params }: EventPageProps) {
             </div>
           </div>
         </section>
+
+        {event.organizerName ? (
+          <section className="emc-section emc-event-organizer-section">
+            <div className="emc-container">
+              <section className="emc-panel emc-event-warning-card">
+                <div className="emc-kicker">Organiza</div>
+                <h2>{event.organizerName}</h2>
+                {event.organizerUrl ? (
+                  <TrackAnchor
+                    className="emc-btn emc-btn-light"
+                    eventName="click_event_organizer"
+                    eventParams={trackingEventParams}
+                    href={event.organizerUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Web del organizador
+                  </TrackAnchor>
+                ) : null}
+              </section>
+            </div>
+          </section>
+        ) : null}
 
         <section className="emc-section emc-internal-links-section emc-internal-links-section-early">
           <div className="emc-container">
