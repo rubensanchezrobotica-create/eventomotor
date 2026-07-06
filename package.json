@@ -22,6 +22,7 @@
     "export:events": "tsx scripts/export-current-events.ts",
     "report:events-quality": "tsx scripts/generate-events-quality-report.ts",
     "report:events-corrections": "tsx scripts/generate-events-corrections-proposal.ts",
+    "import:events-batch": "tsx scripts/import-events-batch.ts",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
