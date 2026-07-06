@@ -2,6 +2,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getVehicleType } from "@/lib/event-classification";
 import { createEventSlug } from "@/lib/slug";
 import { resolveFeaturedStatus } from "@/lib/temporary-featured-events";
+import type {
+  AgentRun,
+  AgentRunInput,
+  EventCandidate,
+  EventCandidateCheck,
+  EventCandidateCheckInsert,
+  EventCandidateInput,
+} from "@/lib/event-candidates/types";
 import type { EventItem } from "@/types/event";
 
 export type EventRow = {
@@ -114,6 +122,24 @@ type Database = {
         Row: EventSubmissionRow;
         Insert: EventSubmissionInsert;
         Update: Partial<EventSubmissionInsert>;
+        Relationships: [];
+      };
+      agent_runs: {
+        Row: AgentRun;
+        Insert: AgentRunInput;
+        Update: Partial<AgentRun>;
+        Relationships: [];
+      };
+      event_candidates: {
+        Row: EventCandidate;
+        Insert: EventCandidateInput;
+        Update: Partial<EventCandidate>;
+        Relationships: [];
+      };
+      event_candidate_checks: {
+        Row: EventCandidateCheck;
+        Insert: EventCandidateCheckInsert;
+        Update: Partial<EventCandidateCheck>;
         Relationships: [];
       };
     };
