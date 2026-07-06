@@ -1073,9 +1073,9 @@ export default async function EventPage({ params }: EventPageProps) {
       <ConceptStaticHeader />
 
       <article>
-        <section className="emc-event-hero">
-          <div className="emc-container emc-event-hero-grid">
-            <div>
+        <section className="emc-event-layout-section">
+          <div className="emc-container emc-event-page-grid">
+            <div className="emc-event-hero-copy">
               <div className="emc-event-breadcrumb">
                 <Link href="/">Inicio</Link>
                 <span>/</span>
@@ -1189,8 +1189,8 @@ export default async function EventPage({ params }: EventPageProps) {
                 {!sourceAvailable ? <p className="emc-event-note">Fuente oficial pendiente de revisión.</p> : null}
               </section>
             </aside>
-          </div>
-        </section>
+
+            <div className="emc-event-main-flow">
 
         {/*
         <section className="emc-section emc-event-detail-section emc-event-detail-section-hidden">
@@ -1242,6 +1242,9 @@ export default async function EventPage({ params }: EventPageProps) {
             </div>
           </section>
         ) : null}
+            </div>
+
+            <div className="emc-event-lower-flow">
 
         <section className="emc-section emc-event-key-section">
           <div className="emc-container">
@@ -1460,6 +1463,9 @@ export default async function EventPage({ params }: EventPageProps) {
                   <span>Disciplina</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
             </div>
           </div>
         </section>
