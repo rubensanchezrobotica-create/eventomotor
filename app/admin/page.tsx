@@ -27,6 +27,26 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
 };
 
 const IMPORT_METHOD_OPTIONS = ["manual-web-research", "seed", "rfme", "scraper", "manual"];
+const EVENT_STATUS_OPTIONS = ["", "confirmed", "tentative", "postponed", "cancelled"] as const;
+const EVENT_STATUS_LABELS: Record<string, string> = {
+  "": "Sin definir",
+  confirmed: "Confirmado",
+  tentative: "Pendiente de confirmar",
+  postponed: "Aplazado",
+  cancelled: "Cancelado",
+};
+const SOURCE_TYPE_OPTIONS = ["", "official", "organizer", "federation", "circuit", "municipality", "media", "aggregator", "unknown"] as const;
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  "": "Sin definir",
+  official: "Oficial",
+  organizer: "Organizador",
+  federation: "Federación",
+  circuit: "Circuito",
+  municipality: "Ayuntamiento",
+  media: "Medio / noticia",
+  aggregator: "Agregador",
+  unknown: "Desconocido",
+};
 
 type AdminEvent = {
   id: string;
@@ -227,6 +247,36 @@ function numberToFormValue(value: number | null | undefined) {
   return value === null || value === undefined ? "" : String(value);
 }
 
+function timestampToDatetimeLocalValue(value: string | null | undefined) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+
+  return localDate.toISOString().slice(0, 16);
+}
+
+function optionToFormValue<T extends readonly string[]>(value: string | null | undefined, options: T) {
+  return value && options.includes(value) ? value : "";
+}
+
+function datetimeLocalToTimestamptz(value: string) {
+  if (!value.trim()) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
 function needsReviewToFormValue(value: boolean | null | undefined): EventForm["needsReview"] {
   if (value === true) return "true";
   if (value === false) return "false";
@@ -250,7 +300,7 @@ function eventToForm(event: AdminEvent): EventForm {
     sourceUrl: event.source_url || "",
     ticketUrl: event.ticket_url || "",
     country: event.country || "",
-    eventStatus: event.event_status || "",
+    eventStatus: optionToFormValue(event.event_status, EVENT_STATUS_OPTIONS),
     shortDescription: event.short_description || "",
     longDescription: event.long_description || "",
     scheduleText: event.schedule_text || "",
@@ -263,8 +313,8 @@ function eventToForm(event: AdminEvent): EventForm {
     registrationUrl: event.registration_url || "",
     imageUrl: event.image_url || "",
     imageSourceUrl: event.image_source_url || "",
-    verifiedAt: event.verified_at || "",
-    sourceType: event.source_type || "",
+    verifiedAt: timestampToDatetimeLocalValue(event.verified_at),
+    sourceType: optionToFormValue(event.source_type, SOURCE_TYPE_OPTIONS),
     confidenceScore: numberToFormValue(event.confidence_score),
     needsReview: needsReviewToFormValue(event.needs_review),
     vehicleType: event.vehicle_type || "otros",
@@ -352,9 +402,13 @@ function validateForm(form: EventForm) {
   if (form.confidenceScore.trim()) {
     const confidenceScore = Number(form.confidenceScore);
 
-    if (!Number.isFinite(confidenceScore) || confidenceScore < 0 || confidenceScore > 100) {
+    if (!Number.isInteger(confidenceScore) || confidenceScore < 0 || confidenceScore > 100) {
       return "El confidence_score debe estar entre 0 y 100.";
     }
+  }
+
+  if (form.verifiedAt.trim() && !datetimeLocalToTimestamptz(form.verifiedAt)) {
+    return "verified_at debe ser una fecha y hora valida.";
   }
 
   return "";
@@ -363,6 +417,10 @@ function validateForm(form: EventForm) {
 function formToPayload(form: EventForm) {
   return {
     ...form,
+    eventStatus: form.eventStatus || null,
+    sourceType: form.sourceType || null,
+    verifiedAt: datetimeLocalToTimestamptz(form.verifiedAt),
+    confidenceScore: form.confidenceScore.trim() ? Number(form.confidenceScore) : null,
     needsReview: form.needsReview === "unset" ? null : form.needsReview === "true",
   };
 }
@@ -442,15 +500,18 @@ function ActionButton({
 
 function Field({
   children,
+  helper,
   label,
 }: {
   children: React.ReactNode;
+  helper?: string;
   label: string;
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-400">
       {label}
       {children}
+      {helper ? <span className="text-[11px] font-medium leading-4 text-zinc-500">{helper}</span> : null}
     </label>
   );
 }
@@ -1065,17 +1126,27 @@ export default function AdminPage() {
                           </summary>
                           <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                             <Field label="country"><input className="admin-input" onChange={handleInputChange("country")} value={form.country} /></Field>
-                            <Field label="event_status"><input className="admin-input" onChange={handleInputChange("eventStatus")} value={form.eventStatus} /></Field>
+                            <Field helper="Estado editorial del evento para SEO y avisos al usuario." label="event_status">
+                              <select className="admin-select" onChange={handleSelectChange("eventStatus")} value={form.eventStatus}>
+                                {EVENT_STATUS_OPTIONS.map((option) => (
+                                  <option key={option || "unset"} value={option}>{EVENT_STATUS_LABELS[option]}</option>
+                                ))}
+                              </select>
+                            </Field>
                             <Field label="address"><input className="admin-input" onChange={handleInputChange("address")} value={form.address} /></Field>
-                            <Field label="verified_at"><input className="admin-input" onChange={handleInputChange("verifiedAt")} placeholder="2026-07-06T12:00:00Z" value={form.verifiedAt} /></Field>
+                            <Field helper="Fecha de última comprobación manual o automática." label="verified_at">
+                              <input className="admin-input" onChange={handleInputChange("verifiedAt")} type="datetime-local" value={form.verifiedAt} />
+                            </Field>
                             <Field label="latitude"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("latitude")} value={form.latitude} /></Field>
                             <Field label="longitude"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("longitude")} value={form.longitude} /></Field>
-                            <Field label="confidence_score"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("confidenceScore")} placeholder="0-100" value={form.confidenceScore} /></Field>
-                            <Field label="needs_review">
+                            <Field helper="Confianza interna del dato, de 0 a 100." label="confidence_score">
+                              <input className="admin-input" max={100} min={0} onChange={handleInputChange("confidenceScore")} step={1} type="number" value={form.confidenceScore} />
+                            </Field>
+                            <Field helper="Marca interna para revisar datos antes de publicar o destacar." label="needs_review">
                               <select className="admin-select" onChange={handleSelectChange("needsReview")} value={form.needsReview}>
-                                <option value="unset">Sin valor</option>
-                                <option value="true">true</option>
-                                <option value="false">false</option>
+                                <option value="unset">Sin definir</option>
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
                               </select>
                             </Field>
                             <Field label="organizer_name"><input className="admin-input" onChange={handleInputChange("organizerName")} value={form.organizerName} /></Field>
@@ -1084,7 +1155,13 @@ export default function AdminPage() {
                             <Field label="registration_url"><input className="admin-input" onChange={handleInputChange("registrationUrl")} value={form.registrationUrl} /></Field>
                             <Field label="image_url"><input className="admin-input" onChange={handleInputChange("imageUrl")} value={form.imageUrl} /></Field>
                             <Field label="image_source_url"><input className="admin-input" onChange={handleInputChange("imageSourceUrl")} value={form.imageSourceUrl} /></Field>
-                            <Field label="source_type"><input className="admin-input" onChange={handleInputChange("sourceType")} value={form.sourceType} /></Field>
+                            <Field helper="Tipo de fuente usada para verificar el evento." label="source_type">
+                              <select className="admin-select" onChange={handleSelectChange("sourceType")} value={form.sourceType}>
+                                {SOURCE_TYPE_OPTIONS.map((option) => (
+                                  <option key={option || "unset"} value={option}>{SOURCE_TYPE_LABELS[option]}</option>
+                                ))}
+                              </select>
+                            </Field>
                             <Field label="short_description">
                               <textarea className="admin-input min-h-20" onChange={handleTextareaFieldChange("shortDescription")} value={form.shortDescription} />
                             </Field>

@@ -51,6 +51,8 @@ const ADMIN_EVENT_SELECT =
   "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,country,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,official_url,registration_url,image_url,image_source_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
 
 const DATA_QUALITY_OPTIONS = ["needs_review", "draft", "reviewed", "published", "cancelled", "pending_date"];
+const EVENT_STATUS_OPTIONS = ["confirmed", "tentative", "postponed", "cancelled"];
+const SOURCE_TYPE_OPTIONS = ["official", "organizer", "federation", "circuit", "municipality", "media", "aggregator", "unknown"];
 
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
@@ -144,6 +146,36 @@ function optionalBoolean(body: Record<string, unknown>, field: string, label: st
   return value;
 }
 
+function optionalEnum(body: Record<string, unknown>, field: string, label: string, options: string[]) {
+  const value = optionalString(body, field);
+
+  if (!value) {
+    return null;
+  }
+
+  if (!options.includes(value)) {
+    throw new Error(`${label} is invalid.`);
+  }
+
+  return value;
+}
+
+function optionalTimestamp(body: Record<string, unknown>, field: string, label: string) {
+  const value = optionalString(body, field);
+
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${label} must be a valid date/time if provided.`);
+  }
+
+  return date.toISOString();
+}
+
 function requireIsoDate(body: Record<string, unknown>, field: string) {
   const value = requireString(body, field);
 
@@ -230,7 +262,9 @@ function parseAdminEventBody(value: unknown) {
     ticket_url: optionalString(value, "ticketUrl") || "",
     // Event v2 fields are nullable so older events and imports remain compatible.
     country: optionalString(value, "country"),
-    event_status: optionalString(value, "eventStatus") || optionalString(value, "event_status"),
+    event_status:
+      optionalEnum(value, "eventStatus", "event_status", EVENT_STATUS_OPTIONS) ||
+      optionalEnum(value, "event_status", "event_status", EVENT_STATUS_OPTIONS),
     short_description: optionalString(value, "shortDescription") || optionalString(value, "short_description"),
     long_description: optionalString(value, "longDescription") || optionalString(value, "long_description"),
     schedule_text: optionalString(value, "scheduleText") || optionalString(value, "schedule_text"),
@@ -243,8 +277,12 @@ function parseAdminEventBody(value: unknown) {
     registration_url: optionalString(value, "registrationUrl") || optionalString(value, "registration_url"),
     image_url: optionalString(value, "imageUrl") || optionalString(value, "image_url"),
     image_source_url: optionalString(value, "imageSourceUrl") || optionalString(value, "image_source_url"),
-    verified_at: optionalString(value, "verifiedAt") || optionalString(value, "verified_at"),
-    source_type: optionalString(value, "sourceType") || optionalString(value, "source_type"),
+    verified_at:
+      optionalTimestamp(value, "verifiedAt", "verified_at") ||
+      optionalTimestamp(value, "verified_at", "verified_at"),
+    source_type:
+      optionalEnum(value, "sourceType", "source_type", SOURCE_TYPE_OPTIONS) ||
+      optionalEnum(value, "source_type", "source_type", SOURCE_TYPE_OPTIONS),
     confidence_score: optionalNumber(value, "confidenceScore", "confidence_score", { min: 0, max: 100 }),
     needs_review: optionalBoolean(value, "needsReview", "needs_review"),
     tags,
