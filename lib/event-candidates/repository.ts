@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import type { CandidateDedupeEvent } from "@/lib/event-candidates/dedupe";
 import {
   EVENT_CANDIDATE_STATUSES,
   type AgentRun,
@@ -14,7 +15,40 @@ import {
 
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 200;
+const DEDUPE_EVENTS_LIMIT = 2000;
 const REVIEWED_STATUSES = new Set<EventCandidateStatus>(["approved", "rejected", "duplicate", "needs_info"]);
+
+type EventCandidateAnalysisUpdate = {
+  normalized_title: string;
+  slug_suggested: string | null;
+  source_name: string | null;
+  source_type: string | null;
+  source_country: string | null;
+  raw_title: string | null;
+  raw_text: string | null;
+  description: string | null;
+  city: string | null;
+  province: string | null;
+  region: string | null;
+  country: string;
+  location_name: string | null;
+  address: string | null;
+  category: string | null;
+  discipline: string | null;
+  vehicle_type: string | null;
+  organizer_name: string | null;
+  organizer_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  image_url: string | null;
+  price_text: string | null;
+  registration_url: string | null;
+  quality_score: number;
+  duplicate_score: number;
+  possible_duplicate_event_id: string | null;
+  duplicate_reason: string | null;
+  validation_errors: unknown[];
+};
 
 function requireSupabase() {
   const supabase = createSupabaseServerClient();
@@ -161,6 +195,67 @@ export async function updateEventCandidateStatus(
   }
 
   return data as EventCandidate;
+}
+
+export async function updateEventCandidateAnalysis(id: string, update: EventCandidateAnalysisUpdate) {
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("event_candidates")
+    .update({
+      normalized_title: update.normalized_title.trim(),
+      slug_suggested: textOrNull(update.slug_suggested),
+      source_name: textOrNull(update.source_name),
+      source_type: textOrNull(update.source_type),
+      source_country: textOrNull(update.source_country)?.toUpperCase() || null,
+      raw_title: textOrNull(update.raw_title),
+      raw_text: textOrNull(update.raw_text),
+      description: textOrNull(update.description),
+      city: textOrNull(update.city),
+      province: textOrNull(update.province),
+      region: textOrNull(update.region),
+      country: update.country.trim().toUpperCase(),
+      location_name: textOrNull(update.location_name),
+      address: textOrNull(update.address),
+      category: textOrNull(update.category),
+      discipline: textOrNull(update.discipline),
+      vehicle_type: textOrNull(update.vehicle_type),
+      organizer_name: textOrNull(update.organizer_name),
+      organizer_url: textOrNull(update.organizer_url),
+      contact_email: textOrNull(update.contact_email),
+      contact_phone: textOrNull(update.contact_phone),
+      image_url: textOrNull(update.image_url),
+      price_text: textOrNull(update.price_text),
+      registration_url: textOrNull(update.registration_url),
+      quality_score: update.quality_score,
+      duplicate_score: update.duplicate_score,
+      possible_duplicate_event_id: update.possible_duplicate_event_id,
+      duplicate_reason: textOrNull(update.duplicate_reason),
+      validation_errors: update.validation_errors,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as EventCandidate;
+}
+
+export async function listEventsForCandidateDedupe() {
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("events")
+    .select("id,slug,title,start_date,end_date,city,province,region,discipline,source_url,visible")
+    .order("start_date", { ascending: false })
+    .limit(DEDUPE_EVENTS_LIMIT);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as CandidateDedupeEvent[];
 }
 
 export async function addEventCandidateCheck(candidateId: string, check: EventCandidateCheckInput) {

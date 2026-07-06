@@ -17,6 +17,16 @@ type CandidateMutationResponse =
   | { ok: true; candidate: EventCandidate }
   | { ok: false; error: string };
 
+type CandidateAnalyzeResponse =
+  | {
+      ok: true;
+      candidate: EventCandidate;
+      summary: {
+        checks_created: number;
+      };
+    }
+  | { ok: false; error: string };
+
 const STATUS_LABELS: Record<EventCandidateStatus, string> = {
   pending_review: "Pendiente",
   needs_info: "Necesita info",
@@ -63,6 +73,18 @@ function sourceDomain(value: string) {
   }
 }
 
+function validationIssueText(issue: unknown) {
+  if (typeof issue !== "object" || issue === null || Array.isArray(issue)) {
+    return String(issue);
+  }
+
+  const record = issue as Record<string, unknown>;
+  const field = typeof record.field === "string" ? record.field : "campo";
+  const message = typeof record.message === "string" ? record.message : "Pendiente de revision";
+
+  return `${field}: ${message}`;
+}
+
 export default function EventCandidatesAdminPage() {
   const [secret, setSecret] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -73,6 +95,7 @@ export default function EventCandidatesAdminPage() {
   const [statusDrafts, setStatusDrafts] = useState<Record<string, EventCandidateStatus>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -176,6 +199,37 @@ export default function EventCandidatesAdminPage() {
       setError(updateError instanceof Error ? updateError.message : String(updateError));
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function analyzeCandidate(candidate: EventCandidate) {
+    setAnalyzingId(candidate.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/event-candidates/${candidate.id}/analyze`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${secret}`,
+        },
+      });
+      const payload = (await response.json()) as CandidateAnalyzeResponse;
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.ok ? "No se pudo analizar el candidato." : payload.error);
+      }
+
+      setCandidates((current) =>
+        current.map((item) => (item.id === payload.candidate.id ? payload.candidate : item)),
+      );
+      setReviewNotes((current) => ({ ...current, [payload.candidate.id]: payload.candidate.review_notes || "" }));
+      setStatusDrafts((current) => ({ ...current, [payload.candidate.id]: payload.candidate.status }));
+      setNotice(`Analisis actualizado: ${payload.candidate.normalized_title}`);
+    } catch (analyzeError) {
+      setError(analyzeError instanceof Error ? analyzeError.message : String(analyzeError));
+    } finally {
+      setAnalyzingId(null);
     }
   }
 
@@ -318,9 +372,30 @@ export default function EventCandidatesAdminPage() {
                       >
                         {sourceDomain(candidate.source_url)}
                       </a>
+                      {candidate.slug_suggested ? (
+                        <p className="mt-3 break-all rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-300">
+                          <span className="font-semibold text-zinc-100">Slug sugerido:</span>{" "}
+                          {candidate.slug_suggested}
+                        </p>
+                      ) : null}
+                      {candidate.validation_errors.length ? (
+                        <div className="mt-3 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-sm text-sky-100">
+                          <p className="font-semibold">Validaciones pendientes</p>
+                          <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {candidate.validation_errors.slice(0, 5).map((issue, index) => (
+                              <li key={`${candidate.id}-issue-${index}`}>{validationIssueText(issue)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                       {candidate.duplicate_reason ? (
                         <p className="mt-3 rounded-md border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
                           {candidate.duplicate_reason}
+                        </p>
+                      ) : null}
+                      {candidate.possible_duplicate_event_id ? (
+                        <p className="mt-2 break-all text-xs text-amber-200">
+                          Posible duplicado: {candidate.possible_duplicate_event_id}
                         </p>
                       ) : null}
                     </div>
@@ -362,6 +437,15 @@ export default function EventCandidatesAdminPage() {
                         placeholder="Añade una nota para el equipo"
                         value={reviewNotes[candidate.id] || ""}
                       />
+
+                      <button
+                        className="mt-3 w-full rounded-md border border-sky-300/30 bg-sky-500/15 px-4 py-2 text-sm font-bold text-sky-50 hover:bg-sky-500/25 disabled:opacity-60"
+                        disabled={analyzingId === candidate.id}
+                        onClick={() => analyzeCandidate(candidate)}
+                        type="button"
+                      >
+                        {analyzingId === candidate.id ? "Analizando" : "Analizar"}
+                      </button>
 
                       <button
                         className="mt-3 w-full rounded-md border border-emerald-300/30 bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-60"
