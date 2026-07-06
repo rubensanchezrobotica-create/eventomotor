@@ -4,7 +4,7 @@ import type { EventSubmissionRow } from "@/lib/supabase";
 const ADMIN_SUBMISSIONS_SELECT =
   "id,event_name,start_date,end_date,city,province,venue,discipline,vehicle_type,source_url,ticket_url,description,organizer_name,contact_email,contact_phone,poster_url,status,created_at,updated_at";
 
-const ALLOWED_STATUSES = new Set(["pending", "reviewed", "published", "discarded"]);
+const ALLOWED_STATUSES = new Set(["pending", "reviewed", "rejected", "imported", "spam"]);
 
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
@@ -88,7 +88,7 @@ export async function PATCH(request: Request) {
     }
 
     if (!ALLOWED_STATUSES.has(status)) {
-      return jsonError("Invalid status. Use pending, reviewed, published or discarded.", 400);
+      return jsonError("Invalid status. Use pending, reviewed, rejected, imported or spam.", 400);
     }
 
     const supabase = createAdminClient();

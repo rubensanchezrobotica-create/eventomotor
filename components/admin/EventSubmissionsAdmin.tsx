@@ -93,7 +93,25 @@ type DraftValidationResult = {
 
 type DraftValidationResponse = DraftValidationResult | { ok: false; error: string };
 
-const STATUS_OPTIONS = ["pending", "reviewed", "published", "discarded"] as const;
+type PublishEventResponse =
+  | {
+      ok: true;
+      event: { id: string; slug: string | null; title: string };
+      eventUrl: string;
+      warnings: string[];
+      possibleDuplicates: PossibleDuplicate[];
+      submissionStatusUpdate?: { ok: true; status: "imported" } | { ok: false; status: "imported"; error: string } | null;
+    }
+  | {
+      ok: false;
+      error: string;
+      warnings?: string[];
+      errors?: string[];
+      possibleDuplicates?: PossibleDuplicate[];
+      exactDuplicate?: PossibleDuplicate;
+    };
+
+const STATUS_OPTIONS = ["pending", "reviewed", "imported", "rejected", "spam"] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
@@ -358,6 +376,14 @@ function validationIcon(status: "ok" | "warning" | "error") {
   return "ERROR";
 }
 
+function hasExactSlugDuplicate(validation: DraftValidationResult | undefined) {
+  return Boolean(validation?.possibleDuplicates.some((duplicate) => duplicate.reason.toLowerCase().includes("mismo slug")));
+}
+
+function alreadyPublished(submission: AdminSubmission) {
+  return ["published", "imported"].includes(submission.status);
+}
+
 export default function EventSubmissionsAdmin() {
   const [secret, setSecret] = useState("");
   const [submissions, setSubmissions] = useState<AdminSubmission[]>([]);
@@ -371,6 +397,9 @@ export default function EventSubmissionsAdmin() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
   const [validationResults, setValidationResults] = useState<Record<string, DraftValidationResult>>({});
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [publishResults, setPublishResults] = useState<Record<string, { eventUrl: string; title: string }>>({});
+  const [publishWarnings, setPublishWarnings] = useState<Record<string, string>>({});
 
   const filteredSubmissions = useMemo(() => {
     if (statusFilter === "todos") return submissions;
@@ -490,6 +519,106 @@ export default function EventSubmissionsAdmin() {
     }
   }
 
+  async function handlePublishDraft(submission: AdminSubmission) {
+    const preview = buildDraftPreview(submission);
+    const validation = validationResults[submission.id];
+
+    setPublishWarnings((current) => ({ ...current, [submission.id]: "" }));
+
+    if (!validation) {
+      setPublishWarnings((current) => ({ ...current, [submission.id]: "Valida el borrador antes de publicar." }));
+      return;
+    }
+
+    if (validation.errors.length || validation.status === "error") {
+      setPublishWarnings((current) => ({ ...current, [submission.id]: "El borrador tiene errores críticos y no se puede publicar." }));
+      return;
+    }
+
+    if (hasExactSlugDuplicate(validation)) {
+      setPublishWarnings((current) => ({ ...current, [submission.id]: "Ya existe un evento con este slug." }));
+      return;
+    }
+
+    const baseConfirm = window.confirm(
+      "Vas a publicar este evento en EventoMotor. Revisa título, fecha, ubicación y fuente oficial antes de continuar.",
+    );
+
+    if (!baseConfirm) return;
+
+    const hasWarnings = validation.warnings.length || validation.status === "warning";
+    const hasDuplicates = validation.possibleDuplicates.length > 0;
+
+    if (hasWarnings) {
+      const warningConfirm = window.confirm("Este borrador tiene avisos pendientes. ¿Quieres publicarlo igualmente?");
+      if (!warningConfirm) return;
+    }
+
+    if (hasDuplicates) {
+      const duplicateConfirm = window.confirm("Se han detectado posibles duplicados. Revisa la lista antes de publicar. ¿Quieres continuar?");
+      if (!duplicateConfirm) return;
+    }
+
+    setPublishingId(submission.id);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/publish-event-draft", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${secret}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          draft: preview.draft,
+          confirmWarnings: Boolean(hasWarnings),
+          confirmPossibleDuplicates: Boolean(hasDuplicates),
+        }),
+      });
+      const payload = (await response.json()) as PublishEventResponse;
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.ok ? "No se pudo publicar el evento." : payload.error);
+      }
+
+      setPublishResults((current) => ({
+        ...current,
+        [submission.id]: {
+          eventUrl: payload.eventUrl,
+          title: payload.event.title,
+        },
+      }));
+      if (payload.submissionStatusUpdate?.ok) {
+        setSubmissions((current) => current.map((item) => (item.id === submission.id ? { ...item, status: "imported" } : item)));
+      }
+      if (payload.submissionStatusUpdate && !payload.submissionStatusUpdate.ok) {
+        const statusUpdateError = payload.submissionStatusUpdate.error;
+        setPublishWarnings((current) => ({
+          ...current,
+          [submission.id]: `Evento publicado, pero no se pudo marcar la solicitud como importada: ${statusUpdateError}`,
+        }));
+      }
+      setCopyMessage(`Evento publicado correctamente: ${payload.event.title}`);
+    } catch (publishError) {
+      setError(publishError instanceof Error ? publishError.message : String(publishError));
+    } finally {
+      setPublishingId(null);
+    }
+  }
+
+  async function handleCopyEventUrl(submission: AdminSubmission) {
+    const result = publishResults[submission.id];
+
+    if (!result) return;
+
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${result.eventUrl}`);
+      setCopyMessage(`Enlace copiado: ${result.eventUrl}`);
+    } catch {
+      setCopyMessage("No se pudo copiar el enlace del evento.");
+    }
+  }
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await loadSubmissions();
@@ -562,10 +691,9 @@ export default function EventSubmissionsAdmin() {
                 <option value="todos">Todos los estados</option>
                 <option value="pending">Pending ({counts.pending || 0})</option>
                 <option value="reviewed">Reviewed ({counts.reviewed || 0})</option>
-                <option value="published">Published ({counts.published || 0})</option>
-                <option value="discarded">Discarded ({counts.discarded || 0})</option>
-                <option value="imported">Imported ({counts.imported || 0})</option>
-                <option value="rejected">Rejected ({counts.rejected || 0})</option>
+                <option value="imported">Importadas ({counts.imported || 0})</option>
+                <option value="rejected">Rechazadas ({counts.rejected || 0})</option>
+                <option value="spam">Spam ({counts.spam || 0})</option>
               </select>
             </div>
 
@@ -720,6 +848,14 @@ export default function EventSubmissionsAdmin() {
                     ? (() => {
                         const preview = buildDraftPreview(submission);
                         const validation = validationResults[submission.id];
+                        const publishResult = publishResults[submission.id];
+                        const publishWarning = publishWarnings[submission.id];
+                        const publishBlocked =
+                          alreadyPublished(submission) ||
+                          !validation ||
+                          validation.status === "error" ||
+                          validation.errors.length > 0 ||
+                          hasExactSlugDuplicate(validation);
 
                         return (
                           <section className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/[0.055] p-4">
@@ -812,6 +948,48 @@ export default function EventSubmissionsAdmin() {
                                     </ul>
                                   </div>
                                 ) : null}
+
+                                <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.035] p-4">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                      <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Publicación controlada</p>
+                                      <h5 className="mt-1 text-base font-semibold text-white">Publicar evento desde este borrador</h5>
+                                      <p className="mt-1 max-w-3xl text-sm text-zinc-400">
+                                        Esta acción inserta un evento nuevo visible en EventoMotor. No modifica eventos existentes.
+                                      </p>
+                                      {!validation ? <p className="mt-2 text-sm text-amber-100">Valida el borrador antes de publicar.</p> : null}
+                                      {validation && hasExactSlugDuplicate(validation) ? <p className="mt-2 text-sm text-red-200">Ya existe un evento con este slug.</p> : null}
+                                      {alreadyPublished(submission) ? <p className="mt-2 text-sm text-emerald-100">Esta solicitud ya figura como publicada/importada.</p> : null}
+                                      {publishWarning ? <p className="mt-2 text-sm text-amber-100">{publishWarning}</p> : null}
+                                    </div>
+                                    <button
+                                      className="rounded-md border border-red-300/30 bg-red-500/15 px-4 py-2 text-xs font-bold text-red-50 hover:border-red-200/60 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:border-white/[0.08] disabled:bg-white/[0.04] disabled:text-zinc-500"
+                                      disabled={publishBlocked || publishingId === submission.id}
+                                      onClick={() => handlePublishDraft(submission)}
+                                      type="button"
+                                    >
+                                      {publishingId === submission.id ? "Publicando" : "Publicar evento"}
+                                    </button>
+                                  </div>
+
+                                  {publishResult ? (
+                                    <div className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3">
+                                      <p className="text-sm font-bold text-emerald-100">Evento publicado correctamente</p>
+                                      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                        <Link className="break-all text-sm text-emerald-50 underline decoration-emerald-200/40 underline-offset-4 hover:text-white" href={publishResult.eventUrl}>
+                                          {publishResult.eventUrl}
+                                        </Link>
+                                        <button
+                                          className="w-fit rounded-md border border-emerald-200/30 bg-black/20 px-3 py-1.5 text-xs font-bold text-emerald-50 hover:bg-emerald-300/10"
+                                          onClick={() => handleCopyEventUrl(submission)}
+                                          type="button"
+                                        >
+                                          Copiar enlace
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
                               </div>
                             ) : null}
                           </section>
