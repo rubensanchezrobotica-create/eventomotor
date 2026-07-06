@@ -52,7 +52,7 @@ export default function EventRetentionActions({ event, source = "event_detail" }
       {saved ? (
         <>
           <button className="emc-btn emc-btn-dark emc-saved-event-button" disabled type="button">
-            Evento guardado
+            Guardado
           </button>
           <button className="emc-link-button emc-unsave-link" onClick={remove} type="button">
             Quitar de mis eventos
@@ -60,11 +60,11 @@ export default function EventRetentionActions({ event, source = "event_detail" }
         </>
       ) : (
         <button className="emc-btn emc-btn-dark" onClick={save} type="button">
-          Guardar evento
+          Guardar
         </button>
       )}
       <button className="emc-btn emc-btn-dark" onClick={addToCalendar} type="button">
-        Añadir al calendario
+        Calendario
       </button>
     </div>
   );

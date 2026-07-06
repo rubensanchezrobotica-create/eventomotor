@@ -447,17 +447,12 @@ export default function ConceptStyles() {
   align-items: stretch;
   margin-top: 12px;
 }
-.emc-event-summary-card .emc-event-actions .emc-btn-primary {
-  order: 0;
-}
-.emc-event-summary-card .emc-event-actions .emc-btn-ticket {
-  order: 1;
-  min-height: 42px;
-}
-.emc-event-summary-card .emc-retention-actions .emc-btn,
-.emc-event-summary-card .emc-share-action {
-  order: 2;
-}
+.emc-event-primary-actions,
+.emc-event-secondary-actions,
+.emc-event-utility-actions { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
+.emc-event-secondary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.emc-event-secondary-actions .emc-btn:only-child { grid-column: 1 / -1; }
+.emc-event-utility-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .emc-event-summary-card .emc-event-actions .emc-btn,
 .emc-practical-actions .emc-btn,
 .emc-share-action .emc-btn {
@@ -469,6 +464,17 @@ export default function ConceptStyles() {
   font-size: 13.5px;
   line-height: 1.1;
 }
+.emc-event-summary-card .emc-event-primary-action { grid-column: 1 / -1; min-height: 48px; font-size: 14px; }
+.emc-event-summary-card .emc-event-secondary-action { min-height: 40px; }
+.emc-event-summary-card .emc-event-utility-actions .emc-btn {
+  min-height: 38px;
+  padding: 9px 8px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.045);
+  box-shadow: none;
+  font-size: 12.5px;
+}
+.emc-event-summary-card .emc-event-utility-actions .emc-btn:hover { background: rgba(255,255,255,.075); }
 .emc-retention-actions { display: contents; }
 .emc-share-action { display: grid; gap: 5px; min-width: 0; width: 100%; }
 .emc-share-message { color: #a7f3d0; font-size: 11px; font-weight: 850; text-align: center; }

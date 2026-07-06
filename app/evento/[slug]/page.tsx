@@ -1140,22 +1140,10 @@ export default async function EventPage({ params }: EventPageProps) {
                   <SummaryRow label="Fuente" value={valueOrPending(event.source)} />
                   {verifiedAt ? <SummaryRow label="Última verificación" value={verifiedAt} /> : null}
                 </div>
-                <div className="emc-event-actions">
-                  {sourceAvailable ? (
-                    <TrackAnchor
-                      className="emc-btn emc-btn-primary"
-                      eventName="click_official_source"
-                      eventParams={trackingEventParams}
-                      href={officialUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      Ver fuente oficial
-                    </TrackAnchor>
-                  ) : null}
+                <div className={`emc-event-actions ${registrationUrl ? "emc-event-actions-has-ticket" : "emc-event-actions-no-ticket"}`}>
                   {registrationUrl ? (
                     <TrackAnchor
-                      className="emc-btn emc-btn-ticket"
+                      className="emc-btn emc-btn-primary emc-event-primary-action"
                       eventName="click_tickets"
                       eventParams={ticketTrackingEventParams}
                       href={registrationUrl}
@@ -1165,20 +1153,49 @@ export default async function EventPage({ params }: EventPageProps) {
                       Entradas / inscripción
                     </TrackAnchor>
                   ) : null}
-                  <EventRetentionActions event={savedEvent} />
-                  <ShareEventButton title={event.title} url={url} />
-                  {mapsUrl ? (
-                    <TrackAnchor
-                      className="emc-btn emc-btn-dark"
-                      eventName="click_event_maps"
-                      eventParams={trackingEventParams}
-                      href={mapsUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      Abrir en Google Maps
-                    </TrackAnchor>
+                  {sourceAvailable ? (
+                    <div className={registrationUrl ? "emc-event-secondary-actions" : "emc-event-primary-actions"}>
+                      <TrackAnchor
+                        className={`emc-btn ${registrationUrl ? "emc-btn-dark emc-event-secondary-action" : "emc-btn-primary emc-event-primary-action"}`}
+                        eventName="click_official_source"
+                        eventParams={trackingEventParams}
+                        href={officialUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Fuente oficial
+                      </TrackAnchor>
+                      {mapsUrl ? (
+                        <TrackAnchor
+                          className="emc-btn emc-btn-dark emc-event-secondary-action"
+                          eventName="click_event_maps"
+                          eventParams={trackingEventParams}
+                          href={mapsUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          Cómo llegar
+                        </TrackAnchor>
+                      ) : null}
+                    </div>
+                  ) : mapsUrl ? (
+                    <div className="emc-event-secondary-actions">
+                      <TrackAnchor
+                        className="emc-btn emc-btn-dark emc-event-secondary-action"
+                        eventName="click_event_maps"
+                        eventParams={trackingEventParams}
+                        href={mapsUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Cómo llegar
+                      </TrackAnchor>
+                    </div>
                   ) : null}
+                  <div className="emc-event-utility-actions">
+                    <EventRetentionActions event={savedEvent} />
+                    <ShareEventButton title={event.title} url={url} />
+                  </div>
                 </div>
                 {eventSourceType ? (
                   <p className="emc-event-note">
@@ -1276,7 +1293,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Ver fuente oficial
+                  Fuente oficial
                 </TrackAnchor>
               ) : null}
               {registrationUrl ? (
