@@ -43,6 +43,24 @@ type AdminEvent = {
   source: string | null;
   source_url: string | null;
   ticket_url: string | null;
+  country: string | null;
+  event_status: string | null;
+  short_description: string | null;
+  long_description: string | null;
+  schedule_text: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  organizer_name: string | null;
+  organizer_url: string | null;
+  official_url: string | null;
+  registration_url: string | null;
+  image_url: string | null;
+  image_source_url: string | null;
+  verified_at: string | null;
+  source_type: string | null;
+  confidence_score: number | null;
+  needs_review: boolean | null;
   tags: string[] | null;
   vehicle_type: string | null;
   featured: boolean | null;
@@ -66,6 +84,24 @@ type EventForm = {
   source: string;
   sourceUrl: string;
   ticketUrl: string;
+  country: string;
+  eventStatus: string;
+  shortDescription: string;
+  longDescription: string;
+  scheduleText: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  organizerName: string;
+  organizerUrl: string;
+  officialUrl: string;
+  registrationUrl: string;
+  imageUrl: string;
+  imageSourceUrl: string;
+  verifiedAt: string;
+  sourceType: string;
+  confidenceScore: string;
+  needsReview: "unset" | "true" | "false";
   vehicleType: string;
   featured: boolean;
   visible: boolean;
@@ -123,6 +159,24 @@ function emptyForm(): EventForm {
     source: "",
     sourceUrl: "",
     ticketUrl: "",
+    country: "",
+    eventStatus: "",
+    shortDescription: "",
+    longDescription: "",
+    scheduleText: "",
+    address: "",
+    latitude: "",
+    longitude: "",
+    organizerName: "",
+    organizerUrl: "",
+    officialUrl: "",
+    registrationUrl: "",
+    imageUrl: "",
+    imageSourceUrl: "",
+    verifiedAt: "",
+    sourceType: "",
+    confidenceScore: "",
+    needsReview: "unset",
     vehicleType: "otros",
     featured: false,
     visible: true,
@@ -169,6 +223,17 @@ function needsEditorialReview(event: AdminEvent) {
   return reviewReasons(event).length > 0;
 }
 
+function numberToFormValue(value: number | null | undefined) {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function needsReviewToFormValue(value: boolean | null | undefined): EventForm["needsReview"] {
+  if (value === true) return "true";
+  if (value === false) return "false";
+
+  return "unset";
+}
+
 function eventToForm(event: AdminEvent): EventForm {
   return {
     id: event.id,
@@ -184,6 +249,24 @@ function eventToForm(event: AdminEvent): EventForm {
     source: event.source || "",
     sourceUrl: event.source_url || "",
     ticketUrl: event.ticket_url || "",
+    country: event.country || "",
+    eventStatus: event.event_status || "",
+    shortDescription: event.short_description || "",
+    longDescription: event.long_description || "",
+    scheduleText: event.schedule_text || "",
+    address: event.address || "",
+    latitude: numberToFormValue(event.latitude),
+    longitude: numberToFormValue(event.longitude),
+    organizerName: event.organizer_name || "",
+    organizerUrl: event.organizer_url || "",
+    officialUrl: event.official_url || "",
+    registrationUrl: event.registration_url || "",
+    imageUrl: event.image_url || "",
+    imageSourceUrl: event.image_source_url || "",
+    verifiedAt: event.verified_at || "",
+    sourceType: event.source_type || "",
+    confidenceScore: numberToFormValue(event.confidence_score),
+    needsReview: needsReviewToFormValue(event.needs_review),
     vehicleType: event.vehicle_type || "otros",
     featured: Boolean(event.featured),
     visible: event.visible !== false,
@@ -263,7 +346,25 @@ function validateForm(form: EventForm) {
   if (!form.title.trim()) return "El título es obligatorio.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.start)) return "La fecha de inicio debe usar YYYY-MM-DD.";
   if (form.end && !/^\d{4}-\d{2}-\d{2}$/.test(form.end)) return "La fecha de fin debe usar YYYY-MM-DD.";
+  if (form.latitude.trim() && !Number.isFinite(Number(form.latitude))) return "La latitud debe ser numerica.";
+  if (form.longitude.trim() && !Number.isFinite(Number(form.longitude))) return "La longitud debe ser numerica.";
+
+  if (form.confidenceScore.trim()) {
+    const confidenceScore = Number(form.confidenceScore);
+
+    if (!Number.isFinite(confidenceScore) || confidenceScore < 0 || confidenceScore > 100) {
+      return "El confidence_score debe estar entre 0 y 100.";
+    }
+  }
+
   return "";
+}
+
+function formToPayload(form: EventForm) {
+  return {
+    ...form,
+    needsReview: form.needsReview === "unset" ? null : form.needsReview === "true",
+  };
 }
 
 function Chip({
@@ -462,7 +563,7 @@ export default function AdminPage() {
           authorization: `Bearer ${secret}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formToPayload(form)),
       });
       const payload = (await response.json()) as EventMutationResponse;
 
@@ -537,6 +638,10 @@ export default function AdminPage() {
 
   function handleTextareaChange(event: ChangeEvent<HTMLTextAreaElement>) {
     updateForm("notes", event.target.value);
+  }
+
+  function handleTextareaFieldChange(field: keyof EventForm) {
+    return (event: ChangeEvent<HTMLTextAreaElement>) => updateForm(field, event.target.value);
   }
 
   function toggleSelected(id: string) {
@@ -823,6 +928,18 @@ export default function AdminPage() {
                 const reasons = reviewReasons(event);
                 const sourceUrl = event.source_url?.trim();
                 const ticketUrl = event.ticket_url?.trim();
+                const officialUrl = event.official_url?.trim();
+                const hasEventV2Data = Boolean(
+                  event.country ||
+                    event.event_status ||
+                    event.short_description ||
+                    event.official_url ||
+                    event.registration_url ||
+                    event.image_url ||
+                    event.verified_at ||
+                    event.needs_review === true ||
+                    event.needs_review === false,
+                );
 
                 return (
                   <article
@@ -857,6 +974,11 @@ export default function AdminPage() {
                           <p><span className="text-zinc-300">Región:</span> {event.region || "Pendiente"}</p>
                           <p className="truncate" title={sourceUrl || ""}><span className="text-zinc-300">Source URL:</span> {sourceUrl || "Pendiente"}</p>
                           <p className="truncate" title={ticketUrl || ""}><span className="text-zinc-300">Ticket URL:</span> {ticketUrl || "Sin entradas"}</p>
+                          {hasEventV2Data ? (
+                            <p className="truncate md:col-span-2" title={officialUrl || ""}>
+                              <span className="text-zinc-300">Event v2:</span> {event.country || "Pais pendiente"} · {event.event_status || "Estado pendiente"} · Official URL: {officialUrl || "Pendiente"}
+                            </p>
+                          ) : null}
                           <p className="md:col-span-2"><span className="text-zinc-300">Notas:</span> {event.notes || "Sin notas"}</p>
                         </div>
                         {reasons.length ? (
@@ -937,6 +1059,43 @@ export default function AdminPage() {
                             <textarea className="admin-input min-h-20 md:col-span-2 xl:col-span-4" onChange={handleTextareaChange} value={form.notes} />
                           </Field>
                         </div>
+                        <details className="mt-3 rounded-lg border border-white/[0.08] bg-white/[0.025] p-3">
+                          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-zinc-300">
+                            Datos avanzados Event v2
+                          </summary>
+                          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                            <Field label="country"><input className="admin-input" onChange={handleInputChange("country")} value={form.country} /></Field>
+                            <Field label="event_status"><input className="admin-input" onChange={handleInputChange("eventStatus")} value={form.eventStatus} /></Field>
+                            <Field label="address"><input className="admin-input" onChange={handleInputChange("address")} value={form.address} /></Field>
+                            <Field label="verified_at"><input className="admin-input" onChange={handleInputChange("verifiedAt")} placeholder="2026-07-06T12:00:00Z" value={form.verifiedAt} /></Field>
+                            <Field label="latitude"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("latitude")} value={form.latitude} /></Field>
+                            <Field label="longitude"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("longitude")} value={form.longitude} /></Field>
+                            <Field label="confidence_score"><input className="admin-input" inputMode="decimal" onChange={handleInputChange("confidenceScore")} placeholder="0-100" value={form.confidenceScore} /></Field>
+                            <Field label="needs_review">
+                              <select className="admin-select" onChange={handleSelectChange("needsReview")} value={form.needsReview}>
+                                <option value="unset">Sin valor</option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                              </select>
+                            </Field>
+                            <Field label="organizer_name"><input className="admin-input" onChange={handleInputChange("organizerName")} value={form.organizerName} /></Field>
+                            <Field label="organizer_url"><input className="admin-input" onChange={handleInputChange("organizerUrl")} value={form.organizerUrl} /></Field>
+                            <Field label="official_url"><input className="admin-input" onChange={handleInputChange("officialUrl")} value={form.officialUrl} /></Field>
+                            <Field label="registration_url"><input className="admin-input" onChange={handleInputChange("registrationUrl")} value={form.registrationUrl} /></Field>
+                            <Field label="image_url"><input className="admin-input" onChange={handleInputChange("imageUrl")} value={form.imageUrl} /></Field>
+                            <Field label="image_source_url"><input className="admin-input" onChange={handleInputChange("imageSourceUrl")} value={form.imageSourceUrl} /></Field>
+                            <Field label="source_type"><input className="admin-input" onChange={handleInputChange("sourceType")} value={form.sourceType} /></Field>
+                            <Field label="short_description">
+                              <textarea className="admin-input min-h-20" onChange={handleTextareaFieldChange("shortDescription")} value={form.shortDescription} />
+                            </Field>
+                            <Field label="long_description">
+                              <textarea className="admin-input min-h-24" onChange={handleTextareaFieldChange("longDescription")} value={form.longDescription} />
+                            </Field>
+                            <Field label="schedule_text">
+                              <textarea className="admin-input min-h-24" onChange={handleTextareaFieldChange("scheduleText")} value={form.scheduleText} />
+                            </Field>
+                          </div>
+                        </details>
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
                           <ActionButton onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
                           <button

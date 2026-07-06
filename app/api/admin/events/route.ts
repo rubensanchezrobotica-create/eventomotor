@@ -20,6 +20,24 @@ type AdminEvent = Pick<
   | "source"
   | "source_url"
   | "ticket_url"
+  | "country"
+  | "event_status"
+  | "short_description"
+  | "long_description"
+  | "schedule_text"
+  | "address"
+  | "latitude"
+  | "longitude"
+  | "organizer_name"
+  | "organizer_url"
+  | "official_url"
+  | "registration_url"
+  | "image_url"
+  | "image_source_url"
+  | "verified_at"
+  | "source_type"
+  | "confidence_score"
+  | "needs_review"
   | "tags"
   | "vehicle_type"
   | "featured"
@@ -30,7 +48,7 @@ type AdminEvent = Pick<
 >;
 
 const ADMIN_EVENT_SELECT =
-  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,country,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,official_url,registration_url,image_url,image_source_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
 
 const DATA_QUALITY_OPTIONS = ["needs_review", "draft", "reviewed", "published", "cancelled", "pending_date"];
 
@@ -90,6 +108,40 @@ function optionalString(body: Record<string, unknown>, field: string) {
   const value = body[field];
 
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function optionalNumber(body: Record<string, unknown>, field: string, label: string, range?: { min: number; max: number }) {
+  const value = body[field];
+
+  if (value === null || value === undefined || (typeof value === "string" && !value.trim())) {
+    return null;
+  }
+
+  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value.trim()) : Number.NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error(`${label} must be numeric if provided.`);
+  }
+
+  if (range && (numericValue < range.min || numericValue > range.max)) {
+    throw new Error(`${label} must be between ${range.min} and ${range.max}.`);
+  }
+
+  return numericValue;
+}
+
+function optionalBoolean(body: Record<string, unknown>, field: string, label: string) {
+  const value = body[field];
+
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  if (typeof value !== "boolean") {
+    throw new Error(`${label} must be a boolean if provided.`);
+  }
+
+  return value;
 }
 
 function requireIsoDate(body: Record<string, unknown>, field: string) {
@@ -176,6 +228,25 @@ function parseAdminEventBody(value: unknown) {
     source: optionalString(value, "source") || "Admin",
     source_url: sourceUrl,
     ticket_url: optionalString(value, "ticketUrl") || "",
+    // Event v2 fields are nullable so older events and imports remain compatible.
+    country: optionalString(value, "country"),
+    event_status: optionalString(value, "eventStatus") || optionalString(value, "event_status"),
+    short_description: optionalString(value, "shortDescription") || optionalString(value, "short_description"),
+    long_description: optionalString(value, "longDescription") || optionalString(value, "long_description"),
+    schedule_text: optionalString(value, "scheduleText") || optionalString(value, "schedule_text"),
+    address: optionalString(value, "address"),
+    latitude: optionalNumber(value, "latitude", "latitude"),
+    longitude: optionalNumber(value, "longitude", "longitude"),
+    organizer_name: optionalString(value, "organizerName") || optionalString(value, "organizer_name"),
+    organizer_url: optionalString(value, "organizerUrl") || optionalString(value, "organizer_url"),
+    official_url: optionalString(value, "officialUrl") || optionalString(value, "official_url"),
+    registration_url: optionalString(value, "registrationUrl") || optionalString(value, "registration_url"),
+    image_url: optionalString(value, "imageUrl") || optionalString(value, "image_url"),
+    image_source_url: optionalString(value, "imageSourceUrl") || optionalString(value, "image_source_url"),
+    verified_at: optionalString(value, "verifiedAt") || optionalString(value, "verified_at"),
+    source_type: optionalString(value, "sourceType") || optionalString(value, "source_type"),
+    confidence_score: optionalNumber(value, "confidenceScore", "confidence_score", { min: 0, max: 100 }),
+    needs_review: optionalBoolean(value, "needsReview", "needs_review"),
     tags,
     vehicle_type,
     featured: typeof value.featured === "boolean" ? value.featured : false,
