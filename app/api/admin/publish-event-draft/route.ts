@@ -184,6 +184,7 @@ function buildNotes(draft: DraftInput) {
   return [
     textValue(draft.description) ? `Descripción: ${textValue(draft.description)}` : "",
     textValue(draft.priceText) ? `Precio: ${textValue(draft.priceText)}` : "",
+    textValue(draft.posterUrl) ? `Cartel/imagen: ${textValue(draft.posterUrl)}` : "",
     textValue(draft.contactEmail) ? `Email contacto: ${textValue(draft.contactEmail)}` : "",
     textValue(draft.contactPhone) ? `Teléfono contacto: ${textValue(draft.contactPhone)}` : "",
     textValue(draft.sourceSubmissionId) ? `Solicitud origen: ${textValue(draft.sourceSubmissionId)}` : "",
@@ -250,7 +251,6 @@ function draftToEventUpsert(draft: DraftInput): EventUpsert {
     source: organizer || "Solicitud de organizador",
     source_url: sourceUrl,
     ticket_url: ticketUrl || "",
-    image_url: optionalText(draft.posterUrl) || "",
     tags,
     vehicle_type: parseVehicleType(draft),
     featured: false,

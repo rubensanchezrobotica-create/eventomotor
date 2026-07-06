@@ -1,5 +1,7 @@
 export type EventStatus = "finalizado" | "en directo" | "proximo";
 
+export type EventDataQuality = "needs_review" | "draft" | "reviewed" | "published" | "cancelled" | "pending_date";
+
 export interface EventItem {
   id: string;
   slug?: string;
@@ -12,19 +14,36 @@ export interface EventItem {
   city: string;
   province: string;
   region: string;
+  country?: string;
   level: string;
   source: string;
   sourceUrl: string;
+  officialUrl?: string;
   ticketUrl: string;
+  registrationUrl?: string;
   imageUrl?: string;
   image_url?: string;
+  imageSourceUrl?: string;
+  eventStatus?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  scheduleText?: string;
+  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  organizerName?: string;
+  organizerUrl?: string;
+  verifiedAt?: string;
+  sourceType?: string;
+  confidenceScore?: number | null;
+  needsReview?: boolean;
   tags: string[];
   vehicleType?: string;
   vehicle_type?: string;
   featured: boolean;
   visible?: boolean;
   importMethod?: string;
-  dataQuality?: "draft" | "reviewed" | "published" | "cancelled" | "pending_date";
+  dataQuality?: EventDataQuality;
   notes?: string;
 }
 
