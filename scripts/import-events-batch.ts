@@ -189,6 +189,26 @@ function effectiveUrlPath(value: string) {
 }
 
 function isGenericListingUrl(value: unknown) {
+  const text = normalizeText(value);
+
+  if (!text) return false;
+
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const pathName = decodeURIComponent(url.pathname).toLowerCase();
+    const pathWithoutAccents = pathName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (host === "calendarios.rfeda.es") return true;
+    if (host.endsWith("rfeda.es")) {
+      if (pathWithoutAccents.includes("/docs/pdf/")) return true;
+      if (pathWithoutAccents.endsWith(".pdf")) return true;
+      if (pathWithoutAccents.includes("calendario")) return true;
+    }
+  } catch {
+    return false;
+  }
+
   const normalized = normalizeUrlForDuplicate(value);
 
   if (!normalized) return false;
