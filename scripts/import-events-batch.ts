@@ -12,8 +12,12 @@ type ExistingEventRow = {
   slug: string | null;
   title: string;
   start_date: string;
+  end_date: string | null;
+  venue: string | null;
   city: string | null;
   province: string | null;
+  discipline: string | null;
+  vehicle_type: string | null;
   source_url: string | null;
   official_url?: string | null;
 };
@@ -47,6 +51,7 @@ type ValidatedEvent = {
 };
 
 const PAGE_SIZE = 1000;
+const DATE_TOLERANCE_DAYS = 3;
 const ALLOWED_EVENT_STATUSES = new Set(["confirmed", "tentative", "postponed", "cancelled"]);
 const ALLOWED_SOURCE_TYPES = new Set([
   "official",
@@ -58,6 +63,39 @@ const ALLOWED_SOURCE_TYPES = new Set([
   "aggregator",
   "unknown",
 ]);
+const GENERIC_TITLE_WORDS = new Set([
+  "2026",
+  "campeonato",
+  "copa",
+  "espana",
+  "gran",
+  "premio",
+  "evento",
+  "circuito",
+  "tandas",
+  "temporada",
+  "jornada",
+  "de",
+  "del",
+  "la",
+  "el",
+  "los",
+  "las",
+  "en",
+  "para",
+  "y",
+]);
+const STRONG_KEYWORD_GROUPS = [
+  ["esbk", "superbike", "superbikes"],
+  ["motogp"],
+  ["gt", "gt-open", "gt-world-challenge", "international-gt-open"],
+  ["motorland"],
+  ["jarama", "race"],
+  ["montmelo", "barcelona-catalunya"],
+  ["navarra"],
+  ["cheste"],
+  ["rfme"],
+];
 
 loadEnvConfig(process.cwd());
 
@@ -103,6 +141,79 @@ function normalizeComparable(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function normalizeTitleToken(value: string) {
+  if (value === "superbikes") return "superbike";
+  if (value === "motos") return "moto";
+  if (value === "coches") return "coche";
+  if (value.endsWith("s") && value.length > 5) return value.slice(0, -1);
+
+  return value;
+}
+
+function relevantTitleTokens(value: unknown) {
+  const normalized = normalizeComparable(String(value || "").replace(/\b20\d{2}\b/g, ""));
+  const tokens = normalized
+    .split("-")
+    .map(normalizeTitleToken)
+    .filter((token) => token.length >= 3 && !GENERIC_TITLE_WORDS.has(token));
+
+  return new Set(tokens);
+}
+
+function tokenOverlap(left: Set<string>, right: Set<string>) {
+  if (!left.size || !right.size) return 0;
+
+  let shared = 0;
+
+  for (const token of left) {
+    if (right.has(token)) shared += 1;
+  }
+
+  return shared / Math.min(left.size, right.size);
+}
+
+function keywordGroups(value: unknown) {
+  const normalized = normalizeComparable(value);
+  const groups = new Set<string>();
+
+  for (const group of STRONG_KEYWORD_GROUPS) {
+    if (group.some((keyword) => normalized.includes(normalizeComparable(keyword)))) {
+      groups.add(group[0]);
+    }
+  }
+
+  return groups;
+}
+
+function sharedKeywordGroups(left: Set<string>, right: Set<string>) {
+  return [...left].filter((group) => right.has(group));
+}
+
+function dateToTime(value: string | null | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  return Date.UTC(year, month - 1, day);
+}
+
+function formatExistingDate(row: ExistingEventRow) {
+  return row.end_date && row.end_date !== row.start_date ? `${row.start_date} a ${row.end_date}` : row.start_date;
+}
+
+function rangesOverlapOrClose(row: EventUpsert, existing: ExistingEventRow) {
+  const start = dateToTime(row.start_date);
+  const end = dateToTime(row.end_date || row.start_date);
+  const existingStart = dateToTime(existing.start_date);
+  const existingEnd = dateToTime(existing.end_date || existing.start_date);
+
+  if (start === null || end === null || existingStart === null || existingEnd === null) return false;
+
+  const tolerance = DATE_TOLERANCE_DAYS * 24 * 60 * 60 * 1000;
+
+  return start <= existingEnd + tolerance && existingStart <= end + tolerance;
 }
 
 function normalizeDate(value: unknown) {
@@ -197,6 +308,61 @@ function mapExistingByDuplicateKey(rows: ExistingEventRow[], field: "city" | "pr
   }
 
   return map;
+}
+
+function sameLocation(row: EventUpsert, existing: ExistingEventRow) {
+  const sameCityProvince =
+    Boolean(row.city && row.province && existing.city && existing.province) &&
+    normalizeComparable(row.city) === normalizeComparable(existing.city) &&
+    normalizeComparable(row.province) === normalizeComparable(existing.province);
+  const sameVenue =
+    Boolean(row.venue && existing.venue) &&
+    normalizeComparable(row.venue) === normalizeComparable(existing.venue);
+
+  return { sameCityProvince, sameVenue, matches: sameCityProvince || sameVenue };
+}
+
+function sameDisciplineOrVehicle(row: EventUpsert, existing: ExistingEventRow) {
+  const sameDiscipline =
+    Boolean(row.discipline && existing.discipline) &&
+    normalizeComparable(row.discipline) === normalizeComparable(existing.discipline);
+  const sameVehicle =
+    Boolean(row.vehicle_type && existing.vehicle_type) &&
+    normalizeComparable(row.vehicle_type) === normalizeComparable(existing.vehicle_type);
+
+  return sameDiscipline || sameVehicle;
+}
+
+function possibleDuplicateReason(row: EventUpsert, existing: ExistingEventRow) {
+  const location = sameLocation(row, existing);
+
+  if (!location.matches || !rangesOverlapOrClose(row, existing)) {
+    return null;
+  }
+
+  const rowTokens = relevantTitleTokens(row.title);
+  const existingTokens = relevantTitleTokens(existing.title);
+  const titleSimilarity = tokenOverlap(rowTokens, existingTokens);
+  const rowKeywords = keywordGroups([row.title, row.championship, row.discipline, row.vehicle_type, row.venue, ...(row.tags || [])].join(" "));
+  const existingKeywords = keywordGroups([existing.title, existing.discipline, existing.vehicle_type, existing.venue].join(" "));
+  const sharedKeywords = sharedKeywordGroups(rowKeywords, existingKeywords);
+  const sameType = sameDisciplineOrVehicle(row, existing);
+  const titleLooksSimilar = titleSimilarity >= 0.5 || sharedKeywords.length >= 2 || (sharedKeywords.length >= 1 && titleSimilarity >= 0.3);
+
+  if (!titleLooksSimilar && !(sameType && sharedKeywords.length >= 1 && titleSimilarity >= 0.25)) {
+    return null;
+  }
+
+  const reasons = [
+    location.sameVenue ? "mismo venue" : "misma ciudad/provincia",
+    "fechas solapadas o cercanas",
+  ];
+
+  if (titleSimilarity >= 0.5) reasons.push("titulos parecidos");
+  if (sharedKeywords.length) reasons.push(`keywords: ${sharedKeywords.join(", ")}`);
+  if (sameType) reasons.push("misma disciplina/tipo");
+
+  return `posible duplicado con "${existing.title}" (${formatExistingDate(existing)}, slug: ${existing.slug || existing.id}) por ${reasons.join("; ")}`;
 }
 
 async function readBatch(filePath: string) {
@@ -349,14 +515,14 @@ async function createSupabaseClient() {
 async function fetchExistingEvents(supabase: Awaited<ReturnType<typeof createSupabaseClient>>) {
   const events: ExistingEventRow[] = [];
   let from = 0;
-  let selectFields = "id,slug,title,start_date,city,province,source_url,official_url";
+  let selectFields = "id,slug,title,start_date,end_date,venue,city,province,discipline,vehicle_type,source_url,official_url";
 
   while (true) {
     const to = from + PAGE_SIZE - 1;
     let { data, error } = await supabase.from("events").select(selectFields).range(from, to);
 
     if (error && selectFields.includes("official_url")) {
-      selectFields = "id,slug,title,start_date,city,province,source_url";
+      selectFields = "id,slug,title,start_date,end_date,venue,city,province,discipline,vehicle_type,source_url";
       from = 0;
       events.length = 0;
       ({ data, error } = await supabase.from("events").select(selectFields).range(from, to));
@@ -379,6 +545,7 @@ async function fetchExistingEvents(supabase: Awaited<ReturnType<typeof createSup
 }
 
 function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEventRow[]) {
+  const existingIds = mapExistingByText(existingRows, (row) => row.id);
   const existingSlugs = mapExistingByText(existingRows, (row) => row.slug);
   const existingSourceUrls = mapExistingByText(existingRows, (row) => row.source_url);
   const existingOfficialUrls = mapExistingByText(existingRows, (row) => row.official_url);
@@ -401,22 +568,44 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
 
     if (!row) continue;
 
-    if (row.id && existingRows.some((existing) => existing.id === row.id)) event.duplicateReasons.push(`id existente: ${row.id}`);
-    if (row.slug && existingSlugs.has(row.slug)) event.duplicateReasons.push(`slug existente: ${row.slug}`);
+    const idMatch = row.id ? existingIds.get(row.id) : null;
+    const slugMatch = row.slug ? existingSlugs.get(row.slug) : null;
+    const sourceUrlMatch = row.source_url ? existingSourceUrls.get(row.source_url) : null;
+    const officialUrlMatch = row.official_url ? existingOfficialUrls.get(row.official_url) : null;
+
+    if (idMatch) event.duplicateReasons.push(`id existente en "${idMatch.title}" (${formatExistingDate(idMatch)}, slug: ${idMatch.slug || idMatch.id}).`);
+    if (slugMatch) event.duplicateReasons.push(`slug existente en "${slugMatch.title}" (${formatExistingDate(slugMatch)}, slug: ${slugMatch.slug || slugMatch.id}).`);
     if (row.slug && (batchSlugs.get(row.slug) || 0) > 1) event.duplicateReasons.push(`slug repetido en lote: ${row.slug}`);
-    if (row.source_url && existingSourceUrls.has(row.source_url)) event.duplicateReasons.push("source_url existente.");
+    if (sourceUrlMatch) event.duplicateReasons.push(`source_url existente en "${sourceUrlMatch.title}" (${formatExistingDate(sourceUrlMatch)}, slug: ${sourceUrlMatch.slug || sourceUrlMatch.id}).`);
     if (row.source_url && (batchSourceUrls.get(row.source_url) || 0) > 1) event.duplicateReasons.push("source_url repetido en lote.");
-    if (row.official_url && existingOfficialUrls.has(row.official_url)) event.duplicateReasons.push("official_url existente.");
+    if (officialUrlMatch) event.duplicateReasons.push(`official_url existente en "${officialUrlMatch.title}" (${formatExistingDate(officialUrlMatch)}, slug: ${officialUrlMatch.slug || officialUrlMatch.id}).`);
 
     const titleDateCity = duplicateKey(row, "city");
     const titleDateProvince = duplicateKey(row, "province");
 
-    if (row.city && existingTitleDateCity.has(titleDateCity)) {
-      event.duplicateReasons.push("title + start_date + city coincide con evento existente.");
+    const titleDateCityMatch = existingTitleDateCity.get(titleDateCity);
+    const titleDateProvinceMatch = existingTitleDateProvince.get(titleDateProvince);
+
+    if (row.city && titleDateCityMatch) {
+      event.duplicateReasons.push(
+        `title + start_date + city coincide con "${titleDateCityMatch.title}" (${formatExistingDate(titleDateCityMatch)}, slug: ${titleDateCityMatch.slug || titleDateCityMatch.id}).`,
+      );
     }
 
-    if (!event.duplicateReasons.length && row.province && existingTitleDateProvince.has(titleDateProvince)) {
-      event.possibleDuplicateReasons.push("title + start_date + province coincide con evento existente.");
+    if (!event.duplicateReasons.length && row.province && titleDateProvinceMatch) {
+      event.possibleDuplicateReasons.push(
+        `title + start_date + province coincide con "${titleDateProvinceMatch.title}" (${formatExistingDate(titleDateProvinceMatch)}, slug: ${titleDateProvinceMatch.slug || titleDateProvinceMatch.id}).`,
+      );
+    }
+
+    if (!event.duplicateReasons.length) {
+      const fuzzyReason = existingRows
+        .map((existing) => possibleDuplicateReason(row, existing))
+        .find((reason): reason is string => Boolean(reason));
+
+      if (fuzzyReason && !event.possibleDuplicateReasons.includes(fuzzyReason)) {
+        event.possibleDuplicateReasons.push(fuzzyReason);
+      }
     }
 
     event.classification = event.duplicateReasons.length
