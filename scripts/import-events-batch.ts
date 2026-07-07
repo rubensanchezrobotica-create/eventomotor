@@ -47,7 +47,7 @@ type ValidatedEvent = {
   warnings: string[];
   duplicateReasons: string[];
   possibleDuplicateReasons: string[];
-  classification: "insertable" | "duplicate" | "possible_duplicate" | "invalid";
+  classification: "insertable" | "reviewed_insertable" | "duplicate" | "possible_duplicate" | "invalid";
 };
 
 const PAGE_SIZE = 1000;
@@ -63,6 +63,7 @@ const ALLOWED_SOURCE_TYPES = new Set([
   "aggregator",
   "unknown",
 ]);
+const ALLOWED_DUPLICATE_REVIEW_STATUSES = new Set(["approved_distinct", "rejected_duplicate"]);
 const GENERIC_TITLE_WORDS = new Set([
   "2026",
   "campeonato",
@@ -343,6 +344,12 @@ function preferredText(input: BatchEventInput, fields: string[]) {
   return null;
 }
 
+function duplicateReviewStatus(input: BatchEventInput) {
+  const status = optionalText(input, "duplicate_review_status");
+
+  return status && ALLOWED_DUPLICATE_REVIEW_STATUSES.has(status) ? status : null;
+}
+
 function duplicateKey(row: Pick<EventUpsert, "title" | "start_date" | "city" | "province">, field: "city" | "province") {
   return [normalizeComparable(row.title), row.start_date, normalizeComparable(row[field])].join("|");
 }
@@ -480,6 +487,8 @@ function validateEvent(input: BatchEventInput, index: number, updatedAt: string)
   const longitude = normalizeNumber(input.longitude);
   const needsReview = normalizeBoolean(input.needs_review);
   const tags = normalizeTags(input.tags);
+  const reviewStatus = optionalText(input, "duplicate_review_status");
+  const reviewNote = optionalText(input, "duplicate_review_note");
 
   if (!title) errors.push("title obligatorio.");
   if (!slug) errors.push("slug obligatorio.");
@@ -498,6 +507,8 @@ function validateEvent(input: BatchEventInput, index: number, updatedAt: string)
   if (Number.isNaN(longitude)) errors.push("longitude debe ser numerico.");
   if (needsReview === undefined) errors.push("needs_review debe ser boolean si se informa.");
   if (tags === undefined) errors.push("tags debe ser array de strings si se informa.");
+  if (reviewStatus && !ALLOWED_DUPLICATE_REVIEW_STATUSES.has(reviewStatus)) errors.push("duplicate_review_status no permitido.");
+  if (reviewStatus && !reviewNote) errors.push("duplicate_review_note obligatorio cuando duplicate_review_status esta informado.");
 
   if (errors.length || !title || !slug || !startDate) {
     return {
@@ -689,11 +700,32 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
       }
     }
 
-    event.classification = event.duplicateReasons.length
-      ? "duplicate"
-      : event.possibleDuplicateReasons.length
-        ? "possible_duplicate"
-        : "insertable";
+    const reviewStatus = duplicateReviewStatus(event.input);
+    const reviewNote = optionalText(event.input, "duplicate_review_note");
+
+    if (event.duplicateReasons.length) {
+      event.classification = "duplicate";
+      continue;
+    }
+
+    if (reviewStatus === "rejected_duplicate") {
+      event.possibleDuplicateReasons.push(`revision manual rechazada: ${reviewNote}`);
+      event.classification = "possible_duplicate";
+      continue;
+    }
+
+    if (event.possibleDuplicateReasons.length) {
+      if (reviewStatus === "approved_distinct") {
+        event.possibleDuplicateReasons.push(`revision manual aprobada como evento distinto: ${reviewNote}`);
+        event.classification = "reviewed_insertable";
+      } else {
+        event.classification = "possible_duplicate";
+      }
+
+      continue;
+    }
+
+    event.classification = "insertable";
   }
 }
 
@@ -701,7 +733,8 @@ function summarize(events: ValidatedEvent[]) {
   return {
     total: events.length,
     validos: events.filter((event) => !event.errors.length).length,
-    insertables: events.filter((event) => event.classification === "insertable").length,
+    insertables: events.filter((event) => event.classification === "insertable" || event.classification === "reviewed_insertable").length,
+    insertables_revisados: events.filter((event) => event.classification === "reviewed_insertable").length,
     duplicados_exactos: events.filter((event) => event.classification === "duplicate").length,
     posibles_duplicados: events.filter((event) => event.classification === "possible_duplicate").length,
     invalidos: events.filter((event) => event.classification === "invalid").length,
@@ -716,6 +749,7 @@ function printReport(events: ValidatedEvent[], apply: boolean) {
   console.log(`- total leidos: ${summary.total}`);
   console.log(`- validos: ${summary.validos}`);
   console.log(`- insertables: ${summary.insertables}`);
+  console.log(`- insertables revisados: ${summary.insertables_revisados}`);
   console.log(`- duplicados exactos: ${summary.duplicados_exactos}`);
   console.log(`- posibles duplicados: ${summary.posibles_duplicados}`);
   console.log(`- invalidos: ${summary.invalidos}`);
@@ -734,7 +768,7 @@ function printReport(events: ValidatedEvent[], apply: boolean) {
 
 async function insertEvents(supabase: Awaited<ReturnType<typeof createSupabaseClient>>, events: ValidatedEvent[]) {
   const insertable = events.filter((event): event is ValidatedEvent & { row: EventUpsert } => {
-    return event.classification === "insertable" && Boolean(event.row);
+    return (event.classification === "insertable" || event.classification === "reviewed_insertable") && Boolean(event.row);
   });
   const inserted: string[] = [];
 
