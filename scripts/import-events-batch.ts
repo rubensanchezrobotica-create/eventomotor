@@ -96,6 +96,20 @@ const STRONG_KEYWORD_GROUPS = [
   ["cheste"],
   ["rfme"],
 ];
+const URL_LANGUAGE_SEGMENTS = new Set(["ca", "cat", "en", "es", "eu", "fr", "gl", "pt"]);
+const GENERIC_URL_PATHS = new Set([
+  "calendario",
+  "calendar",
+  "calendar/trackdays",
+  "calendar/trackdays/bike",
+  "entradas",
+  "eventos",
+  "events",
+  "ticketing",
+  "tickets",
+  "venta-de-entradas",
+]);
+const GENERIC_URL_LAST_SEGMENTS = new Set(["calendario", "calendar", "entradas", "eventos", "events", "tickets", "venta-de-entradas"]);
 
 loadEnvConfig(process.cwd());
 
@@ -141,6 +155,57 @@ function normalizeComparable(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function normalizeUrlForDuplicate(value: unknown) {
+  const text = normalizeText(value);
+
+  if (!text) return null;
+
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const pathName = url.pathname
+      .split("/")
+      .map((segment) => normalizeComparable(decodeURIComponent(segment)))
+      .filter(Boolean)
+      .join("/");
+
+    return `${host}/${pathName}`.replace(/\/+$/g, "");
+  } catch {
+    return null;
+  }
+}
+
+function effectiveUrlPath(value: string) {
+  const [, ...pathParts] = value.split("/");
+
+  while (pathParts.length && URL_LANGUAGE_SEGMENTS.has(pathParts[0])) {
+    pathParts.shift();
+  }
+
+  return pathParts.join("/");
+}
+
+function isGenericListingUrl(value: unknown) {
+  const normalized = normalizeUrlForDuplicate(value);
+
+  if (!normalized) return false;
+
+  const path = effectiveUrlPath(normalized);
+  const segments = path.split("/").filter(Boolean);
+
+  if (!segments.length) return true;
+  if (GENERIC_URL_PATHS.has(path)) return true;
+  if (segments.length <= 2 && GENERIC_URL_LAST_SEGMENTS.has(segments[segments.length - 1])) return true;
+
+  return false;
+}
+
+function specificEventUrlKey(value: unknown) {
+  if (isGenericListingUrl(value)) return null;
+
+  return normalizeUrlForDuplicate(value);
 }
 
 function normalizeTitleToken(value: string) {
@@ -291,6 +356,18 @@ function mapExistingByText(rows: ExistingEventRow[], getter: (row: ExistingEvent
 
   for (const row of rows) {
     const key = getter(row);
+
+    if (key) map.set(key, row);
+  }
+
+  return map;
+}
+
+function mapExistingBySpecificUrl(rows: ExistingEventRow[], getter: (row: ExistingEventRow) => string | null | undefined) {
+  const map = new Map<string, ExistingEventRow>();
+
+  for (const row of rows) {
+    const key = specificEventUrlKey(getter(row));
 
     if (key) map.set(key, row);
   }
@@ -547,8 +624,8 @@ async function fetchExistingEvents(supabase: Awaited<ReturnType<typeof createSup
 function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEventRow[]) {
   const existingIds = mapExistingByText(existingRows, (row) => row.id);
   const existingSlugs = mapExistingByText(existingRows, (row) => row.slug);
-  const existingSourceUrls = mapExistingByText(existingRows, (row) => row.source_url);
-  const existingOfficialUrls = mapExistingByText(existingRows, (row) => row.official_url);
+  const existingSourceUrls = mapExistingBySpecificUrl(existingRows, (row) => row.source_url);
+  const existingOfficialUrls = mapExistingBySpecificUrl(existingRows, (row) => row.official_url);
   const existingTitleDateCity = mapExistingByDuplicateKey(existingRows, "city");
   const existingTitleDateProvince = mapExistingByDuplicateKey(existingRows, "province");
   const batchSlugs = new Map<string, number>();
@@ -560,7 +637,9 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
     if (!row) continue;
 
     batchSlugs.set(row.slug || "", (batchSlugs.get(row.slug || "") || 0) + 1);
-    if (row.source_url) batchSourceUrls.set(row.source_url, (batchSourceUrls.get(row.source_url) || 0) + 1);
+    const sourceUrlKey = specificEventUrlKey(row.source_url);
+
+    if (sourceUrlKey) batchSourceUrls.set(sourceUrlKey, (batchSourceUrls.get(sourceUrlKey) || 0) + 1);
   }
 
   for (const event of events) {
@@ -570,14 +649,16 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
 
     const idMatch = row.id ? existingIds.get(row.id) : null;
     const slugMatch = row.slug ? existingSlugs.get(row.slug) : null;
-    const sourceUrlMatch = row.source_url ? existingSourceUrls.get(row.source_url) : null;
-    const officialUrlMatch = row.official_url ? existingOfficialUrls.get(row.official_url) : null;
+    const sourceUrlKey = specificEventUrlKey(row.source_url);
+    const officialUrlKey = specificEventUrlKey(row.official_url);
+    const sourceUrlMatch = sourceUrlKey ? existingSourceUrls.get(sourceUrlKey) : null;
+    const officialUrlMatch = officialUrlKey ? existingOfficialUrls.get(officialUrlKey) : null;
 
     if (idMatch) event.duplicateReasons.push(`id existente en "${idMatch.title}" (${formatExistingDate(idMatch)}, slug: ${idMatch.slug || idMatch.id}).`);
     if (slugMatch) event.duplicateReasons.push(`slug existente en "${slugMatch.title}" (${formatExistingDate(slugMatch)}, slug: ${slugMatch.slug || slugMatch.id}).`);
     if (row.slug && (batchSlugs.get(row.slug) || 0) > 1) event.duplicateReasons.push(`slug repetido en lote: ${row.slug}`);
     if (sourceUrlMatch) event.duplicateReasons.push(`source_url existente en "${sourceUrlMatch.title}" (${formatExistingDate(sourceUrlMatch)}, slug: ${sourceUrlMatch.slug || sourceUrlMatch.id}).`);
-    if (row.source_url && (batchSourceUrls.get(row.source_url) || 0) > 1) event.duplicateReasons.push("source_url repetido en lote.");
+    if (sourceUrlKey && (batchSourceUrls.get(sourceUrlKey) || 0) > 1) event.duplicateReasons.push("source_url especifico repetido en lote.");
     if (officialUrlMatch) event.duplicateReasons.push(`official_url existente en "${officialUrlMatch.title}" (${formatExistingDate(officialUrlMatch)}, slug: ${officialUrlMatch.slug || officialUrlMatch.id}).`);
 
     const titleDateCity = duplicateKey(row, "city");
