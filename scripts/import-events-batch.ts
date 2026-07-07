@@ -205,6 +205,10 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.endsWith(".pdf")) return true;
       if (pathWithoutAccents.includes("calendario")) return true;
     }
+    if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
+    if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
+    if (pathWithoutAccents.includes("/noticias/calendario")) return true;
+    if (host === "suntosun.es" && /^\/sun-to-sun-\d{4}\/?$/.test(pathWithoutAccents)) return true;
   } catch {
     return false;
   }
