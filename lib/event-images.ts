@@ -13,6 +13,8 @@ type EventImageInput = {
 const FALLBACK_IMAGES = {
   rally: "/images/disciplines/eventomotor-fallback-rally.webp",
   circuito: "/images/disciplines/eventomotor-fallback-circuito.webp",
+  circuitoCoche: "/images/disciplines/eventomotor-fallback-circuito-coche.webp",
+  circuitoMixto: "/images/disciplines/eventomotor-fallback-circuito-mixto.webp",
   concentracion: "/images/disciplines/eventomotor-fallback-concentracion.webp",
   offroad: "/images/disciplines/eventomotor-fallback-offroad.webp",
   clasicos: "/images/disciplines/eventomotor-fallback-clasicos.webp",
@@ -54,6 +56,88 @@ function includesAny(text: string, terms: string[]) {
   return terms.some((term) => text.includes(normalizeText(term)));
 }
 
+const CIRCUIT_TERMS = [
+  "motogp",
+  "superbike",
+  "velocidad",
+  "trackday",
+  "circuito",
+  "tandas",
+  "rodada",
+  "rodadas",
+  "esbk",
+  "gt",
+  "racing weekend",
+];
+
+const CIRCUIT_CAR_TERMS = [
+  "coche",
+  "coches",
+  "auto",
+  "autos",
+  "automovil",
+  "automovilismo",
+  "car",
+  "cars",
+  "gt",
+  "gt3",
+  "gt4",
+  "turismo",
+  "turismos",
+  "tcr",
+  "prototipo",
+  "prototipos",
+  "monoplaza",
+  "monoplazas",
+  "formula",
+  "resistencia",
+  "ultimate cup",
+  "racing weekend",
+];
+
+const CIRCUIT_MOTO_TERMS = [
+  "moto",
+  "motos",
+  "motocicleta",
+  "motocicletas",
+  "motociclismo",
+  "motogp",
+  "superbike",
+  "superbikes",
+  "esbk",
+  "rodada moto",
+  "rodadas moto",
+  "tandas moto",
+  "rfme",
+];
+
+function circuitFallbackFor(event: EventImageInput, text: string) {
+  const vehicleText = normalizeText([event.vehicle_type, event.vehicleType].filter(Boolean).join(" "));
+  const explicitCar = includesAny(vehicleText, CIRCUIT_CAR_TERMS);
+  const explicitMoto = includesAny(vehicleText, CIRCUIT_MOTO_TERMS);
+
+  if (explicitCar && !explicitMoto) {
+    return FALLBACK_IMAGES.circuitoCoche;
+  }
+
+  if (explicitMoto && !explicitCar) {
+    return FALLBACK_IMAGES.circuito;
+  }
+
+  const carSignal = includesAny(text, CIRCUIT_CAR_TERMS);
+  const motoSignal = includesAny(text, CIRCUIT_MOTO_TERMS);
+
+  if (carSignal && !motoSignal) {
+    return FALLBACK_IMAGES.circuitoCoche;
+  }
+
+  if (motoSignal && !carSignal) {
+    return FALLBACK_IMAGES.circuito;
+  }
+
+  return FALLBACK_IMAGES.circuitoMixto;
+}
+
 export function getEventImage(event: EventImageInput): string {
   const realImage = event.image_url || event.imageUrl;
 
@@ -82,20 +166,8 @@ export function getEventImage(event: EventImageInput): string {
     return FALLBACK_IMAGES.rally;
   }
 
-  if (
-    includesAny(text, [
-      "motogp",
-      "superbike",
-      "velocidad",
-      "trackday",
-      "circuito",
-      "tandas",
-      "esbk",
-      "gt",
-      "racing weekend",
-    ])
-  ) {
-    return FALLBACK_IMAGES.circuito;
+  if (includesAny(text, CIRCUIT_TERMS)) {
+    return circuitFallbackFor(event, text);
   }
 
   if (
@@ -218,8 +290,16 @@ export function getEventImageAlt(event: EventImageInput): string {
     return `Imagen representativa de evento de rally${title}`;
   }
 
-  if (image.includes("circuito")) {
+  if (image.includes("circuito-coche")) {
+    return `Imagen representativa de evento de circuito de coche${title}`;
+  }
+
+  if (image.includes("circuito-mixto")) {
     return `Imagen representativa de evento en circuito${title}`;
+  }
+
+  if (image.includes("circuito")) {
+    return `Imagen representativa de evento de circuito de moto${title}`;
   }
 
   if (image.includes("concentracion")) {
