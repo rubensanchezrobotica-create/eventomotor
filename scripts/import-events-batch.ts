@@ -227,6 +227,24 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario-deportivo-2026")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "fexa.es") {
+      if (pathWithoutAccents === "/eventos/" || pathWithoutAccents === "/eventos") return true;
+      if (pathWithoutAccents.includes("/eventos/")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fedacv.com") {
+      if (["/rallyes", "/regularidad-rallyes", "/montana", "/slalom", "/velocidad", "/xii-hivern-karting", "/calendario"].includes(pathWithoutAccents.replace(/\/$/g, ""))) {
+        return true;
+      }
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fmautomovilismo.com") {
+      if (pathWithoutAccents === "/proximas-pruebas" || pathWithoutAccents === "/proximas-pruebas/") return true;
+    }
+    if (host === "facyl.com") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario_facyl-2026")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
