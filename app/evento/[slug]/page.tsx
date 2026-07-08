@@ -212,18 +212,16 @@ function formatEventDate(event: EventItem) {
 }
 
 function buildDescription(event: EventItem) {
-  const location = [event.city, event.province].filter(Boolean).join(", ");
-  return `Consulta fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles del evento ${event.title} en ${location || "Espana"}.`;
+  const location = [event.city, event.province].filter((value) => value && value !== "Por confirmar").join(", ");
+  const discipline = cleanText(event.discipline) || "motor";
+
+  return `${event.title}: evento de ${discipline} en ${location || "Espana"} previsto para ${formatEventDate(event)}. Consulta fuente oficial, ubicacion y enlaces disponibles antes de desplazarte.`;
 }
 
 function buildMetadataDescription(event: EventItem) {
-  const v2Description = cleanText(event.shortDescription) || cleanText(event.longDescription);
+  const description = buildEventSeoDescription(event);
 
-  if (v2Description) {
-    return v2Description.length > 170 ? `${v2Description.slice(0, 167).trim()}...` : v2Description;
-  }
-
-  return buildEventSeoDescription(event);
+  return description.length > 170 ? `${description.slice(0, 167).trim()}...` : description;
 }
 
 function buildPublicAboutText(event: EventItem) {
@@ -362,7 +360,10 @@ function buildEventSeoTitle(event: EventItem) {
       : "Tandas Privadas Jarama 2026 | Fecha, ubicacion y fuente oficial | EventoMotor";
   }
 
-  return `${event.title} | Fecha, ubicacion y fuente oficial | EventoMotor`;
+  const location = [event.city, event.province].filter((value) => value && value !== "Por confirmar").join(", ");
+  const locationPart = location ? ` | ${location}` : "";
+
+  return `${event.title}${locationPart} | ${formatEventDate(event)} | EventoMotor`;
 }
 
 function buildEventSeoDescription(event: EventItem) {
@@ -482,11 +483,15 @@ function buildJsonLd(event: EventItem, url: string, imageUrl: string) {
     endDate: event.end || event.start,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     eventStatus: schemaEventStatus(event),
-    url: officialUrl || url,
+    url,
     mainEntityOfPage: url,
     image: [imageUrl],
     location,
   };
+
+  if (officialUrl && officialUrl !== url) {
+    jsonLd.sameAs = officialUrl;
+  }
 
   if (organizerName) {
     jsonLd.organizer = {
