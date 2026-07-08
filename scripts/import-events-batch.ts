@@ -237,6 +237,10 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/el-circuit-presenta-su-calendario")) return true;
       if (pathWithoutAccents.includes("motogp-como-gran-cita-del-ano-2026")) return true;
     }
+    if (host === "jarama.org") {
+      if (pathWithoutAccents.includes("/actualidad/noticias/el-campeonato-race-de-velocidad")) return true;
+      if (pathWithoutAccents.includes("campeonato-race-de-velocidad-inicia-la-temporada")) return true;
+    }
     if (host === "concentracionesdemotos.com") {
       if (/^\/(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-20\d{2}\/?$/.test(pathWithoutAccents)) {
         return true;
