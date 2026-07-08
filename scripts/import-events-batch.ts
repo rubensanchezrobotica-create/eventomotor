@@ -205,6 +205,12 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.endsWith(".pdf")) return true;
       if (pathWithoutAccents.includes("calendario")) return true;
     }
+    if (host === "fiasct.com") {
+      if (pathWithoutAccents.includes("/documentacion/calendario_2026")) return true;
+      if (pathWithoutAccents.includes("/documentacion/") && pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) {
+        return true;
+      }
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
