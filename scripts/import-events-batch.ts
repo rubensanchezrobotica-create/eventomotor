@@ -215,6 +215,11 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("classic-series") || pathWithoutAccents.includes("motoclassic-series")) return true;
     }
     if (host === "rallybarcelonasitges.com" && pathWithoutAccents.includes("/68-edicio-2026")) return true;
+    if (pathWithoutAccents.includes("/calendar/trackdays/")) return true;
+    if (pathWithoutAccents.includes("/calendario-eventos")) return true;
+    if (host === "circuitcalafat.com" && pathWithoutAccents.includes("/calendario-eventos")) return true;
+    if (host === "ontrackmoto.info" && pathWithoutAccents.includes("/venue/")) return true;
+    if (pathWithoutAccents.includes("/venue/motorland-aragon")) return true;
   } catch {
     return false;
   }
