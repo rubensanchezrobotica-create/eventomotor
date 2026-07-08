@@ -220,6 +220,10 @@ function isGenericListingUrl(value: unknown) {
     if (host === "circuitcalafat.com" && pathWithoutAccents.includes("/calendario-eventos")) return true;
     if (host === "ontrackmoto.info" && pathWithoutAccents.includes("/venue/")) return true;
     if (pathWithoutAccents.includes("/venue/motorland-aragon")) return true;
+    if (host === "fapaonline.es" && pathWithoutAccents.includes("/calendario-de-competiciones")) return true;
+    if (pathWithoutAccents.includes("/calendario-de-competiciones")) return true;
+    if (host === "revistascratch.com" && pathWithoutAccents.includes("/nacional-tierra/noticia/el-cert-2026-presenta-su-calendario")) return true;
+    if (pathWithoutAccents.includes("el-cert-2026-presenta-su-calendario")) return true;
   } catch {
     return false;
   }
