@@ -216,6 +216,17 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "faa.net") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario-26")) return true;
+      if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
+      if (pathWithoutAccents.includes("/2015-campeonato-de-montana")) return true;
+      if (pathWithoutAccents === "/cava/" || pathWithoutAccents === "/cava") return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fcautomovilismo.com") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario-deportivo-2026")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
