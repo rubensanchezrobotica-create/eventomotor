@@ -228,6 +228,11 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/campeonatos/")) return true;
       if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
     }
+    if (host === "motorlandaragon.com") {
+      if (pathWithoutAccents.includes("/sites/default/files/")) return true;
+      if (pathWithoutAccents.endsWith(".pdf")) return true;
+      if (pathWithoutAccents.includes("0accgu~n.pdf")) return true;
+    }
     if (host === "concentracionesdemotos.com") {
       if (/^\/(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-20\d{2}\/?$/.test(pathWithoutAccents)) {
         return true;
