@@ -224,6 +224,15 @@ function isGenericListingUrl(value: unknown) {
     if (pathWithoutAccents.includes("/calendario-de-competiciones")) return true;
     if (host === "revistascratch.com" && pathWithoutAccents.includes("/nacional-tierra/noticia/el-cert-2026-presenta-su-calendario")) return true;
     if (pathWithoutAccents.includes("el-cert-2026-presenta-su-calendario")) return true;
+    if (host === "rfme.com") {
+      if (pathWithoutAccents.includes("/campeonatos/")) return true;
+      if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
+    }
+    if (host === "concentracionesdemotos.com") {
+      if (/^\/(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-20\d{2}\/?$/.test(pathWithoutAccents)) {
+        return true;
+      }
+    }
   } catch {
     return false;
   }
