@@ -211,6 +211,11 @@ function isGenericListingUrl(value: unknown) {
         return true;
       }
     }
+    if (host === "fga.es") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/2025/12/calendario-2026")) return true;
+      if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
