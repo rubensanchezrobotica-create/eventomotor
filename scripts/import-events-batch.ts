@@ -233,6 +233,10 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.endsWith(".pdf")) return true;
       if (pathWithoutAccents.includes("0accgu~n.pdf")) return true;
     }
+    if (host === "circuitricardotormo.com") {
+      if (pathWithoutAccents.includes("/el-circuit-presenta-su-calendario")) return true;
+      if (pathWithoutAccents.includes("motogp-como-gran-cita-del-ano-2026")) return true;
+    }
     if (host === "concentracionesdemotos.com") {
       if (/^\/(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-20\d{2}\/?$/.test(pathWithoutAccents)) {
         return true;
