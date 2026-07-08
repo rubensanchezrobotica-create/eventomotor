@@ -209,6 +209,12 @@ function isGenericListingUrl(value: unknown) {
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host === "suntosun.es" && /^\/sun-to-sun-\d{4}\/?$/.test(pathWithoutAccents)) return true;
+    if (host === "rallyclassics.club") {
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("classic-series-2026-y-motoclassic-series-2026")) return true;
+      if (pathWithoutAccents.includes("classic-series") || pathWithoutAccents.includes("motoclassic-series")) return true;
+    }
+    if (host === "rallybarcelonasitges.com" && pathWithoutAccents.includes("/68-edicio-2026")) return true;
   } catch {
     return false;
   }
