@@ -250,6 +250,10 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/calendario")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "fa-ib.com") {
+      if (pathWithoutAccents.includes("/web/calendario-2026")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "fca.cat") {
       if (pathWithoutAccents === "/ca/agenda" || pathWithoutAccents === "/ca/agenda/") return true;
       if (pathWithoutAccents === "/agenda" || pathWithoutAccents === "/agenda/") return true;
