@@ -245,6 +245,37 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario_facyl-2026")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "fenauto.com") {
+      if (pathWithoutAccents.includes("/calendario-definitivo-2026")) return true;
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fca.cat") {
+      if (pathWithoutAccents === "/ca/agenda" || pathWithoutAccents === "/ca/agenda/") return true;
+      if (pathWithoutAccents === "/agenda" || pathWithoutAccents === "/agenda/") return true;
+      if (pathWithoutAccents.includes("calendari") && pathWithoutAccents.endsWith(".pdf")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "farmu.es") {
+      if (pathWithoutAccents === "/agenda.asp") return true;
+      if (pathWithoutAccents.includes("calendario") || pathWithoutAccents.includes("agenda")) return true;
+    }
+    if (host === "superweb.net" && pathWithoutAccents.includes("/farmu/descargas/") && pathWithoutAccents.includes("calendario")) return true;
+    if (host === "fada.es") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fcta.es") return true;
+    if (host === "auto.sport2fit.com" && pathWithoutAccents.includes("/uploads/descargas/") && pathWithoutAccents.includes("calendario")) return true;
+    if (host === "eaf-fva.net") {
+      if (pathWithoutAccents.includes("/calendario-anual")) return true;
+      if (pathWithoutAccents.includes("/storage/") && pathWithoutAccents.includes("calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "federautorioja.org") {
+      if (pathWithoutAccents.includes("/wp") && pathWithoutAccents.includes("calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
