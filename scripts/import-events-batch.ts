@@ -292,6 +292,13 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/calendario")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "fcm.cat") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/2025/12/calendari-esportiu-2026-1.pdf")) return true;
+      if (pathWithoutAccents.includes("/fcm/calendari-esportiu-2026")) return true;
+      if (pathWithoutAccents.includes("/competicio/calendari-general")) return true;
+      if (pathWithoutAccents.includes("/competicio/calendari-campionat-de-catalunya")) return true;
+      if (pathWithoutAccents.includes("/competicio/calendari-no-puntuable")) return true;
+    }
     if (host === "fedemadrid.com") {
       if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
       if (pathWithoutAccents.includes("/wp-content/uploads/2026/")) return true;
