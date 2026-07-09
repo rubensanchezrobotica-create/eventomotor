@@ -1,7 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeRegion } from "@/lib/normalize-region";
 
 type EventExportRow = {
   id: string;
@@ -12,6 +14,7 @@ type EventExportRow = {
   venue: string | null;
   city: string | null;
   province: string | null;
+  region: string | null;
   country: string;
   discipline: string | null;
   category: string | null;
@@ -36,6 +39,7 @@ type SupabaseEventRow = {
   venue: string | null;
   city: string | null;
   province: string | null;
+  region: string | null;
   source: string | null;
   source_url: string | null;
   ticket_url: string | null;
@@ -97,6 +101,7 @@ const EVENT_SELECT = [
   "venue",
   "city",
   "province",
+  "region",
   "source",
   "source_url",
   "ticket_url",
@@ -305,6 +310,7 @@ function toExportRow(row: SupabaseEventRow): EventExportRow {
     venue: row.venue,
     city: row.city,
     province: row.province,
+    region: row.region,
     country: "ES",
     discipline: row.discipline,
     category: row.championship,
@@ -318,9 +324,21 @@ function toExportRow(row: SupabaseEventRow): EventExportRow {
   };
 }
 
-function countBy(events: EventExportRow[], field: "province" | "discipline"): CountSummary {
+function countBy(events: EventExportRow[], field: "province" | "discipline" | "region"): CountSummary {
   return events.reduce<CountSummary>((counts, event) => {
     const key = event[field]?.trim() || "(sin dato)";
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function isDirectRun() {
+  return Boolean(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href);
+}
+
+function countByNormalizedRegion(events: EventExportRow[]): CountSummary {
+  return events.reduce<CountSummary>((counts, event) => {
+    const key = normalizeRegion(event.region)?.trim() || "(sin dato)";
     counts[key] = (counts[key] || 0) + 1;
     return counts;
   }, {});
@@ -468,6 +486,8 @@ async function main() {
   const summary = {
     total_eventos: events.length,
     eventos_por_provincia: sortCounts(countBy(events, "province")),
+    eventos_por_region: sortCounts(countBy(events, "region")),
+    eventos_por_region_normalizada: sortCounts(countByNormalizedRegion(events)),
     eventos_por_disciplina: sortCounts(countBy(events, "discipline")),
     eventos_futuros: events.filter((event) => event.start_date >= today).length,
     posibles_duplicados_por_titulo_fecha_ciudad: duplicateGroups,
@@ -495,15 +515,19 @@ async function main() {
   console.log(`- total eventos: ${summary.total_eventos}`);
   console.log(`- eventos futuros: ${summary.eventos_futuros}`);
   console.log(`- provincias distintas: ${Object.keys(summary.eventos_por_provincia).length}`);
+  console.log(`- regiones distintas: ${Object.keys(summary.eventos_por_region).length}`);
+  console.log(`- regiones normalizadas distintas: ${Object.keys(summary.eventos_por_region_normalizada).length}`);
   console.log(`- disciplinas distintas: ${Object.keys(summary.eventos_por_disciplina).length}`);
   console.log(`- posibles duplicados titulo + fecha + ciudad: ${duplicateGroups.length}`);
   console.log(`- posibles errores provincia/municipio: ${geoIssues.length}`);
   console.log(`- archivo generado: ${outputPath}`);
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+if (isDirectRun()) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
 
-  console.error(`\nExport de eventos fallido: ${message}`);
-  process.exitCode = 1;
-});
+    console.error(`\nExport de eventos fallido: ${message}`);
+    process.exitCode = 1;
+  });
+}
