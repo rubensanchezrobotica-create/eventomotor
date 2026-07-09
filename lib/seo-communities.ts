@@ -1,4 +1,5 @@
 import type { EventItem } from "@/types/event";
+import { normalizeRegion } from "@/lib/normalize-region";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
 
 type RelatedPage = {
@@ -57,7 +58,7 @@ export const SEO_COMMUNITIES = {
     name: "Andalucia",
     regionAliases: ["andalucia"],
     provinces: ["sevilla", "malaga", "cadiz", "cordoba", "granada", "huelva", "jaen", "almeria"],
-    cityAliases: ["sevilla", "malaga", "cadiz", "cordoba", "granada", "huelva", "jaen", "almeria", "jerez", "jerez de la frontera", "osuna"],
+    cityAliases: ["sevilla", "malaga", "cadiz", "cordoba", "granada", "huelva", "jaen", "almeria", "jerez de la frontera", "osuna"],
     venueAliases: ["circuito de jerez", "angel nieto", "monteblanco"],
     relatedPages: [
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
@@ -106,6 +107,14 @@ function matchesStructuredField(value: string | undefined, aliases: readonly str
   });
 }
 
+function matchesRegionField(value: string | undefined, aliases: readonly string[]) {
+  const normalizedValue = normalizeRegion(value);
+
+  if (!normalizedValue) return false;
+
+  return aliases.some((alias) => normalizeRegion(alias) === normalizedValue);
+}
+
 function fallbackSearchText(event: EventItem) {
   return normalizeSeoText(
     [
@@ -137,7 +146,7 @@ function matchesFallbackAliases(event: EventItem, community: SeoCommunityConfig)
 export function matchesSeoCommunity(event: EventItem, community: SeoCommunityConfig) {
   const regionAliases = [community.name, ...community.regionAliases];
   const structuredMatch =
-    matchesStructuredField(event.region, regionAliases) ||
+    matchesRegionField(event.region, regionAliases) ||
     matchesStructuredField(event.province, community.provinces) ||
     matchesStructuredField(event.city, community.cityAliases);
 

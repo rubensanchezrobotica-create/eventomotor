@@ -8,6 +8,13 @@ const REGION_ALIASES = new Map<string, string>([
   ["madrid", "Comunidad de Madrid"],
   ["comunidad de madrid", "Comunidad de Madrid"],
   ["andalucia", "Andalucía"],
+  ["aragon", "Aragón"],
+  ["castilla y leon", "Castilla y León"],
+  ["region de murcia", "Región de Murcia"],
+  ["islas canarias", "Canarias"],
+  ["illes balears", "Baleares"],
+  ["euskadi", "País Vasco"],
+  ["pais vasco", "País Vasco"],
 ]);
 
 export function normalizeRegion(value: string | null | undefined) {
