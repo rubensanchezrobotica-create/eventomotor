@@ -280,6 +280,24 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("/wp") && pathWithoutAccents.includes("calendario")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
+    if (host === "famotos.com") {
+      if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fmcv.es") {
+      if (pathWithoutAccents.includes("/calendario-lista-todos")) return true;
+      if (pathWithoutAccents.includes("/publicados-los-calendarios-fmcv-2026")) return true;
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fedemadrid.com") {
+      if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
+      if (pathWithoutAccents.includes("/noticias/actualizado-el-calendario")) return true;
+      if (pathWithoutAccents.includes("/noticias/definido-el-calendario")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
     if (pathWithoutAccents.includes("/noticias/calendario")) return true;
