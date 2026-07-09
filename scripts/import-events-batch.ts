@@ -294,9 +294,20 @@ function isGenericListingUrl(value: unknown) {
     }
     if (host === "fedemadrid.com") {
       if (pathWithoutAccents.includes("/calendario-campeonatos")) return true;
+      if (pathWithoutAccents.includes("/wp-content/uploads/2026/")) return true;
       if (pathWithoutAccents.includes("/noticias/actualizado-el-calendario")) return true;
       if (pathWithoutAccents.includes("/noticias/definido-el-calendario")) return true;
+      if (pathWithoutAccents.includes("/noticias/modificaciones-en-el-calendario-del-campeonato-de-la-comunidad-de-madrid-de-motocross-2026")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fcmm.net") {
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("/wp-content/uploads/2026/")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
+    }
+    if (host === "fedemotocyl.es") {
+      if (pathWithoutAccents.includes("/calendario")) return true;
+      if (pathWithoutAccents.includes("/temporada-2026")) return true;
     }
     if (host === "motos.coches.net" && pathWithoutAccents.includes("/noticias/calendario")) return true;
     if (host.endsWith("coches.net") && pathWithoutAccents.includes("calendario-motosnet")) return true;
