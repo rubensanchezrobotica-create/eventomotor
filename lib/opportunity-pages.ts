@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { EventItem } from "@/types/event";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SEO_COMMUNITIES, matchesSeoCommunity } from "@/lib/seo-communities";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
 
 type RegionalHighlight = {
@@ -553,7 +554,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Ferias del motor", href: "/disciplinas/ferias" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => includesAny(event, ["madrid", "comunidad de madrid"]),
+    filter: (event) => matchesSeoCommunity(event, SEO_COMMUNITIES.madrid),
   },
   {
     slug: "eventos-motor-andalucia",
@@ -607,8 +608,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Ferias del motor", href: "/disciplinas/ferias" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) =>
-      includesAny(event, ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"]),
+    filter: (event) => matchesSeoCommunity(event, SEO_COMMUNITIES.andalucia),
   },
   {
     slug: "eventos-motor-cataluna",
@@ -663,7 +663,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => includesAny(event, ["cataluna", "cataluña", "catalunya", "barcelona", "girona", "tarragona", "lleida", "lerida", "lérida"]),
+    filter: (event) => matchesSeoCommunity(event, SEO_COMMUNITIES.cataluna),
   },
   {
     slug: "eventos-motor-comunidad-valenciana",
@@ -719,8 +719,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Ferias del motor", href: "/disciplinas/ferias" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) =>
-      includesAny(event, ["comunitat valenciana", "comunidad valenciana", "valencia", "alicante", "castellon", "castellón", "cheste", "ricardo tormo"]),
+    filter: (event) => matchesSeoCommunity(event, SEO_COMMUNITIES.comunidadValenciana),
   },
   {
     slug: "rodadas-moto-2026",
