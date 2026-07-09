@@ -33,6 +33,10 @@ export default function ConceptFooter() {
     {
       title: "Zonas",
       links: [
+        { label: "Eventos motor Cataluna", href: "/eventos-motor-cataluna" },
+        { label: "Eventos motor Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
+        { label: "Eventos motor Madrid", href: "/eventos-motor-madrid" },
+        { label: "Eventos motor Andalucia", href: "/eventos-motor-andalucia" },
         { label: "Eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
         { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },
       ],

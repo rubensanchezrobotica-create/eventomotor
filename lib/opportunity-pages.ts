@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import type { EventItem } from "@/types/event";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
 
 export type OpportunityPage = {
@@ -795,4 +797,25 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
 
 export function getOpportunityPage(slug: string) {
   return OPPORTUNITY_PAGES.find((page) => page.slug === slug);
+}
+
+export function buildOpportunityMetadata(page: OpportunityPage | undefined): Metadata {
+  const title = page?.title || SITE_NAME;
+  const description = page?.description;
+  const url = page ? `${SITE_URL}/${page.slug}` : SITE_URL;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: SITE_NAME,
+      type: "website",
+    },
+  };
 }

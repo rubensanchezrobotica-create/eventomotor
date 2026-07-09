@@ -93,7 +93,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries = [
     sitemapEntry("/", now, "daily", 1),
     sitemapEntry("/calendario", now, "daily", 0.95),
-    sitemapEntry("/eventos-motor-este-fin-de-semana", now, "daily", 0.9),
     sitemapEntry("/contacto", now, "monthly", 0.6),
     sitemapEntry("/publicar-evento", now, "weekly", 0.6),
     sitemapEntry("/aviso-legal", now, "yearly", 0.3),

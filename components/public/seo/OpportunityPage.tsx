@@ -180,6 +180,21 @@ function itemListJsonLd(page: OpportunityPageConfig, events: EventItem[]) {
   };
 }
 
+function collectionPageJsonLd(page: OpportunityPageConfig) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: page.h1,
+    description: page.description,
+    url: `${SITE_URL}/${page.slug}`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  };
+}
+
 function orderDisplayEvents(events: EventItem[], now: Date) {
   const upcoming = upcomingEventsByDate(events, now);
   const past = events
@@ -682,6 +697,17 @@ function faqJsonLd(page: OpportunityPageConfig) {
   };
 }
 
+function emptyAgendaText(page: OpportunityPageConfig) {
+  const regionalPrefix = "Eventos de motor en ";
+
+  if (page.h1.startsWith(regionalPrefix)) {
+    const zone = page.h1.slice(regionalPrefix.length);
+    return `Estamos actualizando la agenda de eventos de motor en ${zone}. Puedes consultar próximos eventos en otras zonas o publicar tu evento para que aparezca en EventoMotor.`;
+  }
+
+  return "Estamos actualizando esta agenda de eventos de motor. Puedes consultar próximos eventos en otras zonas o publicar tu evento para que aparezca en EventoMotor.";
+}
+
 export default async function OpportunityPage({ page }: { page: OpportunityPageConfig }) {
   const now = new Date();
   const visibleEvents = await getVisibleEvents();
@@ -701,14 +727,11 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const displayEvents = orderDisplayEvents(events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
   const isCataloniaPage = page.slug === "eventos-motor-cataluna";
-  const separatesPastEvents = isRallyesValenciaPage || isCataloniaPage || isConcentracionesPage || isMotoalmuerzosPage;
-  const mainEvents = separatesPastEvents ? upcomingEventsByDate(displayEvents, now) : displayEvents;
-  const pastEvents = separatesPastEvents
-    ? displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start))
-    : [];
+  const mainEvents = upcomingEventsByDate(displayEvents, now);
+  const pastEvents = displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start));
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
   const rallysprintCarrenoFeatured = page.slug === "rallysprint-espana-2026" ? displayEvents.find(isRallysprintCarreno) : null;
-  const hasItemListSchema = (isWeekendPage || isConcentracionesPage || isMotoalmuerzosPage) && mainEvents.length > 0;
+  const hasItemListSchema = mainEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
     { label: "Eventos", value: displayEvents.length.toString() },
@@ -723,6 +746,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(page)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd(page)) }}
       />
       {page.faqs.length ? (
         <script
@@ -822,28 +849,22 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               </div>
             ) : (
               <div className="emc-panel emc-publish-criteria">
-                <h2>{isWeekendPage ? "No hay eventos publicados para este fin de semana." : "No hay eventos destacados con estos filtros ahora mismo."}</h2>
-                <p>
-                  {isWeekendPage
-                    ? "Puedes revisar el calendario completo, consultar concentraciones y motoalmuerzos, o volver más adelante."
-                    : "Puedes consultar el calendario completo para ver próximos eventos por fecha, zona y disciplina."}
-                </p>
+                <h2>{isWeekendPage ? "No hay eventos publicados para este fin de semana." : "Estamos actualizando esta agenda."}</h2>
+                <p>{emptyAgendaText(page)}</p>
                 <div className="emc-contact-actions">
-                  <Link className="emc-btn emc-btn-primary" href="/calendario">
-                    Consultar calendario completo
+                  <Link className="emc-btn emc-btn-primary" href="/eventos-motor-este-fin-de-semana">
+                    Eventos de este fin de semana
+                  </Link>
+                  <Link className="emc-contact-secondary-link" href="/publicar-evento">
+                    Publicar evento
+                  </Link>
+                  <Link className="emc-contact-secondary-link" href="/concentraciones-moteras-2026">
+                    Concentraciones moteras 2026
                   </Link>
                   {isWeekendPage ? (
-                    <>
-                      <Link className="emc-contact-secondary-link" href="/concentraciones-moteras-2026">
-                        Concentraciones moteras
-                      </Link>
-                      <Link className="emc-contact-secondary-link" href="/motoalmuerzos-2026">
-                        Motoalmuerzos 2026
-                      </Link>
-                      <Link className="emc-contact-secondary-link" href="/publicar-evento">
-                        Publicar evento
-                      </Link>
-                    </>
+                    <Link className="emc-contact-secondary-link" href="/calendario">
+                      Consultar calendario completo
+                    </Link>
                   ) : null}
                 </div>
               </div>

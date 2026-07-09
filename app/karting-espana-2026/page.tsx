@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import OpportunityPage from "@/components/public/seo/OpportunityPage";
-import { getOpportunityPage } from "@/lib/opportunity-pages";
-import { SITE_URL } from "@/lib/seo";
+import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 
 const page = getOpportunityPage("karting-espana-2026");
 
-export const metadata: Metadata = {
-  title: page?.title,
-  description: page?.description,
-  alternates: {
-    canonical: `${SITE_URL}/karting-espana-2026`,
-  },
-};
+export const metadata: Metadata = buildOpportunityMetadata(page);
 
 export default function KartingEspana2026Page() {
   if (!page) notFound();

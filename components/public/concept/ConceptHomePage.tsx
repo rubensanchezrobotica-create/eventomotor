@@ -49,10 +49,15 @@ const POPULAR_SEARCH_LINKS = [
   { eyebrow: "Motos", label: "concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
   { eyebrow: "Rallyes", label: "rallyes en Espana 2026", href: "/rallyes-espana-2026" },
   { eyebrow: "Rallysprint", label: "rallysprint en Espana 2026", href: "/rallysprint-espana-2026" },
+  { eyebrow: "Cataluna", label: "eventos de motor en Cataluna", href: "/eventos-motor-cataluna" },
+  { eyebrow: "Comunidad Valenciana", label: "eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
+  { eyebrow: "Madrid", label: "eventos de motor en Madrid", href: "/eventos-motor-madrid" },
+  { eyebrow: "Andalucia", label: "eventos de motor en Andalucia", href: "/eventos-motor-andalucia" },
   { eyebrow: "Valencia", label: "rallyes en Valencia 2026", href: "/rallyes-valencia-2026" },
+  { eyebrow: "Circuito", label: "trackdays en Espana 2026", href: "/trackdays-espana-2026" },
   { eyebrow: "Barcelona", label: "eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
   { eyebrow: "Valencia", label: "eventos de motor en Valencia", href: "/eventos-motor-valencia" },
-  { eyebrow: "Karting", label: "eventos de karting", href: "/disciplinas/karting" },
+  { eyebrow: "Karting", label: "karting en Espana 2026", href: "/karting-espana-2026" },
   { eyebrow: "Ferias", label: "ferias del motor", href: "/disciplinas/ferias" },
 ];
 
