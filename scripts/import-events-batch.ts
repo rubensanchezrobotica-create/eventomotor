@@ -214,6 +214,7 @@ function isGenericListingUrl(value: unknown) {
     if (host === "fga.es") {
       if (pathWithoutAccents.includes("/wp-content/uploads/2025/12/calendario-2026")) return true;
       if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
+      if (pathWithoutAccents.includes("/project_category/probas-2026")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "faa.net") {
@@ -225,6 +226,7 @@ function isGenericListingUrl(value: unknown) {
     }
     if (host === "fcautomovilismo.com") {
       if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario-deportivo-2026")) return true;
+      if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "fexa.es") {
@@ -267,6 +269,7 @@ function isGenericListingUrl(value: unknown) {
     if (host === "superweb.net" && pathWithoutAccents.includes("/farmu/descargas/") && pathWithoutAccents.includes("calendario")) return true;
     if (host === "fada.es") {
       if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario")) return true;
+      if (pathWithoutAccents === "/calendario/" || pathWithoutAccents === "/calendario") return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "fcta.es") return true;
@@ -349,9 +352,12 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("motogp-como-gran-cita-del-ano-2026")) return true;
     }
     if (host === "jarama.org") {
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario-jarama-race")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
       if (pathWithoutAccents.includes("/actualidad/noticias/el-campeonato-race-de-velocidad")) return true;
       if (pathWithoutAccents.includes("campeonato-race-de-velocidad-inicia-la-temporada")) return true;
     }
+    if (host === "riderspirit.es" && (pathWithoutAccents === "/eventos/" || pathWithoutAccents === "/eventos")) return true;
     if (host === "concentracionesdemotos.com") {
       if (/^\/(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)-20\d{2}\/?$/.test(pathWithoutAccents)) {
         return true;
