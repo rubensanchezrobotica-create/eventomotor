@@ -242,6 +242,8 @@ function isGenericListingUrl(value: unknown) {
     }
     if (host === "fmautomovilismo.com") {
       if (pathWithoutAccents === "/proximas-pruebas" || pathWithoutAccents === "/proximas-pruebas/") return true;
+      if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calen_2026")) return true;
+      if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "facyl.com") {
       if (pathWithoutAccents.includes("/wp-content/uploads/") && pathWithoutAccents.includes("calendario_facyl-2026")) return true;
