@@ -599,32 +599,27 @@ function WeekendSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
   );
 }
 
-function CataloniaSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
+function matchesRegionalHighlight(event: EventItem, highlight: NonNullable<OpportunityPageConfig["regionalHub"]>["highlights"][number]) {
+  const vehicleType = event.vehicleType || event.vehicle_type;
+  const matchesTerms = hasAny(event, highlight.terms);
+  const matchesVehicle = highlight.vehicleTypes?.some((type) => type === vehicleType) || false;
+
+  return matchesTerms || matchesVehicle;
+}
+
+function RegionalSeoHub({ page, events, now }: { page: OpportunityPageConfig; events: EventItem[]; now: Date }) {
+  const regionalHub = page.regionalHub;
+
+  if (page.layoutType !== "regional" || !regionalHub) return null;
+
   const upcomingEvents = upcomingEventsByDate(events, now);
   const { saturday, sunday } = weekendDays(now);
   const weekendEvents = upcomingEvents.filter((event) => overlapsDay(event, saturday) || overlapsDay(event, sunday));
-  const quickGroups = [
-    {
-      label: "Concentraciones moteras",
-      href: "/disciplinas/concentraciones",
-      count: weekendEvents.filter((event) => hasAny(event, ["concentracion", "concentración", "motoalmuerzo", "motera", "moteras", "biker"])).length,
-    },
-    {
-      label: "Rallyes",
-      href: "/disciplinas/rallyes",
-      count: weekendEvents.filter((event) => hasAny(event, ["rally", "rallye", "rallysprint", "subida"])).length,
-    },
-    {
-      label: "Eventos de coches",
-      href: "/calendario",
-      count: weekendEvents.filter((event) => (event.vehicleType || event.vehicle_type) === "coche" || hasAny(event, ["coche", "coches", "4x4", "clasico", "clásico"])).length,
-    },
-    {
-      label: "Cerca de Girona",
-      href: "/calendario",
-      count: weekendEvents.filter((event) => hasAny(event, ["girona", "ribes de freser"])).length,
-    },
-  ].filter((item) => item.count > 0);
+  const quickGroups = regionalHub.highlights.map((highlight) => ({
+    label: highlight.label,
+    href: highlight.href,
+    count: weekendEvents.filter((event) => matchesRegionalHighlight(event, highlight)).length,
+  }));
 
   return (
     <section className="emc-section emc-weekend-group-section">
@@ -632,15 +627,15 @@ function CataloniaSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
         <div className="emc-section-head">
           <div>
             <div className="emc-kicker">Fin de semana</div>
-            <h2>Eventos de motor este fin de semana en Cataluña</h2>
+            <h2>{regionalHub.title}</h2>
           </div>
-          <p>Selección regional con eventos publicados para el sábado y domingo más cercano.</p>
+          <p>{regionalHub.description}</p>
         </div>
         <div className="emc-weekend-group-layout">
           <div>
-            <h3>Agenda regional del fin de semana</h3>
+            <h3>{regionalHub.weekendTitle}</h3>
             <CompactEventList
-              emptyText="No hay eventos publicados para este fin de semana en Cataluña. Revisa el calendario completo o vuelve a consultar más adelante."
+              emptyText={regionalHub.emptyText}
               events={weekendEvents}
             />
             <div className="emc-contact-actions emc-opportunity-actions">
@@ -649,18 +644,15 @@ function CataloniaSeoHub({ events, now }: { events: EventItem[]; now: Date }) {
               </Link>
             </div>
           </div>
-          {quickGroups.length ? (
-            <div>
-              <h3>Accesos rápidos por intención</h3>
-              <CountGrid items={quickGroups} />
-            </div>
-          ) : null}
+          <div>
+            <h3>{regionalHub.highlightsTitle}</h3>
+            <CountGrid items={quickGroups} />
+          </div>
         </div>
       </div>
     </section>
   );
 }
-
 function breadcrumbJsonLd(page: OpportunityPageConfig) {
   return {
     "@context": "https://schema.org",
@@ -726,7 +718,6 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const events = isWeekendPage ? preferPublishedWeekendEvents(rawEvents) : rawEvents;
   const displayEvents = orderDisplayEvents(events, now);
   const isRallyesValenciaPage = page.slug === "rallyes-valencia-2026";
-  const isCataloniaPage = page.slug === "eventos-motor-cataluna";
   const mainEvents = upcomingEventsByDate(displayEvents, now);
   const pastEvents = displayEvents.filter((event) => !isUpcomingEvent(event, now)).sort((a, b) => b.start.localeCompare(a.start));
   const rallyValenciaFeatured = page.slug === "rallyes-valencia-2026" ? displayEvents.find(isRallyeCiudadDeValencia) : null;
@@ -800,7 +791,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
         {isWeekendPage ? <WeekendSeoHub events={events} now={now} /> : null}
         {isConcentracionesPage ? <ConcentracionesSeoHub events={displayEvents} now={now} /> : null}
         {isMotoalmuerzosPage ? <MotoalmuerzosSeoHub events={displayEvents} relatedEvents={relatedEvents} now={now} /> : null}
-        {isCataloniaPage ? <CataloniaSeoHub events={displayEvents} now={now} /> : null}
+        {page.layoutType === "regional" ? <RegionalSeoHub page={page} events={displayEvents} now={now} /> : null}
 
         {rallysprintCarrenoFeatured ? (
           <section className="emc-section emc-weekend-hub-section">

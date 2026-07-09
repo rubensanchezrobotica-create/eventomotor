@@ -3,6 +3,23 @@ import type { EventItem } from "@/types/event";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
 
+type RegionalHighlight = {
+  label: string;
+  href: string;
+  terms: string[];
+  vehicleTypes?: string[];
+};
+
+type RegionalHub = {
+  regionName: string;
+  title: string;
+  description: string;
+  weekendTitle: string;
+  emptyText: string;
+  highlightsTitle: string;
+  highlights: RegionalHighlight[];
+};
+
 export type OpportunityPage = {
   slug: string;
   h1: string;
@@ -16,6 +33,8 @@ export type OpportunityPage = {
   usageSteps: Array<{ title: string; text: string }>;
   faqs: Array<{ question: string; answer: string }>;
   relatedLinks: Array<{ label: string; href: string }>;
+  layoutType?: "regional";
+  regionalHub?: RegionalHub;
   filter: (event: EventItem, now: Date) => boolean;
   fallbackFilter?: (event: EventItem, now: Date) => boolean;
   relatedFilter?: (event: EventItem, now: Date) => boolean;
@@ -490,6 +509,21 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     lead:
       "Agenda local para descubrir eventos de motor en Madrid y Comunidad de Madrid, con citas de motos, coches, karting, ferias y concentraciones.",
     resultsTitle: "Eventos de motor en Madrid",
+    layoutType: "regional",
+    regionalHub: {
+      regionName: "Madrid",
+      title: "Eventos de motor este fin de semana en Madrid",
+      description: "Seleccion regional con eventos publicados para Madrid y su entorno: Jarama, clubes locales, concentraciones, clasicos, ferias y rutas.",
+      weekendTitle: "Agenda regional del fin de semana",
+      emptyText: "No hay eventos publicados para este fin de semana en Madrid. Revisa la agenda nacional o vuelve a consultar mas adelante.",
+      highlightsTitle: "Accesos rapidos por intencion",
+      highlights: [
+        { label: "Concentraciones moteras", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "moteras", "biker"] },
+        { label: "Jarama y circuito", href: "/disciplinas/circuito", terms: ["jarama", "circuito", "trackday", "tandas", "rodada", "rodadas"] },
+        { label: "Clasicos y coches", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico", "coche", "coches"], vehicleTypes: ["coche"] },
+        { label: "Ferias y rutas", href: "/calendario", terms: ["feria", "salon", "ruta", "mototurismo"] },
+      ],
+    },
     intro:
       "Madrid concentra una parte importante de la actividad de motor en España: concentraciones moteras, eventos de coches, karting, ferias, rutas y citas vinculadas a clubes, recintos o municipios de la Comunidad de Madrid. Esta pagina agrupa eventos publicados en EventoMotor que tienen relacion con Madrid como ciudad, provincia o comunidad autonoma. No inventamos eventos ni completamos programas: solo mostramos citas visibles en el calendario con datos suficientes para enlazar a una ficha individual. Desde cada evento puedes revisar fecha, ciudad, provincia, disciplina, tipo de vehiculo, fuente oficial y enlaces disponibles antes de planificar tu asistencia.",
     editorialBlocks: [
@@ -531,6 +565,21 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     lead:
       "Calendario de eventos de motor en Andalucia con rallyes, concentraciones moteras, karting, ferias y planes de coches o motos.",
     resultsTitle: "Eventos de motor en Andalucía",
+    layoutType: "regional",
+    regionalHub: {
+      regionName: "Andalucia",
+      title: "Eventos de motor este fin de semana en Andalucia",
+      description: "Seleccion regional para Sevilla, Malaga, Cadiz, Granada, Cordoba, Jaen, Huelva y Almeria, con foco en eventos publicados y verificables.",
+      weekendTitle: "Agenda regional del fin de semana",
+      emptyText: "No hay eventos publicados para este fin de semana en Andalucia. Revisa la agenda nacional o vuelve a consultar mas adelante.",
+      highlightsTitle: "Accesos rapidos por disciplina",
+      highlights: [
+        { label: "Rallyes y subidas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "subida"] },
+        { label: "Concentraciones moteras", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "moteras", "biker"] },
+        { label: "Motocross y enduro", href: "/disciplinas/offroad", terms: ["motocross", "enduro", "offroad", "trial", "mx"] },
+        { label: "Ferias y clasicos", href: "/disciplinas/ferias", terms: ["feria", "salon", "clasico", "clasicos", "historico"] },
+      ],
+    },
     intro:
       "Andalucia tiene una escena de motor amplia, con rallyes, subidas, concentraciones moteras, karting, ferias, clasicos y eventos locales repartidos por Sevilla, Malaga, Cadiz, Cordoba, Granada, Huelva, Jaen y Almeria. Esta pagina filtra eventos publicados en EventoMotor que encajan con la region andaluza o sus provincias principales. El objetivo es facilitar una busqueda local clara para aficionados que quieren localizar planes reales sin recorrer todo el calendario nacional. Cada resultado enlaza a una ficha donde se priorizan fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles. Antes de desplazarte, confirma siempre horarios o inscripciones en la comunicacion oficial.",
     editorialBlocks: [
@@ -571,6 +620,21 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     lead:
       "Una vista regional para descubrir eventos de motor en Cataluña, incluyendo citas de este fin de semana en Barcelona, Girona, Tarragona y Lleida cuando hay eventos publicados.",
     resultsTitle: "Próximos eventos de motor en Cataluña",
+    layoutType: "regional",
+    regionalHub: {
+      regionName: "Cataluna",
+      title: "Eventos de motor este fin de semana en Cataluna",
+      description: "Seleccion regional para Barcelona, Girona, Tarragona y Lleida, con circuito, rallyes, concentraciones, clasicos y eventos publicados en EventoMotor.",
+      weekendTitle: "Agenda regional del fin de semana",
+      emptyText: "No hay eventos publicados para este fin de semana en Cataluna. Revisa la agenda nacional o vuelve a consultar mas adelante.",
+      highlightsTitle: "Accesos rapidos por intencion",
+      highlights: [
+        { label: "Barcelona, Girona y Tarragona", href: "/eventos-motor-barcelona", terms: ["barcelona", "girona", "tarragona", "lleida"] },
+        { label: "Circuit de Barcelona-Catalunya", href: "/disciplinas/circuito", terms: ["montmelo", "montmeló", "circuit de barcelona", "circuito", "trackday"] },
+        { label: "Rallyes y concentraciones", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "subida", "concentracion", "motoalmuerzo"] },
+        { label: "Motos, clasicos y coches", href: "/calendario", terms: ["moto", "motera", "clasico", "clasicos", "coche", "coches"], vehicleTypes: ["moto", "coche"] },
+      ],
+    },
     intro:
       "Cataluña es una de las zonas con mas actividad del calendario de motor, con eventos en Barcelona, Girona, Tarragona y Lleida, ademas de competiciones, karting, concentraciones moteras, rallyes, circuito, ferias y clasicos. Esta pagina agrupa eventos publicados en EventoMotor que tienen relacion con Cataluña, Catalunya o sus provincias principales. La intencion es ofrecer una entrada regional clara para usuarios que buscan eventos motor Cataluña, eventos motor Barcelona o rallyes en Cataluña sin mezclar resultados de otras zonas. Cada card enlaza a una ficha individual con fecha, ubicacion, disciplina, fuente oficial y enlaces disponibles si existen.",
     editorialBlocks: [
@@ -611,6 +675,21 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     lead:
       "Agenda regional de eventos de motor en Comunidad Valenciana, con Valencia, Alicante, Castellon, rallyes, concentraciones, circuito, karting y ferias.",
     resultsTitle: "Eventos de motor en Comunidad Valenciana",
+    layoutType: "regional",
+    regionalHub: {
+      regionName: "Comunidad Valenciana",
+      title: "Eventos de motor este fin de semana en Comunidad Valenciana",
+      description: "Seleccion regional para Valencia, Alicante y Castellon, con Cheste, Ricardo Tormo, rallyes, concentraciones, clasicos y eventos mixtos.",
+      weekendTitle: "Agenda regional del fin de semana",
+      emptyText: "No hay eventos publicados para este fin de semana en Comunidad Valenciana. Revisa la agenda nacional o vuelve a consultar mas adelante.",
+      highlightsTitle: "Accesos rapidos por zona y tipo",
+      highlights: [
+        { label: "Valencia, Alicante y Castellon", href: "/eventos-motor-valencia", terms: ["valencia", "alicante", "castellon", "castellón"] },
+        { label: "Cheste y Ricardo Tormo", href: "/disciplinas/circuito", terms: ["cheste", "ricardo tormo", "circuito", "trackday", "tandas"] },
+        { label: "Rallyes valencianos", href: "/rallyes-valencia-2026", terms: ["rally", "rallye", "rallysprint", "subida", "ceramica"] },
+        { label: "Motos, coches y clasicos", href: "/calendario", terms: ["moto", "motera", "coche", "coches", "clasico", "clasicos"], vehicleTypes: ["moto", "coche"] },
+      ],
+    },
     intro:
       "La Comunidad Valenciana combina eventos de motor en Valencia, Alicante y Castellon con rallyes, concentraciones moteras, karting, ferias, circuito, clasicos y planes de coches o motos. Esta landing esta pensada para busquedas como eventos motor Comunidad Valenciana, eventos de motor en Valencia, rallyes Valencia 2026 o concentraciones moteras Valencia. Los resultados proceden de eventos visibles en EventoMotor y no se inventan citas ni programas. Desde cada ficha puedes revisar fecha, ciudad, provincia, disciplina, fuente oficial y enlaces disponibles antes de desplazarte o compartir el evento.",
     editorialBlocks: [
