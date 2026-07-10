@@ -232,6 +232,7 @@ function isGenericListingUrl(value: unknown) {
     if (host === "fexa.es") {
       if (pathWithoutAccents === "/eventos/" || pathWithoutAccents === "/eventos") return true;
       if (pathWithoutAccents.includes("/eventos/")) return true;
+      if (pathWithoutAccents.includes("/pre-calendario-2026")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "fedacv.com") {
@@ -275,8 +276,10 @@ function isGenericListingUrl(value: unknown) {
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
     }
     if (host === "fcta.es") return true;
+    if (host === "cantabriaclassicrally.com" && (pathWithoutAccents === "/eventos.html" || pathWithoutAccents === "/eventos")) return true;
     if (host === "auto.sport2fit.com" && pathWithoutAccents.includes("/uploads/descargas/") && pathWithoutAccents.includes("calendario")) return true;
     if (host === "eaf-fva.net") {
+      if (pathWithoutAccents === "/" || pathWithoutAccents === "") return true;
       if (pathWithoutAccents.includes("/calendario-anual")) return true;
       if (pathWithoutAccents.includes("/storage/") && pathWithoutAccents.includes("calendario")) return true;
       if (pathWithoutAccents.includes("calendario") && pathWithoutAccents.endsWith(".pdf")) return true;
