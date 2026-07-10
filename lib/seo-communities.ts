@@ -181,6 +181,102 @@ export const SEO_COMMUNITIES = {
       shortDescription: "Eventos de motor en Castilla y Leon, Leon, Valladolid, Burgos, Salamanca, Zamora, Avila, Segovia, Palencia y Soria.",
     },
   },
+  asturias: {
+    landingSlug: "eventos-motor-asturias",
+    name: "Asturias",
+    regionAliases: ["asturias", "principado de asturias"],
+    provinces: ["asturias"],
+    cityAliases: ["gijon", "oviedo", "luarca", "langreo", "cangas", "cangas del narcea", "ribadesella", "pravia", "castropol", "navia"],
+    venueAliases: ["los dolmenes"],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Rallyes", href: "/disciplinas/rallyes" },
+      { label: "Rutas moteras", href: "/disciplinas/rutas" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en Asturias, Oviedo, Gijon, Luarca, Langreo y otros municipios asturianos.",
+    },
+  },
+  cantabria: {
+    landingSlug: "eventos-motor-cantabria",
+    name: "Cantabria",
+    regionAliases: ["cantabria"],
+    provinces: ["cantabria"],
+    cityAliases: ["santander", "torrelavega", "comillas", "heras", "potes", "saron", "santa maria de cayon", "cayon"],
+    venueAliases: ["pena cabarga", "peña cabarga", "cabarga"],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Clasicos", href: "/disciplinas/clasicos" },
+      { label: "Rallyes", href: "/disciplinas/rallyes" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en Cantabria, Santander, Torrelavega, Comillas y zonas cercanas.",
+    },
+  },
+  navarra: {
+    landingSlug: "eventos-motor-navarra",
+    name: "Navarra",
+    regionAliases: ["navarra", "comunidad foral de navarra"],
+    provinces: ["navarra"],
+    cityAliases: ["pamplona", "iruna", "iruña", "tudela", "los arcos", "corella", "ultzama", "tafalla", "estella"],
+    venueAliases: ["circuito de navarra", "navarra circuit"],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Circuito", href: "/disciplinas/circuito" },
+      { label: "Rallyes", href: "/disciplinas/rallyes" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en Navarra, Pamplona, Los Arcos, Corella y Circuito de Navarra.",
+    },
+  },
+  extremadura: {
+    landingSlug: "eventos-motor-extremadura",
+    name: "Extremadura",
+    regionAliases: ["extremadura"],
+    provinces: ["badajoz", "caceres", "cáceres"],
+    cityAliases: ["badajoz", "caceres", "cáceres", "merida", "mérida", "plasencia", "almendralejo", "olivenza", "jaraiz de la vera", "aceuchal"],
+    venueAliases: [],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Rallyes", href: "/disciplinas/rallyes" },
+      { label: "Karting", href: "/disciplinas/karting" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en Extremadura, Badajoz, Caceres, Merida, Plasencia y otros municipios.",
+    },
+  },
+  baleares: {
+    landingSlug: "eventos-motor-baleares",
+    name: "Baleares",
+    regionAliases: ["baleares", "illes balears", "islas baleares"],
+    provinces: ["baleares", "illes balears"],
+    cityAliases: ["palma", "calvia", "calvià", "inca", "felanitx", "llucmajor", "sineu", "eivissa", "ibiza", "menorca", "mallorca", "magaluf", "can picafort"],
+    venueAliases: ["puig major", "sa cala", "sant salvador"],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Rallyes", href: "/disciplinas/rallyes" },
+      { label: "Karting", href: "/disciplinas/karting" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en Baleares, Mallorca, Palma, Ibiza, Menorca y otras zonas de las islas.",
+    },
+  },
+  paisVasco: {
+    landingSlug: "eventos-motor-pais-vasco",
+    name: "País Vasco",
+    regionAliases: ["pais vasco", "país vasco", "euskadi"],
+    provinces: ["alava", "álava", "araba", "bizkaia", "vizcaya", "gipuzkoa", "guipuzcoa", "guipúzcoa"],
+    cityAliases: ["bilbao", "vitoria", "vitoria-gasteiz", "donostia", "san sebastian", "durango", "abadiño", "abadino", "eskoriatza", "irun"],
+    venueAliases: [],
+    relatedPages: [
+      { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
+      { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
+      { label: "Clasicos", href: "/disciplinas/clasicos" },
+    ],
+    copy: {
+      shortDescription: "Eventos de motor en País Vasco, Bizkaia, Gipuzkoa, Alava, Bilbao, Vitoria-Gasteiz y Donostia.",
+    },
+  },
 } as const satisfies Record<string, SeoCommunityConfig>;
 
 function normalizeValue(value?: string | null) {
@@ -192,14 +288,28 @@ function hasUsableLocationValue(value?: string | null) {
   return Boolean(normalizedValue && normalizedValue !== "por confirmar");
 }
 
-function matchesStructuredField(value: string | undefined, aliases: readonly string[]) {
+function structuredFieldValues(value?: string | null) {
   const normalizedValue = normalizeValue(value);
 
-  if (!normalizedValue || normalizedValue === "por confirmar") return false;
+  if (!normalizedValue || normalizedValue === "por confirmar") return [];
+
+  return [
+    normalizedValue,
+    ...normalizedValue
+      .split(/[;,/|]+/)
+      .map((part) => part.trim())
+      .filter(Boolean),
+  ];
+}
+
+function matchesStructuredField(value: string | undefined, aliases: readonly string[]) {
+  const values = structuredFieldValues(value);
+
+  if (!values.length) return false;
 
   return aliases.some((alias) => {
     const normalizedAlias = normalizeValue(alias);
-    return normalizedValue === normalizedAlias || normalizedValue.includes(normalizedAlias);
+    return Boolean(normalizedAlias && values.includes(normalizedAlias));
   });
 }
 
@@ -232,7 +342,6 @@ function matchesFallbackAliases(event: EventItem, community: SeoCommunityConfig)
     community.name,
     ...community.regionAliases,
     ...community.provinces,
-    ...community.cityAliases,
     ...community.venueAliases,
   ];
 
