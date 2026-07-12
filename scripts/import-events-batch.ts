@@ -61,6 +61,7 @@ const ALLOWED_SOURCE_TYPES = new Set([
   "municipality",
   "media",
   "aggregator",
+  "secondary",
   "unknown",
 ]);
 const ALLOWED_DUPLICATE_REVIEW_STATUSES = new Set(["approved_distinct", "rejected_duplicate"]);
