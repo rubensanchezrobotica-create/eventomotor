@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { getVehicleType } from "../lib/event-classification";
@@ -554,18 +555,6 @@ function mapExistingByText(rows: ExistingEventRow[], getter: (row: ExistingEvent
   return map;
 }
 
-function mapExistingBySpecificUrl(rows: ExistingEventRow[], getter: (row: ExistingEventRow) => string | null | undefined) {
-  const map = new Map<string, ExistingEventRow>();
-
-  for (const row of rows) {
-    const key = specificEventUrlKey(getter(row));
-
-    if (key) map.set(key, row);
-  }
-
-  return map;
-}
-
 function mapExistingByDuplicateKey(rows: ExistingEventRow[], field: "city" | "province") {
   const map = new Map<string, ExistingEventRow>();
 
@@ -615,6 +604,10 @@ function possibleDuplicateReason(row: EventUpsert, existing: ExistingEventRow) {
   const existingKeywords = keywordGroups([existing.title, existing.discipline, existing.vehicle_type, existing.venue].join(" "));
   const sharedKeywords = sharedKeywordGroups(rowKeywords, existingKeywords);
   const sameType = sameDisciplineOrVehicle(row, existing);
+  const rowUrls = new Set([specificEventUrlKey(row.source_url), specificEventUrlKey(row.official_url)].filter(Boolean));
+  const sharesSpecificUrl = [specificEventUrlKey(existing.source_url), specificEventUrlKey(existing.official_url)].some(
+    (url) => Boolean(url && rowUrls.has(url)),
+  );
   const titleLooksSimilar = titleSimilarity >= 0.5 || sharedKeywords.length >= 2 || (sharedKeywords.length >= 1 && titleSimilarity >= 0.3);
 
   if (!titleLooksSimilar && !(sameType && sharedKeywords.length >= 1 && titleSimilarity >= 0.25)) {
@@ -629,6 +622,7 @@ function possibleDuplicateReason(row: EventUpsert, existing: ExistingEventRow) {
   if (titleSimilarity >= 0.5) reasons.push("titulos parecidos");
   if (sharedKeywords.length) reasons.push(`keywords: ${sharedKeywords.join(", ")}`);
   if (sameType) reasons.push("misma disciplina/tipo");
+  if (sharesSpecificUrl) reasons.push("misma URL especifica");
 
   return `posible duplicado con "${existing.title}" (${formatExistingDate(existing)}, slug: ${existing.slug || existing.id}) por ${reasons.join("; ")}`;
 }
@@ -651,7 +645,7 @@ async function readBatch(filePath: string) {
   });
 }
 
-function validateEvent(input: BatchEventInput, index: number, updatedAt: string): ValidatedEvent {
+export function validateEvent(input: BatchEventInput, index: number, updatedAt: string): ValidatedEvent {
   const errors: string[] = [];
   const warnings: string[] = [];
   const title = optionalText(input, "title");
@@ -816,15 +810,13 @@ async function fetchExistingEvents(supabase: Awaited<ReturnType<typeof createSup
   return events;
 }
 
-function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEventRow[]) {
+export function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEventRow[]) {
   const existingIds = mapExistingByText(existingRows, (row) => row.id);
   const existingSlugs = mapExistingByText(existingRows, (row) => row.slug);
-  const existingSourceUrls = mapExistingBySpecificUrl(existingRows, (row) => row.source_url);
-  const existingOfficialUrls = mapExistingBySpecificUrl(existingRows, (row) => row.official_url);
   const existingTitleDateCity = mapExistingByDuplicateKey(existingRows, "city");
   const existingTitleDateProvince = mapExistingByDuplicateKey(existingRows, "province");
   const batchSlugs = new Map<string, number>();
-  const batchSourceUrls = new Map<string, number>();
+  const batchTitleDateCities = new Map<string, number>();
 
   for (const event of events) {
     const row = event.row;
@@ -832,9 +824,11 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
     if (!row) continue;
 
     batchSlugs.set(row.slug || "", (batchSlugs.get(row.slug || "") || 0) + 1);
-    const sourceUrlKey = specificEventUrlKey(row.source_url);
 
-    if (sourceUrlKey) batchSourceUrls.set(sourceUrlKey, (batchSourceUrls.get(sourceUrlKey) || 0) + 1);
+    if (row.city) {
+      const key = duplicateKey(row, "city");
+      batchTitleDateCities.set(key, (batchTitleDateCities.get(key) || 0) + 1);
+    }
   }
 
   for (const event of events) {
@@ -844,17 +838,14 @@ function classifyDuplicates(events: ValidatedEvent[], existingRows: ExistingEven
 
     const idMatch = row.id ? existingIds.get(row.id) : null;
     const slugMatch = row.slug ? existingSlugs.get(row.slug) : null;
-    const sourceUrlKey = specificEventUrlKey(row.source_url);
-    const officialUrlKey = specificEventUrlKey(row.official_url);
-    const sourceUrlMatch = sourceUrlKey ? existingSourceUrls.get(sourceUrlKey) : null;
-    const officialUrlMatch = officialUrlKey ? existingOfficialUrls.get(officialUrlKey) : null;
+    const batchTitleDateCity = row.city ? duplicateKey(row, "city") : null;
 
     if (idMatch) event.duplicateReasons.push(`id existente en "${idMatch.title}" (${formatExistingDate(idMatch)}, slug: ${idMatch.slug || idMatch.id}).`);
     if (slugMatch) event.duplicateReasons.push(`slug existente en "${slugMatch.title}" (${formatExistingDate(slugMatch)}, slug: ${slugMatch.slug || slugMatch.id}).`);
     if (row.slug && (batchSlugs.get(row.slug) || 0) > 1) event.duplicateReasons.push(`slug repetido en lote: ${row.slug}`);
-    if (sourceUrlMatch) event.duplicateReasons.push(`source_url existente en "${sourceUrlMatch.title}" (${formatExistingDate(sourceUrlMatch)}, slug: ${sourceUrlMatch.slug || sourceUrlMatch.id}).`);
-    if (sourceUrlKey && (batchSourceUrls.get(sourceUrlKey) || 0) > 1) event.duplicateReasons.push("source_url especifico repetido en lote.");
-    if (officialUrlMatch) event.duplicateReasons.push(`official_url existente en "${officialUrlMatch.title}" (${formatExistingDate(officialUrlMatch)}, slug: ${officialUrlMatch.slug || officialUrlMatch.id}).`);
+    if (batchTitleDateCity && (batchTitleDateCities.get(batchTitleDateCity) || 0) > 1) {
+      event.duplicateReasons.push("title + start_date + city repetido en lote.");
+    }
 
     const titleDateCity = duplicateKey(row, "city");
     const titleDateProvince = duplicateKey(row, "province");
@@ -1000,9 +991,13 @@ async function main() {
   await insertEvents(supabase, validated);
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+const entryPoint = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null;
 
-  console.error(`\nImportacion por lotes fallida: ${message}`);
-  process.exitCode = 1;
-});
+if (entryPoint === import.meta.url) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+
+    console.error(`\nImportacion por lotes fallida: ${message}`);
+    process.exitCode = 1;
+  });
+}
