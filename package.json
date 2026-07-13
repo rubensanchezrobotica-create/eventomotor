@@ -26,6 +26,8 @@
     "test:events-dedupe": "tsx --test scripts/import-events-batch.test.ts",
     "correct:events": "tsx scripts/apply-event-corrections.ts",
     "test:event-corrections": "tsx --test scripts/apply-event-corrections.test.ts",
+    "cleanup:events": "tsx scripts/remove-obsolete-events.ts",
+    "test:event-cleanup": "tsx --test scripts/remove-obsolete-events.test.ts",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
