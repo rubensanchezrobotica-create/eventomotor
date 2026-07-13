@@ -1,0 +1,44 @@
+[
+  {
+    "id": "batch-cross-country-castilla-la-mancha-villarta-2026-11-15",
+    "title": "Cross Country Castilla-La Mancha Villarta 2026",
+    "old_start_date": "2026-11-15",
+    "old_end_date": "2026-11-15",
+    "new_start_date": "2026-11-08",
+    "new_end_date": "2026-11-08",
+    "keep_id": true,
+    "keep_slug": true,
+    "old_source_url": "https://fcmm.net/wp-content/uploads/2026/02/2026-CALENDARIO-XC_ver-31enero.pdf",
+    "new_source_url": "https://fcmm.net/wp-content/uploads/2026/04/2026-CALENDARIO-XC_ver-22abril.pdf",
+    "reason": "El calendario FCMM actualizado el 22 de abril traslada Villarta al 8 de noviembre.",
+    "status": "pending_update"
+  },
+  {
+    "id": "batch-cross-country-castilla-la-mancha-villalpardo-2026-11-29",
+    "title": "Cross Country Castilla-La Mancha Villalpardo 2026",
+    "old_start_date": "2026-11-29",
+    "old_end_date": "2026-11-29",
+    "new_start_date": "2026-11-22",
+    "new_end_date": "2026-11-22",
+    "keep_id": true,
+    "keep_slug": true,
+    "old_source_url": "https://fcmm.net/wp-content/uploads/2026/02/2026-CALENDARIO-XC_ver-31enero.pdf",
+    "new_source_url": "https://fcmm.net/wp-content/uploads/2026/04/2026-CALENDARIO-XC_ver-22abril.pdf",
+    "reason": "El calendario FCMM actualizado el 22 de abril traslada Villalpardo al 22 de noviembre.",
+    "status": "pending_update"
+  },
+  {
+    "id": "batch-enduro-sprint-y-tt-clasico-sotopalacios-2026-11-15",
+    "title": "Enduro Sprint y TT Clásico Sotopalacios 2026",
+    "old_start_date": "2026-11-15",
+    "old_end_date": "2026-11-15",
+    "new_start_date": "2026-11-14",
+    "new_end_date": "2026-11-14",
+    "keep_id": true,
+    "keep_slug": true,
+    "old_source_url": "https://fedemotocyl.es/calendario",
+    "new_source_url": "https://fcmotociclismo.org/calendario/",
+    "reason": "El calendario actual de la Federación Cántabra fija el Enduro Sprint de Sotopalacios para el sábado 14 de noviembre.",
+    "status": "pending_update"
+  }
+]
