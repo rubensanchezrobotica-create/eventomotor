@@ -1,0 +1,21 @@
+[
+  {
+    "issue_type": "semantic_duplicate_obsolete_record",
+    "obsolete_id": "batch-rally-ciudad-de-granada-2026-10-09",
+    "obsolete_title": "Rally Ciudad de Granada 2026",
+    "obsolete_slug": "rally-ciudad-de-granada-2026-10-09",
+    "obsolete_start_date": "2026-10-09",
+    "obsolete_end_date": "2026-10-10",
+    "obsolete_source_url": "https://revistascratch.com/nacional-tierra/noticia/el-cert-2026-presenta-su-calendario-con-6-pruebas-puntuables-75498",
+    "canonical_id": "rallye-ciudad-de-granada-2026-10-30",
+    "canonical_title": "Rallye Ciudad de Granada",
+    "canonical_slug": "rallye-ciudad-de-granada-2026-10-30",
+    "canonical_start_date": "2026-10-30",
+    "canonical_end_date": "2026-10-31",
+    "canonical_source_url": "https://calendarios.rfeda.es/cert-rallycar",
+    "official_verification_url": "https://calendarios.rfeda.es/todos/i/77393733/rallye-ciudad-de-granada",
+    "reason": "La RFEDA confirma el Rallye Ciudad de Granada para el 30 y 31 de octubre de 2026. El inventario ya contiene una ficha canónica con esas fechas y otra ficha anterior del 9 y 10 de octubre basada en una noticia secundaria desactualizada.",
+    "recommended_action": "review_and_remove_obsolete_record",
+    "status": "pending_manual_review"
+  }
+]
