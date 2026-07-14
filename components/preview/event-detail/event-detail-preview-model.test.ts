@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import EventRetentionActions from "@/components/events/EventRetentionActions";
+import ShareEventButton from "@/components/ShareEventButton";
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedPreviewEvents,
@@ -51,6 +55,39 @@ function eventFixture(overrides: Partial<EventItem> = {}): EventItem {
     ...overrides,
   };
 }
+
+test("la variante directa entrega los tres botones como hijos de una sola cuadrícula", () => {
+  const event = {
+    slug: "evento-directo",
+    title: "Evento directo",
+    start: "2026-07-18",
+    end: "2026-07-18",
+    city: "Madrid",
+    province: "Madrid",
+    venue: "Recinto principal",
+    discipline: "Rally",
+  };
+  const directMarkup = renderToStaticMarkup(createElement(
+    "div",
+    { className: "utility-grid" },
+    createElement(EventRetentionActions, { calendarLabel: "Añadir al calendario", directChildren: true, event }),
+    createElement(ShareEventButton, { directChildren: true, title: event.title, url: "https://example.com/evento" }),
+  ));
+  const defaultMarkup = renderToStaticMarkup(createElement(
+    "div",
+    null,
+    createElement(EventRetentionActions, { event }),
+    createElement(ShareEventButton, { title: event.title, url: "https://example.com/evento" }),
+  ));
+
+  assert.match(
+    directMarkup,
+    /^<div class="utility-grid"><button[^>]*>Guardar<\/button><button[^>]*>Añadir al calendario<\/button><button[^>]*>Compartir<\/button><\/div>$/,
+  );
+  assert.doesNotMatch(directMarkup, /emc-retention-actions|emc-share-action/);
+  assert.match(defaultMarkup, /emc-retention-actions/);
+  assert.match(defaultMarkup, /emc-share-action/);
+});
 
 test("la preview solo se bloquea en el deployment de producción de Vercel", () => {
   assert.equal(isEventDetailPreviewAvailable("production"), false);

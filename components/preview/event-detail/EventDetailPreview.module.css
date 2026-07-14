@@ -211,20 +211,8 @@
 
 .utilityActions {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(110px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  min-width: 0;
-}
-
-.previewPage .utilityActions :global(.emc-retention-actions) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 0;
-}
-
-.previewPage .utilityActions :global(.emc-share-action) {
-  display: grid;
   min-width: 0;
 }
 
@@ -241,6 +229,10 @@
 }
 
 .previewPage .utilityActions :global(.emc-unsave-link) {
+  grid-column: 1 / -1;
+}
+
+.previewPage .utilityActions > :global(.emc-share-message) {
   grid-column: 1 / -1;
 }
 
@@ -968,10 +960,6 @@
     min-height: 50px;
   }
 
-  .utilityActions {
-    grid-template-columns: minmax(0, 1fr) minmax(96px, 0.52fr);
-  }
-
   .previewPage .utilityActions :global(.emc-btn) {
     min-height: 46px;
     padding-inline: 7px;
@@ -1138,16 +1126,6 @@
   .utilityActions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
-  }
-
-  .previewPage .utilityActions :global(.emc-retention-actions) {
-    display: contents;
-  }
-
-  .previewPage .utilityActions :global(.emc-share-action) {
-    display: grid;
-    width: 100%;
-    min-width: 0;
   }
 
   .previewPage .utilityActions :global(.emc-btn) {

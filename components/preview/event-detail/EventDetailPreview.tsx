@@ -233,10 +233,11 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                 <div className={styles.utilityActions}>
                   <EventRetentionActions
                     calendarLabel="Añadir al calendario"
+                    directChildren
                     event={savedEvent}
                     source="event_detail_preview"
                   />
-                  <ShareEventButton title={event.title} url={publicUrl} />
+                  <ShareEventButton directChildren title={event.title} url={publicUrl} />
                 </div>
               </div>
 
