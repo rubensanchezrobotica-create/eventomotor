@@ -6,12 +6,12 @@ export type EventPrimaryAction = {
   type: "registration" | "ticket" | "official";
 };
 
-export type EventPreviewInfoItem = {
+export type EventDetailInfoItem = {
   label: string;
   value: string;
 };
 
-export type EventPreviewRelated = {
+export type EventDetailRelated = {
   context: string;
   event: EventItem;
 };
@@ -281,7 +281,7 @@ export function getAboutText(event: EventItem) {
   return notes.length >= 80 && !isAdministrativeNote ? notes : "";
 }
 
-export function getSummaryItems(event: EventItem): EventPreviewInfoItem[] {
+export function getSummaryItems(event: EventItem): EventDetailInfoItem[] {
   const status = eventStatusLabel(event);
   const verifiedAt = formatVerifiedAt(event.verifiedAt);
   const sourceType = SOURCE_TYPE_LABELS[cleanText(event.sourceType)] || "";
@@ -290,7 +290,7 @@ export function getSummaryItems(event: EventItem): EventPreviewInfoItem[] {
     status ? { label: "Estado", value: status } : null,
     verifiedAt ? { label: "Última verificación", value: verifiedAt } : null,
     sourceType ? { label: "Tipo de fuente", value: sourceType } : null,
-  ].filter((item): item is EventPreviewInfoItem => Boolean(item));
+  ].filter((item): item is EventDetailInfoItem => Boolean(item));
 }
 
 function countryLabel(country: string | null | undefined) {
@@ -300,7 +300,7 @@ function countryLabel(country: string | null | undefined) {
   return cleanText(country);
 }
 
-export function getPracticalItems(event: EventItem): EventPreviewInfoItem[] {
+export function getPracticalItems(event: EventItem): EventDetailInfoItem[] {
   const location = eventLocationLabel(event);
   const address = cleanText(event.address);
   const championship = sameText(event.championship, event.discipline) ? "" : cleanText(event.championship);
@@ -317,7 +317,7 @@ export function getPracticalItems(event: EventItem): EventPreviewInfoItem[] {
       ? { label: "Acceso", value: primaryAction.type === "registration" ? "Inscripción disponible" : "Entradas disponibles" }
       : null,
     country ? { label: "País", value: country } : null,
-  ].filter((item): item is EventPreviewInfoItem => Boolean(item)).slice(0, 6);
+  ].filter((item): item is EventDetailInfoItem => Boolean(item)).slice(0, 6);
 }
 
 export function getUsefulTags(event: EventItem) {
@@ -357,7 +357,7 @@ function sameEvent(left: EventItem, right: EventItem) {
   return left.id === right.id || Boolean(left.slug && right.slug && left.slug === right.slug);
 }
 
-export function buildRelatedPreviewEvents(
+export function buildRelatedEventDetails(
   current: EventItem,
   events: EventItem[],
   today = new Date().toISOString().slice(0, 10),
@@ -383,7 +383,7 @@ export function buildRelatedPreviewEvents(
     },
   ];
   const seen = new Set<string>();
-  const related: EventPreviewRelated[] = [];
+  const related: EventDetailRelated[] = [];
 
   for (const group of groups) {
     for (const event of group.events) {
@@ -396,8 +396,4 @@ export function buildRelatedPreviewEvents(
   }
 
   return related;
-}
-
-export function isEventDetailPreviewAvailable(vercelEnvironment: string | undefined) {
-  return vercelEnvironment !== "production";
 }

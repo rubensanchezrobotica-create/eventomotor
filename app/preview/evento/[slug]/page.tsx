@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import EventDetailPreview from "@/components/preview/event-detail/EventDetailPreview";
-import { isEventDetailPreviewAvailable } from "@/components/preview/event-detail/event-detail-preview-model";
+import EventDetailView from "@/components/events/detail/EventDetailView";
+import { isEventDetailPreviewAvailable } from "@/components/preview/event-detail/event-detail-preview-access";
 import { getVisibleEvents } from "@/lib/public-events";
 import { getSiteUrl } from "@/lib/site-url";
 
@@ -39,5 +39,14 @@ export default async function EventDetailPreviewPage({ params }: EventDetailPrev
 
   if (!event) notFound();
 
-  return <EventDetailPreview event={event} events={events} siteUrl={getSiteUrl()} />;
+  return (
+    <EventDetailView
+      analyticsSource="event_detail_preview"
+      event={event}
+      events={events}
+      footerContactTrackingLocation="footer"
+      retentionSource="event_detail_preview"
+      siteUrl={getSiteUrl()}
+    />
+  );
 }

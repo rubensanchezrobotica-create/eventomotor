@@ -16,7 +16,7 @@ import { getDisciplineSlug } from "@/lib/event-listing-slugs";
 import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
 import type { EventItem } from "@/types/event";
 import {
-  buildRelatedPreviewEvents,
+  buildRelatedEventDetails,
   classifyEventTitleLength,
   eventLocationLabel,
   eventStatusLabel,
@@ -33,12 +33,15 @@ import {
   parseStructuredDescription,
   vehicleLabel,
   vehicleTypeOf,
-} from "./event-detail-preview-model";
-import styles from "./EventDetailPreview.module.css";
+} from "./event-detail-model";
+import styles from "./EventDetailView.module.css";
 
-type EventDetailPreviewProps = {
+export type EventDetailViewProps = {
+  analyticsSource: string;
   event: EventItem;
   events: EventItem[];
+  footerContactTrackingLocation: string;
+  retentionSource: string;
   siteUrl: string;
 };
 
@@ -117,7 +120,14 @@ function AboutDescription({ text }: { text: string }) {
   );
 }
 
-export default function EventDetailPreview({ event, events, siteUrl }: EventDetailPreviewProps) {
+export default function EventDetailView({
+  analyticsSource,
+  event,
+  events,
+  footerContactTrackingLocation,
+  retentionSource,
+  siteUrl,
+}: EventDetailViewProps) {
   const slug = event.slug || event.id;
   const publicUrl = `${siteUrl}/evento/${slug}`;
   const eventImage = getEventImage(event);
@@ -134,7 +144,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
   const usefulTags = getUsefulTags(event);
   const titleLength = classifyEventTitleLength(event.title);
   const compactTags = usefulTags.length <= 2;
-  const relatedEvents = buildRelatedPreviewEvents(event, events);
+  const relatedEvents = buildRelatedEventDetails(event, events);
   const location = eventLocationLabel(event);
   const mapsUrl = googleMapsUrl(event);
   const zone = classifyEventMacroZone(event);
@@ -145,7 +155,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
     .join(" · ");
   const trackingParams = {
     ...eventAnalyticsParams(event, { event_slug: slug }),
-    source: "event_detail_preview",
+    source: analyticsSource,
   };
   const savedEvent = {
     slug,
@@ -235,7 +245,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                     calendarLabel="Añadir al calendario"
                     directChildren
                     event={savedEvent}
-                    source="event_detail_preview"
+                    source={retentionSource}
                   />
                   <ShareEventButton directChildren title={event.title} url={publicUrl} />
                 </div>
@@ -368,7 +378,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                           source_event_slug: slug,
                           source: context,
                         }}
-                        href={`/preview/evento/${relatedSlug}`}
+                        href={`/evento/${relatedSlug}`}
                         key={relatedSlug}
                         style={{ "--preview-accent": relatedColor.accent } as CSSProperties}
                       >
@@ -411,7 +421,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
         </article>
       </main>
 
-      <ConceptFooter variant="compact" />
+      <ConceptFooter contactTrackingLocation={footerContactTrackingLocation} variant="compact" />
     </div>
   );
 }

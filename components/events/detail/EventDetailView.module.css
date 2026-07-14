@@ -1,6 +1,6 @@
 .previewPage {
-  min-width: 0;
   overflow-x: clip;
+  min-width: 0;
 }
 
 .previewPage *,

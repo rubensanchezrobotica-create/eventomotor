@@ -6,7 +6,7 @@ import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
 import type { EventItem } from "@/types/event";
 import {
-  buildRelatedPreviewEvents,
+  buildRelatedEventDetails,
   classifyEventTitleLength,
   getAboutText,
   getEventPrimaryAction,
@@ -14,9 +14,8 @@ import {
   getPracticalItems,
   getUsefulTags,
   isFallbackEventImage,
-  isEventDetailPreviewAvailable,
   parseStructuredDescription,
-} from "./event-detail-preview-model";
+} from "./event-detail-model";
 
 test("clasifica los títulos sin depender de eventos o viewports concretos", () => {
   assert.equal(classifyEventTitleLength("Motorbeach Festival 2026"), "short");
@@ -87,13 +86,6 @@ test("la variante directa entrega los tres botones como hijos de una sola cuadr�
   assert.doesNotMatch(directMarkup, /emc-retention-actions|emc-share-action/);
   assert.match(defaultMarkup, /emc-retention-actions/);
   assert.match(defaultMarkup, /emc-share-action/);
-});
-
-test("la preview solo se bloquea en el deployment de producción de Vercel", () => {
-  assert.equal(isEventDetailPreviewAvailable("production"), false);
-  assert.equal(isEventDetailPreviewAvailable("preview"), true);
-  assert.equal(isEventDetailPreviewAvailable("development"), true);
-  assert.equal(isEventDetailPreviewAvailable(undefined), true);
 });
 
 test("la acción principal respeta registro, entradas y fuente oficial", () => {
@@ -192,7 +184,7 @@ test("los relacionados se unifican, excluyen el actual y no contienen duplicados
     eventFixture({ id: "rally-three", slug: "rally-three", title: "Rally three", start: "2026-08-15", province: "Lugo" }),
     eventFixture({ id: "past", slug: "past", title: "Past", start: "2026-07-01" }),
   ];
-  const related = buildRelatedPreviewEvents(current, events, "2026-07-14");
+  const related = buildRelatedEventDetails(current, events, "2026-07-14");
   const slugs = related.map((item) => item.event.slug);
 
   assert.ok(related.length <= 6);
