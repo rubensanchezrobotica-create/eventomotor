@@ -19,6 +19,16 @@ export function conciseExplorerSummary(count: number) {
   return `${count} ${eventLabel} ${upcomingLabel} con los filtros actuales.`;
 }
 
+function listVehicleLabel(event: EventItem) {
+  const value = event.vehicleType || event.vehicle_type;
+
+  if (value === "moto") return "Moto";
+  if (value === "coche") return "Coche";
+  if (value === "mixto") return "Mixto";
+  if (value === "karting") return "Karting";
+  return value || "Otros";
+}
+
 type ConceptEventExplorerProps = {
   activeLabel: string;
   activeFilterChips: string[];
@@ -139,6 +149,7 @@ export default function ConceptEventExplorer({
                         <div className="emc-result-meta">
                           {event.featured ? <span className="emc-badge emc-featured-badge">Destacado</span> : null}
                           <span className="emc-badge">{event.discipline}</span>
+                          <span className="emc-vehicle-mini emc-list-vehicle">{listVehicleLabel(event)}</span>
                           {distance !== null ? <span className="emc-distance">Aprox. {Math.round(distance)} km</span> : null}
                         </div>
                         <h3>{event.title}</h3>
