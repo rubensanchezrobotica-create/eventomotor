@@ -13,6 +13,7 @@ type FooterLink = {
 };
 
 type ConceptFooterProps = {
+  contactTrackingLocation?: string;
   variant?: FooterVariant;
 };
 
@@ -33,7 +34,7 @@ function renderFooterLink(link: FooterLink, useCanonicalCopy = false) {
   );
 }
 
-export default function ConceptFooter({ variant = "default" }: ConceptFooterProps) {
+export default function ConceptFooter({ contactTrackingLocation = "footer", variant = "default" }: ConceptFooterProps) {
   const footerColumns = [
     {
       title: "Calendario",
@@ -147,7 +148,7 @@ export default function ConceptFooter({ variant = "default" }: ConceptFooterProp
           </div>
           <p>Calendario nacional de eventos de motor: rallyes, motos, coches, rutas, circuito y concentraciones.</p>
           <p className="emc-footer-contact">
-            {variant === "compact" ? "Contacto y publicación de eventos: " : "Contacto y publicacion de eventos: "}<TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
+            {variant === "compact" ? "Contacto y publicación de eventos: " : "Contacto y publicacion de eventos: "}<TrackAnchor eventName="click_contact_email" eventParams={{ location: contactTrackingLocation }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
           </p>
         </div>
         <nav className="emc-footer-links" aria-label={variant === "compact" ? "Enlaces de pie de página" : "Enlaces de pie de pagina"}>

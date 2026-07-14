@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 type ShareEventButtonProps = {
+  directChildren?: boolean;
   title: string;
   url: string;
 };
 
-export default function ShareEventButton({ title, url }: ShareEventButtonProps) {
+export default function ShareEventButton({ directChildren = false, title, url }: ShareEventButtonProps) {
   const [message, setMessage] = useState("");
 
   async function shareEvent() {
@@ -25,8 +26,8 @@ export default function ShareEventButton({ title, url }: ShareEventButtonProps) 
     }
   }
 
-  return (
-    <span className="emc-share-action">
+  const action = (
+    <>
       <button
         className="emc-btn emc-btn-dark"
         onClick={shareEvent}
@@ -35,6 +36,10 @@ export default function ShareEventButton({ title, url }: ShareEventButtonProps) 
         Compartir
       </button>
       {message ? <span className="emc-share-message">{message}</span> : null}
-    </span>
+    </>
   );
+
+  if (directChildren) return action;
+
+  return <span className="emc-share-action">{action}</span>;
 }

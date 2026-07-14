@@ -6,14 +6,22 @@ import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analyti
 import { isEventSaved, removeSavedEvent, saveEvent, type SavedEvent } from "@/lib/saved-events";
 
 type EventRetentionActionsProps = {
+  calendarLabel?: string;
+  directChildren?: boolean;
   event: SavedEvent;
   source?: string;
 };
 
-export default function EventRetentionActions({ event, source = "event_detail" }: EventRetentionActionsProps) {
+export default function EventRetentionActions({
+  calendarLabel = "Calendario",
+  directChildren = false,
+  event,
+  source = "event_detail",
+}: EventRetentionActionsProps) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Re-sincroniza el evento cuando cambia el slug recibido.
     setSaved(isEventSaved(event.slug));
   }, [event.slug]);
 
@@ -47,8 +55,8 @@ export default function EventRetentionActions({ event, source = "event_detail" }
     });
   }
 
-  return (
-    <div className="emc-retention-actions">
+  const actions = (
+    <>
       {saved ? (
         <>
           <button className="emc-btn emc-btn-dark emc-saved-event-button" disabled type="button">
@@ -64,8 +72,12 @@ export default function EventRetentionActions({ event, source = "event_detail" }
         </button>
       )}
       <button className="emc-btn emc-btn-dark" onClick={addToCalendar} type="button">
-        Calendario
+        {calendarLabel}
       </button>
-    </div>
+    </>
   );
+
+  if (directChildren) return actions;
+
+  return <div className="emc-retention-actions">{actions}</div>;
 }
