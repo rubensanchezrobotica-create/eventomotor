@@ -140,6 +140,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
   const zone = classifyEventMacroZone(event);
   const organizerName = cleanText(event.organizerName);
   const organizerUrl = cleanText(event.organizerUrl);
+  const compactTagOnly = compactTags && !organizerName;
   const heroMeta = [event.championship, event.source]
     .filter((value, index, list) => cleanText(value) && list.findIndex((item) => cleanText(item) === cleanText(value)) === index)
     .join(" · ");
@@ -309,8 +310,8 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
           </section>
 
           {organizerName || usefulTags.length ? (
-            <section className={styles.supportSection}>
-              <div className={`emc-container ${styles.supportGrid} ${compactTags && !organizerName ? styles.supportGridCompactTags : ""}`}>
+            <section className={`${styles.supportSection} ${compactTagOnly ? styles.supportSectionCompact : ""}`}>
+              <div className={`emc-container ${styles.supportGrid} ${compactTagOnly ? styles.supportGridCompactTags : ""}`}>
                 {organizerName ? (
                   <section className={styles.supportCard}>
                     <span className={styles.eyebrow}>Organiza</span>

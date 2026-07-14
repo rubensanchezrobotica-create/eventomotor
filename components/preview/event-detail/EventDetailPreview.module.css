@@ -320,6 +320,10 @@
   display: flow-root;
 }
 
+.contentFlowWithoutSchedule {
+  max-width: 1100px;
+}
+
 .contentFlowWithSchedule .aboutCard,
 .contentFlowWithSchedule .practicalBlock {
   float: left;
@@ -337,7 +341,11 @@
 }
 
 .contentFlowWithoutSchedule .aboutCard {
-  max-width: 900px;
+  max-width: none;
+}
+
+.contentFlowWithoutSchedule.contentFlowWithAbout .practicalBlock {
+  margin-top: 14px;
 }
 
 .editorialCard,
@@ -539,6 +547,14 @@
 
 .relatedSection {
   padding-top: 34px;
+}
+
+.supportSectionCompact {
+  padding-bottom: 12px;
+}
+
+.supportSectionCompact + .relatedSection {
+  padding-top: 18px;
 }
 
 .relatedGrid {
@@ -879,6 +895,10 @@
     margin-top: 0;
   }
 
+  .contentFlowWithoutSchedule.contentFlowWithAbout .practicalBlock {
+    margin-top: 0;
+  }
+
   .supportGrid {
     grid-template-columns: 1fr;
   }
@@ -992,6 +1012,14 @@
   .relatedSection,
   .finalSection {
     padding: 20px 0;
+  }
+
+  .supportSectionCompact {
+    padding-bottom: 8px;
+  }
+
+  .supportSectionCompact + .relatedSection {
+    padding-top: 12px;
   }
 
   .editorialCard,
@@ -1141,7 +1169,11 @@
   }
 
   .previewPage .utilityActions :global(.emc-retention-actions) {
-    display: contents;
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
   }
 
   .previewPage .utilityActions :global(.emc-share-action) {
@@ -1167,6 +1199,11 @@
 
 @media (max-width: 350px) {
   .utilityActions {
+    grid-template-columns: 1fr;
+  }
+
+  .previewPage .utilityActions :global(.emc-retention-actions) {
+    grid-column: 1;
     grid-template-columns: 1fr;
   }
 }
