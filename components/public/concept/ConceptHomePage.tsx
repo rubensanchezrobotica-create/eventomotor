@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
@@ -9,7 +10,9 @@ import ConceptDisciplineExplorer, {
   type DisciplineCategoryId,
 } from "@/components/public/concept/ConceptDisciplineExplorer";
 import ConceptEventExplorer from "@/components/public/concept/ConceptEventExplorer";
+import type { ExplorerSummaryVariant } from "@/components/public/concept/ConceptEventExplorer";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
+import type { FooterVariant } from "@/components/public/concept/ConceptFooter";
 import ConceptHeader from "@/components/public/concept/ConceptHeader";
 import ConceptHero from "@/components/public/concept/ConceptHero";
 import {
@@ -20,6 +23,8 @@ import {
 import ConceptResults from "@/components/public/concept/ConceptResults";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import ConceptZoneExplorer from "@/components/public/concept/ConceptZoneExplorer";
+import type { ZoneExplorerVariant } from "@/components/public/concept/ConceptZoneExplorer";
+import { formatPreviewDisplayText } from "@/components/preview/preview-geography";
 import {
   API_EVENTS_URL,
   AUTO_REFRESH_MS,
@@ -31,43 +36,60 @@ import {
   statusOf,
 } from "@/lib/date-utils";
 import { matchesVehicleFilter } from "@/lib/event-classification";
+import { classifyEventMacroZone } from "@/lib/event-macro-zone";
 import { sortEventsByDistance, type UserLocation } from "@/lib/geo";
 import { normalizeRemoteEvents } from "@/lib/normalizers";
 import type { EventItem } from "@/types/event";
 import {
   buildZones,
   eventText,
-  matchesTerms,
   unique,
 } from "./concept-model";
 
-type VehicleMainFilter = "todos" | "moto" | "coche";
+export type VehicleMainFilter = "todos" | "moto" | "coche";
 type ExplorerView = "lista" | "calendario" | "mapa";
-type DateQuickFilter = "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
+export type DateQuickFilter = "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
+
+type PopularSearchGroup = "fecha" | "disciplina" | "comunidad" | "provincia" | "otros";
+
 const POPULAR_SEARCH_LINKS = [
-  { eyebrow: "Fin de semana", label: "eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-  { eyebrow: "Motos", label: "concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
-  { eyebrow: "Rallyes", label: "rallyes en Espana 2026", href: "/rallyes-espana-2026" },
-  { eyebrow: "Rallysprint", label: "rallysprint en Espana 2026", href: "/rallysprint-espana-2026" },
-  { eyebrow: "Cataluna", label: "eventos de motor en Cataluna", href: "/eventos-motor-cataluna" },
-  { eyebrow: "Comunidad Valenciana", label: "eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
-  { eyebrow: "Madrid", label: "eventos de motor en Madrid", href: "/eventos-motor-madrid" },
-  { eyebrow: "Andalucia", label: "eventos de motor en Andalucia", href: "/eventos-motor-andalucia" },
-  { eyebrow: "Galicia", label: "eventos de motor en Galicia", href: "/eventos-motor-galicia" },
-  { eyebrow: "Aragon", label: "eventos de motor en Aragon", href: "/eventos-motor-aragon" },
-  { eyebrow: "Castilla-La Mancha", label: "eventos de motor en Castilla-La Mancha", href: "/eventos-motor-castilla-la-mancha" },
-  { eyebrow: "Canarias", label: "eventos de motor en Canarias", href: "/eventos-motor-canarias" },
-  { eyebrow: "Murcia", label: "eventos de motor en Murcia", href: "/eventos-motor-murcia" },
-  { eyebrow: "Castilla y Leon", label: "eventos de motor en Castilla y Leon", href: "/eventos-motor-castilla-y-leon" },
-  { eyebrow: "Asturias", label: "eventos de motor en Asturias", href: "/eventos-motor-asturias" },
-  { eyebrow: "Cantabria", label: "eventos de motor en Cantabria", href: "/eventos-motor-cantabria" },
-  { eyebrow: "Baleares", label: "eventos de motor en Baleares", href: "/eventos-motor-baleares" },
-  { eyebrow: "Valencia", label: "rallyes en Valencia 2026", href: "/rallyes-valencia-2026" },
-  { eyebrow: "Circuito", label: "trackdays en Espana 2026", href: "/trackdays-espana-2026" },
-  { eyebrow: "Barcelona", label: "eventos de motor en Barcelona", href: "/eventos-motor-barcelona" },
-  { eyebrow: "Valencia", label: "eventos de motor en Valencia", href: "/eventos-motor-valencia" },
-  { eyebrow: "Karting", label: "karting en Espana 2026", href: "/karting-espana-2026" },
-  { eyebrow: "Ferias", label: "ferias del motor", href: "/disciplinas/ferias" },
+  { eyebrow: "Fin de semana", label: "eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana", group: "fecha", featured: true },
+  { eyebrow: "Motos", label: "concentraciones moteras 2026", href: "/concentraciones-moteras-2026", group: "disciplina", featured: true },
+  { eyebrow: "Rallyes", label: "rallyes en Espana 2026", href: "/rallyes-espana-2026", group: "disciplina", featured: true },
+  { eyebrow: "Rallysprint", label: "rallysprint en Espana 2026", href: "/rallysprint-espana-2026", group: "disciplina" },
+  { eyebrow: "Cataluna", label: "eventos de motor en Cataluna", href: "/eventos-motor-cataluna", group: "comunidad", featured: true },
+  { eyebrow: "Comunidad Valenciana", label: "eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana", group: "comunidad", featured: true },
+  { eyebrow: "Madrid", label: "eventos de motor en Madrid", href: "/eventos-motor-madrid", group: "comunidad", featured: true },
+  { eyebrow: "Andalucia", label: "eventos de motor en Andalucia", href: "/eventos-motor-andalucia", group: "comunidad", featured: true },
+  { eyebrow: "Galicia", label: "eventos de motor en Galicia", href: "/eventos-motor-galicia", group: "comunidad", featured: true },
+  { eyebrow: "Aragon", label: "eventos de motor en Aragon", href: "/eventos-motor-aragon", group: "comunidad" },
+  { eyebrow: "Castilla-La Mancha", label: "eventos de motor en Castilla-La Mancha", href: "/eventos-motor-castilla-la-mancha", group: "comunidad" },
+  { eyebrow: "Canarias", label: "eventos de motor en Canarias", href: "/eventos-motor-canarias", group: "comunidad" },
+  { eyebrow: "Murcia", label: "eventos de motor en Murcia", href: "/eventos-motor-murcia", group: "comunidad" },
+  { eyebrow: "Castilla y Leon", label: "eventos de motor en Castilla y Leon", href: "/eventos-motor-castilla-y-leon", group: "comunidad" },
+  { eyebrow: "Asturias", label: "eventos de motor en Asturias", href: "/eventos-motor-asturias", group: "comunidad" },
+  { eyebrow: "Cantabria", label: "eventos de motor en Cantabria", href: "/eventos-motor-cantabria", group: "comunidad" },
+  { eyebrow: "Baleares", label: "eventos de motor en Baleares", href: "/eventos-motor-baleares", group: "comunidad" },
+  { eyebrow: "Valencia", label: "rallyes en Valencia 2026", href: "/rallyes-valencia-2026", group: "disciplina" },
+  { eyebrow: "Circuito", label: "trackdays en Espana 2026", href: "/trackdays-espana-2026", group: "disciplina" },
+  { eyebrow: "Barcelona", label: "eventos de motor en Barcelona", href: "/eventos-motor-barcelona", group: "provincia" },
+  { eyebrow: "Valencia", label: "eventos de motor en Valencia", href: "/eventos-motor-valencia", group: "provincia" },
+  { eyebrow: "Karting", label: "karting en Espana 2026", href: "/karting-espana-2026", group: "disciplina" },
+  { eyebrow: "Ferias", label: "ferias del motor", href: "/disciplinas/ferias", group: "disciplina" },
+] satisfies Array<{
+  eyebrow: string;
+  label: string;
+  href: string;
+  group: PopularSearchGroup;
+  featured?: boolean;
+}>;
+
+const POPULAR_SEARCH_GROUPS: Array<{ id: PopularSearchGroup; label: string }> = [
+  { id: "fecha", label: "Por fecha" },
+  { id: "disciplina", label: "Por disciplina" },
+  { id: "comunidad", label: "Por comunidad" },
+  { id: "provincia", label: "Por provincia" },
+  { id: "otros", label: "Otros accesos" },
 ];
 
 const ALL_ZONES = "Toda España";
@@ -108,11 +130,51 @@ function matchesDateFilter(event: EventItem, filter: DateQuickFilter) {
   return overlapsRange(event, saturday, sunday);
 }
 
-type ConceptHomePageProps = {
-  hasHeroImage?: boolean;
+export type ConceptHomeSearchPanelProps = {
+  events: EventItem[];
+  zones: ReturnType<typeof buildZones>;
+  disciplines: string[];
+  query: string;
+  discipline: string;
+  zone: string;
+  vehicleFilter: VehicleMainFilter;
+  dateFilter: DateQuickFilter;
+  filteredCount: number;
+  locationLabel: string;
+  locationMessage: string;
+  userLocationActive: boolean;
+  onSearch: () => void;
+  onQuery: (value: string) => void;
+  onDiscipline: (value: string) => void;
+  onZone: (name: string) => void;
+  onVehicle: (filter: VehicleMainFilter) => void;
+  onDateFilter: (filter: DateQuickFilter) => void;
+  onUseLocation: () => void;
+  onClearLocation: () => void;
+  onClearFilters: () => void;
 };
 
-export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePageProps) {
+type ConceptHomePageProps = {
+  hasHeroImage?: boolean;
+  className?: string;
+  searchPanel?: ComponentType<ConceptHomeSearchPanelProps>;
+  explorerSummaryVariant?: ExplorerSummaryVariant;
+  footerVariant?: FooterVariant;
+  popularSearchesVariant?: "default" | "organized";
+  useCalendarCountGrammar?: boolean;
+  zoneExplorerVariant?: ZoneExplorerVariant;
+};
+
+export default function ConceptHomePage({
+  className,
+  explorerSummaryVariant = "default",
+  footerVariant = "default",
+  hasHeroImage = false,
+  popularSearchesVariant = "default",
+  searchPanel: SearchPanel,
+  useCalendarCountGrammar = false,
+  zoneExplorerVariant = "default",
+}: ConceptHomePageProps) {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [query, setQuery] = useState("");
   const [discipline, setDiscipline] = useState("Todas");
@@ -181,14 +243,14 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const zoneTerms = zones.find((item) => item.name === zone)?.terms || [];
+    const activeZoneId = zones.find((item) => item.name === zone)?.id;
 
     const dateSortedEvents = vehicleEvents
       .filter((event) => {
         const okQuery = q === "" || eventText(event).includes(q);
         const okDiscipline = discipline === "Todas" || event.discipline === discipline;
         const okCategory = disciplineCategory === "todas" || matchesDisciplineCategory(event, disciplineCategory);
-        const okZone = zone === ALL_ZONES || matchesTerms(event, zoneTerms);
+        const okZone = zone === ALL_ZONES || classifyEventMacroZone(event) === activeZoneId;
         const okDate = matchesDateFilter(event, dateFilter);
         return okQuery && okDiscipline && okCategory && okZone && okDate && statusOf(event) !== "finalizado";
       })
@@ -345,7 +407,7 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
   }
 
   return (
-    <div className="emc-page">
+    <div className={className ? `emc-page ${className}` : "emc-page"}>
       <ConceptStyles />
       <ConceptHeader onCalendar={scrollToCalendar} />
       <ConceptHero
@@ -360,6 +422,31 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
         locationMessage={locationMessage}
         userLocationActive={Boolean(userLocation)}
         hasHeroImage={hasHeroImage}
+        searchPanel={SearchPanel ? (
+          <SearchPanel
+            events={upcoming}
+            zones={zones}
+            disciplines={disciplines}
+            query={query}
+            discipline={discipline}
+            zone={zone}
+            vehicleFilter={vehicleFilter}
+            dateFilter={dateFilter}
+            filteredCount={filtered.length}
+            locationLabel={userLocation ? "Eventos cercanos primero" : zone}
+            locationMessage={locationMessage}
+            userLocationActive={Boolean(userLocation)}
+            onSearch={scrollToCalendar}
+            onQuery={setQuery}
+            onDiscipline={selectHeroDiscipline}
+            onZone={selectHeroZone}
+            onVehicle={selectVehicle}
+            onDateFilter={setDateFilter}
+            onUseLocation={requestLocation}
+            onClearLocation={clearLocation}
+            onClearFilters={clearFilters}
+          />
+        ) : undefined}
         onSearch={scrollToCalendar}
         onQuery={setQuery}
         onDiscipline={selectHeroDiscipline}
@@ -400,6 +487,7 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
               onThisMonth={showThisMonth}
               onDay={setSelectedDay}
               onClearFilters={clearFilters}
+              useCountGrammar={useCalendarCountGrammar}
             />
           )}
           filtered={filtered}
@@ -411,6 +499,7 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
           onClearFilters={clearFilters}
           onView={setView}
           onZone={selectHeroZone}
+          summaryVariant={explorerSummaryVariant}
         />
         <ConceptDisciplineExplorer
           activeCategory={disciplineCategory}
@@ -421,6 +510,7 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
           activeZone={zone}
           zones={zones}
           onZone={selectZoneCard}
+          variant={zoneExplorerVariant}
         />
         <section className="emc-section emc-internal-links-section emc-home-seo-section">
           <div className="emc-container">
@@ -431,19 +521,58 @@ export default function ConceptHomePage({ hasHeroImage = false }: ConceptHomePag
               </div>
               <p>Accesos directos a calendarios y búsquedas con actividad real dentro de EventoMotor.</p>
             </div>
-            <div className="emc-internal-links emc-home-seo-links">
-              {POPULAR_SEARCH_LINKS.map((link) => (
-                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
-                  <span>{link.eyebrow}</span>
-                  <strong>{link.label}</strong>
-                </Link>
-              ))}
-            </div>
+            {popularSearchesVariant === "organized" ? (
+              <div className="emc-popular-searches" data-popular-layout="organized">
+                <div className="emc-popular-featured-grid">
+                  {POPULAR_SEARCH_LINKS.filter((link) => link.featured).map((link) => (
+                    <Link className="emc-popular-featured-card" href={link.href} key={link.href}>
+                      <span>{formatPreviewDisplayText(link.eyebrow)}</span>
+                      <strong>{formatPreviewDisplayText(link.label)}</strong>
+                      <b aria-hidden="true">↗</b>
+                    </Link>
+                  ))}
+                </div>
+                <details className="emc-popular-details">
+                  <summary>
+                    <span>Ver todas las búsquedas</span>
+                    <small>{POPULAR_SEARCH_LINKS.filter((link) => !link.featured).length} accesos más</small>
+                  </summary>
+                  <div className="emc-popular-groups">
+                    {POPULAR_SEARCH_GROUPS.map((group) => {
+                      const links = POPULAR_SEARCH_LINKS.filter((link) => !link.featured && link.group === group.id);
+                      if (links.length === 0) return null;
+
+                      return (
+                        <section className="emc-popular-group" key={group.id}>
+                          <h3>{group.label}</h3>
+                          <ul>
+                            {links.map((link) => (
+                              <li key={link.href}>
+                                <Link href={link.href}>{formatPreviewDisplayText(link.label)}</Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </details>
+              </div>
+            ) : (
+              <div className="emc-internal-links emc-home-seo-links">
+                {POPULAR_SEARCH_LINKS.map((link) => (
+                  <Link className="emc-internal-link-card" href={link.href} key={link.href}>
+                    <span>{link.eyebrow}</span>
+                    <strong>{link.label}</strong>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
         <ConceptResults />
       </main>
-      <ConceptFooter />
+      <ConceptFooter variant={footerVariant} />
     </div>
   );
 }

@@ -1,13 +1,15 @@
 import { formatRange, parseDate, statusOf } from "@/lib/date-utils";
+import { classifyEventMacroZone, MACRO_ZONE_IDS, type MacroZoneId } from "@/lib/event-macro-zone";
 import { createEventSlug } from "@/lib/slug";
 import type { EventItem } from "@/types/event";
 
 export type ConceptZone = {
+  id?: MacroZoneId;
   name: string;
   x: number;
   y: number;
   color: string;
-  terms: string[];
+  terms: readonly string[];
   events: EventItem[];
   upcoming: EventItem[];
   provinces: string[];
@@ -22,13 +24,20 @@ export type ConceptIntent = {
 };
 
 export const ZONE_DEFINITIONS = [
-  { name: "Norte", x: 260, y: 172, color: "var(--emc-blue)", terms: ["galicia", "asturias", "cantabria", "país vasco", "pais vasco", "navarra", "la rioja", "león", "leon", "burgos"] },
-  { name: "Centro", x: 462, y: 306, color: "var(--emc-orange)", terms: ["madrid", "castilla-la mancha", "castilla y león", "castilla y leon", "toledo", "guadalajara", "cuenca", "segovia", "avila", "ávila"] },
-  { name: "Cataluña / Aragón", x: 680, y: 214, color: "var(--emc-orange)", terms: ["cataluña", "catalunya", "cataluna", "aragón", "aragon", "barcelona", "girona", "lleida", "tarragona", "zaragoza", "huesca", "teruel"] },
-  { name: "Levante", x: 665, y: 410, color: "var(--emc-purple)", terms: ["comunidad valenciana", "valencia", "alicante", "castellón", "castellon", "murcia", "baleares", "illes balears", "mallorca"] },
-  { name: "Sur", x: 405, y: 468, color: "var(--emc-green)", terms: ["andalucía", "andalucia", "extremadura", "sevilla", "cádiz", "cadiz", "málaga", "malaga", "granada", "córdoba", "cordoba", "huelva", "almería", "almeria", "jaén", "jaen", "badajoz", "cáceres", "caceres"] },
-  { name: "Canarias", x: 312, y: 556, color: "var(--emc-green)", terms: ["canarias", "tenerife", "gran canaria", "palmas", "santa cruz"] },
-];
+  { id: "norte", name: "Norte", x: 260, y: 172, color: "var(--emc-blue)", terms: ["galicia", "asturias", "cantabria", "país vasco", "pais vasco", "navarra", "la rioja", "león", "leon", "burgos"] },
+  { id: "centro", name: "Centro", x: 462, y: 306, color: "var(--emc-orange)", terms: ["madrid", "castilla-la mancha", "castilla y león", "castilla y leon", "toledo", "guadalajara", "cuenca", "segovia", "avila", "ávila"] },
+  { id: "cataluna-aragon", name: "Cataluña / Aragón", x: 680, y: 214, color: "var(--emc-orange)", terms: ["cataluña", "catalunya", "cataluna", "aragón", "aragon", "barcelona", "girona", "lleida", "tarragona", "zaragoza", "huesca", "teruel"] },
+  { id: "levante", name: "Levante", x: 665, y: 410, color: "var(--emc-purple)", terms: ["comunidad valenciana", "valencia", "alicante", "castellón", "castellon", "murcia", "baleares", "illes balears", "mallorca"] },
+  { id: "sur", name: "Sur", x: 405, y: 468, color: "var(--emc-green)", terms: ["andalucía", "andalucia", "extremadura", "sevilla", "cádiz", "cadiz", "málaga", "malaga", "granada", "córdoba", "cordoba", "huelva", "almería", "almeria", "jaén", "jaen", "badajoz", "cáceres", "caceres"] },
+  { id: "canarias", name: "Canarias", x: 312, y: 556, color: "var(--emc-green)", terms: ["canarias", "tenerife", "gran canaria", "palmas", "santa cruz"] },
+] as const satisfies ReadonlyArray<{
+  id: MacroZoneId;
+  name: string;
+  x: number;
+  y: number;
+  color: string;
+  terms: readonly string[];
+}>;
 
 export const INTENT_DEFINITIONS = [
   { label: "Quiero rodar", short: "Rodar", terms: ["trackday", "trackdays", "tandas", "velocidad", "minivelocidad"], color: "var(--emc-orange)" },
@@ -60,8 +69,15 @@ export function matchesTerms(event: EventItem, terms: string[]) {
 }
 
 export function buildZones(events: EventItem[]): ConceptZone[] {
+  const eventsByZone = new Map<MacroZoneId, EventItem[]>(MACRO_ZONE_IDS.map((zoneId) => [zoneId, []]));
+
+  for (const event of events) {
+    const zoneId = classifyEventMacroZone(event);
+    if (zoneId) eventsByZone.get(zoneId)?.push(event);
+  }
+
   return ZONE_DEFINITIONS.map((zone) => {
-    const zoneEvents = events.filter((event) => matchesTerms(event, zone.terms));
+    const zoneEvents = eventsByZone.get(zone.id) || [];
     return {
       ...zone,
       events: zoneEvents,

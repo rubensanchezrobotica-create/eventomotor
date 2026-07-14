@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
 import type { ConceptZone } from "./concept-model";
 
@@ -18,6 +19,7 @@ type ConceptHeroProps = {
   locationMessage: string;
   userLocationActive: boolean;
   hasHeroImage?: boolean;
+  searchPanel?: ReactNode;
   onSearch: () => void;
   onQuery: (value: string) => void;
   onDiscipline: (value: string) => void;
@@ -53,6 +55,7 @@ export default function ConceptHero({
   locationMessage,
   userLocationActive,
   hasHeroImage = false,
+  searchPanel,
   onSearch,
   onQuery,
   onDiscipline,
@@ -76,7 +79,7 @@ export default function ConceptHero({
             Rallyes, concentraciones, circuitos, rutas, ferias y competiciones en un solo calendario.
           </p>
 
-          <form
+          {searchPanel ?? <form
             className="emc-hero-search"
             onSubmit={(event) => {
               event.preventDefault();
@@ -193,7 +196,7 @@ export default function ConceptHero({
                 Buscar eventos
               </button>
             </div>
-          </form>
+          </form>}
         </div>
       </div>
     </header>

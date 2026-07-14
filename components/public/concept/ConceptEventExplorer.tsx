@@ -11,6 +11,14 @@ import { dayLabel, eventHref } from "./concept-model";
 
 type ExplorerView = "lista" | "calendario" | "mapa";
 
+export type ExplorerSummaryVariant = "default" | "concise";
+
+export function conciseExplorerSummary(count: number) {
+  const eventLabel = count === 1 ? "evento" : "eventos";
+  const upcomingLabel = count === 1 ? "próximo" : "próximos";
+  return `${count} ${eventLabel} ${upcomingLabel} con los filtros actuales.`;
+}
+
 type ConceptEventExplorerProps = {
   activeLabel: string;
   activeFilterChips: string[];
@@ -24,6 +32,7 @@ type ConceptEventExplorerProps = {
   onClearFilters: () => void;
   onView: (view: ExplorerView) => void;
   onZone: (zone: string) => void;
+  summaryVariant?: ExplorerSummaryVariant;
 };
 
 const VIEWS: Array<{ id: ExplorerView; label: string }> = [
@@ -45,6 +54,7 @@ export default function ConceptEventExplorer({
   onClearFilters,
   onView,
   onZone,
+  summaryVariant = "default",
 }: ConceptEventExplorerProps) {
   const visibleEvents = filtered.slice(0, 12);
 
@@ -70,7 +80,9 @@ export default function ConceptEventExplorer({
               <div className="emc-kicker">Explorador</div>
               <h2>Calendario de eventos</h2>
               <p>
-                {activeLabel}. {filtered.length} eventos visibles con los filtros actuales.
+                {summaryVariant === "concise"
+                  ? conciseExplorerSummary(filtered.length)
+                  : `${activeLabel}. ${filtered.length} eventos visibles con los filtros actuales.`}
               </p>
               <p className="emc-calendar-helper">Pulsa una fecha para ver los eventos de ese día.</p>
             </div>

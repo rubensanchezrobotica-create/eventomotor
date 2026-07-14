@@ -3,8 +3,37 @@ import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
+import { formatPreviewDisplayText } from "@/components/preview/preview-geography";
 
-export default function ConceptFooter() {
+export type FooterVariant = "default" | "compact";
+
+type FooterLink = {
+  label: string;
+  href: string;
+};
+
+type ConceptFooterProps = {
+  variant?: FooterVariant;
+};
+
+function renderFooterLink(link: FooterLink, useCanonicalCopy = false) {
+  const label = useCanonicalCopy ? formatPreviewDisplayText(link.label) : link.label;
+
+  return link.href === "/publicar-evento" ? (
+    <TrackLink
+      eventName="click_publish_event"
+      eventParams={{ source: "footer_link" }}
+      href={link.href}
+      key={link.label}
+    >
+      {label}
+    </TrackLink>
+  ) : (
+    <Link href={link.href} key={link.label}>{label}</Link>
+  );
+}
+
+export default function ConceptFooter({ variant = "default" }: ConceptFooterProps) {
   const footerColumns = [
     {
       title: "Calendario",
@@ -78,9 +107,39 @@ export default function ConceptFooter() {
       ],
     },
   ];
+  const zoneLinks = footerColumns.find((column) => column.title === "Zonas")?.links || [];
+  const compactColumns = [
+    {
+      id: "calendar",
+      title: "Calendario",
+      links: footerColumns.find((column) => column.title === "Calendario")?.links || [],
+    },
+    {
+      id: "motor",
+      title: "Motor",
+      links: footerColumns
+        .filter((column) => ["Rallyes", "Motos", "Disciplinas"].includes(column.title))
+        .flatMap((column) => column.links),
+    },
+    {
+      id: "explore",
+      title: "Explorar",
+      links: zoneLinks.slice(0, 5),
+    },
+    {
+      id: "organizers",
+      title: "Organizadores",
+      links: footerColumns.find((column) => column.title === "Organizadores")?.links || [],
+    },
+    {
+      id: "legal",
+      title: "Legal",
+      links: footerColumns.find((column) => column.title === "Legal")?.links || [],
+    },
+  ];
 
   return (
-    <footer className="emc-footer">
+    <footer className={variant === "compact" ? "emc-footer emc-footer-compact" : "emc-footer"}>
       <div className="emc-container emc-footer-grid">
         <div>
           <div className="emc-footer-brand">
@@ -88,31 +147,29 @@ export default function ConceptFooter() {
           </div>
           <p>Calendario nacional de eventos de motor: rallyes, motos, coches, rutas, circuito y concentraciones.</p>
           <p className="emc-footer-contact">
-            Contacto y publicacion de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
+            {variant === "compact" ? "Contacto y publicación de eventos: " : "Contacto y publicacion de eventos: "}<TrackAnchor eventName="click_contact_email" eventParams={{ location: "footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
           </p>
         </div>
-        <nav className="emc-footer-links" aria-label="Enlaces de pie de pagina">
-          {footerColumns.map((column) => (
-            <div className="emc-footer-column" key={column.title}>
+        <nav className="emc-footer-links" aria-label={variant === "compact" ? "Enlaces de pie de página" : "Enlaces de pie de pagina"}>
+          {(variant === "compact" ? compactColumns : footerColumns).map((column) => (
+            <div
+              className={`emc-footer-column ${variant === "compact" && "id" in column ? `emc-footer-column-${column.id}` : ""}`}
+              key={column.title}
+            >
               <strong>{column.title}</strong>
-              {column.links.map((link) =>
-                link.href === "/publicar-evento" ? (
-                  <TrackLink
-                    eventName="click_publish_event"
-                    eventParams={{ source: "footer_link" }}
-                    href={link.href}
-                    key={link.label}
-                  >
-                    {link.label}
-                  </TrackLink>
-                ) : (
-                  <Link href={link.href} key={link.label}>{link.label}</Link>
-                ),
-              )}
+              {column.links.map((link) => renderFooterLink(link, variant === "compact"))}
+              {variant === "compact" && "id" in column && column.id === "explore" ? (
+                <details className="emc-footer-zone-details">
+                  <summary>Ver todas las zonas</summary>
+                  <div className="emc-footer-zone-secondary" data-footer-zone-links="remaining">
+                    {zoneLinks.slice(5).map((link) => renderFooterLink(link, true))}
+                  </div>
+                </details>
+              ) : null}
             </div>
           ))}
         </nav>
-        <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor / La brujula del motor</div>
+        <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor / {variant === "compact" ? "La brújula del motor" : "La brujula del motor"}</div>
         <div className="emc-footer-cookie-settings">
           <CookieSettingsButton />
         </div>
