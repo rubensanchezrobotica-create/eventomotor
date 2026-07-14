@@ -1,0 +1,296 @@
+import type { EventItem } from "@/types/event";
+
+export type EventPrimaryAction = {
+  href: string;
+  label: "Inscribirse" | "Comprar entradas" | "Fuente oficial";
+  type: "registration" | "ticket" | "official";
+};
+
+export type EventPreviewInfoItem = {
+  label: string;
+  value: string;
+};
+
+export type EventPreviewRelated = {
+  context: string;
+  event: EventItem;
+};
+
+const VEHICLE_LABELS: Record<string, string> = {
+  moto: "Moto",
+  coche: "Coche",
+  mixto: "Mixto",
+  karting: "Karting",
+  otros: "Otros",
+};
+
+const EVENT_STATUS_LABELS: Record<string, string> = {
+  confirmed: "Confirmado",
+  tentative: "Pendiente de confirmar",
+  postponed: "Aplazado",
+  cancelled: "Cancelado",
+};
+
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  official: "Fuente oficial",
+  organizer: "Organizador",
+  federation: "Federación",
+  circuit: "Circuito",
+  municipality: "Ayuntamiento",
+  media: "Medio / noticia",
+  aggregator: "Agregador",
+};
+
+function cleanText(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function normalizeText(value: string | null | undefined) {
+  return cleanText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function isUsefulValue(value: string | null | undefined) {
+  const normalized = normalizeText(value);
+  return Boolean(normalized && normalized !== "por confirmar" && normalized !== "a confirmar");
+}
+
+function sameText(left: string | null | undefined, right: string | null | undefined) {
+  return Boolean(isUsefulValue(left) && normalizeText(left) === normalizeText(right));
+}
+
+export function vehicleTypeOf(event: EventItem) {
+  return event.vehicleType || event.vehicle_type || "otros";
+}
+
+export function vehicleLabel(event: EventItem) {
+  return VEHICLE_LABELS[vehicleTypeOf(event)] || "Otros";
+}
+
+function formatDatePart(date: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${date}T12:00:00`));
+}
+
+function formatDateWithoutYear(date: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${date}T12:00:00`));
+}
+
+export function formatEventDate(event: EventItem) {
+  if (!event.start) return "Fecha por confirmar";
+  if (!event.end || event.end === event.start) return formatDatePart(event.start);
+
+  const start = new Date(`${event.start}T12:00:00`);
+  const end = new Date(`${event.end}T12:00:00`);
+
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+    const monthYear = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(end);
+    return `${start.getDate()}–${end.getDate()} de ${monthYear}`;
+  }
+
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${formatDateWithoutYear(event.start)} – ${formatDatePart(event.end)}`;
+  }
+
+  return `${formatDatePart(event.start)} – ${formatDatePart(event.end)}`;
+}
+
+export function eventLocationLabel(event: EventItem) {
+  const venue = isUsefulValue(event.venue) ? cleanText(event.venue) : "";
+  const locality = [event.city, event.province].filter(isUsefulValue).join(", ");
+
+  if (!venue) return locality;
+  if (!locality) return venue;
+
+  const normalizedVenue = normalizeText(venue);
+  const localityParts = [event.city, event.province].filter(isUsefulValue).map(normalizeText);
+  const venueAlreadyContainsLocality = localityParts.every((part) => normalizedVenue.includes(part));
+
+  return venueAlreadyContainsLocality ? venue : `${venue} · ${locality}`;
+}
+
+export function eventStatusLabel(event: EventItem) {
+  return EVENT_STATUS_LABELS[cleanText(event.eventStatus)] || "";
+}
+
+export function formatVerifiedAt(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+export function getEventPrimaryAction(event: EventItem): EventPrimaryAction | null {
+  const registrationUrl = cleanText(event.registrationUrl);
+  const ticketUrl = cleanText(event.ticketUrl);
+  const officialUrl = cleanText(event.officialUrl) || cleanText(event.sourceUrl);
+
+  if (registrationUrl && (!ticketUrl || registrationUrl !== ticketUrl)) {
+    return { href: registrationUrl, label: "Inscribirse", type: "registration" };
+  }
+
+  if (ticketUrl) {
+    return { href: ticketUrl, label: "Comprar entradas", type: "ticket" };
+  }
+
+  if (registrationUrl) {
+    return { href: registrationUrl, label: "Inscribirse", type: "registration" };
+  }
+
+  return officialUrl ? { href: officialUrl, label: "Fuente oficial", type: "official" } : null;
+}
+
+export function getHeroSummary(event: EventItem) {
+  return cleanText(event.shortDescription);
+}
+
+export function getAboutText(event: EventItem) {
+  const longDescription = cleanText(event.longDescription);
+  if (longDescription) return longDescription;
+
+  const shortDescription = cleanText(event.shortDescription);
+  if (shortDescription) return "";
+
+  const notes = cleanText(event.notes);
+  const normalizedNotes = normalizeText(notes);
+  const isAdministrativeNote = normalizedNotes.includes("importado para revision editorial")
+    || normalizedNotes.includes("verificar ubicacion exacta");
+
+  return notes.length >= 80 && !isAdministrativeNote ? notes : "";
+}
+
+export function getSummaryItems(event: EventItem): EventPreviewInfoItem[] {
+  const status = eventStatusLabel(event);
+  const verifiedAt = formatVerifiedAt(event.verifiedAt);
+  const sourceType = SOURCE_TYPE_LABELS[cleanText(event.sourceType)] || "";
+
+  return [
+    status ? { label: "Estado", value: status } : null,
+    verifiedAt ? { label: "Última verificación", value: verifiedAt } : null,
+    sourceType ? { label: "Tipo de fuente", value: sourceType } : null,
+  ].filter((item): item is EventPreviewInfoItem => Boolean(item));
+}
+
+function countryLabel(country: string | null | undefined) {
+  const normalized = normalizeText(country);
+  if (!normalized || normalized === "es" || normalized === "espana") return "";
+  if (normalized === "pt" || normalized === "portugal") return "Portugal";
+  return cleanText(country);
+}
+
+export function getPracticalItems(event: EventItem): EventPreviewInfoItem[] {
+  const location = eventLocationLabel(event);
+  const address = cleanText(event.address);
+  const championship = sameText(event.championship, event.discipline) ? "" : cleanText(event.championship);
+  const primaryAction = getEventPrimaryAction(event);
+  const country = countryLabel(event.country);
+
+  return [
+    { label: "Fecha", value: formatEventDate(event) },
+    location ? { label: "Lugar", value: location } : null,
+    address && !sameText(address, location) ? { label: "Dirección", value: address } : null,
+    isUsefulValue(event.discipline) ? { label: "Disciplina", value: cleanText(event.discipline) } : null,
+    championship ? { label: "Campeonato", value: championship } : null,
+    primaryAction && primaryAction.type !== "official"
+      ? { label: "Acceso", value: primaryAction.type === "registration" ? "Inscripción disponible" : "Entradas disponibles" }
+      : null,
+    country ? { label: "País", value: country } : null,
+  ].filter((item): item is EventPreviewInfoItem => Boolean(item)).slice(0, 6);
+}
+
+export function getUsefulTags(event: EventItem) {
+  const excluded = new Set([
+    normalizeText(event.championship),
+    normalizeText(event.discipline),
+    normalizeText(vehicleLabel(event)),
+    normalizeText(vehicleTypeOf(event)),
+  ]);
+  const seen = new Set<string>();
+
+  return event.tags.filter((tag) => {
+    const key = normalizeText(tag);
+    if (!key || excluded.has(key) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function eventWeekendRange(event: EventItem) {
+  const start = new Date(`${event.start}T12:00:00`);
+  const day = start.getDay();
+  const saturday = new Date(start);
+  saturday.setDate(start.getDate() + (day === 0 ? -1 : 6 - day));
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() + 1);
+  return { saturday, sunday };
+}
+
+function eventOverlapsRange(event: EventItem, start: Date, end: Date) {
+  const eventStart = new Date(`${event.start}T12:00:00`);
+  const eventEnd = new Date(`${event.end || event.start}T12:00:00`);
+  return eventStart.getTime() <= end.getTime() && eventEnd.getTime() >= start.getTime();
+}
+
+function sameEvent(left: EventItem, right: EventItem) {
+  return left.id === right.id || Boolean(left.slug && right.slug && left.slug === right.slug);
+}
+
+export function buildRelatedPreviewEvents(
+  current: EventItem,
+  events: EventItem[],
+  today = new Date().toISOString().slice(0, 10),
+) {
+  const eligible = events
+    .filter((event) => !sameEvent(event, current) && event.start >= today)
+    .sort((left, right) => left.start.localeCompare(right.start) || left.title.localeCompare(right.title));
+  const province = isUsefulValue(current.province) ? normalizeText(current.province) : "";
+  const discipline = isUsefulValue(current.discipline) ? normalizeText(current.discipline) : "";
+  const { saturday, sunday } = eventWeekendRange(current);
+  const groups = [
+    {
+      context: "Cerca",
+      events: province ? eligible.filter((event) => normalizeText(event.province) === province).slice(0, 4) : [],
+    },
+    {
+      context: "Mismo fin de semana",
+      events: eligible.filter((event) => eventOverlapsRange(event, saturday, sunday)).slice(0, 4),
+    },
+    {
+      context: cleanText(current.discipline) || "Disciplina similar",
+      events: discipline ? eligible.filter((event) => normalizeText(event.discipline) === discipline).slice(0, 4) : [],
+    },
+  ];
+  const seen = new Set<string>();
+  const related: EventPreviewRelated[] = [];
+
+  for (const group of groups) {
+    for (const event of group.events) {
+      const key = event.slug || event.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      related.push({ context: group.context, event });
+      if (related.length === 6) return related;
+    }
+  }
+
+  return related;
+}
+
+export function isEventDetailPreviewAvailable(vercelEnvironment: string | undefined) {
+  return vercelEnvironment !== "production";
+}

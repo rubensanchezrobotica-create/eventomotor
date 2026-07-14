@@ -6,11 +6,16 @@ import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analyti
 import { isEventSaved, removeSavedEvent, saveEvent, type SavedEvent } from "@/lib/saved-events";
 
 type EventRetentionActionsProps = {
+  calendarLabel?: string;
   event: SavedEvent;
   source?: string;
 };
 
-export default function EventRetentionActions({ event, source = "event_detail" }: EventRetentionActionsProps) {
+export default function EventRetentionActions({
+  calendarLabel = "Calendario",
+  event,
+  source = "event_detail",
+}: EventRetentionActionsProps) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function EventRetentionActions({ event, source = "event_detail" }
         </button>
       )}
       <button className="emc-btn emc-btn-dark" onClick={addToCalendar} type="button">
-        Calendario
+        {calendarLabel}
       </button>
     </div>
   );
