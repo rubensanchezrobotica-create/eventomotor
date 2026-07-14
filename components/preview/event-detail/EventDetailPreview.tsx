@@ -25,9 +25,12 @@ import {
   getAboutText,
   getEventPrimaryAction,
   getHeroSummary,
+  getPracticalGridVariant,
   getPracticalItems,
   getSummaryItems,
   getUsefulTags,
+  isFallbackEventImage,
+  parseStructuredDescription,
   vehicleLabel,
   vehicleTypeOf,
 } from "./event-detail-preview-model";
@@ -55,6 +58,15 @@ const TITLE_CLASS_NAMES = {
   extraLong: styles.titleExtraLong,
 };
 
+const PRACTICAL_GRID_CLASS_NAMES = {
+  one: styles.practicalGridOne,
+  two: styles.practicalGridTwo,
+  three: styles.practicalGridThree,
+  four: styles.practicalGridFour,
+  five: styles.practicalGridFive,
+  six: styles.practicalGridSix,
+};
+
 function cleanText(value: string | null | undefined) {
   return value?.trim() || "";
 }
@@ -74,11 +86,43 @@ function googleMapsUrl(event: EventItem) {
     : "";
 }
 
+function AboutDescription({ text }: { text: string }) {
+  const structuredDescription = parseStructuredDescription(text);
+
+  if (!structuredDescription) return <p>{text}</p>;
+
+  return (
+    <div className={styles.structuredDescription}>
+      {structuredDescription.blocks.map((block, index) => {
+        const key = `${block.kind}-${block.label || "text"}-${index}`;
+
+        if (block.kind === "field") {
+          return (
+            <dl className={styles.structuredField} key={key}>
+              <div>
+                <dt>{block.label}</dt>
+                <dd>{block.value}</dd>
+              </div>
+            </dl>
+          );
+        }
+
+        return (
+          <p className={block.kind === "description" ? styles.structuredIntro : styles.structuredPlain} key={key}>
+            {block.value}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function EventDetailPreview({ event, events, siteUrl }: EventDetailPreviewProps) {
   const slug = event.slug || event.id;
   const publicUrl = `${siteUrl}/evento/${slug}`;
   const eventImage = getEventImage(event);
   const eventImageAlt = getEventImageAlt(event);
+  const fallbackImage = isFallbackEventImage(eventImage);
   const color = getDisciplineColor(event.discipline);
   const status = eventStatusLabel(event);
   const heroSummary = getHeroSummary(event);
@@ -86,6 +130,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
   const primaryAction = getEventPrimaryAction(event);
   const summaryItems = getSummaryItems(event);
   const practicalItems = getPracticalItems(event);
+  const practicalGridVariant = getPracticalGridVariant(practicalItems.length);
   const usefulTags = getUsefulTags(event);
   const titleLength = classifyEventTitleLength(event.title);
   const compactTags = usefulTags.length <= 2;
@@ -159,7 +204,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
               <figure className={styles.mediaCard}>
                 <Image
                   alt={eventImageAlt}
-                  className={styles.eventImage}
+                  className={`${styles.eventImage} ${fallbackImage ? styles.eventImageFallback : styles.eventImagePoster}`}
                   height={900}
                   priority
                   sizes="(max-width: 900px) 92vw, (max-width: 1180px) 42vw, 500px"
@@ -214,55 +259,52 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
             </div>
           </section>
 
-          {aboutText || event.scheduleText ? (
-            <section className={styles.contentSection}>
-              <div className={`emc-container ${styles.editorialGrid}`}>
-                {aboutText ? (
-                  <section className={styles.editorialCard}>
-                    <span className={styles.eyebrow}>Sobre el evento</span>
-                    <h2>Lo esencial antes de asistir</h2>
-                    <p>{aboutText}</p>
-                  </section>
-                ) : null}
-                {event.scheduleText ? (
-                  <section className={`${styles.editorialCard} ${styles.scheduleCard}`}>
-                    <span className={styles.eyebrow}>Programa y horarios</span>
-                    <h2>Horarios publicados</h2>
-                    <p>{event.scheduleText}</p>
-                  </section>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
+          <section className={styles.contentSection}>
+            <div className={`emc-container ${styles.contentFlow} ${event.scheduleText ? styles.contentFlowWithSchedule : styles.contentFlowWithoutSchedule} ${aboutText ? styles.contentFlowWithAbout : ""}`}>
+              {aboutText ? (
+                <section className={`${styles.editorialCard} ${styles.aboutCard}`}>
+                  <span className={styles.eyebrow}>Sobre el evento</span>
+                  <h2>Lo esencial antes de asistir</h2>
+                  <AboutDescription text={aboutText} />
+                </section>
+              ) : null}
 
-          <section className={styles.practicalSection}>
-            <div className="emc-container">
-              <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.eyebrow}>Información práctica</span>
-                  <h2>Datos para organizar tu visita</h2>
-                </div>
-                {mapsUrl ? (
-                  <TrackAnchor
-                    className="emc-btn emc-btn-dark"
-                    eventName="click_event_maps"
-                    eventParams={trackingParams}
-                    href={mapsUrl}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Cómo llegar
-                  </TrackAnchor>
-                ) : null}
-              </div>
-              <dl className={styles.practicalGrid}>
-                {practicalItems.map((item) => (
-                  <div key={item.label}>
-                    <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
+              {event.scheduleText ? (
+                <section className={`${styles.editorialCard} ${styles.scheduleCard}`}>
+                  <span className={styles.eyebrow}>Programa y horarios</span>
+                  <h2>Horarios publicados</h2>
+                  <p>{event.scheduleText}</p>
+                </section>
+              ) : null}
+
+              <section className={styles.practicalBlock}>
+                <div className={styles.sectionHead}>
+                  <div>
+                    <span className={styles.eyebrow}>Información práctica</span>
+                    <h2>Datos para organizar tu visita</h2>
                   </div>
-                ))}
-              </dl>
+                  {mapsUrl ? (
+                    <TrackAnchor
+                      className="emc-btn emc-btn-dark"
+                      eventName="click_event_maps"
+                      eventParams={trackingParams}
+                      href={mapsUrl}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Cómo llegar
+                    </TrackAnchor>
+                  ) : null}
+                </div>
+                <dl className={`${styles.practicalGrid} ${PRACTICAL_GRID_CLASS_NAMES[practicalGridVariant]} ${event.scheduleText ? styles.practicalGridNarrow : ""}`}>
+                  {practicalItems.map((item) => (
+                    <div key={item.label}>
+                      <dt>{item.label}</dt>
+                      <dd>{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
             </div>
           </section>
 

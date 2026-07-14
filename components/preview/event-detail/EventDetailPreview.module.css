@@ -165,7 +165,9 @@
   aspect-ratio: 16 / 9;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 30px;
-  background: #0b1019;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 111, 58, 0.11), transparent 48%),
+    linear-gradient(145deg, #111a28, #070a10 72%);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.38);
 }
 
@@ -174,7 +176,15 @@
   width: 100%;
   height: 100%;
   max-width: 100%;
+  object-position: center;
+}
+
+.eventImageFallback {
   object-fit: cover;
+}
+
+.eventImagePoster {
+  object-fit: contain;
 }
 
 .actionPanel {
@@ -300,22 +310,33 @@
 }
 
 .contentSection,
-.practicalSection,
 .supportSection,
 .relatedSection,
 .finalSection {
   padding: 30px 0;
 }
 
-.editorialGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
+.contentFlow {
+  display: flow-root;
 }
 
-.editorialGrid > :only-child {
-  grid-column: 1 / -1;
+.contentFlowWithSchedule .aboutCard,
+.contentFlowWithSchedule .practicalBlock {
+  float: left;
+  clear: left;
+  width: calc(58% - 11px);
+}
+
+.contentFlowWithSchedule .scheduleCard {
+  float: right;
+  width: calc(42% - 11px);
+}
+
+.contentFlowWithAbout .practicalBlock {
+  margin-top: 22px;
+}
+
+.contentFlowWithoutSchedule .aboutCard {
   max-width: 900px;
 }
 
@@ -364,7 +385,8 @@
   line-height: 1.04;
 }
 
-.editorialCard p {
+.editorialCard > p,
+.structuredDescription p {
   max-width: 78ch;
   margin-top: 16px;
   color: #cbd3df;
@@ -374,8 +396,52 @@
   white-space: pre-line;
 }
 
-.practicalSection {
-  padding-top: 26px;
+.structuredDescription {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.structuredDescription .structuredIntro,
+.structuredDescription .structuredPlain {
+  margin-top: 0;
+}
+
+.structuredDescription .structuredIntro {
+  color: #eef2f7;
+  font-size: 15.5px;
+}
+
+.structuredField {
+  margin: 0;
+}
+
+.structuredField > div {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.42fr) minmax(0, 1.58fr);
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.structuredField dt {
+  color: #ffb89e;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.4;
+}
+
+.structuredField dd {
+  min-width: 0;
+  margin: 0;
+  color: #dce3ed;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .sectionHead {
@@ -393,9 +459,17 @@
 
 .practicalGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
   margin: 0;
+}
+
+.practicalGridOne {
+  grid-template-columns: minmax(0, 420px);
+}
+
+.practicalGridNarrow {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .practicalGrid div {
@@ -710,6 +784,21 @@
 }
 
 @media (min-width: 1024px) {
+  .practicalGridTwo,
+  .practicalGridFour {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .practicalGridThree,
+  .practicalGridFive,
+  .practicalGridSix {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .practicalGridNarrow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .finalCard {
     grid-template-columns: minmax(230px, 0.55fr) minmax(0, 1.45fr);
     gap: 20px;
@@ -775,12 +864,25 @@
     grid-template-columns: minmax(170px, 0.72fr) minmax(0, 1.28fr);
   }
 
-  .editorialGrid,
+  .contentFlow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .contentFlowWithSchedule .aboutCard,
+  .contentFlowWithSchedule .scheduleCard,
+  .contentFlowWithSchedule .practicalBlock {
+    float: none;
+    clear: none;
+    width: auto;
+    margin-top: 0;
+  }
+
   .supportGrid {
     grid-template-columns: 1fr;
   }
 
-  .editorialGrid > :only-child,
   .supportGrid > :only-child {
     grid-column: auto;
   }
@@ -886,7 +988,6 @@
   }
 
   .contentSection,
-  .practicalSection,
   .supportSection,
   .relatedSection,
   .finalSection {
@@ -916,10 +1017,27 @@
     letter-spacing: -0.9px;
   }
 
-  .editorialCard p {
+  .editorialCard > p,
+  .structuredDescription p {
     margin-top: 13px;
     font-size: 14.5px;
     line-height: 1.64;
+  }
+
+  .structuredDescription {
+    gap: 10px;
+    margin-top: 13px;
+  }
+
+  .structuredDescription .structuredIntro,
+  .structuredDescription .structuredPlain {
+    margin-top: 0;
+  }
+
+  .structuredField > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 11px 12px;
   }
 
   .sectionHead {
@@ -932,8 +1050,9 @@
     justify-self: start;
   }
 
-  .practicalGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .practicalGrid,
+  .practicalGridNarrow {
+    grid-template-columns: 1fr;
     gap: 7px;
   }
 
@@ -1024,9 +1143,6 @@
     min-height: 46px;
   }
 
-  .practicalGrid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

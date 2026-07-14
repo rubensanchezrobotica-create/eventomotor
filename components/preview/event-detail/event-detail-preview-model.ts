@@ -18,6 +18,31 @@ export type EventPreviewRelated = {
 
 export type EventTitleLength = "short" | "medium" | "long" | "extraLong";
 
+export type PracticalGridVariant = "one" | "two" | "three" | "four" | "five" | "six";
+
+export type StructuredDescriptionBlock = {
+  kind: "description" | "field" | "plain";
+  label?: string;
+  sourceLines: string[];
+  value: string;
+};
+
+export type StructuredDescription = {
+  blocks: StructuredDescriptionBlock[];
+  sourceText: string;
+};
+
+const STRUCTURED_DESCRIPTION_PREFIXES = [
+  { kind: "description", label: "Descripción", prefix: "Descripción" },
+  { kind: "field", label: "Programa", prefix: "Programa" },
+  { kind: "field", label: "Precio", prefix: "Precio" },
+  { kind: "field", label: "Fecha límite de inscripción", prefix: "Fecha límite de inscripción" },
+  { kind: "field", label: "Contacto", prefix: "Contacto" },
+  { kind: "field", label: "Redes", prefix: "Redes" },
+] as const;
+
+const EVENT_FALLBACK_IMAGE_PREFIX = "/images/disciplines/eventomotor-fallback-";
+
 const VEHICLE_LABELS: Record<string, string> = {
   moto: "Moto",
   coche: "Coche",
@@ -45,6 +70,77 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
 
 function cleanText(value: string | null | undefined) {
   return value?.trim() || "";
+}
+
+export function isFallbackEventImage(imageSource: string) {
+  return imageSource.startsWith(EVENT_FALLBACK_IMAGE_PREFIX);
+}
+
+export function getPracticalGridVariant(itemCount: number): PracticalGridVariant {
+  if (itemCount <= 1) return "one";
+  if (itemCount === 2) return "two";
+  if (itemCount === 3) return "three";
+  if (itemCount === 4) return "four";
+  if (itemCount === 5) return "five";
+  return "six";
+}
+
+export function parseStructuredDescription(value: string): StructuredDescription | null {
+  if (!value.trim()) return null;
+
+  const blocks: Array<StructuredDescriptionBlock & { valueLines: string[] }> = [];
+  const lines = value.split(/\r?\n/);
+  let current: (StructuredDescriptionBlock & { valueLines: string[] }) | null = null;
+  let recognizedPrefix = false;
+
+  const pushCurrent = () => {
+    if (!current) return;
+    blocks.push({ ...current, value: current.valueLines.join("\n") });
+  };
+
+  for (const line of lines) {
+    const definition = STRUCTURED_DESCRIPTION_PREFIXES.find(({ prefix }) => line.startsWith(`${prefix}:`));
+
+    if (definition) {
+      pushCurrent();
+      recognizedPrefix = true;
+      current = {
+        kind: definition.kind,
+        label: definition.label,
+        sourceLines: [line],
+        value: "",
+        valueLines: [line.slice(definition.prefix.length + 1).replace(/^ /, "")],
+      };
+      continue;
+    }
+
+    if (!current) {
+      current = {
+        kind: "plain",
+        sourceLines: [line],
+        value: "",
+        valueLines: [line],
+      };
+      continue;
+    }
+
+    current.sourceLines.push(line);
+    current.valueLines.push(line);
+  }
+
+  pushCurrent();
+
+  if (!recognizedPrefix) return null;
+
+  return {
+    blocks: blocks.map((block) => ({
+      kind: block.kind,
+      label: block.label,
+      sourceLines: block.sourceLines,
+      value: block.value,
+    })),
+    sourceText: value,
+  };
 }
 
 export function classifyEventTitleLength(title: string): EventTitleLength {

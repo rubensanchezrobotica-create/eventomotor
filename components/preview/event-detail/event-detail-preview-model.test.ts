@@ -6,9 +6,12 @@ import {
   classifyEventTitleLength,
   getAboutText,
   getEventPrimaryAction,
+  getPracticalGridVariant,
   getPracticalItems,
   getUsefulTags,
+  isFallbackEventImage,
   isEventDetailPreviewAvailable,
+  parseStructuredDescription,
 } from "./event-detail-preview-model";
 
 test("clasifica los títulos sin depender de eventos o viewports concretos", () => {
@@ -82,6 +85,54 @@ test("los datos prácticos y las etiquetas eliminan repeticiones evidentes", () 
   assert.ok(practical.length >= 4);
   assert.equal(practical.some((item) => item.label === "País"), false);
   assert.deepEqual(tags, ["Madrid", "asfalto"]);
+});
+
+test("el grid práctico deriva una variante estable de uno a seis elementos", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7].map(getPracticalGridVariant),
+    ["one", "two", "three", "four", "five", "six", "six"],
+  );
+});
+
+test("distingue los fallbacks del espacio de imágenes reales resuelto por la preview", () => {
+  assert.equal(isFallbackEventImage("/images/disciplines/eventomotor-fallback-feria.webp"), true);
+  assert.equal(isFallbackEventImage("/event-images/xiv-concentracion-classic-alcoy-2026.png"), false);
+  assert.equal(isFallbackEventImage("https://example.com/cartel.webp"), false);
+});
+
+test("estructura solo prefijos permitidos al inicio y conserva todas las líneas", () => {
+  const source = [
+    "Descripción: Una jornada para vehículos clásicos.",
+    "Programa: 09:00 h - Recepción;",
+    "10:00 h - Almuerzo.",
+    "Precio: 10 € por persona.",
+    "Fecha límite de inscripción: 19 de junio de 2026.",
+    "Contacto: club@example.com.",
+    "Redes: Instagram: club; Facebook: club.",
+  ].join("\n");
+  const parsed = parseStructuredDescription(source);
+
+  assert.ok(parsed);
+  assert.deepEqual(
+    parsed.blocks.map(({ kind, label }) => ({ kind, label })),
+    [
+      { kind: "description", label: "Descripción" },
+      { kind: "field", label: "Programa" },
+      { kind: "field", label: "Precio" },
+      { kind: "field", label: "Fecha límite de inscripción" },
+      { kind: "field", label: "Contacto" },
+      { kind: "field", label: "Redes" },
+    ],
+  );
+  assert.equal(parsed.blocks[1]?.value, "09:00 h - Recepción;\n10:00 h - Almuerzo.");
+  assert.equal(parsed.blocks.flatMap((block) => block.sourceLines).join("\n"), source);
+  assert.equal(parsed.sourceText, source);
+});
+
+test("mantiene el texto normal y no reconoce prefijos en mitad de una frase", () => {
+  assert.equal(parseStructuredDescription("Texto editorial normal sin campos."), null);
+  assert.equal(parseStructuredDescription("La entrada incluye Precio: 10 € por persona."), null);
+  assert.equal(parseStructuredDescription(" Descripción: no comienza al inicio exacto de la línea."), null);
 });
 
 test("las notas administrativas no sustituyen contenido editorial ausente", () => {
