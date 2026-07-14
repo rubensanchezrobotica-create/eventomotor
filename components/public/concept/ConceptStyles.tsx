@@ -3155,6 +3155,33 @@ export default function ConceptStyles() {
   .emc-modal-event-row .emc-ticket-action { order: 0; }
   .emc-status { display: none; }
 }
+@media (max-width: 640px) {
+  .emc-list-card > .emc-card-action {
+    width: 160px;
+    max-width: 100%;
+    justify-content: center;
+  }
+  .emc-list-card:focus-visible {
+    outline: 3px solid rgba(255,255,255,.92);
+    outline-offset: 2px;
+  }
+  .emc-day-modal-head {
+    margin-bottom: 8px;
+    padding: 20px 58px 10px 12px;
+  }
+  .emc-day-modal-head h3 {
+    font-size: clamp(20px, 5.5vw, 22px);
+    line-height: 1.05;
+    letter-spacing: -.65px;
+  }
+  .emc-day-modal-head p {
+    margin-top: 3px;
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+  .emc-day-modal-head-side { top: 10px; }
+  .emc-day-modal-filters { margin-top: 6px; }
+}
 @media (max-width: 360px) {
   .emc-calendar-panel { overflow-x: auto; }
   .emc-weekdays, .emc-month { min-width: 340px; }
