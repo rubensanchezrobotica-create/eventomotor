@@ -3,12 +3,23 @@ import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedPreviewEvents,
+  classifyEventTitleLength,
   getAboutText,
   getEventPrimaryAction,
   getPracticalItems,
   getUsefulTags,
   isEventDetailPreviewAvailable,
 } from "./event-detail-preview-model";
+
+test("clasifica los títulos sin depender de eventos o viewports concretos", () => {
+  assert.equal(classifyEventTitleLength("Motorbeach Festival 2026"), "short");
+  assert.equal(classifyEventTitleLength("A".repeat(29)), "medium");
+  assert.equal(classifyEventTitleLength("A".repeat(45)), "long");
+  assert.equal(
+    classifyEventTitleLength("Campeonato de España de Freestyle - Puerto de Santa María"),
+    "extraLong",
+  );
+});
 
 function eventFixture(overrides: Partial<EventItem> = {}): EventItem {
   return {

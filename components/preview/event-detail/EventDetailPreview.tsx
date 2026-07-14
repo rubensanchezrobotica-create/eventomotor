@@ -1,11 +1,11 @@
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
+import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel } from "@/components/public/concept/concept-model";
@@ -17,6 +17,7 @@ import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedPreviewEvents,
+  classifyEventTitleLength,
   eventLocationLabel,
   eventStatusLabel,
   formatEventDate,
@@ -45,6 +46,13 @@ const ZONE_LABELS: Record<MacroZoneId, string> = {
   levante: "Levante",
   sur: "Sur",
   canarias: "Canarias",
+};
+
+const TITLE_CLASS_NAMES = {
+  short: styles.titleShort,
+  medium: styles.titleMedium,
+  long: styles.titleLong,
+  extraLong: styles.titleExtraLong,
 };
 
 function cleanText(value: string | null | undefined) {
@@ -79,6 +87,8 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
   const summaryItems = getSummaryItems(event);
   const practicalItems = getPracticalItems(event);
   const usefulTags = getUsefulTags(event);
+  const titleLength = classifyEventTitleLength(event.title);
+  const compactTags = usefulTags.length <= 2;
   const relatedEvents = buildRelatedPreviewEvents(event, events);
   const location = eventLocationLabel(event);
   const mapsUrl = googleMapsUrl(event);
@@ -115,7 +125,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
       <main>
         <article>
           <section className={styles.heroSection}>
-            <div className={`emc-container ${styles.heroGrid}`}>
+            <div className={`emc-container ${styles.heroGrid} ${summaryItems.length ? "" : styles.heroGridCompact}`}>
               <div className={styles.heroCopy}>
                 <nav aria-label="Migas de pan" className={styles.breadcrumb}>
                   <ol>
@@ -124,8 +134,6 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                     <li><Link href="/calendario">Calendario</Link></li>
                     <li aria-hidden="true">/</li>
                     <li><Link href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link></li>
-                    <li aria-hidden="true">/</li>
-                    <li aria-current="page">{event.title}</li>
                   </ol>
                 </nav>
 
@@ -142,7 +150,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                 </div>
 
                 <time className={styles.date} dateTime={event.start}>{formatEventDate(event)}</time>
-                <h1>{event.title}</h1>
+                <h1 className={TITLE_CLASS_NAMES[titleLength]}>{event.title}</h1>
                 {location ? <p className={styles.location}>{location}</p> : null}
                 {heroMeta ? <p className={styles.heroMeta}>{heroMeta}</p> : null}
                 {heroSummary ? <p className={styles.heroSummary}>{heroSummary}</p> : null}
@@ -260,7 +268,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
 
           {organizerName || usefulTags.length ? (
             <section className={styles.supportSection}>
-              <div className={`emc-container ${styles.supportGrid}`}>
+              <div className={`emc-container ${styles.supportGrid} ${compactTags && !organizerName ? styles.supportGridCompactTags : ""}`}>
                 {organizerName ? (
                   <section className={styles.supportCard}>
                     <span className={styles.eyebrow}>Organiza</span>
@@ -280,7 +288,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
                   </section>
                 ) : null}
                 {usefulTags.length ? (
-                  <section className={styles.supportCard}>
+                  <section className={`${styles.supportCard} ${compactTags ? styles.compactTagCard : ""}`}>
                     <span className={styles.eyebrow}>Etiquetas</span>
                     <h2>Temas relacionados</h2>
                     <div className={styles.tagList}>
@@ -360,18 +368,7 @@ export default function EventDetailPreview({ event, events, siteUrl }: EventDeta
         </article>
       </main>
 
-      <footer className={`emc-footer ${styles.footer}`}>
-        <div className="emc-container emc-footer-grid">
-          <div>
-            <div className="emc-footer-brand"><EventomotorLogo /></div>
-            <p>Calendario de eventos de motor por fecha, zona y disciplina.</p>
-            <p className="emc-footer-contact">
-              Contacto y publicación de eventos: <TrackAnchor eventName="click_contact_email" eventParams={{ location: "event_detail_preview_footer" }} href="mailto:info@eventomotor.com">info@eventomotor.com</TrackAnchor>
-            </p>
-          </div>
-          <div className="emc-footer-legal">© {new Date().getFullYear()} EventoMotor</div>
-        </div>
-      </footer>
+      <ConceptFooter variant="compact" />
     </div>
   );
 }

@@ -16,6 +16,8 @@ export type EventPreviewRelated = {
   event: EventItem;
 };
 
+export type EventTitleLength = "short" | "medium" | "long" | "extraLong";
+
 const VEHICLE_LABELS: Record<string, string> = {
   moto: "Moto",
   coche: "Coche",
@@ -43,6 +45,15 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
 
 function cleanText(value: string | null | undefined) {
   return value?.trim() || "";
+}
+
+export function classifyEventTitleLength(title: string): EventTitleLength {
+  const length = cleanText(title).length;
+
+  if (length <= 28) return "short";
+  if (length <= 44) return "medium";
+  if (length <= 54) return "long";
+  return "extraLong";
 }
 
 function normalizeText(value: string | null | undefined) {
