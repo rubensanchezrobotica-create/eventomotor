@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Metadata } from "next";
-import ConceptHomePage from "@/components/public/concept/ConceptHomePage";
+import PreviewHomePage from "@/components/preview/PreviewHomePage";
 import { absoluteUrl, DEFAULT_OG_IMAGE, HOME_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <ConceptHomePage hasHeroImage={hasHeroImage} />
+      <PreviewHomePage hasHeroImage={hasHeroImage} />
     </>
   );
 }

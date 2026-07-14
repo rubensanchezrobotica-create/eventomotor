@@ -37,7 +37,14 @@ type ConceptCalendarProps = {
   onThisMonth: () => void;
   onDay: (day: Date) => void;
   onClearFilters: () => void;
+  useCountGrammar?: boolean;
 };
+
+export function grammaticalMonthSummary(eventCount: number, disciplineCount: number) {
+  const eventLabel = eventCount === 1 ? "evento" : "eventos";
+  const disciplineLabel = disciplineCount === 1 ? "disciplina" : "disciplinas";
+  return `${eventCount} ${eventLabel} / ${disciplineCount} ${disciplineLabel}`;
+}
 
 function vehicleLabel(event: EventItem) {
   const value = event.vehicleType || event.vehicle_type;
@@ -93,6 +100,7 @@ export default function ConceptCalendar({
   filtered,
   onThisMonth,
   onDay,
+  useCountGrammar = false,
 }: ConceptCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [modalVehicleFilter, setModalVehicleFilter] = useState<"todos" | "moto" | "coche">("todos");
@@ -310,7 +318,9 @@ export default function ConceptCalendar({
                 {MONTHS[month]} {year}
               </h3>
               <p>
-                {monthEventCount} eventos / {monthDisciplineCount} disciplinas
+                {useCountGrammar
+                  ? grammaticalMonthSummary(monthEventCount, monthDisciplineCount)
+                  : `${monthEventCount} eventos / ${monthDisciplineCount} disciplinas`}
               </p>
             </div>
             <div className="emc-month-actions">

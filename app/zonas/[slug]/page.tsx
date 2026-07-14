@@ -9,10 +9,11 @@ import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref, unique } from "@/components/public/concept/concept-model";
 import { eventAnalyticsParams } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+import { isEventInMacroZone } from "@/lib/event-macro-zone";
 import { getRegionSlug } from "@/lib/event-listing-slugs";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
-import { normalizeSeoText, SEO_DISCIPLINES, SEO_ZONES } from "@/lib/seo-taxonomy";
+import { SEO_DISCIPLINES, SEO_ZONES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
 
 type ZonePageProps = {
@@ -25,26 +26,6 @@ export function generateStaticParams() {
 
 function findZone(slug: string) {
   return SEO_ZONES.find((zone) => zone.slug === slug);
-}
-
-function eventSearchText(event: EventItem) {
-  return normalizeSeoText(
-    [
-      event.title,
-      event.championship,
-      event.discipline,
-      event.venue,
-      event.city,
-      event.province,
-      event.region,
-      ...(event.tags || []),
-    ].join(" "),
-  );
-}
-
-function matchesTerms(event: EventItem, terms: readonly string[]) {
-  const text = eventSearchText(event);
-  return terms.some((term) => text.includes(normalizeSeoText(term)));
 }
 
 function EventCard({ event }: { event: EventItem }) {
@@ -110,7 +91,7 @@ export default async function ZonePage({ params }: ZonePageProps) {
   if (!zone) notFound();
 
   const events = (await getVisibleEvents())
-    .filter((event) => matchesTerms(event, zone.terms))
+    .filter((event) => isEventInMacroZone(event, zone.slug))
     .sort((a, b) => a.start.localeCompare(b.start));
   const provinces = unique(events.map((event) => event.province)).slice(0, 9);
   const cities = unique(events.map((event) => event.city)).slice(0, 9);
