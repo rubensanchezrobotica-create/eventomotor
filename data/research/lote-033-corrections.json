@@ -1,0 +1,30 @@
+[
+  {
+    "id": "batch-rallysprint-villa-lesaka-2026-08-29",
+    "title": "Rallysprint Villa de Lesaka 2026",
+    "old_start_date": "2026-08-29",
+    "old_end_date": "2026-08-29",
+    "new_start_date": "2026-09-05",
+    "new_end_date": "2026-09-05",
+    "keep_id": true,
+    "keep_slug": true,
+    "old_source_url": "https://www.fenauto.com/wp-content/uploads/calendario-navarro-automovilismo-DEFINITIVO-2026.pdf",
+    "new_source_url": "https://www.fenauto.com/calendario-definitivo-2026/",
+    "reason": "El calendario definitivo actual de FENAUTO sitúa el Rallysprint Villa de Lesaka el 5 de septiembre de 2026, en lugar del 29 de agosto almacenado actualmente.",
+    "status": "pending_update"
+  },
+  {
+    "id": "batch-tandas-libres-ricardo-tormo-bike-promotion-2026-10-03",
+    "title": "Tandas libres Ricardo Tormo Bike Promotion octubre 2026",
+    "old_start_date": "2026-10-03",
+    "old_end_date": "2026-10-03",
+    "new_start_date": "2026-10-03",
+    "new_end_date": "2026-10-05",
+    "keep_id": true,
+    "keep_slug": true,
+    "old_source_url": "https://www.todocircuito.com/evento/9450/03-10-2026_tandas%20libres_circuito-de-valencia-ricardo-tormo",
+    "new_source_url": "https://www.circuitricardotormo.com/tandas-de-motos/",
+    "reason": "El calendario oficial del Circuit Ricardo Tormo confirma que las tandas de Bike Promotion se celebran del 3 al 5 de octubre de 2026.",
+    "status": "pending_update"
+  }
+]
