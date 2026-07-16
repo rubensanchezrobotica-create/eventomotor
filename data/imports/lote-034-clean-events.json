@@ -196,7 +196,7 @@
     "country": "ES",
     "event_status": "confirmed",
     "short_description": "Primera concentración Motos por Béjar en el Recinto Ferial La Thesa.",
-    "long_description": "Primera concentración Motos por Béjar del 21 al 23 de agosto, con zona de acampada, piscina gratuita, food trucks, bar y stand comercial. La inscripción cuesta 30 euros hasta el 15 de agosto y 35 euros posteriormente.",
+    "long_description": "Primera concentración Motos por Béjar del 21 al 23 de agosto, con zona de acampada, piscina gratuita, food trucks, bar y stand comercial. La inscripción cuesta 30 € hasta el 15 de agosto y 35 € posteriormente.",
     "schedule_text": "Viernes 21: 18:00 apertura de inscripciones; 21:00 paseo por Béjar; 22:00 cena; 23:00 DJ Toci. Sábado 22: 10:00 apertura y desayuno; 11:30 ruta; 14:30 paella motera; 17:30 bingo y sorteos; 20:00 paseo; 21:00 parrillada; 00:00 DJ Pato. Domingo 23: 10:00 desayuno.",
     "address": "Subida Pinos, 33, 37700 Béjar, Salamanca",
     "image_url": null,
@@ -213,7 +213,7 @@
     "needs_review": false,
     "visible": true,
     "featured": false,
-    "notes": "Precio publicado: 30 euros hasta el 15 de agosto y 35 euros posteriormente. La inscripción se gestiona contactando con la organización."
+    "notes": "Precio publicado: 30 € hasta el 15 de agosto y 35 € posteriormente. La inscripción se gestiona contactando con la organización."
   },
   {
     "id": "batch-xii-xuntanza-motera-vila-dos-viaductos-2026-08-29",
@@ -803,7 +803,7 @@
     "needs_review": false,
     "visible": true,
     "featured": false,
-    "notes": "Entrada gratuita; ticket_url se mantiene vacío."
+    "notes": "Entrada gratuita; no hay enlace de entradas publicado."
   },
   {
     "id": "batch-lleida-retro-2026-11-21",
@@ -845,7 +845,7 @@
     "needs_review": false,
     "visible": true,
     "featured": false,
-    "notes": "Entrada publicada: 3 euros; menores de 12 años gratis. No se crea un candidato separado para Lleidantic."
+    "notes": "Entrada publicada: 3 €; entrada gratuita para menores de 12 años."
   },
   {
     "id": "batch-concentracion-motos-coches-clasicos-alcublas-2026-08-16",

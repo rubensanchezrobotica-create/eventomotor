@@ -1,0 +1,40 @@
+[
+  {
+    "id": "batch-i-concentracion-motos-por-bejar-2026-08-21",
+    "title": "I Concentración Motos por Béjar 2026",
+    "reason": "Normaliza la presentación editorial de los importes publicados sin cambiar su valor.",
+    "status": "pending_update",
+    "expected": {
+      "long_description": "Primera concentración Motos por Béjar del 21 al 23 de agosto, con zona de acampada, piscina gratuita, food trucks, bar y stand comercial. La inscripción cuesta 30 euros hasta el 15 de agosto y 35 euros posteriormente.",
+      "notes": "Precio publicado: 30 euros hasta el 15 de agosto y 35 euros posteriormente. La inscripción se gestiona contactando con la organización."
+    },
+    "changes": {
+      "long_description": "Primera concentración Motos por Béjar del 21 al 23 de agosto, con zona de acampada, piscina gratuita, food trucks, bar y stand comercial. La inscripción cuesta 30 € hasta el 15 de agosto y 35 € posteriormente.",
+      "notes": "Precio publicado: 30 € hasta el 15 de agosto y 35 € posteriormente. La inscripción se gestiona contactando con la organización."
+    }
+  },
+  {
+    "id": "batch-salon-automovil-lleida-2026-09-25",
+    "title": "Salón del Automóvil de Lleida 2026",
+    "reason": "Elimina un nombre técnico interno del texto editorial.",
+    "status": "pending_update",
+    "expected": {
+      "notes": "Entrada gratuita; ticket_url se mantiene vacío."
+    },
+    "changes": {
+      "notes": "Entrada gratuita; no hay enlace de entradas publicado."
+    }
+  },
+  {
+    "id": "batch-lleida-retro-2026-11-21",
+    "title": "Lleida Retro 2026",
+    "reason": "Normaliza el importe, mejora la redacción y elimina una nota editorial interna.",
+    "status": "pending_update",
+    "expected": {
+      "notes": "Entrada publicada: 3 euros; menores de 12 años gratis. No se crea un candidato separado para Lleidantic."
+    },
+    "changes": {
+      "notes": "Entrada publicada: 3 €; entrada gratuita para menores de 12 años."
+    }
+  }
+]
