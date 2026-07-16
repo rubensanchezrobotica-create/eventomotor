@@ -1,0 +1,906 @@
+.page {
+  min-width: 0;
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(112, 21, 29, 0.2), transparent 25rem),
+    #070a0f;
+  color: #f8fafc;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+  box-sizing: border-box;
+}
+
+.page :is(a, button, input, select, summary):focus-visible {
+  outline: 3px solid #ff7a45;
+  outline-offset: 3px;
+}
+
+.heroSection {
+  position: relative;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.heroGrid {
+  display: block;
+}
+
+.heroCopy {
+  max-width: 1000px;
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  color: #aab4c2;
+  font-size: 12px;
+  list-style: none;
+}
+
+.breadcrumb a {
+  color: #dbe3ed;
+  text-decoration: none;
+}
+
+.heroEyebrow,
+.eyebrow {
+  display: block;
+  color: #ff8a5b;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.heroCopy h1 {
+  max-width: 1000px;
+  margin: 5px 0 7px;
+  color: #fff;
+  font-size: clamp(56px, 5vw, 76.8px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.heroCopy h1 span {
+  display: block;
+}
+
+.heroLead {
+  max-width: 1000px;
+  margin: 0;
+  color: #c8d0dc;
+  font-size: clamp(15px, 1.2vw, 17px);
+  line-height: 1.4;
+}
+
+.heroSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 8px 0 0;
+  color: #aeb8c6;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.heroSummary strong {
+  color: #f8fafc;
+  font-weight: 750;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.heroActions :global(.emc-btn) {
+  min-height: 44px;
+  justify-content: center;
+}
+
+.heroActions > a:not(:global(.emc-btn)) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #d8e0ea;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.filterSection {
+  padding: 18px 0 0;
+}
+
+.filterShell {
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(13, 18, 27, 0.98);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.filterHeading,
+.sectionHeading,
+.compactHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.filterHeading {
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.filterHeading h2,
+.sectionHeading h2,
+.compactHeading h2,
+.organizerCard h2,
+.seoGrid h2 {
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.filterHeading h2 {
+  margin: 0;
+  font-size: clamp(26px, 2.1vw, 30px);
+  letter-spacing: -0.025em;
+}
+
+.filterHeadingActions,
+.sectionHeading > p {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.filterHeadingActions p,
+.sectionHeading > p {
+  max-width: 440px;
+  margin: 0;
+  color: #abb5c3;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.filterHeadingActions p strong,
+.sectionHeading p strong {
+  color: #fff;
+  font-size: 16px;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.72fr) minmax(180px, 0.82fr) minmax(230px, 1.35fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.filterGrid label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.filterGrid label > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #c8d0dc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.filterGrid label.filterFieldActive > span::after {
+  content: "Activo";
+  color: #ffad8b;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.filterGrid input,
+.filterGrid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 13px;
+  background: #0a0f17;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.filterGrid label.filterFieldActive input,
+.filterGrid label.filterFieldActive select {
+  border-color: rgba(255, 111, 56, 0.82);
+  background: rgba(255, 91, 31, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 111, 56, 0.22);
+}
+
+.filterGrid input::placeholder {
+  color: #7f8998;
+}
+
+.clearButton {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: transparent;
+  color: #e7ecf3;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dayTabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+  overflow-x: auto;
+  padding: 1px 1px 4px;
+  scrollbar-width: thin;
+}
+
+.dayTabs button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #c7cfda;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.dayTabs button strong {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 11px;
+}
+
+.compactFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+.compactFilterRow > span {
+  flex: 0 0 auto;
+  color: #8f9aaa;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.familyChips,
+.provinceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.familyChips button,
+.provinceChips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #dce3ec;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.familyChips strong,
+.provinceChips strong {
+  color: #ff9870;
+}
+
+.familyChips button.familyChipActive,
+.provinceChips button.provinceChipActive {
+  border-color: rgba(255, 111, 56, 0.82);
+  background: rgba(255, 91, 31, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(255, 154, 113, 0.16);
+  color: #fff;
+  font-weight: 850;
+}
+
+.dayTabs button.dayTabActive {
+  border-color: rgba(255, 111, 56, 0.88);
+  background: rgba(255, 91, 31, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 154, 113, 0.18);
+  color: #fff;
+  font-weight: 850;
+}
+
+.resultsSection,
+.organizerSection,
+.seoSection {
+  padding: 34px 0 0;
+  scroll-margin-top: 28px;
+}
+
+.compactHeading h2 {
+  font-size: clamp(23px, 2.4vw, 32px);
+}
+
+.compactHeading button {
+  border: 0;
+  background: transparent;
+  color: #ff8a5b;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.sectionHeading {
+  margin-bottom: 10px;
+}
+
+.resultsSection {
+  padding-top: 34px;
+}
+
+.resultsSection .sectionHeading h2 {
+  font-size: clamp(36px, 3vw, 42px);
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.eventCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 128px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(20, 26, 37, 0.94), rgba(10, 14, 21, 0.98));
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.eventCard:hover {
+  border-color: rgba(255, 111, 56, 0.58);
+  transform: translateY(-1px);
+  background: linear-gradient(145deg, rgba(29, 32, 42, 0.98), rgba(12, 16, 23, 0.98));
+}
+
+.eventCardFeatured {
+  border-color: rgba(255, 91, 31, 0.36);
+}
+
+.eventCardLink {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.eventCardLink:focus-visible {
+  outline-offset: 2px;
+}
+
+.dateBlock {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 74px;
+  padding: 6px;
+  border-radius: 13px;
+  background: #f35a23;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.dateBlock strong {
+  font-size: 20px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dateBlock > span:not(.dateLine) {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.dateBlockRange strong {
+  font-size: 18px;
+}
+
+.dateBlockCrossMonth {
+  gap: 5px;
+}
+
+.dateLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.dateLine strong {
+  font-size: 15px;
+}
+
+.dateLine span {
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+}
+
+.eventCopy {
+  min-width: 0;
+}
+
+.cardEyebrows,
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cardEyebrows span,
+.eventMeta span {
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #b9c2cf;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.cardEyebrows span.featuredChip {
+  border-color: rgba(255, 91, 31, 0.42);
+  background: rgba(255, 91, 31, 0.12);
+  color: #ffc1aa;
+}
+
+.eventCopy h3 {
+  display: -webkit-box;
+  max-width: 100%;
+  margin: 4px 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(18px, 1.5vw, 20px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.22;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.location {
+  margin: 0 0 6px;
+  color: #e1e6ed;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.eventMeta span:first-child {
+  color: #ffad8b;
+}
+
+.saveButton {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 25px;
+  font-weight: 750;
+}
+
+.eventCardSlot[hidden] {
+  display: none;
+}
+
+.showMoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.showMoreRow button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 91, 31, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 91, 31, 0.12);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.showMoreRow span {
+  color: #949faf;
+  font-size: 12px;
+}
+
+.saveButton[aria-pressed="true"] {
+  border-color: rgba(255, 91, 31, 0.48);
+  background: rgba(255, 91, 31, 0.14);
+  color: #ffc1aa;
+}
+
+.emptyState {
+  padding: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+
+.emptyState h3 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.emptyState p {
+  color: #aeb8c6;
+}
+
+.emptyState button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 91, 31, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 91, 31, 0.13);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.organizerCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 128px;
+  padding: 18px 22px;
+  border: 1px solid rgba(255, 91, 31, 0.28);
+  border-radius: 20px;
+  background:
+    linear-gradient(115deg, rgba(86, 29, 22, 0.42), rgba(18, 20, 28, 0.96) 58%),
+    #11151e;
+}
+
+.organizerCard h2 {
+  font-size: clamp(26px, 2.2vw, 28px);
+}
+
+.organizerCard p {
+  max-width: 720px;
+  margin: 7px 0 0;
+  color: #c2cbd7;
+  line-height: 1.55;
+}
+
+.organizerCard :global(.emc-btn) {
+  flex: 0 0 auto;
+  min-height: 48px;
+  justify-content: center;
+}
+
+.seoSection {
+  padding-bottom: 46px;
+}
+
+.seoContent {
+  max-width: 800px;
+}
+
+.seoCopy,
+.faqBlock {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.seoCopy h2 {
+  font-size: clamp(29px, 2.5vw, 33px);
+}
+
+.seoCopy > p {
+  margin: 10px 0 0;
+  color: #b7c0cd;
+  line-height: 1.7;
+}
+
+.seoLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.seoLinks a {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #dbe3ed;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.faqBlock details {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.faqBlock {
+  margin-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.faqBlock details:last-child {
+  border-bottom: 0;
+}
+
+.faqBlock summary {
+  padding: 13px 0;
+  color: #f5f7fa;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.faqBlock p {
+  margin: -4px 0 16px;
+  color: #aeb8c6;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1080px) {
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .resultsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroSection {
+    padding: 22px 0 20px;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(36px, 11vw, 54px);
+  }
+
+  .heroCopy h1 span {
+    display: inline;
+  }
+
+  .filterSection {
+    padding-top: 16px;
+  }
+
+  .filterShell {
+    padding: 15px;
+    border-radius: 20px;
+  }
+
+  .sectionHeading,
+  .organizerCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .filterHeading {
+    align-items: center;
+  }
+
+  .filterHeadingActions,
+  .sectionHeading > p {
+    max-width: none;
+    text-align: left;
+  }
+
+  .filterHeadingActions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .resultsSection,
+  .organizerSection,
+  .seoSection {
+    padding-top: 28px;
+    scroll-margin-top: 20px;
+  }
+
+  .resultsSection .sectionHeading h2 {
+    font-size: clamp(28px, 8vw, 34px);
+  }
+
+  .compactFilterRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .familyChips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .familyChips button {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .provinceChips {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .provinceChips button {
+    flex: 0 0 auto;
+  }
+
+  .resultsGrid[data-limit="12"] .eventCardSlot:nth-child(n + 9) {
+    display: none;
+  }
+
+  .organizerCard :global(.emc-btn) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .heroActions :global(.emc-btn) {
+    width: 100%;
+  }
+
+  .heroActions > a:not(:global(.emc-btn)) {
+    justify-content: center;
+  }
+
+  .heroSummary {
+    gap: 4px 7px;
+  }
+
+  .eventCard {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 11px;
+    min-height: 126px;
+    padding: 11px;
+  }
+
+  .dateBlock {
+    min-height: 68px;
+  }
+
+  .dateBlock strong {
+    font-size: 18px;
+  }
+
+  .dateBlockRange strong {
+    font-size: 16px;
+  }
+
+  .dateLine strong {
+    font-size: 14px;
+  }
+
+  .dateLine span {
+    font-size: 9px;
+  }
+
+  .eventCopy {
+    padding-right: 42px;
+  }
+
+  .saveButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+
+  .showMoreRow {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eventCard {
+    transition: none;
+  }
+}
