@@ -755,10 +755,12 @@
   }
 
   .filterSection {
+    position: static;
     padding-top: 16px;
   }
 
   .filterShell {
+    position: static;
     padding: 15px;
     border-radius: 20px;
   }
@@ -821,7 +823,9 @@
     width: 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
     padding-bottom: 3px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .provinceChips button {
@@ -835,12 +839,43 @@
   .organizerCard :global(.emc-btn) {
     width: 100%;
   }
+
+  .dayTabs {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @media (max-width: 540px) {
+  .heroSection {
+    padding: 16px 0 12px;
+  }
+
+  .breadcrumb ol {
+    margin-bottom: 5px;
+  }
+
+  .heroCopy h1 {
+    margin: 3px 0 5px;
+    font-size: clamp(36px, 9.8vw, 48px);
+    line-height: 0.94;
+  }
+
+  .heroLead {
+    line-height: 1.35;
+  }
+
+  .heroSummary {
+    gap: 3px 7px;
+    margin-top: 6px;
+  }
+
   .heroActions {
     display: grid;
     grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .heroActions :global(.emc-btn) {
@@ -851,8 +886,70 @@
     justify-content: center;
   }
 
-  .heroSummary {
-    gap: 4px 7px;
+  .filterSection {
+    padding-top: 10px;
+  }
+
+  .filterShell {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .filterHeading {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .filterHeading h2 {
+    font-size: clamp(34px, 9.2vw, 38px);
+    line-height: 1;
+  }
+
+  .filterHeadingActions {
+    gap: 2px;
+  }
+
+  .filterGrid {
+    gap: 6px;
+  }
+
+  .filterGrid label {
+    gap: 4px;
+  }
+
+  .filterGrid input,
+  .filterGrid select {
+    min-height: 52px;
+    padding-inline: 12px;
+    border-radius: 12px;
+  }
+
+  .dayTabs {
+    gap: 6px;
+    margin-top: 4px;
+    padding-bottom: 3px;
+  }
+
+  .dayTabs button {
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+
+  .compactFilterRow {
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .familyChips,
+  .provinceChips {
+    gap: 5px;
+  }
+
+  .familyChips button,
+  .provinceChips button {
+    min-height: 44px;
+    padding-inline: 9px;
   }
 
   .eventCard {
@@ -883,7 +980,11 @@
   }
 
   .eventCopy {
-    padding-right: 42px;
+    padding-right: 52px;
+  }
+
+  .eventCopy h3 {
+    -webkit-line-clamp: 4;
   }
 
   .saveButton {
@@ -896,6 +997,49 @@
     align-items: stretch;
     flex-direction: column;
     text-align: center;
+  }
+
+  .organizerSection,
+  .seoSection {
+    padding-top: 24px;
+  }
+
+  .organizerCard {
+    gap: 14px;
+    min-height: 0;
+    padding: 14px 16px;
+  }
+
+  .organizerCard h2 {
+    font-size: 24px;
+  }
+
+  .organizerCard p {
+    margin-top: 5px;
+  }
+
+  .seoSection {
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
+  }
+
+  .seoCopy h2 {
+    font-size: clamp(34px, 9.2vw, 38px);
+    line-height: 1.05;
+  }
+
+  .seoCopy > p {
+    margin-top: 8px;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .seoLinks {
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .faqBlock {
+    margin-top: 12px;
   }
 }
 
