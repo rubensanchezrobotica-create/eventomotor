@@ -503,6 +503,14 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
     join(process.cwd(), "app/preview/zonas/[zone]/page.tsx"),
     "utf8",
   );
+  const publicRouteSource = readFileSync(
+    join(process.cwd(), "app/zonas/[slug]/page.tsx"),
+    "utf8",
+  );
+  const sitemapSource = readFileSync(
+    join(process.cwd(), "app/sitemap.ts"),
+    "utf8",
+  );
   const selectorSource = readFileSync(
     join(process.cwd(), "components/zones/ZoneMobileSelector.tsx"),
     "utf8",
@@ -541,7 +549,7 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(explorerSource, /zoneResultTitleParts/);
   assert.match(explorerSource, /styles\.zoneTitleSuffix/);
   assert.match(explorerSource, /zoneMobileResultTitle/);
-  assert.match(explorerSource, /<ZoneMobileSelector currentZone=\{data\.zone\.id\} \/>/);
+  assert.match(explorerSource, /<ZoneMobileSelector basePath=\{zoneBasePath\} currentZone=\{data\.zone\.id\} \/>/);
   assert.match(explorerSource, /Explora la zona/);
   assert.match(explorerSource, /toggleExploreGroup\("provinces"\)/);
   assert.match(explorerSource, /toggleExploreGroup\("families"\)/);
@@ -563,7 +571,7 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(pageSource, /styles\.heroSecondaryStat/);
   assert.match(pageSource, /¿Organizas un evento\?/);
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
-  assert.match(selectorSource, /router\.push\(`\/preview\/zonas\/\$\{event\.target\.value\}`\)/);
+  assert.match(selectorSource, /router\.push\(`\$\{basePath\}\/\$\{event\.target\.value\}`\)/);
   assert.match(selectorSource, /Buscar eventos en otra zona\. Zona actual:/);
   assert.match(selectorSource, /SEO_ZONES\.map/);
   assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.heroActions \{[\s\S]*display:\s*none/);
@@ -589,4 +597,18 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(routeSource, /isZonePreviewAvailable\(process\.env\.VERCEL_ENV\)/);
   assert.doesNotMatch(routeSource, /process\.env\.NODE_ENV/);
   assert.match(routeSource, /if \(!isZonePreviewId\(zone\)\) notFound\(\)/);
+  assert.match(routeSource, /mode="preview"/);
+  assert.match(publicRouteSource, /buildZonePreviewData\(events, slug, now\)/);
+  assert.match(publicRouteSource, /parseZoneFilters\(filtersParams\)/);
+  assert.match(publicRouteSource, /mode="public"/);
+  assert.match(publicRouteSource, /pathname=\{`\/zonas\/\$\{slug\}`\}/);
+  assert.match(publicRouteSource, /robots:\s*\{[\s\S]*index:\s*true,[\s\S]*follow:\s*true/);
+  assert.match(publicRouteSource, /alternates:\s*\{[\s\S]*canonical,/);
+  assert.match(publicRouteSource, /openGraph:/);
+  assert.match(publicRouteSource, /twitter:/);
+  assert.match(publicRouteSource, /generateStaticParams/);
+  assert.match(publicRouteSource, /if \(!isZonePreviewId\(slug\)\) notFound\(\)/);
+  assert.doesNotMatch(publicRouteSource, /isZonePreviewAvailable/);
+  assert.match(sitemapSource, /SEO_ZONES\.map/);
+  assert.doesNotMatch(sitemapSource, /preview\/zonas/);
 });

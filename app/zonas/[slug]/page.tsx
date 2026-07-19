@@ -1,23 +1,18 @@
-import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import TrackLink from "@/components/analytics/TrackLink";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
-import { dayLabel, eventHref, unique } from "@/components/public/concept/concept-model";
-import { eventAnalyticsParams } from "@/lib/analytics";
-import { formatRange, getDisciplineColor } from "@/lib/date-utils";
-import { isEventInMacroZone } from "@/lib/event-macro-zone";
-import { getRegionSlug } from "@/lib/event-listing-slugs";
+import ZonePreviewPage from "@/components/zones/ZonePreviewPage";
+import {
+  buildZonePreviewData,
+  isZonePreviewId,
+  parseZoneFilters,
+} from "@/components/zones/zone-preview-model";
 import { getVisibleEvents } from "@/lib/public-events";
-import { SITE_URL } from "@/lib/seo";
-import { SEO_DISCIPLINES, SEO_ZONES } from "@/lib/seo-taxonomy";
-import type { EventItem } from "@/types/event";
+import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_URL } from "@/lib/seo";
+import { SEO_ZONES } from "@/lib/seo-taxonomy";
 
 type ZonePageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export function generateStaticParams() {
@@ -28,164 +23,69 @@ function findZone(slug: string) {
   return SEO_ZONES.find((zone) => zone.slug === slug);
 }
 
-function EventCard({ event }: { event: EventItem }) {
-  const color = getDisciplineColor(event.discipline);
-  const label = dayLabel(event);
-
-  return (
-    <TrackLink
-      className="emc-result-card"
-      eventName="click_event_detail"
-      eventParams={{
-        ...eventAnalyticsParams(event),
-        discipline: event.discipline,
-        zone: event.region || event.province,
-        vehicle_type: event.vehicleType || event.vehicle_type || "otros",
-      }}
-      href={eventHref(event)}
-      style={{ "--emc-card-accent": color.accent } as CSSProperties}
-    >
-      <div className="emc-result-date">
-        {label.day}
-        <small>{label.month}</small>
-      </div>
-      <div>
-        <div className="emc-result-meta">
-          <span className="emc-badge">{event.discipline}</span>
-          <span className="emc-badge">{event.city}</span>
-        </div>
-        <h3>{event.title}</h3>
-        <p>{formatRange(event)} / {event.city}, {event.province}</p>
-        <span className="emc-card-action">Ver evento</span>
-      </div>
-    </TrackLink>
-  );
-}
-
 export async function generateMetadata({ params }: ZonePageProps): Promise<Metadata> {
   const { slug } = await params;
   const zone = findZone(slug);
 
   if (!zone) return {};
 
+  const canonical = `${SITE_URL}/zonas/${zone.slug}`;
+  const image = absoluteUrl(DEFAULT_OG_IMAGE);
+
   return {
     title: zone.metaTitle,
     description: zone.metaDescription,
+    robots: {
+      index: true,
+      follow: true,
+    },
     alternates: {
-      canonical: `${SITE_URL}/zonas/${zone.slug}`,
+      canonical,
     },
     openGraph: {
       title: zone.metaTitle,
       description: zone.metaDescription,
-      url: `${SITE_URL}/zonas/${zone.slug}`,
+      url: canonical,
       siteName: "EventoMotor",
+      locale: "es_ES",
       type: "website",
+      images: [
+        {
+          url: image,
+          width: 1024,
+          height: 1024,
+          alt: "EventoMotor",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: zone.metaTitle,
+      description: zone.metaDescription,
+      images: [image],
     },
   };
 }
 
-export default async function ZonePage({ params }: ZonePageProps) {
+export default async function ZonePage({ params, searchParams }: ZonePageProps) {
   const { slug } = await params;
-  const zone = findZone(slug);
+  if (!isZonePreviewId(slug)) notFound();
 
-  if (!zone) notFound();
-
-  const events = (await getVisibleEvents())
-    .filter((event) => isEventInMacroZone(event, zone.slug))
-    .sort((a, b) => a.start.localeCompare(b.start));
-  const provinces = unique(events.map((event) => event.province)).slice(0, 9);
-  const cities = unique(events.map((event) => event.city)).slice(0, 9);
+  const [filtersParams, events] = await Promise.all([
+    searchParams,
+    getVisibleEvents(),
+  ]);
+  const now = new Date();
+  const data = buildZonePreviewData(events, slug, now);
+  const initialFilters = parseZoneFilters(filtersParams);
 
   return (
-    <div className="emc-page">
-      <ConceptStyles />
-      <ConceptStaticHeader />
-      <main className="emc-contact-page">
-        <section className="emc-contact-hero emc-seo-hero">
-          <div className="emc-container">
-            <div className="emc-kicker">Zona</div>
-            <h1>{zone.h1}</h1>
-            <p className="emc-contact-lead">{zone.intro}</p>
-            <div className="emc-contact-actions">
-              <Link className="emc-btn emc-btn-primary" href="/calendario">
-                Ver calendario
-              </Link>
-              <Link className="emc-contact-secondary-link" href="/zonas">
-                Todas las zonas
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Eventos</div>
-                <h2>{events.length ? `${events.length} eventos en la zona` : "Eventos de la zona"}</h2>
-              </div>
-              <p>Eventos filtrados por territorio, con enlaces a fichas individuales, fecha, disciplina y ubicación.</p>
-            </div>
-            <div className="emc-results-grid">
-              {events.length ? (
-                events.map((event) => <EventCard event={event} key={event.id} />)
-              ) : (
-                <div className="emc-panel emc-publish-criteria">
-                  <h2>Sin eventos visibles ahora mismo</h2>
-                  <p>Vuelve al calendario principal para explorar eventos de otras zonas o disciplinas.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {provinces.length || cities.length ? (
-          <section className="emc-section emc-internal-links-section">
-            <div className="emc-container">
-              <div className="emc-section-head">
-                <div>
-                  <div className="emc-kicker">Territorio</div>
-                  <h2>Provincias y ciudades con eventos</h2>
-                </div>
-              </div>
-              <div className="emc-internal-links">
-                {provinces.map((province) => (
-                  <Link className="emc-internal-link-card" href={`/eventos-moto/${getRegionSlug(province)}`} key={province}>
-                    <span>Provincia</span>
-                    <strong>{province}</strong>
-                  </Link>
-                ))}
-                {cities.slice(0, Math.max(0, 9 - provinces.length)).map((city) => (
-                  <Link className="emc-internal-link-card" href="/calendario" key={city}>
-                    <span>Ciudad</span>
-                    <strong>{city}</strong>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        <section className="emc-section emc-internal-links-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Disciplinas</div>
-                <h2>Explora eventos por tipo</h2>
-              </div>
-            </div>
-            <div className="emc-internal-links">
-              {SEO_DISCIPLINES.slice(0, 6).map((item) => (
-                <Link className="emc-internal-link-card" href={`/disciplinas/${item.slug}`} key={item.slug}>
-                  <span>Disciplina</span>
-                  <strong>{item.title}</strong>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-      <ConceptFooter />
-    </div>
+    <ZonePreviewPage
+      data={data}
+      initialFilters={initialFilters}
+      mode="public"
+      nowIso={now.toISOString()}
+      pathname={`/zonas/${slug}`}
+    />
   );
 }

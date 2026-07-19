@@ -50,6 +50,7 @@ export default async function ZonePreviewRoute({
     <ZonePreviewPage
       data={data}
       initialFilters={initialFilters}
+      mode="preview"
       nowIso={now.toISOString()}
       pathname={`/preview/zonas/${zone}`}
     />

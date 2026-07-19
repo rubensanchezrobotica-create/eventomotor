@@ -13,6 +13,7 @@ import styles from "./ZonePreview.module.css";
 type ZonePreviewPageProps = {
   data: ZonePreviewData;
   initialFilters: ZoneFilters;
+  mode: "preview" | "public";
   nowIso: string;
   pathname: string;
 };
@@ -29,11 +30,13 @@ function introParagraphs(intro: string) {
 export default function ZonePreviewPage({
   data,
   initialFilters,
+  mode,
   nowIso,
   pathname,
 }: ZonePreviewPageProps) {
   const zoneName = data.zone.title.toLowerCase();
-  const publicZoneHref = `/zonas/${data.zone.id}`;
+  const analyticsSource = mode === "preview" ? "zone_preview" : "zone_public";
+  const zoneBasePath = mode === "preview" ? "/preview/zonas" : "/zonas";
   const paragraphs = introParagraphs(data.zone.intro);
 
   return (
@@ -81,7 +84,7 @@ export default function ZonePreviewPage({
                 <Link
                   aria-current={zone.slug === data.zone.id ? "page" : undefined}
                   className={zone.slug === data.zone.id ? styles.zoneNavActive : ""}
-                  href={`/preview/zonas/${zone.slug}`}
+                  href={`${zoneBasePath}/${zone.slug}`}
                   key={zone.slug}
                 >
                   {zone.title}
@@ -93,9 +96,11 @@ export default function ZonePreviewPage({
 
         <ZoneExplorer
           data={data}
+          eventSource={`${analyticsSource}_results`}
           initialFilters={initialFilters}
           nowIso={nowIso}
           pathname={pathname}
+          zoneBasePath={zoneBasePath}
         />
 
         <section className={styles.organizerSection}>
@@ -119,7 +124,7 @@ export default function ZonePreviewPage({
             <TrackLink
               className="emc-btn emc-btn-primary"
               eventName="click_publish_event"
-              eventParams={{ source: `zone_preview_${data.zone.id}` }}
+              eventParams={{ source: `${analyticsSource}_${data.zone.id}` }}
               href="/publicar-evento"
             >
               Publicar un evento
@@ -137,7 +142,9 @@ export default function ZonePreviewPage({
               <div className={styles.internalLinks}>
                 <Link href="/calendario">Calendario completo</Link>
                 <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
-                <Link href={publicZoneHref}>Página pública actual</Link>
+                {mode === "preview" ? (
+                  <Link href={`/zonas/${data.zone.id}`}>Página pública actual</Link>
+                ) : null}
                 <Link href="/disciplinas/rallyes">Rallyes</Link>
                 <Link href="/disciplinas/circuito">Circuito</Link>
                 <Link href="/disciplinas/concentraciones">Concentraciones</Link>
@@ -193,7 +200,7 @@ export default function ZonePreviewPage({
                     <ZoneEventCard
                       event={event}
                       key={event.slug || event.id}
-                      source="zone_preview_history"
+                      source={`${analyticsSource}_history`}
                     />
                   ))}
                 </div>

@@ -6,10 +6,11 @@ import type { MacroZoneId } from "@/lib/event-macro-zone";
 import styles from "./ZonePreview.module.css";
 
 type ZoneMobileSelectorProps = {
+  basePath: "/preview/zonas" | "/zonas";
   currentZone: MacroZoneId;
 };
 
-export default function ZoneMobileSelector({ currentZone }: ZoneMobileSelectorProps) {
+export default function ZoneMobileSelector({ basePath, currentZone }: ZoneMobileSelectorProps) {
   const router = useRouter();
   const currentZoneData = SEO_ZONES.find((zone) => zone.slug === currentZone);
 
@@ -23,7 +24,7 @@ export default function ZoneMobileSelector({ currentZone }: ZoneMobileSelectorPr
       </span>
       <select
         aria-label={`Buscar eventos en otra zona. Zona actual: ${currentZoneData?.title ?? currentZone}`}
-        onChange={(event) => router.push(`/preview/zonas/${event.target.value}`)}
+        onChange={(event) => router.push(`${basePath}/${event.target.value}`)}
         value={currentZone}
       >
         {SEO_ZONES.map((zone) => (

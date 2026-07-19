@@ -26,9 +26,11 @@ import styles from "./ZonePreview.module.css";
 
 type ZoneExplorerProps = {
   data: ZonePreviewData;
+  eventSource: string;
   initialFilters: ZoneFilters;
   nowIso: string;
   pathname: string;
+  zoneBasePath: "/preview/zonas" | "/zonas";
 };
 
 function subscribeMobile(callback: () => void) {
@@ -54,9 +56,11 @@ function scrollToEvents() {
 
 export default function ZoneExplorer({
   data,
+  eventSource,
   initialFilters,
   nowIso,
   pathname,
+  zoneBasePath,
 }: ZoneExplorerProps) {
   const [filters, setFilters] = useState(initialFilters);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(
@@ -244,7 +248,7 @@ export default function ZoneExplorer({
           </div>
 
           <div className={styles.mobileFilters}>
-            <ZoneMobileSelector currentZone={data.zone.id} />
+            <ZoneMobileSelector basePath={zoneBasePath} currentZone={data.zone.id} />
 
             <label className={filters.province ? styles.filterFieldActive : undefined}>
               <span>Provincia</span>
@@ -427,7 +431,7 @@ export default function ZoneExplorer({
                     hidden={index >= effectiveVisibleLimit}
                     key={event.slug || event.id}
                   >
-                    <ZoneEventCard event={event} />
+                    <ZoneEventCard event={event} source={eventSource} />
                   </div>
                 ))}
               </div>
