@@ -16,11 +16,17 @@ import styles from "./ZonePreview.module.css";
 
 type ZoneEventCardProps = {
   event: EventItem;
+  saveSource?: string;
+  showMultiDayMeta?: boolean;
+  showStatus?: boolean;
   source?: string;
 };
 
 export default function ZoneEventCard({
   event,
+  saveSource,
+  showMultiDayMeta = true,
+  showStatus = true,
   source = "zone_preview_results",
 }: ZoneEventCardProps) {
   const slug = event.slug || event.id;
@@ -93,18 +99,20 @@ export default function ZoneEventCard({
       <div className={styles.eventCopy}>
         <div className={styles.cardEyebrows}>
           {event.featured ? <span className={styles.featuredChip}>Destacado</span> : null}
-          {status ? <span>{status}</span> : null}
+          {showStatus && status ? <span>{status}</span> : null}
         </div>
         <h3>{event.title}</h3>
         <p className={styles.location}>{location || event.venue}</p>
         <div className={styles.eventMeta}>
           <span>{discipline}</span>
           {vehicle ? <span>{vehicle}</span> : null}
-          {isMultiDay ? <span className={styles.multiDayMeta}>Varios días</span> : null}
+          {showMultiDayMeta && isMultiDay ? (
+            <span className={styles.multiDayMeta}>Varios días</span>
+          ) : null}
         </div>
       </div>
 
-      <ZoneSaveButton event={savedEvent} />
+      <ZoneSaveButton event={savedEvent} source={saveSource} />
     </article>
   );
 }

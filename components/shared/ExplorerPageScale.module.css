@@ -1,0 +1,17 @@
+.explorerScale {
+  --em-hero-title: clamp(56px, 4.8vw, 76px);
+  --em-hero-description: clamp(18px, 1.35vw, 22px);
+  --em-filter-title: clamp(40px, 3.2vw, 52px);
+  --em-list-title: clamp(42px, 3.4vw, 56px);
+  --em-explore-title: clamp(40px, 3.1vw, 50px);
+  --em-subsection-title: clamp(26px, 2vw, 32px);
+  --em-cta-title: clamp(36px, 2.8vw, 44px);
+  --em-seo-title: clamp(36px, 2.8vw, 44px);
+  --em-section-gap: clamp(32px, 2.4vw, 38px);
+  --em-hero-padding-top: clamp(30px, 2.5vw, 38px);
+  --em-hero-padding-bottom: clamp(22px, 1.8vw, 28px);
+  --em-heading-max-width: 980px;
+  --em-editorial-max-width: 860px;
+  --em-editorial-size: 16px;
+  --em-editorial-line-height: 1.68;
+}

@@ -196,7 +196,7 @@ test("calcula el próximo fin de semana de viernes a domingo", () => {
   });
 });
 
-test("el CTA de fin de semana selecciona el periodo exclusivo y conserva el listado filtrable", () => {
+test("el periodo de fin de semana conserva el listado filtrable", () => {
   const weekendFilters = createWeekendZoneFilters();
   const events = [
     event({ id: "friday", slug: "friday", start: "2026-07-17", end: "2026-07-17" }),
@@ -219,15 +219,31 @@ test("el CTA de fin de semana selecciona el periodo exclusivo y conserva el list
 
 test("genera títulos territoriales dinámicos para cada periodo", () => {
   assert.equal(zoneResultTitle("upcoming", "Centro"), "Próximos eventos de motor en la zona centro");
-  assert.equal(zoneResultTitle("weekend", "Centro"), "Eventos de este fin de semana en la zona centro");
+  assert.equal(zoneResultTitle("weekend", "Centro"), "Eventos este fin de semana en la zona centro");
   assert.equal(zoneResultTitle("next30", "Centro"), "Eventos de los próximos 30 días en la zona centro");
   assert.equal(zoneResultTitle("month", "Centro"), "Eventos de este mes en la zona centro");
   assert.equal(zoneResultTitle("all", "Centro"), "Todos los eventos de motor en la zona centro");
 });
 
-test("mantiene zona y nombre unidos semánticamente en todos los títulos dinámicos", () => {
+test("genera el título natural de fin de semana para las seis zonas", () => {
+  assert.deepEqual(
+    ["Norte", "Centro", "Cataluña / Aragón", "Levante", "Sur", "Canarias"].map(
+      (zoneTitle) => zoneResultTitle("weekend", zoneTitle),
+    ),
+    [
+      "Eventos este fin de semana en la zona norte",
+      "Eventos este fin de semana en la zona centro",
+      "Eventos este fin de semana en Cataluña y Aragón",
+      "Eventos este fin de semana en Levante",
+      "Eventos este fin de semana en la zona sur",
+      "Eventos este fin de semana en Canarias",
+    ],
+  );
+});
+
+test("mantiene zona y nombre unidos semánticamente en los demás títulos dinámicos", () => {
   const zoneTitles = ["Norte", "Centro", "Cataluña / Aragón", "Levante", "Sur", "Canarias"];
-  const periods = ["upcoming", "weekend", "next30", "month", "all"] as const;
+  const periods = ["upcoming", "next30", "month", "all"] as const;
 
   for (const zoneTitle of zoneTitles) {
     for (const period of periods) {
@@ -253,11 +269,12 @@ test("muestra diez localidades al inicio y permite expandir sin alterar el orden
   assert.equal(visibleZoneLocalities(localities, true).length, 12);
 });
 
-test("excluye el fin de semana de los chips normales y limita provincias a ocho", () => {
+test("integra el fin de semana en el orden normal de periodos y limita provincias a ocho", () => {
   assert.deepEqual(
     ZONE_PERIOD_TABS.map((period) => [period.id, period.label]),
     [
       ["upcoming", "Próximos"],
+      ["weekend", "Este fin de semana"],
       ["next30", "Próximos 30 días"],
       ["month", "Este mes"],
       ["all", "Todos los eventos"],
@@ -538,6 +555,7 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(explorerSource, /Fin de semana/);
   assert.match(explorerSource, /aria-label=\{`Este fin de semana,/);
   assert.match(explorerSource, /Periodos avanzados/);
+  assert.match(explorerSource, /period\.id !== "upcoming" && period\.id !== "weekend"/);
   assert.match(explorerSource, /tabIndex=\{-1\}/);
   assert.match(explorerSource, /focus\(\{ preventScroll: true \}\)/);
   assert.match(explorerSource, /Ver todas las provincias/);
@@ -559,7 +577,7 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(explorerSource, /aria-controls="zone-localities-panel"/);
   assert.match(explorerSource, /featuredZoneProvinces\(data\.provinceOptions\)/);
   assert.doesNotMatch(explorerSource, /weekendDayCounts/);
-  assert.doesNotMatch(explorerSource, /styles\.weekendSection/);
+  assert.doesNotMatch(explorerSource, /styles\.weekendStrip/);
   assert.equal(
     explorerSource.match(/className=\{styles\.exploreSection\}/g)?.length,
     1,
@@ -570,11 +588,14 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.equal(pageSource.match(/data\.zone\.intro/g)?.length, 1);
   assert.match(pageSource, /styles\.heroSecondaryStat/);
   assert.match(pageSource, /¿Organizas un evento\?/);
+  assert.doesNotMatch(pageSource, /Ver próximos eventos/);
+  assert.doesNotMatch(pageSource, /styles\.heroActions/);
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
   assert.match(selectorSource, /router\.push\(`\$\{basePath\}\/\$\{event\.target\.value\}`\)/);
   assert.match(selectorSource, /Buscar eventos en otra zona\. Zona actual:/);
   assert.match(selectorSource, /SEO_ZONES\.map/);
-  assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.heroActions \{[\s\S]*display:\s*none/);
+  assert.doesNotMatch(cssSource, /\.heroActions/);
+  assert.doesNotMatch(cssSource, /\.weekendStrip/);
   assert.match(cssSource, /\.mobileFilterActions \{[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(cssSource, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(cssSource, /\.weekendLabelFull \{[\s\S]*display:\s*none/);

@@ -86,7 +86,7 @@ export const ZONE_PERIODS: Array<{ id: ZonePeriod; label: string }> = [
   { id: "all", label: "Todos los eventos" },
 ];
 
-export const ZONE_PERIOD_TABS = ZONE_PERIODS.filter((period) => period.id !== "weekend");
+export const ZONE_PERIOD_TABS = ZONE_PERIODS;
 
 export const ZONE_DISCIPLINE_GROUPS: Array<{
   id: ZoneDisciplineGroupId;
@@ -461,15 +461,26 @@ export function filterZoneEvents(
 }
 
 export function zoneResultTitleParts(period: ZonePeriod, zoneTitle: string) {
-  const lead = period === "weekend"
-    ? "Eventos de este fin de semana en la"
-    : period === "next30"
-      ? "Eventos de los próximos 30 días en la"
-      : period === "month"
-        ? "Eventos de este mes en la"
-        : period === "all"
-          ? "Todos los eventos de motor en la"
-          : "Próximos eventos de motor en la";
+  if (period === "weekend") {
+    const weekendZone = zoneTitle === "Norte" || zoneTitle === "Centro" || zoneTitle === "Sur"
+      ? `la zona ${zoneTitle.toLowerCase()}`
+      : zoneTitle === "Cataluña / Aragón"
+        ? "Cataluña y Aragón"
+        : zoneTitle;
+
+    return {
+      lead: "Eventos este fin de semana en",
+      zone: weekendZone,
+    };
+  }
+
+  const lead = period === "next30"
+    ? "Eventos de los próximos 30 días en la"
+    : period === "month"
+      ? "Eventos de este mes en la"
+      : period === "all"
+        ? "Todos los eventos de motor en la"
+        : "Próximos eventos de motor en la";
 
   return {
     lead,

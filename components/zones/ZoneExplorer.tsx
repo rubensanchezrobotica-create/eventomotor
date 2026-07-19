@@ -181,30 +181,6 @@ export default function ZoneExplorer({
             </h2>
           </div>
 
-          {data.weekendEvents.length ? (
-            <button
-              aria-label={isWeekendActive
-                ? "Volver a próximos eventos"
-                : `Ver ${data.weekendEvents.length} eventos de este fin de semana`}
-              aria-pressed={isWeekendActive}
-              className={`${styles.weekendStrip} ${isWeekendActive ? styles.weekendStripActive : ""}`}
-              onClick={activateWeekend}
-              type="button"
-            >
-              <span className={styles.weekendStripCopy}>
-                <strong>
-                  {data.weekendEvents.length}{" "}
-                  {data.weekendEvents.length === 1 ? "evento" : "eventos"} este fin de semana
-                </strong>
-                <span>Viernes, sábado y domingo más próximos.</span>
-              </span>
-              <span className={styles.weekendStripAction}>
-                {isWeekendActive ? "Volver a próximos" : "Ver eventos"}
-                <span aria-hidden="true">→</span>
-              </span>
-            </button>
-          ) : null}
-
           <div className={`${styles.filterGrid} ${styles.desktopFilterGrid}`}>
             <label className={filters.province ? styles.filterFieldActive : undefined}>
               <span>Provincia</span>
@@ -344,7 +320,9 @@ export default function ZoneExplorer({
                 </label>
               </div>
               <div aria-label="Periodos avanzados" className={styles.mobileAdvancedPeriods}>
-                {ZONE_PERIOD_TABS.filter((period) => period.id !== "upcoming").map((period) => (
+                {ZONE_PERIOD_TABS.filter(
+                  (period) => period.id !== "upcoming" && period.id !== "weekend",
+                ).map((period) => (
                   <button
                     aria-pressed={filters.period === period.id}
                     className={filters.period === period.id ? styles.tabActive : ""}
@@ -366,10 +344,17 @@ export default function ZoneExplorer({
           >
             {ZONE_PERIOD_TABS.map((period) => (
               <button
+                aria-label={period.id === "weekend"
+                  ? `Este fin de semana, ${periodCounts.weekend} ${
+                    periodCounts.weekend === 1 ? "evento" : "eventos"
+                  }`
+                  : undefined}
                 aria-pressed={filters.period === period.id}
                 className={filters.period === period.id ? styles.tabActive : ""}
                 key={period.id}
-                onClick={() => updateFilter("period", period.id)}
+                onClick={period.id === "weekend"
+                  ? activateWeekend
+                  : () => updateFilter("period", period.id)}
                 type="button"
               >
                 <span>{period.label}</span>

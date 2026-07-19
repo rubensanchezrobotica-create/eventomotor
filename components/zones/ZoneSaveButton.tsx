@@ -12,9 +12,13 @@ import styles from "./ZonePreview.module.css";
 
 type ZoneSaveButtonProps = {
   event: SavedEvent;
+  source?: string;
 };
 
-export default function ZoneSaveButton({ event }: ZoneSaveButtonProps) {
+export default function ZoneSaveButton({
+  event,
+  source = "zone_preview_card",
+}: ZoneSaveButtonProps) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -29,7 +33,7 @@ export default function ZoneSaveButton({ event }: ZoneSaveButtonProps) {
       trackEvent("remove_saved_event", {
         ...eventAnalyticsParams(event),
         page_path: currentPagePath(),
-        source: "zone_preview_card",
+        source,
       });
       return;
     }
@@ -39,7 +43,7 @@ export default function ZoneSaveButton({ event }: ZoneSaveButtonProps) {
     trackEvent("save_event", {
       ...eventAnalyticsParams(event),
       page_path: currentPagePath(),
-      source: "zone_preview_card",
+      source,
     });
   }
 
