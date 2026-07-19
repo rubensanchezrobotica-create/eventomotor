@@ -286,11 +286,14 @@ test("abre los filtros avanzados únicamente cuando la URL contiene uno", () => 
 });
 
 test("genera los cinco títulos móviles compactos del listado", () => {
-  assert.equal(zoneMobileResultTitle("upcoming"), "Eventos próximos");
-  assert.equal(zoneMobileResultTitle("weekend"), "Eventos este fin de semana");
-  assert.equal(zoneMobileResultTitle("next30"), "Eventos de los próximos 30 días");
-  assert.equal(zoneMobileResultTitle("month"), "Eventos de este mes");
-  assert.equal(zoneMobileResultTitle("all"), "Todos los eventos");
+  assert.equal(zoneMobileResultTitle("upcoming", "Levante"), "Próximos en Levante");
+  assert.equal(
+    zoneMobileResultTitle("weekend", "Levante"),
+    "Este fin de semana en Levante",
+  );
+  assert.equal(zoneMobileResultTitle("next30", "Levante"), "Próximos 30 días en Levante");
+  assert.equal(zoneMobileResultTitle("month", "Levante"), "Este mes en Levante");
+  assert.equal(zoneMobileResultTitle("all", "Levante"), "Todos los eventos en Levante");
 });
 
 test("excluye provincias sin confirmar de la exploración sin perder eventos", () => {
@@ -536,6 +539,7 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(explorerSource, /zoneResultTitleParts/);
   assert.match(explorerSource, /styles\.zoneTitleSuffix/);
   assert.match(explorerSource, /zoneMobileResultTitle/);
+  assert.match(explorerSource, /<ZoneMobileSelector currentZone=\{data\.zone\.id\} \/>/);
   assert.match(explorerSource, /Explora la zona/);
   assert.match(explorerSource, /toggleExploreGroup\("provinces"\)/);
   assert.match(explorerSource, /toggleExploreGroup\("families"\)/);
@@ -551,14 +555,17 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
     1,
   );
   assert.doesNotMatch(pageSource, /data\.weekendEvents\.slice/);
-  assert.match(pageSource, /ZoneMobileSelector/);
+  assert.doesNotMatch(pageSource, /ZoneMobileSelector/);
   assert.match(pageSource, /ZoneSeoDisclosure/);
   assert.equal(pageSource.match(/data\.zone\.intro/g)?.length, 1);
   assert.match(pageSource, /styles\.heroSecondaryStat/);
   assert.match(pageSource, /¿Organizas un evento\?/);
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
   assert.match(selectorSource, /router\.push\(`\/preview\/zonas\/\$\{event\.target\.value\}`\)/);
-  assert.match(selectorSource, /aria-label="Cambiar zona territorial"/);
+  assert.match(selectorSource, /Buscar eventos en otra zona\. Zona actual:/);
+  assert.match(selectorSource, /SEO_ZONES\.map/);
+  assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.heroActions \{[\s\S]*display:\s*none/);
+  assert.match(cssSource, /\.mobileFilterActions \{[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(seoDisclosureSource, /aria-controls=\{CONTENT_ID\}/);
   assert.match(seoDisclosureSource, /aria-expanded=\{expanded\}/);
   assert.match(seoDisclosureSource, /Leer más sobre esta zona/);

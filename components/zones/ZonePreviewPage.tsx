@@ -7,7 +7,6 @@ import { SEO_ZONES } from "@/lib/seo-taxonomy";
 import type { ZoneFilters, ZonePreviewData } from "./zone-preview-model";
 import ZoneEventCard from "./ZoneEventCard";
 import ZoneExplorer from "./ZoneExplorer";
-import ZoneMobileSelector from "./ZoneMobileSelector";
 import ZoneSeoDisclosure from "./ZoneSeoDisclosure";
 import styles from "./ZonePreview.module.css";
 
@@ -47,11 +46,14 @@ export default function ZonePreviewPage({
           <div className="emc-container">
             <nav aria-label="Migas de pan" className={styles.breadcrumb}>
               <ol>
-                <li><Link href="/">Inicio</Link></li>
-                <li aria-hidden="true">/</li>
+                <li className={styles.breadcrumbHome}><Link href="/">Inicio</Link></li>
+                <li aria-hidden="true" className={styles.breadcrumbHome}>/</li>
                 <li><Link href="/zonas">Zonas</Link></li>
                 <li aria-hidden="true">/</li>
-                <li aria-current="page">Zona {zoneName}</li>
+                <li aria-current="page">
+                  <span className={styles.desktopOnly}>Zona {zoneName}</span>
+                  <span className={styles.mobileOnly}>{data.zone.title}</span>
+                </li>
               </ol>
             </nav>
             <span className={styles.eyebrow}>Zona {data.zone.title}</span>
@@ -86,7 +88,6 @@ export default function ZonePreviewPage({
                 </Link>
               ))}
             </nav>
-            <ZoneMobileSelector currentZone={data.zone.id} />
           </div>
         </section>
 

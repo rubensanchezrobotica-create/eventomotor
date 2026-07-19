@@ -529,12 +529,12 @@ export function hasAdvancedZoneFilters(filters: ZoneFilters) {
   );
 }
 
-export function zoneMobileResultTitle(period: ZonePeriod) {
-  if (period === "weekend") return "Eventos este fin de semana";
-  if (period === "next30") return "Eventos de los próximos 30 días";
-  if (period === "month") return "Eventos de este mes";
-  if (period === "all") return "Todos los eventos";
-  return "Eventos próximos";
+export function zoneMobileResultTitle(period: ZonePeriod, zoneTitle: string) {
+  if (period === "weekend") return `Este fin de semana en ${zoneTitle}`;
+  if (period === "next30") return `Próximos 30 días en ${zoneTitle}`;
+  if (period === "month") return `Este mes en ${zoneTitle}`;
+  if (period === "all") return `Todos los eventos en ${zoneTitle}`;
+  return `Próximos en ${zoneTitle}`;
 }
 
 export function visibleZoneLocalities(

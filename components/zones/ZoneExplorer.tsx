@@ -21,6 +21,7 @@ import {
   type ZonePreviewData,
 } from "./zone-preview-model";
 import ZoneEventCard from "./ZoneEventCard";
+import ZoneMobileSelector from "./ZoneMobileSelector";
 import styles from "./ZonePreview.module.css";
 
 type ZoneExplorerProps = {
@@ -87,7 +88,7 @@ export default function ZoneExplorer({
   const specificFiltersActive = hasSpecificZoneFilters(filters);
   const isWeekendActive = filters.period === "weekend";
   const resultTitle = zoneResultTitleParts(filters.period, data.zone.title);
-  const mobileResultTitle = zoneMobileResultTitle(filters.period);
+  const mobileResultTitle = zoneMobileResultTitle(filters.period, data.zone.title);
   const hasMoreEvents = effectiveVisibleLimit < filteredEvents.length;
   const provinceCards = featuredZoneProvinces(data.provinceOptions);
   const visibleProvinceCount = visibleZoneProvinces(
@@ -243,6 +244,8 @@ export default function ZoneExplorer({
           </div>
 
           <div className={styles.mobileFilters}>
+            <ZoneMobileSelector currentZone={data.zone.id} />
+
             <label className={filters.province ? styles.filterFieldActive : undefined}>
               <span>Provincia</span>
               <select
@@ -292,6 +295,9 @@ export default function ZoneExplorer({
                 onClick={() => setAdvancedFiltersOpen((current) => !current)}
                 type="button"
               >
+                <span aria-hidden="true" className={styles.advancedFiltersIcon}>
+                  {advancedFiltersOpen ? "−" : "+"}
+                </span>
                 {advancedFiltersOpen
                   ? "Ocultar filtros"
                   : `Más filtros${advancedFiltersActive ? " · Activos" : ""}`}
@@ -402,7 +408,7 @@ export default function ZoneExplorer({
               <p className={styles.resultsMeta}>
                 <span className={styles.desktopOnly}>Ordenados por fecha</span>
                 <span className={styles.mobileOnly}>
-                  {data.zone.title} · Ordenados por fecha
+                  Ordenados por fecha
                 </span>
               </p>
             </div>

@@ -11,12 +11,18 @@ type ZoneMobileSelectorProps = {
 
 export default function ZoneMobileSelector({ currentZone }: ZoneMobileSelectorProps) {
   const router = useRouter();
+  const currentZoneData = SEO_ZONES.find((zone) => zone.slug === currentZone);
 
   return (
     <label className={styles.zoneMobileSelector}>
-      <span>Zona</span>
+      <span className={styles.zoneMobileLabel}>Buscar en</span>
+      <span aria-hidden="true" className={styles.zoneMobileDisplay}>
+        <span className={styles.zoneMobileIcon} />
+        <strong>{currentZoneData?.title ?? currentZone}</strong>
+        <span className={styles.zoneMobileChevron}>›</span>
+      </span>
       <select
-        aria-label="Cambiar zona territorial"
+        aria-label={`Buscar eventos en otra zona. Zona actual: ${currentZoneData?.title ?? currentZone}`}
         onChange={(event) => router.push(`/preview/zonas/${event.target.value}`)}
         value={currentZone}
       >
