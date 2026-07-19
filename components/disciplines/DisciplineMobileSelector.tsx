@@ -8,10 +8,14 @@ import zoneStyles from "@/components/zones/ZonePreview.module.css";
 import styles from "./DisciplinePreview.module.css";
 
 type DisciplineMobileSelectorProps = {
+  analyticsSource: "discipline_preview_filter" | "discipline_public_filter";
+  basePath: "/preview/disciplinas" | "/disciplinas";
   currentDiscipline: DisciplineSlug;
 };
 
 export default function DisciplineMobileSelector({
+  analyticsSource,
+  basePath,
   currentDiscipline,
 }: DisciplineMobileSelectorProps) {
   const router = useRouter();
@@ -30,10 +34,10 @@ export default function DisciplineMobileSelector({
           trackEvent("change_discipline", {
             from_discipline: currentDiscipline,
             page_path: currentPagePath(),
-            source: "discipline_preview_filter",
+            source: analyticsSource,
             to_discipline: event.target.value,
           });
-          router.push(`/preview/disciplinas/${event.target.value}`);
+          router.push(`${basePath}/${event.target.value}`);
         }}
         value={currentDiscipline}
       >

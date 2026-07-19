@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_URL } from "@/lib/seo";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
 import {
@@ -516,6 +517,41 @@ export function buildDisciplinePreviewMetadata(slug: string): Metadata {
     description: config.metaDescription,
     robots: { follow: false, index: false },
     title: `Preview: ${config.metaTitle}`,
+  };
+}
+
+export function buildDisciplinePublicMetadata(slug: string): Metadata {
+  const config = SEO_DISCIPLINES.find((discipline) => discipline.slug === slug);
+  if (!config) return {};
+
+  const canonical = `${SITE_URL}/disciplinas/${config.slug}`;
+  const image = absoluteUrl(DEFAULT_OG_IMAGE);
+
+  return {
+    title: config.metaTitle,
+    description: config.metaDescription,
+    robots: { follow: true, index: true },
+    alternates: { canonical },
+    openGraph: {
+      title: config.metaTitle,
+      description: config.metaDescription,
+      url: canonical,
+      siteName: "EventoMotor",
+      locale: "es_ES",
+      type: "website",
+      images: [{
+        url: image,
+        width: 1024,
+        height: 1024,
+        alt: "EventoMotor",
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: config.metaTitle,
+      description: config.metaDescription,
+      images: [image],
+    },
   };
 }
 

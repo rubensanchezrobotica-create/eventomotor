@@ -18,6 +18,7 @@ import styles from "./DisciplinePreview.module.css";
 type DisciplinePreviewPageProps = {
   data: DisciplinePreviewData;
   initialFilters: DisciplineFilters;
+  mode: "preview" | "public";
   nowIso: string;
   pathname: string;
 };
@@ -34,11 +35,14 @@ function introParagraphs(intro: string) {
 export default function DisciplinePreviewPage({
   data,
   initialFilters,
+  mode,
   nowIso,
   pathname,
 }: DisciplinePreviewPageProps) {
   const paragraphs = introParagraphs(data.discipline.intro);
   const disciplineName = data.discipline.title.toLocaleLowerCase("es");
+  const analyticsSource = mode === "preview" ? "discipline_preview" : "discipline_public";
+  const disciplineBasePath = mode === "preview" ? "/preview/disciplinas" : "/disciplinas";
 
   return (
     <div className={`emc-page ${zoneStyles.page} ${styles.page} ${scaleStyles.explorerScale}`}>
@@ -74,10 +78,10 @@ export default function DisciplinePreviewPage({
                   eventName="change_discipline"
                   eventParams={{
                     from_discipline: data.discipline.slug,
-                    source: "discipline_preview_hero",
+                    source: `${analyticsSource}_hero`,
                     to_discipline: discipline.slug,
                   }}
-                  href={`/preview/disciplinas/${discipline.slug}`}
+                  href={`${disciplineBasePath}/${discipline.slug}`}
                   key={discipline.slug}
                 >
                   {discipline.title}
@@ -88,7 +92,9 @@ export default function DisciplinePreviewPage({
         </section>
 
         <DisciplineExplorer
+          analyticsSource={analyticsSource}
           data={data}
+          disciplineBasePath={disciplineBasePath}
           initialFilters={initialFilters}
           nowIso={nowIso}
           pathname={pathname}
@@ -104,7 +110,7 @@ export default function DisciplinePreviewPage({
             <TrackLink
               className="emc-btn emc-btn-primary"
               eventName="click_publish_event"
-              eventParams={{ source: `discipline_preview_${data.discipline.slug}` }}
+              eventParams={{ source: `${analyticsSource}_${data.discipline.slug}` }}
               href="/publicar-evento"
             >
               Publicar un evento
@@ -122,7 +128,9 @@ export default function DisciplinePreviewPage({
               <div className={zoneStyles.internalLinks}>
                 <Link href="/calendario">Calendario completo</Link>
                 <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
-                <Link href={`/disciplinas/${data.discipline.slug}`}>Página pública actual</Link>
+                {mode === "preview" ? (
+                  <Link href={`/disciplinas/${data.discipline.slug}`}>Página pública actual</Link>
+                ) : null}
                 <Link href="/zonas">Explorar por zonas</Link>
                 <Link href="/publicar-evento">Publicar evento</Link>
               </div>
@@ -157,7 +165,11 @@ export default function DisciplinePreviewPage({
         {data.pastEvents.length ? (
           <section className={zoneStyles.pastSection}>
             <div className="emc-container">
-              <DisciplineHistory events={data.pastEvents} title={data.discipline.title} />
+              <DisciplineHistory
+                eventSource={`${analyticsSource}_history`}
+                events={data.pastEvents}
+                title={data.discipline.title}
+              />
             </div>
           </section>
         ) : null}
@@ -172,10 +184,10 @@ export default function DisciplinePreviewPage({
                   eventName="change_discipline"
                   eventParams={{
                     from_discipline: data.discipline.slug,
-                    source: "discipline_preview_other",
+                    source: `${analyticsSource}_other`,
                     to_discipline: discipline.slug,
                   }}
-                  href={`/preview/disciplinas/${discipline.slug}`}
+                  href={`${disciplineBasePath}/${discipline.slug}`}
                   key={discipline.slug}
                 >
                   <strong>{discipline.title}</strong>

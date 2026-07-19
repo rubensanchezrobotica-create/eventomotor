@@ -41,6 +41,7 @@ export default async function DisciplinePreviewRoute({
     <DisciplinePreviewPage
       data={buildDisciplinePreviewData(events, slug, now)}
       initialFilters={parseDisciplineFilters(filterParams)}
+      mode="preview"
       nowIso={now.toISOString()}
       pathname={`/preview/disciplinas/${slug}`}
     />

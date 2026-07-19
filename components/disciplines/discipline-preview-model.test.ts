@@ -4,6 +4,7 @@ import type { EventItem } from "@/types/event";
 import {
   buildDisciplinePreviewData,
   buildDisciplinePreviewMetadata,
+  buildDisciplinePublicMetadata,
   classifyDisciplineModality,
   classifyEventDisciplinePage,
   DEFAULT_DISCIPLINE_FILTERS,
@@ -23,6 +24,7 @@ import {
   parseDisciplineFilters,
   periodDisciplineEvents,
 } from "./discipline-preview-model";
+import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 
 const NOW = new Date("2026-07-19T12:00:00+02:00");
 
@@ -56,6 +58,10 @@ function event(
 }
 
 test("reconoce exclusivamente los ocho slugs públicos", () => {
+  assert.deepEqual(
+    SEO_DISCIPLINES.map(({ slug }) => slug),
+    ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas", "ferias"],
+  );
   assert.equal(isDisciplineSlug("rallyes"), true);
   assert.equal(isDisciplineSlug("concentraciones"), true);
   assert.equal(isDisciplineSlug("motos"), false);
@@ -283,6 +289,23 @@ test("metadata de preview conserva noindex, nofollow y no canonical", () => {
   const metadata = buildDisciplinePreviewMetadata("rallyes");
   assert.deepEqual(metadata.robots, { follow: false, index: false });
   assert.equal("alternates" in metadata, false);
+});
+
+test("metadata pública es indexable y usa canonical, Open Graph y Twitter públicos", () => {
+  const metadata = buildDisciplinePublicMetadata("rallyes");
+  const canonical = "https://www.eventomotor.com/disciplinas/rallyes";
+
+  assert.deepEqual(metadata.robots, { follow: true, index: true });
+  assert.equal(metadata.alternates?.canonical, canonical);
+  assert.equal(metadata.openGraph?.url, canonical);
+  assert.equal(metadata.openGraph?.locale, "es_ES");
+  assert.equal((metadata.twitter as { card?: string } | undefined)?.card, "summary_large_image");
+  assert.equal(metadata.title, SEO_DISCIPLINES[0].metaTitle);
+  assert.equal(metadata.description, SEO_DISCIPLINES[0].metaDescription);
+});
+
+test("metadata pública no genera datos para un slug inválido", () => {
+  assert.deepEqual(buildDisciplinePublicMetadata("invalida"), {});
 });
 
 test("metadata de slug inválido sigue protegida", () => {

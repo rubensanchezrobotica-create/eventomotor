@@ -9,11 +9,12 @@ import zoneStyles from "@/components/zones/ZonePreview.module.css";
 import styles from "./DisciplinePreview.module.css";
 
 type DisciplineHistoryProps = {
+  eventSource: string;
   events: EventItem[];
   title: string;
 };
 
-export default function DisciplineHistory({ events, title }: DisciplineHistoryProps) {
+export default function DisciplineHistory({ eventSource, events, title }: DisciplineHistoryProps) {
   const [visibleLimit, setVisibleLimit] = useState(12);
   const [isMobile, setIsMobile] = useState(false);
   const pageSize = isMobile ? 6 : 12;
@@ -49,7 +50,7 @@ export default function DisciplineHistory({ events, title }: DisciplineHistoryPr
       <div className={zoneStyles.pastGrid}>
         {events.map((event, index) => (
           <div className={styles.historySlot} hidden={index >= effectiveLimit} key={event.slug || event.id}>
-            <DisciplineEventCard event={event} source="discipline_preview_history" />
+            <DisciplineEventCard event={event} source={eventSource} />
           </div>
         ))}
       </div>

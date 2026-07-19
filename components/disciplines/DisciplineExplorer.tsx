@@ -23,7 +23,9 @@ import zoneStyles from "@/components/zones/ZonePreview.module.css";
 import styles from "./DisciplinePreview.module.css";
 
 type DisciplineExplorerProps = {
+  analyticsSource: "discipline_preview" | "discipline_public";
   data: DisciplinePreviewData;
+  disciplineBasePath: "/preview/disciplinas" | "/disciplinas";
   initialFilters: DisciplineFilters;
   nowIso: string;
   pathname: string;
@@ -43,7 +45,9 @@ function scrollToResults() {
 }
 
 export default function DisciplineExplorer({
+  analyticsSource,
   data,
+  disciplineBasePath,
   initialFilters,
   nowIso,
   pathname,
@@ -116,7 +120,7 @@ export default function DisciplineExplorer({
         filter_name: key,
         filter_value: value,
         page_path: currentPagePath(),
-        source: "discipline_preview",
+        source: analyticsSource,
       });
     }
   }
@@ -203,7 +207,11 @@ export default function DisciplineExplorer({
           </div>
 
           <div className={zoneStyles.mobileFilters}>
-            <DisciplineMobileSelector currentDiscipline={data.discipline.slug} />
+            <DisciplineMobileSelector
+              analyticsSource={`${analyticsSource}_filter`}
+              basePath={disciplineBasePath}
+              currentDiscipline={data.discipline.slug}
+            />
             <label className={filters.province ? zoneStyles.filterFieldActive : undefined}>
               <span>Provincia</span>
               <select
@@ -371,7 +379,7 @@ export default function DisciplineExplorer({
               <div className={zoneStyles.resultsGrid} data-limit={effectiveVisibleLimit}>
                 {filteredEvents.map((event, index) => (
                   <div className={zoneStyles.eventCardSlot} hidden={index >= effectiveVisibleLimit} key={event.slug || event.id}>
-                    <DisciplineEventCard event={event} source="discipline_preview_results" />
+                    <DisciplineEventCard event={event} source={`${analyticsSource}_results`} />
                   </div>
                 ))}
               </div>
