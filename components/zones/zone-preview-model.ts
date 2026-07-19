@@ -78,8 +78,10 @@ export const ZONE_PERIODS: Array<{ id: ZonePeriod; label: string }> = [
   { id: "weekend", label: "Este fin de semana" },
   { id: "next30", label: "Próximos 30 días" },
   { id: "month", label: "Este mes" },
-  { id: "all", label: "Todos" },
+  { id: "all", label: "Todos los eventos" },
 ];
+
+export const ZONE_PERIOD_TABS = ZONE_PERIODS.filter((period) => period.id !== "weekend");
 
 export const ZONE_DISCIPLINE_GROUPS: Array<{
   id: ZoneDisciplineGroupId;
@@ -222,6 +224,32 @@ const DISCIPLINE_LABELS: Record<string, string> = {
   minivelocidad: "MiniVelocidad",
 };
 
+const LOCALITY_LABELS: Record<string, string> = {
+  "a coruna": "A Coruña",
+  "alcaniz": "Alcañiz",
+  "alcarras": "Alcarràs",
+  "almeria": "Almería",
+  "almodovar del rio": "Almodóvar del Río",
+  "avila": "Ávila",
+  "benahavis": "Benahavís",
+  "caceres": "Cáceres",
+  "cadiz": "Cádiz",
+  "castellon": "Castellón",
+  "cordoba": "Córdoba",
+  "gijon": "Gijón",
+  "guia de isora": "Guía de Isora",
+  "jaen": "Jaén",
+  "la coruna": "A Coruña",
+  "leon": "León",
+  "malaga": "Málaga",
+  "montmelo": "Montmeló",
+  "ribamontan al mar": "Ribamontán al Mar",
+  "san sebastian de los reyes": "San Sebastián de los Reyes",
+  "sanlucar de barrameda": "Sanlúcar de Barrameda",
+  "santa eulalia de roncana": "Santa Eulàlia de Ronçana",
+  "xativa": "Xàtiva",
+};
+
 function cleanText(value: string | null | undefined) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
@@ -257,6 +285,11 @@ export function zoneFilterKey(value: string | null | undefined) {
 export function normalizeZoneDiscipline(value: string | null | undefined) {
   const raw = cleanText(value);
   return DISCIPLINE_LABELS[normalizeZoneText(raw)] || raw;
+}
+
+export function normalizeZoneLocality(value: string | null | undefined) {
+  const raw = cleanText(value);
+  return LOCALITY_LABELS[normalizeZoneText(raw)] || raw;
 }
 
 function toDate(value: string) {
@@ -422,6 +455,80 @@ export function filterZoneEvents(
   });
 }
 
+export function zoneResultTitleParts(period: ZonePeriod, zoneTitle: string) {
+  const lead = period === "weekend"
+    ? "Eventos de este fin de semana en la"
+    : period === "next30"
+      ? "Eventos de los próximos 30 días en la"
+      : period === "month"
+        ? "Eventos de este mes en la"
+        : period === "all"
+          ? "Todos los eventos de motor en la"
+          : "Próximos eventos de motor en la";
+
+  return {
+    lead,
+    zone: `zona ${zoneTitle.toLowerCase()}`,
+  };
+}
+
+export function zoneResultTitle(period: ZonePeriod, zoneTitle: string) {
+  const title = zoneResultTitleParts(period, zoneTitle);
+  return `${title.lead} ${title.zone}`;
+}
+
+const FAMILY_COUNT_LABELS: Record<number, string> = {
+  1: "una",
+  2: "dos",
+  3: "tres",
+  4: "cuatro",
+  5: "cinco",
+  6: "seis",
+};
+
+export function zoneFamilySummary(disciplineCount: number, familyCount: number) {
+  const familyLabel = FAMILY_COUNT_LABELS[familyCount] || String(familyCount);
+  if (disciplineCount === 1) {
+    return `La disciplina de la zona se agrupa en ${familyLabel} ${
+      familyCount === 1 ? "gran familia" : "grandes familias"
+    }.`;
+  }
+  return `Las ${disciplineCount} disciplinas de la zona se agrupan en ${familyLabel} ${
+    familyCount === 1 ? "gran familia" : "grandes familias"
+  }.`;
+}
+
+export function createWeekendZoneFilters(): ZoneFilters {
+  return {
+    ...DEFAULT_ZONE_FILTERS,
+    period: "weekend",
+  };
+}
+
+export function hasSpecificZoneFilters(filters: ZoneFilters) {
+  return Boolean(
+    filters.discipline
+    || filters.group
+    || filters.province
+    || filters.query,
+  );
+}
+
+export function visibleZoneLocalities(
+  localities: ZoneFilterOption[],
+  expanded: boolean,
+  limit = 10,
+) {
+  return expanded ? localities : localities.slice(0, limit);
+}
+
+export function visibleZoneProvinces(
+  provinces: ZoneFilterOption[],
+  expanded: boolean,
+) {
+  return expanded ? provinces : provinces.slice(0, 8);
+}
+
 function buildOptions(
   events: EventItem[],
   readLabel: (event: EventItem) => string,
@@ -480,7 +587,14 @@ export function buildZonePreviewData(
   const pastEvents = sortPastZoneEvents(zoneEvents.filter((event) => isPastEvent(event, now)));
   const provinceOptions = buildOptions(upcomingEvents, (event) => normalizeZoneProvince(event.province));
   const disciplineOptions = buildOptions(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline));
-  const localityOptions = buildOptions(upcomingEvents, (event) => cleanText(event.city), 2);
+  const localityOptions = buildOptions(
+    upcomingEvents,
+    (event) => normalizeZoneLocality(event.city),
+    2,
+  );
+  const weekendEvents = sortUpcomingZoneEvents(
+    upcomingEvents.filter((event) => eventIsThisWeekend(event, now)),
+  );
   const dates = zoneEvents.flatMap((event) => [event.start, event.end || event.start]).filter(Boolean).sort();
 
   return {
@@ -510,7 +624,7 @@ export function buildZonePreviewData(
     },
     upcomingEvents,
     vehicleOptions: buildOptions(upcomingEvents, (event) => zoneVehicleLabel(event)),
-    weekendEvents: sortUpcomingZoneEvents(upcomingEvents.filter((event) => eventIsThisWeekend(event, now))),
+    weekendEvents,
     zone: {
       description: ZONE_DESCRIPTIONS[zoneId],
       h1: zoneConfig.h1,

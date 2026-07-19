@@ -2,10 +2,16 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
+  createWeekendZoneFilters,
   DEFAULT_ZONE_FILTERS,
   filterZoneEvents,
+  hasSpecificZoneFilters,
   nextZoneVisibleLimit,
-  ZONE_PERIODS,
+  visibleZoneLocalities,
+  visibleZoneProvinces,
+  ZONE_PERIOD_TABS,
+  zoneFamilySummary,
+  zoneResultTitleParts,
   type ZoneDisciplineGroupId,
   type ZoneFilters,
   type ZonePeriod,
@@ -31,32 +37,15 @@ function isMobileViewport() {
   return window.matchMedia("(max-width: 768px)").matches;
 }
 
-function hasActiveFilters(filters: ZoneFilters) {
-  return Boolean(
-    filters.discipline
-    || filters.group
-    || filters.period !== "upcoming"
-    || filters.province
-    || filters.query,
-  );
-}
-
 function scrollToEvents() {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   window.requestAnimationFrame(() => {
+    document.getElementById("zone-results-title")?.focus({ preventScroll: true });
     document.getElementById("eventos")?.scrollIntoView({
       behavior: reducedMotion ? "auto" : "smooth",
       block: "start",
     });
   });
-}
-
-function resultTitle(period: ZonePeriod, zoneTitle: string) {
-  if (period === "weekend") return `Este fin de semana en la zona ${zoneTitle.toLowerCase()}`;
-  if (period === "next30") return `Eventos de los próximos 30 días en la zona ${zoneTitle.toLowerCase()}`;
-  if (period === "month") return `Eventos de este mes en la zona ${zoneTitle.toLowerCase()}`;
-  if (period === "all") return `Todos los eventos de la zona ${zoneTitle.toLowerCase()}`;
-  return `Próximos eventos de motor en la zona ${zoneTitle.toLowerCase()}`;
 }
 
 export default function ZoneExplorer({
@@ -66,6 +55,8 @@ export default function ZoneExplorer({
   pathname,
 }: ZoneExplorerProps) {
   const [filters, setFilters] = useState(initialFilters);
+  const [showAllLocalities, setShowAllLocalities] = useState(false);
+  const [showAllProvinces, setShowAllProvinces] = useState(false);
   const [visibleLimit, setVisibleLimit] = useState(12);
   const isMobile = useSyncExternalStore(subscribeMobile, isMobileViewport, () => false);
   const pageSize = isMobile ? 8 : 12;
@@ -76,13 +67,23 @@ export default function ZoneExplorer({
     [data.events, filters, now],
   );
   const periodCounts = useMemo(() => Object.fromEntries(
-    ZONE_PERIODS.map((period) => [
+    ZONE_PERIOD_TABS.map((period) => [
       period.id,
       filterZoneEvents(data.events, { ...filters, period: period.id }, now).length,
     ]),
   ) as Record<ZonePeriod, number>, [data.events, filters, now]);
-  const filtersActive = hasActiveFilters(filters);
+  const specificFiltersActive = hasSpecificZoneFilters(filters);
+  const isWeekendActive = filters.period === "weekend";
+  const resultTitle = zoneResultTitleParts(filters.period, data.zone.title);
   const hasMoreEvents = effectiveVisibleLimit < filteredEvents.length;
+  const visibleProvinceCount = visibleZoneProvinces(
+    data.provinceOptions,
+    showAllProvinces,
+  ).length;
+  const visibleLocalityCount = visibleZoneLocalities(
+    data.localityOptions,
+    showAllLocalities,
+  ).length;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -125,31 +126,47 @@ export default function ZoneExplorer({
     scrollToEvents();
   }
 
+  function activateWeekend() {
+    setFilters((current) => (
+      current.period === "weekend"
+        ? { ...current, period: "upcoming" }
+        : { ...current, period: createWeekendZoneFilters().period }
+    ));
+    setVisibleLimit(12);
+    scrollToEvents();
+  }
+
   return (
     <>
       <section aria-labelledby="zone-filter-title" className={styles.filterSection} id="filtros">
         <div className={`emc-container ${styles.filterShell}`}>
           <div className={styles.filterHeading}>
             <h2 id="zone-filter-title">Filtrar eventos</h2>
-            <div className={styles.filterHeadingActions}>
-              <p aria-live="polite">
-                <strong>{filteredEvents.length}</strong>{" "}
-                {filteredEvents.length === 1 ? "resultado" : "resultados"}
-              </p>
-              {filtersActive ? (
-                <button
-                  className={styles.clearButton}
-                  onClick={() => {
-                    setFilters(DEFAULT_ZONE_FILTERS);
-                    setVisibleLimit(12);
-                  }}
-                  type="button"
-                >
-                  Limpiar filtros
-                </button>
-              ) : null}
-            </div>
           </div>
+
+          {data.weekendEvents.length ? (
+            <button
+              aria-label={isWeekendActive
+                ? "Volver a próximos eventos"
+                : `Ver ${data.weekendEvents.length} eventos de este fin de semana`}
+              aria-pressed={isWeekendActive}
+              className={`${styles.weekendStrip} ${isWeekendActive ? styles.weekendStripActive : ""}`}
+              onClick={activateWeekend}
+              type="button"
+            >
+              <span className={styles.weekendStripCopy}>
+                <strong>
+                  {data.weekendEvents.length}{" "}
+                  {data.weekendEvents.length === 1 ? "evento" : "eventos"} este fin de semana
+                </strong>
+                <span>Viernes, sábado y domingo más próximos.</span>
+              </span>
+              <span className={styles.weekendStripAction}>
+                {isWeekendActive ? "Volver a próximos" : "Ver eventos"}
+                <span aria-hidden="true">→</span>
+              </span>
+            </button>
+          ) : null}
 
           <div className={styles.filterGrid}>
             <label className={filters.province ? styles.filterFieldActive : undefined}>
@@ -194,7 +211,7 @@ export default function ZoneExplorer({
           </div>
 
           <div aria-label="Filtrar por periodo" className={styles.periodTabs}>
-            {ZONE_PERIODS.map((period) => (
+            {ZONE_PERIOD_TABS.map((period) => (
               <button
                 aria-pressed={filters.period === period.id}
                 className={filters.period === period.id ? styles.tabActive : ""}
@@ -207,6 +224,26 @@ export default function ZoneExplorer({
               </button>
             ))}
           </div>
+
+          {specificFiltersActive ? (
+            <div aria-live="polite" className={styles.filterSummary}>
+              <span>
+                <strong>{filteredEvents.length}</strong>{" "}
+                {filteredEvents.length === 1 ? "resultado" : "resultados"}
+              </span>
+              <span aria-hidden="true">·</span>
+              <button
+                className={styles.clearButton}
+                onClick={() => {
+                  setFilters(DEFAULT_ZONE_FILTERS);
+                  setVisibleLimit(12);
+                }}
+                type="button"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -215,9 +252,12 @@ export default function ZoneExplorer({
           <div className={styles.sectionHeading}>
             <div>
               <span className={styles.eyebrow}>Agenda territorial</span>
-              <h2 id="zone-results-title">{resultTitle(filters.period, data.zone.title)}</h2>
+              <h2 id="zone-results-title" tabIndex={-1}>
+                <span>{resultTitle.lead}</span>{" "}
+                <span className={styles.zoneTitleSuffix}>{resultTitle.zone}</span>
+              </h2>
+              <p className={styles.resultsMeta}>Ordenados por fecha</p>
             </div>
-            <p>Ordenados por fecha</p>
           </div>
 
           {filteredEvents.length ? (
@@ -270,82 +310,108 @@ export default function ZoneExplorer({
         </div>
       </section>
 
-      {data.provinceOptions.length ? (
-        <section aria-labelledby="province-title" className={styles.exploreSection}>
+      {data.provinceOptions.length || data.disciplineGroups.length || data.localityOptions.length ? (
+        <section aria-labelledby="zone-explore-title" className={styles.exploreSection}>
           <div className="emc-container">
-            <div className={styles.sectionHeading}>
-              <div>
-                <span className={styles.eyebrow}>Territorio</span>
-                <h2 id="province-title">Explora eventos por provincia</h2>
-              </div>
+            <div className={styles.exploreHeading}>
+              <span className={styles.eyebrow}>Descubre la zona</span>
+              <h2 id="zone-explore-title">
+                Explora la zona {data.zone.title.toLowerCase()}
+              </h2>
+              <p>Filtra la agenda por provincia, familia de eventos o localidad.</p>
             </div>
-            <div className={styles.exploreGrid}>
-              {data.provinceOptions.map((province) => (
-                <button
-                  aria-pressed={filters.province === province.key}
-                  className={filters.province === province.key ? styles.exploreCardActive : ""}
-                  key={province.key}
-                  onClick={() => selectProvince(province.key)}
-                  type="button"
-                >
-                  <strong>{province.label}</strong>
-                  <span>{province.count} próximos eventos</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
 
-      {data.localityOptions.length ? (
-        <section aria-labelledby="locality-title" className={styles.exploreSection}>
-          <div className="emc-container">
-            <div className={styles.sectionHeading}>
-              <div>
-                <span className={styles.eyebrow}>Localidades</span>
-                <h2 id="locality-title">Localidades con más actividad</h2>
+            {data.provinceOptions.length ? (
+              <div className={styles.exploreGroup}>
+                <h3>Provincias con más eventos</h3>
+                <div className={styles.exploreGrid} id="zone-provinces">
+                  {data.provinceOptions.map((province, index) => (
+                    <button
+                      aria-pressed={filters.province === province.key}
+                      className={filters.province === province.key ? styles.exploreCardActive : ""}
+                      hidden={index >= visibleProvinceCount}
+                      key={province.key}
+                      onClick={() => selectProvince(province.key)}
+                      type="button"
+                    >
+                      <strong>{province.label}</strong>
+                      <span className={styles.exploreCardMeta}>
+                        <span>{province.count} próximos eventos</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {data.provinceOptions.length > 8 ? (
+                  <button
+                    aria-controls="zone-provinces"
+                    aria-expanded={showAllProvinces}
+                    className={styles.expandButton}
+                    onClick={() => setShowAllProvinces((current) => !current)}
+                    type="button"
+                  >
+                    {showAllProvinces ? "Ocultar provincias" : "Ver todas las provincias"}
+                  </button>
+                ) : null}
               </div>
-            </div>
-            <div className={styles.localityChips}>
-              {data.localityOptions.map((locality) => (
-                <button
-                  aria-pressed={filters.query === locality.label}
-                  key={locality.key}
-                  onClick={() => selectLocality(locality.label)}
-                  type="button"
-                >
-                  <span>{locality.label}</span>
-                  <strong>{locality.count}</strong>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
+            ) : null}
 
-      {data.disciplineGroups.length ? (
-        <section aria-labelledby="discipline-title" className={styles.exploreSection}>
-          <div className="emc-container">
-            <div className={styles.sectionHeading}>
-              <div>
-                <span className={styles.eyebrow}>Disciplinas</span>
-                <h2 id="discipline-title">Explora eventos por tipo</h2>
+            {data.disciplineGroups.length ? (
+              <div className={styles.exploreGroup}>
+                <h3>Familias de eventos</h3>
+                <p className={styles.exploreDescription}>
+                  {zoneFamilySummary(data.stats.disciplines, data.disciplineGroups.length)}
+                </p>
+                <div className={styles.disciplineGrid}>
+                  {data.disciplineGroups.map((group) => (
+                    <button
+                      aria-pressed={filters.group === group.id}
+                      className={filters.group === group.id ? styles.exploreCardActive : ""}
+                      key={group.id}
+                      onClick={() => selectGroup(group.id)}
+                      type="button"
+                    >
+                      <strong>{group.label}</strong>
+                      <span className={styles.exploreCardMeta}>
+                        <span>{group.count} próximos eventos</span>
+                        <span aria-hidden="true">→</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className={styles.disciplineGrid}>
-              {data.disciplineGroups.map((group) => (
-                <button
-                  aria-pressed={filters.group === group.id}
-                  className={filters.group === group.id ? styles.exploreCardActive : ""}
-                  key={group.id}
-                  onClick={() => selectGroup(group.id)}
-                  type="button"
-                >
-                  <strong>{group.label}</strong>
-                  <span>{group.count} próximos eventos</span>
-                </button>
-              ))}
-            </div>
+            ) : null}
+
+            {data.localityOptions.length ? (
+              <div className={`${styles.exploreGroup} ${styles.localityGroup}`}>
+                <h3>Localidades con más actividad</h3>
+                <div className={styles.localityChips} id="zone-localities">
+                  {data.localityOptions.map((locality, index) => (
+                    <button
+                      aria-pressed={filters.query === locality.label}
+                      hidden={index >= visibleLocalityCount}
+                      key={locality.key}
+                      onClick={() => selectLocality(locality.label)}
+                      type="button"
+                    >
+                      <span>{locality.label}</span>
+                      <strong>{locality.count}</strong>
+                    </button>
+                  ))}
+                </div>
+                {data.localityOptions.length > 10 ? (
+                  <button
+                    aria-controls="zone-localities"
+                    aria-expanded={showAllLocalities}
+                    className={styles.expandButton}
+                    onClick={() => setShowAllLocalities((current) => !current)}
+                    type="button"
+                  >
+                    {showAllLocalities ? "Ocultar localidades" : "Mostrar todas las localidades"}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}

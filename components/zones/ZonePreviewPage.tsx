@@ -55,14 +55,15 @@ export default function ZonePreviewPage({
             <span className={styles.eyebrow}>Zona {data.zone.title}</span>
             <h1>{data.zone.h1}</h1>
             <p className={styles.heroLead}>{data.zone.description}</p>
-            <div className={styles.heroStats} aria-label="Resumen de próximos eventos">
-              <span><strong>{data.stats.future}</strong> próximos eventos</span>
-              <span><strong>{data.stats.provinces}</strong> provincias</span>
-              <span><strong>{data.stats.disciplines}</strong> disciplinas</span>
-            </div>
+            <p className={styles.heroStats} aria-label="Resumen de próximos eventos">
+              <strong>{data.stats.future}</strong> próximos eventos
+              <span aria-hidden="true">·</span>
+              <strong>{data.stats.provinces}</strong> provincias
+              <span aria-hidden="true">·</span>
+              <strong>{data.stats.disciplines}</strong> disciplinas registradas
+            </p>
             <div className={styles.heroActions}>
               <a className="emc-btn emc-btn-primary" href="#eventos">Ver próximos eventos</a>
-              <Link href="/zonas">Todas las zonas</Link>
             </div>
             <nav aria-label="Cambiar zona" className={styles.zoneNav}>
               {SEO_ZONES.map((zone) => (
@@ -78,31 +79,6 @@ export default function ZonePreviewPage({
             </nav>
           </div>
         </section>
-
-        {data.weekendEvents.length ? (
-          <section aria-labelledby="weekend-zone-title" className={styles.weekendSection}>
-            <div className="emc-container">
-              <div className={styles.sectionHeading}>
-                <div>
-                  <span className={styles.eyebrow}>Agenda inmediata</span>
-                  <h2 id="weekend-zone-title">Este fin de semana en la zona {zoneName}</h2>
-                </div>
-                <Link href={`${pathname}?periodo=weekend#eventos`}>
-                  Ver todos los del fin de semana
-                </Link>
-              </div>
-              <div className={styles.weekendGrid}>
-                {data.weekendEvents.slice(0, 4).map((event) => (
-                  <ZoneEventCard
-                    event={event}
-                    key={event.slug || event.id}
-                    source="zone_preview_weekend"
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
 
         <ZoneExplorer
           data={data}

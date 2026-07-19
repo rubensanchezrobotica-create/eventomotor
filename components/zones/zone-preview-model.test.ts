@@ -1,18 +1,29 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { join } from "node:path";
 import type { EventItem } from "@/types/event";
 import {
   buildZonePreviewData,
   classifyZoneDisciplineGroup,
+  createWeekendZoneFilters,
   filterZoneEvents,
   getZoneWeekendRange,
+  hasSpecificZoneFilters,
   isZonePreviewAvailable,
   nextZoneVisibleLimit,
+  normalizeZoneLocality,
   normalizeZoneProvince,
   parseZoneFilters,
   sortUpcomingZoneEvents,
   type ZoneFilters,
+  visibleZoneLocalities,
+  visibleZoneProvinces,
+  ZONE_PERIOD_TABS,
   zoneEventDateLabel,
+  zoneFamilySummary,
+  zoneResultTitle,
+  zoneResultTitleParts,
 } from "./zone-preview-model";
 
 function event(overrides: Partial<EventItem> = {}): EventItem {
@@ -93,6 +104,25 @@ test("normaliza Leon, León y aliases de provincias solo para presentación", ()
   assert.equal(normalizeZoneProvince("Castellon"), "Castellón");
 });
 
+test("normaliza localidades seguras y consolida sus variantes solo para presentación", () => {
+  assert.equal(normalizeZoneLocality("Caceres"), "Cáceres");
+  assert.equal(normalizeZoneLocality("Cáceres"), "Cáceres");
+  assert.equal(normalizeZoneLocality("Almodovar del Rio"), "Almodóvar del Río");
+  assert.equal(normalizeZoneLocality("Gijon"), "Gijón");
+  assert.equal(normalizeZoneLocality("Alcaniz"), "Alcañiz");
+  assert.equal(normalizeZoneLocality("Montmelo"), "Montmeló");
+  assert.equal(normalizeZoneLocality("Nombre dudoso"), "Nombre dudoso");
+
+  const data = buildZonePreviewData([
+    event({ id: "caceres-plain", slug: "caceres-plain", city: "Caceres", province: "Cáceres", region: "Extremadura" }),
+    event({ id: "caceres-accent", slug: "caceres-accent", city: "Cáceres", province: "Cáceres", region: "Extremadura" }),
+  ], "sur", now);
+
+  assert.deepEqual(data.localityOptions.map(({ label, count }) => ({ label, count })), [
+    { label: "Cáceres", count: 2 },
+  ]);
+});
+
 test("deduplica provincias normalizadas y cuenta disciplinas", () => {
   const data = buildZonePreviewData([
     event({ id: "leon-1", slug: "leon-1", province: "Leon", region: "Castilla y León" }),
@@ -161,6 +191,115 @@ test("calcula el próximo fin de semana de viernes a domingo", () => {
   });
 });
 
+test("el CTA de fin de semana selecciona el periodo exclusivo y conserva el listado filtrable", () => {
+  const weekendFilters = createWeekendZoneFilters();
+  const events = [
+    event({ id: "friday", slug: "friday", start: "2026-07-17", end: "2026-07-17" }),
+    event({ id: "saturday", slug: "saturday", start: "2026-07-18", end: "2026-07-18" }),
+    event({ id: "later", slug: "later", start: "2026-07-25", end: "2026-07-25" }),
+  ];
+
+  assert.deepEqual(weekendFilters, {
+    discipline: "",
+    group: "",
+    period: "weekend",
+    province: "",
+    query: "",
+  });
+  assert.deepEqual(
+    filterZoneEvents(events, weekendFilters, now).map((item) => item.slug),
+    ["friday", "saturday"],
+  );
+});
+
+test("genera títulos territoriales dinámicos para cada periodo", () => {
+  assert.equal(zoneResultTitle("upcoming", "Centro"), "Próximos eventos de motor en la zona centro");
+  assert.equal(zoneResultTitle("weekend", "Centro"), "Eventos de este fin de semana en la zona centro");
+  assert.equal(zoneResultTitle("next30", "Centro"), "Eventos de los próximos 30 días en la zona centro");
+  assert.equal(zoneResultTitle("month", "Centro"), "Eventos de este mes en la zona centro");
+  assert.equal(zoneResultTitle("all", "Centro"), "Todos los eventos de motor en la zona centro");
+});
+
+test("mantiene zona y nombre unidos semánticamente en todos los títulos dinámicos", () => {
+  const zoneTitles = ["Norte", "Centro", "Cataluña / Aragón", "Levante", "Sur", "Canarias"];
+  const periods = ["upcoming", "weekend", "next30", "month", "all"] as const;
+
+  for (const zoneTitle of zoneTitles) {
+    for (const period of periods) {
+      const parts = zoneResultTitleParts(period, zoneTitle);
+      assert.equal(parts.zone, `zona ${zoneTitle.toLowerCase()}`);
+      assert.equal(`${parts.lead} ${parts.zone}`, zoneResultTitle(period, zoneTitle));
+    }
+  }
+});
+
+test("muestra diez localidades al inicio y permite expandir sin alterar el orden", () => {
+  const localities = Array.from({ length: 12 }, (_, index) => ({
+    count: 20 - index,
+    key: `locality-${index}`,
+    label: `Localidad ${index}`,
+  }));
+
+  assert.equal(visibleZoneLocalities(localities, false).length, 10);
+  assert.deepEqual(
+    visibleZoneLocalities(localities, false).map((item) => item.key),
+    localities.slice(0, 10).map((item) => item.key),
+  );
+  assert.equal(visibleZoneLocalities(localities, true).length, 12);
+});
+
+test("excluye el fin de semana de los chips normales y limita provincias a ocho", () => {
+  assert.deepEqual(
+    ZONE_PERIOD_TABS.map((period) => [period.id, period.label]),
+    [
+      ["upcoming", "Próximos"],
+      ["next30", "Próximos 30 días"],
+      ["month", "Este mes"],
+      ["all", "Todos los eventos"],
+    ],
+  );
+
+  const provinces = Array.from({ length: 12 }, (_, index) => ({
+    count: 20 - index,
+    key: `province-${index}`,
+    label: `Provincia ${index}`,
+  }));
+  assert.equal(visibleZoneProvinces(provinces, false).length, 8);
+  assert.equal(visibleZoneProvinces(provinces, true).length, 12);
+});
+
+test("muestra el contador secundario solo con filtros territoriales o editoriales concretos", () => {
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({})), false);
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({ periodo: "weekend" })), false);
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({ provincia: "Madrid" })), true);
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({ disciplina: "Rally" })), true);
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({ q: "Jarama" })), true);
+  assert.equal(hasSpecificZoneFilters(parseZoneFilters({ tipo: "circuito" })), true);
+});
+
+test("las localidades usan exclusivamente el campo city y no la provincia como fallback", () => {
+  const albaceteEvents = Array.from({ length: 15 }, (_, index) => event({
+    id: `albacete-${index}`,
+    slug: `albacete-${index}`,
+    city: "Albacete",
+    province: "Albacete",
+    region: "Castilla-La Mancha",
+  }));
+  const data = buildZonePreviewData([
+    ...albaceteEvents,
+    event({
+      id: "province-only",
+      slug: "province-only",
+      city: "",
+      province: "Albacete",
+      region: "Castilla-La Mancha",
+    }),
+  ], "centro", now);
+
+  assert.equal(data.provinceOptions.find((item) => item.label === "Albacete")?.count, 16);
+  assert.equal(data.localityOptions.find((item) => item.label === "Albacete")?.count, 15);
+});
+
 test("deduplica eventos por slug dentro de la zona", () => {
   const duplicate = event({ id: "one", slug: "same" });
   const data = buildZonePreviewData([duplicate, { ...duplicate, id: "two" }], "centro", now);
@@ -187,6 +326,40 @@ test("los recuentos de agrupaciones suman los próximos eventos", () => {
     data.disciplineGroups.reduce((total, group) => total + group.count, 0),
     data.stats.future,
   );
+});
+
+test("muestra únicamente familias con eventos y un resumen dinámico en las seis zonas", () => {
+  const zoneFixtures = [
+    { id: "norte", province: "Navarra", region: "Navarra", familyCount: 6 },
+    { id: "centro", province: "Madrid", region: "Comunidad de Madrid", familyCount: 6 },
+    { id: "cataluna-aragon", province: "Barcelona", region: "Cataluña", familyCount: 6 },
+    { id: "levante", province: "Valencia", region: "Comunidad Valenciana", familyCount: 6 },
+    { id: "sur", province: "Sevilla", region: "Andalucía", familyCount: 5 },
+    { id: "canarias", province: "Las Palmas", region: "Canarias", familyCount: 3 },
+  ] as const;
+  const disciplines = ["Rally", "Concentración", "Circuito", "Trial", "Ferias", "Drift"];
+
+  for (const fixture of zoneFixtures) {
+    const events = disciplines.slice(0, fixture.familyCount).map((discipline, index) => event({
+      id: `${fixture.id}-${index}`,
+      slug: `${fixture.id}-${index}`,
+      discipline,
+      province: fixture.province,
+      region: fixture.region,
+    }));
+    const data = buildZonePreviewData(events, fixture.id, now);
+
+    assert.equal(data.disciplineGroups.length, fixture.familyCount);
+    assert.ok(data.disciplineGroups.every((group) => group.count > 0));
+    assert.equal(
+      data.disciplineGroups.reduce((total, group) => total + group.count, 0),
+      data.stats.future,
+    );
+  }
+
+  assert.equal(zoneFamilySummary(29, 5), "Las 29 disciplinas de la zona se agrupan en cinco grandes familias.");
+  assert.equal(zoneFamilySummary(10, 3), "Las 10 disciplinas de la zona se agrupan en tres grandes familias.");
+  assert.equal(zoneFamilySummary(1, 1), "La disciplina de la zona se agrupa en una gran familia.");
 });
 
 test("calcula vehículos y estados públicos relevantes sin exponer estados internos", () => {
@@ -245,4 +418,48 @@ test("formatea rangos de tarjeta sin saltos automáticos", () => {
     startDay: "30",
     startMonth: "JUN",
   });
+});
+
+test("la preview integra filtros y exploradores sin duplicar controles", () => {
+  const explorerSource = readFileSync(
+    join(process.cwd(), "components/zones/ZoneExplorer.tsx"),
+    "utf8",
+  );
+  const pageSource = readFileSync(
+    join(process.cwd(), "components/zones/ZonePreviewPage.tsx"),
+    "utf8",
+  );
+  const cssSource = readFileSync(
+    join(process.cwd(), "components/zones/ZonePreview.module.css"),
+    "utf8",
+  );
+
+  assert.match(explorerSource, /window\.history\.replaceState/);
+  assert.match(explorerSource, /function activateWeekend\(\)/);
+  assert.match(explorerSource, /createWeekendZoneFilters\(\)/);
+  assert.match(explorerSource, /aria-pressed=\{isWeekendActive\}/);
+  assert.match(explorerSource, /tabIndex=\{-1\}/);
+  assert.match(explorerSource, /focus\(\{ preventScroll: true \}\)/);
+  assert.match(explorerSource, /Ver todas las provincias/);
+  assert.match(explorerSource, /Ocultar provincias/);
+  assert.match(explorerSource, /Mostrar todas las localidades/);
+  assert.match(explorerSource, /Ocultar localidades/);
+  assert.match(explorerSource, /Familias de eventos/);
+  assert.match(explorerSource, /zoneFamilySummary\(data\.stats\.disciplines, data\.disciplineGroups\.length\)/);
+  assert.match(explorerSource, /zoneResultTitleParts/);
+  assert.match(explorerSource, /styles\.zoneTitleSuffix/);
+  assert.match(explorerSource, /Explora la zona/);
+  assert.doesNotMatch(explorerSource, /Explora más en la zona/);
+  assert.match(explorerSource, /<p className=\{styles\.resultsMeta\}>Ordenados por fecha<\/p>/);
+  assert.doesNotMatch(explorerSource, /ZONE_PERIODS\.map/);
+  assert.doesNotMatch(explorerSource, /weekendDayCounts/);
+  assert.doesNotMatch(explorerSource, /styles\.weekendSection/);
+  assert.equal(
+    explorerSource.match(/className=\{styles\.exploreSection\}/g)?.length,
+    1,
+  );
+  assert.doesNotMatch(pageSource, /data\.weekendEvents\.slice/);
+  assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
+  assert.match(cssSource, /text-wrap:\s*balance/);
+  assert.match(cssSource, /\.zoneTitleSuffix[\s\S]*white-space:\s*nowrap/);
 });
