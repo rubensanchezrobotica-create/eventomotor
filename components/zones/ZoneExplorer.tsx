@@ -283,7 +283,6 @@ export default function ZoneExplorer({
                 >
                   <span className={styles.weekendLabelFull}>Este fin de semana</span>
                   <span className={styles.weekendLabelCompact}>Fin de semana</span>
-                  <span aria-hidden="true" className={styles.weekendPeriodSeparator}>·</span>
                   <strong>{periodCounts.weekend}</strong>
                 </button>
               ) : null}

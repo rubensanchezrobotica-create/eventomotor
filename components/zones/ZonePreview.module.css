@@ -519,8 +519,7 @@
   font-size: 10px;
 }
 
-.weekendLabelCompact,
-.weekendPeriodSeparator {
+.weekendLabelCompact {
   display: none;
 }
 
@@ -1654,8 +1653,7 @@
     display: none;
   }
 
-  .weekendLabelCompact,
-  .weekendPeriodSeparator {
+  .weekendLabelCompact {
     display: inline;
   }
 

@@ -570,6 +570,8 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(cssSource, /\.mobileFilterActions \{[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(cssSource, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(cssSource, /\.weekendLabelFull \{[\s\S]*display:\s*none/);
+  assert.doesNotMatch(explorerSource, /weekendPeriodSeparator/);
+  assert.doesNotMatch(cssSource, /weekendPeriodSeparator/);
   assert.match(seoDisclosureSource, /aria-controls=\{CONTENT_ID\}/);
   assert.match(seoDisclosureSource, /aria-expanded=\{expanded\}/);
   assert.match(seoDisclosureSource, /Leer más sobre esta zona/);
