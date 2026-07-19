@@ -273,12 +273,17 @@ export default function ZoneExplorer({
               </button>
               {periodCounts.weekend ? (
                 <button
+                  aria-label={`Este fin de semana, ${periodCounts.weekend} ${
+                    periodCounts.weekend === 1 ? "evento" : "eventos"
+                  }`}
                   aria-pressed={isWeekendActive}
                   className={isWeekendActive ? styles.tabActive : ""}
                   onClick={activateWeekend}
                   type="button"
                 >
-                  <span>Este fin de semana</span>
+                  <span className={styles.weekendLabelFull}>Este fin de semana</span>
+                  <span className={styles.weekendLabelCompact}>Fin de semana</span>
+                  <span aria-hidden="true" className={styles.weekendPeriodSeparator}>·</span>
                   <strong>{periodCounts.weekend}</strong>
                 </button>
               ) : null}

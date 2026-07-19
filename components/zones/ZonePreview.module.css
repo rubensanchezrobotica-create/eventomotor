@@ -519,6 +519,11 @@
   font-size: 10px;
 }
 
+.weekendLabelCompact,
+.weekendPeriodSeparator {
+  display: none;
+}
+
 .mobilePrimaryPeriods button.tabActive,
 .mobileAdvancedPeriods button.tabActive {
   border-color: rgba(255, 111, 56, 0.86);
@@ -1304,6 +1309,7 @@
     flex: 1 1 0;
     justify-content: center;
     min-width: 0;
+    min-height: 48px;
     padding-inline: 8px;
   }
 
@@ -1623,6 +1629,34 @@
 
   .periodTabs button {
     min-height: 44px;
+  }
+
+  .mobilePrimaryPeriods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .mobilePrimaryPeriods button {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    gap: 6px;
+    padding-inline: 7px;
+  }
+
+  .mobilePrimaryPeriods button strong {
+    flex-shrink: 0;
+  }
+
+  .weekendLabelFull {
+    display: none;
+  }
+
+  .weekendLabelCompact,
+  .weekendPeriodSeparator {
+    display: inline;
   }
 
   .resultsSection {

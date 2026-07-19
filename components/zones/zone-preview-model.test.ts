@@ -527,6 +527,8 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(explorerSource, /Ver \{filteredEvents\.length\}/);
   assert.match(explorerSource, /Periodos principales/);
   assert.match(explorerSource, /Este fin de semana/);
+  assert.match(explorerSource, /Fin de semana/);
+  assert.match(explorerSource, /aria-label=\{`Este fin de semana,/);
   assert.match(explorerSource, /Periodos avanzados/);
   assert.match(explorerSource, /tabIndex=\{-1\}/);
   assert.match(explorerSource, /focus\(\{ preventScroll: true \}\)/);
@@ -566,6 +568,8 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   assert.match(selectorSource, /SEO_ZONES\.map/);
   assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.heroActions \{[\s\S]*display:\s*none/);
   assert.match(cssSource, /\.mobileFilterActions \{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(cssSource, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(cssSource, /\.weekendLabelFull \{[\s\S]*display:\s*none/);
   assert.match(seoDisclosureSource, /aria-controls=\{CONTENT_ID\}/);
   assert.match(seoDisclosureSource, /aria-expanded=\{expanded\}/);
   assert.match(seoDisclosureSource, /Leer más sobre esta zona/);
