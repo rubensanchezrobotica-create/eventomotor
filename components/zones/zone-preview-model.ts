@@ -1,4 +1,9 @@
-import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
+import type { Metadata } from "next";
+import {
+  classifyEventMacroZone,
+  MACRO_ZONE_IDS,
+  type MacroZoneId,
+} from "@/lib/event-macro-zone";
 import { SEO_ZONES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
 
@@ -662,11 +667,31 @@ export function nextZoneVisibleLimit(current: number, pageSize: number, total: n
   return Math.min(current + pageSize, total);
 }
 
-export function isZonePreviewAvailable(
-  nodeEnvironment: string | undefined,
-  vercelEnvironment: string | undefined,
-) {
-  return nodeEnvironment !== "production" && vercelEnvironment !== "production";
+export function isZonePreviewAvailable(vercelEnvironment: string | undefined) {
+  return vercelEnvironment !== "production";
+}
+
+export function isZonePreviewId(value: string): value is MacroZoneId {
+  return MACRO_ZONE_IDS.includes(value as MacroZoneId);
+}
+
+export function buildZonePreviewMetadata(zone: string): Metadata {
+  const config = SEO_ZONES.find((item) => item.slug === zone);
+
+  return {
+    title: config
+      ? `Preview territorial: ${config.title} | EventoMotor`
+      : "Preview territorial | EventoMotor",
+    description: "Preview aislada del rediseño de páginas territoriales de EventoMotor.",
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+      },
+    },
+  };
 }
 
 export function zoneEventDateLabel(event: EventItem) {

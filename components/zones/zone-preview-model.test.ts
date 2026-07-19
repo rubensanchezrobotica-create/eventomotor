@@ -4,6 +4,7 @@ import test from "node:test";
 import { join } from "node:path";
 import type { EventItem } from "@/types/event";
 import {
+  buildZonePreviewMetadata,
   buildZonePreviewData,
   classifyZoneDisciplineGroup,
   createWeekendZoneFilters,
@@ -11,6 +12,7 @@ import {
   getZoneWeekendRange,
   hasSpecificZoneFilters,
   isZonePreviewAvailable,
+  isZonePreviewId,
   nextZoneVisibleLimit,
   normalizeZoneLocality,
   normalizeZoneProvince,
@@ -379,7 +381,7 @@ test("calcula vehículos y estados públicos relevantes sin exponer estados inte
   ]);
 });
 
-test("normaliza parámetros, carga progresiva y disponibilidad local", () => {
+test("normaliza parámetros y carga progresiva", () => {
   assert.deepEqual(parseZoneFilters({
     disciplina: "Clásicos",
     periodo: "next30",
@@ -395,9 +397,32 @@ test("normaliza parámetros, carga progresiva y disponibilidad local", () => {
   });
   assert.equal(nextZoneVisibleLimit(12, 12, 31), 24);
   assert.equal(nextZoneVisibleLimit(24, 12, 31), 31);
-  assert.equal(isZonePreviewAvailable("development", undefined), true);
-  assert.equal(isZonePreviewAvailable("production", "preview"), false);
-  assert.equal(isZonePreviewAvailable("development", "production"), false);
+});
+
+test("permite la preview salvo en el deployment Vercel Production", () => {
+  assert.equal(isZonePreviewAvailable("preview"), true);
+  assert.equal(isZonePreviewAvailable("production"), false);
+  assert.equal(isZonePreviewAvailable("development"), true);
+  assert.equal(isZonePreviewAvailable(undefined), true);
+});
+
+test("rechaza identificadores territoriales no permitidos antes de cargar datos", () => {
+  assert.equal(isZonePreviewId("centro"), true);
+  assert.equal(isZonePreviewId("zona-invalida"), false);
+});
+
+test("la metadata de preview conserva noindex, nofollow y omite canonical", () => {
+  const metadata = buildZonePreviewMetadata("centro");
+
+  assert.deepEqual(metadata.robots, {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  });
+  assert.equal(metadata.alternates, undefined);
 });
 
 test("formatea rangos de tarjeta sin saltos automáticos", () => {
@@ -433,6 +458,10 @@ test("la preview integra filtros y exploradores sin duplicar controles", () => {
     join(process.cwd(), "components/zones/ZonePreview.module.css"),
     "utf8",
   );
+  const routeSource = readFileSync(
+    join(process.cwd(), "app/preview/zonas/[zone]/page.tsx"),
+    "utf8",
+  );
 
   assert.match(explorerSource, /window\.history\.replaceState/);
   assert.match(explorerSource, /function activateWeekend\(\)/);
@@ -462,4 +491,7 @@ test("la preview integra filtros y exploradores sin duplicar controles", () => {
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
   assert.match(cssSource, /text-wrap:\s*balance/);
   assert.match(cssSource, /\.zoneTitleSuffix[\s\S]*white-space:\s*nowrap/);
+  assert.match(routeSource, /isZonePreviewAvailable\(process\.env\.VERCEL_ENV\)/);
+  assert.doesNotMatch(routeSource, /process\.env\.NODE_ENV/);
+  assert.match(routeSource, /if \(!isZonePreviewId\(zone\)\) notFound\(\)/);
 });
