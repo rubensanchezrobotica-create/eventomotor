@@ -18,6 +18,14 @@ const disciplineCardSource = readFileSync(
   new URL("../disciplines/DisciplineEventCard.tsx", import.meta.url),
   "utf8",
 );
+const disciplineSelectorSource = readFileSync(
+  new URL("../disciplines/DisciplineMobileSelector.tsx", import.meta.url),
+  "utf8",
+);
+const disciplineStylesSource = readFileSync(
+  new URL("../disciplines/DisciplinePreview.module.css", import.meta.url),
+  "utf8",
+);
 
 test("define una única escala funcional para zonas y disciplinas", () => {
   for (const token of [
@@ -43,4 +51,13 @@ test("las tarjetas de disciplina muestran como máximo modalidad y vehículo", (
   assert.match(disciplineCardSource, /showMultiDayMeta=\{false\}/);
   assert.match(disciplineCardSource, /showStatus=\{false\}/);
   assert.doesNotMatch(disciplineCardSource, /Varios días/);
+});
+
+test("el selector móvil no reserva una inicial genérica y conserva nombre y chevron", () => {
+  assert.doesNotMatch(disciplineSelectorSource, /disciplineSelectorIcon/);
+  assert.doesNotMatch(disciplineStylesSource, /\.disciplineSelectorIcon/);
+  assert.match(disciplineStylesSource, /\.disciplineSelector\s*\{[\s\S]*padding-left:\s*16px/);
+  assert.match(disciplineSelectorSource, /<strong>\{current\?\.title \|\| currentDiscipline\}<\/strong>/);
+  assert.match(disciplineSelectorSource, /zoneMobileChevron/);
+  assert.match(disciplineSelectorSource, /<select/);
 });

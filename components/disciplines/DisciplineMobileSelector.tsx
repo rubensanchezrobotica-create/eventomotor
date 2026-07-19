@@ -21,7 +21,6 @@ export default function DisciplineMobileSelector({
     <label className={`${zoneStyles.zoneMobileSelector} ${styles.disciplineSelector}`}>
       <span className={zoneStyles.zoneMobileLabel}>Buscar en</span>
       <span aria-hidden="true" className={zoneStyles.zoneMobileDisplay}>
-        <span className={styles.disciplineSelectorIcon}>D</span>
         <strong>{current?.title || currentDiscipline}</strong>
         <span className={zoneStyles.zoneMobileChevron}>›</span>
       </span>
