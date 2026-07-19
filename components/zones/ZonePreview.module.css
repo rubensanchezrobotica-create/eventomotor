@@ -971,6 +971,10 @@
   line-height: 1.72;
 }
 
+.seoDisclosureToggle {
+  display: none;
+}
+
 .internalLinks {
   display: flex;
   flex-wrap: wrap;
@@ -1331,16 +1335,30 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    min-height: 52px;
+    padding: 0 4px;
+    border-radius: 10px;
   }
 
   .exploreAccordionToggle > span:first-child {
+    min-width: 0;
     font-size: 17px;
     font-weight: 790;
   }
 
   .exploreAccordionToggle > span:last-child {
+    display: grid;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    place-items: center;
     color: #ff9870;
     font-size: 24px;
+    line-height: 1;
+  }
+
+  .exploreAccordionToggle[aria-expanded="true"] {
+    background: rgba(255, 91, 31, 0.08);
   }
 
   .exploreAccordionPanel {
@@ -1357,23 +1375,76 @@
   }
 
   .organizerCard {
-    gap: 8px;
+    gap: 10px;
     min-height: 0;
-    padding: 13px 15px;
+    padding: 22px 24px;
   }
 
-  .organizerCard h2 {
-    font-size: 27px;
+  .page .organizerCard h2 {
+    max-width: 560px;
+    font-size: clamp(30px, 5vw, 32px);
+    text-wrap: balance;
   }
 
   .organizerCard p {
-    margin-top: 3px;
-    font-size: 14px;
-    line-height: 1.45;
+    max-width: 620px;
+    margin-top: 5px;
+    font-size: clamp(16px, 2.4vw, 17px);
+    line-height: 1.5;
   }
 
   .organizerCard :global(.emc-btn) {
     width: 100%;
+    min-height: 52px;
+  }
+
+  .page .seoSection h2 {
+    max-width: 680px;
+    font-size: clamp(34px, 6vw, 36px);
+    text-wrap: balance;
+  }
+
+  .seoSection p {
+    margin-top: 10px;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .seoDisclosureToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 16px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 111, 56, 0.58);
+    border-radius: 13px;
+    background: rgba(255, 91, 31, 0.1);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .seoDisclosureContent {
+    display: none;
+  }
+
+  .seoDisclosureContentOpen {
+    display: block;
+  }
+
+  .page :is(
+    .heroSection h1,
+    .sectionHeading h2,
+    .exploreHeading h2,
+    .organizerCard h2,
+    .seoSection h2,
+    .pastDetails > summary strong
+  ) {
+    text-wrap: balance;
   }
 }
 
@@ -1391,9 +1462,14 @@
     font-size: clamp(32px, 9.1vw, 39px);
   }
 
+  .heroLead {
+    font-size: clamp(17px, 4.5vw, 18px);
+    line-height: 1.5;
+  }
+
   .heroStats {
     gap: 5px 11px;
-    margin-top: 13px;
+    margin-top: 9px;
     font-size: 12px;
   }
 
@@ -1517,25 +1593,16 @@
   }
 
   .organizerCard {
-    gap: 7px;
-    padding: 12px 14px;
+    gap: 10px;
+    padding: 22px;
   }
 
-  .organizerCard h2 {
-    font-size: clamp(25px, 6.8vw, 28px);
+  .page .organizerCard h2 {
+    font-size: clamp(30px, 8vw, 32px);
   }
 
   .seoSection {
     padding-bottom: 38px;
-  }
-
-  .seoSection h2 {
-    font-size: clamp(30px, 8.8vw, 37px);
-  }
-
-  .seoSection p {
-    font-size: 16px;
-    line-height: 1.62;
   }
 
   .pastDetails > summary {

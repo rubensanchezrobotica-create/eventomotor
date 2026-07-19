@@ -504,6 +504,10 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
     join(process.cwd(), "components/zones/ZoneMobileSelector.tsx"),
     "utf8",
   );
+  const seoDisclosureSource = readFileSync(
+    join(process.cwd(), "components/zones/ZoneSeoDisclosure.tsx"),
+    "utf8",
+  );
   const cardSource = readFileSync(
     join(process.cwd(), "components/zones/ZoneEventCard.tsx"),
     "utf8",
@@ -548,17 +552,26 @@ test("la preview integra divulgación progresiva móvil sin alterar la versión 
   );
   assert.doesNotMatch(pageSource, /data\.weekendEvents\.slice/);
   assert.match(pageSource, /ZoneMobileSelector/);
+  assert.match(pageSource, /ZoneSeoDisclosure/);
+  assert.equal(pageSource.match(/data\.zone\.intro/g)?.length, 1);
   assert.match(pageSource, /styles\.heroSecondaryStat/);
   assert.match(pageSource, /¿Organizas un evento\?/);
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
   assert.match(selectorSource, /router\.push\(`\/preview\/zonas\/\$\{event\.target\.value\}`\)/);
   assert.match(selectorSource, /aria-label="Cambiar zona territorial"/);
+  assert.match(seoDisclosureSource, /aria-controls=\{CONTENT_ID\}/);
+  assert.match(seoDisclosureSource, /aria-expanded=\{expanded\}/);
+  assert.match(seoDisclosureSource, /Leer más sobre esta zona/);
+  assert.match(seoDisclosureSource, /Ocultar información/);
   assert.match(cardSource, /className=\{styles\.multiDayMeta\}>Varios días/);
   assert.match(cssSource, /text-wrap:\s*balance/);
   assert.match(cssSource, /\.zoneTitleSuffix[\s\S]*white-space:\s*nowrap/);
   assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.desktopFilterGrid[\s\S]*display:\s*none/);
   assert.match(cssSource, /\.exploreAccordionPanel \{[\s\S]*display:\s*none/);
   assert.match(cssSource, /\.exploreAccordionPanelOpen \{[\s\S]*display:\s*block/);
+  assert.match(cssSource, /\.seoDisclosureContent \{[\s\S]*display:\s*none/);
+  assert.match(cssSource, /\.seoDisclosureContentOpen \{[\s\S]*display:\s*block/);
+  assert.match(cssSource, /\.exploreAccordionToggle\[aria-expanded="true"\]/);
   assert.match(cssSource, /\.cardEyebrows,[\s\S]*\.multiDayMeta[\s\S]*display:\s*none/);
   assert.match(routeSource, /isZonePreviewAvailable\(process\.env\.VERCEL_ENV\)/);
   assert.doesNotMatch(routeSource, /process\.env\.NODE_ENV/);

@@ -8,6 +8,7 @@ import type { ZoneFilters, ZonePreviewData } from "./zone-preview-model";
 import ZoneEventCard from "./ZoneEventCard";
 import ZoneExplorer from "./ZoneExplorer";
 import ZoneMobileSelector from "./ZoneMobileSelector";
+import ZoneSeoDisclosure from "./ZoneSeoDisclosure";
 import styles from "./ZonePreview.module.css";
 
 type ZonePreviewPageProps = {
@@ -129,46 +130,49 @@ export default function ZonePreviewPage({
           <div className={`emc-container ${styles.seoContent}`}>
             <span className={styles.eyebrow}>Guía territorial</span>
             <h2>Sobre los eventos de motor en la zona {zoneName}</h2>
-            {paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-            <div className={styles.internalLinks}>
-              <Link href="/calendario">Calendario completo</Link>
-              <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
-              <Link href={publicZoneHref}>Página pública actual</Link>
-              <Link href="/disciplinas/rallyes">Rallyes</Link>
-              <Link href="/disciplinas/circuito">Circuito</Link>
-              <Link href="/disciplinas/concentraciones">Concentraciones</Link>
-              <Link href="/publicar-evento">Publicar evento</Link>
-            </div>
-            <div className={styles.faqBlock} aria-label="Preguntas frecuentes">
-              <details>
-                <summary>¿Qué eventos aparecen en esta zona?</summary>
-                <p>
-                  Se incluyen los eventos visibles clasificados mediante provincia, región o,
-                  cuando es seguro, una localidad equivalente.
-                </p>
-              </details>
-              <details>
-                <summary>¿Cómo encuentro eventos próximos?</summary>
-                <p>
-                  La vista inicial muestra únicamente eventos próximos o en curso y permite
-                  filtrar por provincia, disciplina, periodo y texto.
-                </p>
-              </details>
-              <details>
-                <summary>¿Debo confirmar la información antes de asistir?</summary>
-                <p>
-                  Sí. Consulta la ficha y la fuente oficial porque horarios, ubicaciones o
-                  inscripciones pueden cambiar.
-                </p>
-              </details>
-              <details>
-                <summary>¿Cómo publico un evento de esta zona?</summary>
-                <p>
-                  Utiliza el formulario de publicación e incluye fecha, localidad, disciplina y
-                  una fuente verificable.
-                </p>
-              </details>
-            </div>
+            <p>{paragraphs[0]}</p>
+            <ZoneSeoDisclosure>
+              {paragraphs.slice(1).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              <div className={styles.internalLinks}>
+                <Link href="/calendario">Calendario completo</Link>
+                <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
+                <Link href={publicZoneHref}>Página pública actual</Link>
+                <Link href="/disciplinas/rallyes">Rallyes</Link>
+                <Link href="/disciplinas/circuito">Circuito</Link>
+                <Link href="/disciplinas/concentraciones">Concentraciones</Link>
+                <Link href="/publicar-evento">Publicar evento</Link>
+              </div>
+              <div className={styles.faqBlock} aria-label="Preguntas frecuentes">
+                <details>
+                  <summary>¿Qué eventos aparecen en esta zona?</summary>
+                  <p>
+                    Se incluyen los eventos visibles clasificados mediante provincia, región o,
+                    cuando es seguro, una localidad equivalente.
+                  </p>
+                </details>
+                <details>
+                  <summary>¿Cómo encuentro eventos próximos?</summary>
+                  <p>
+                    La vista inicial muestra únicamente eventos próximos o en curso y permite
+                    filtrar por provincia, disciplina, periodo y texto.
+                  </p>
+                </details>
+                <details>
+                  <summary>¿Debo confirmar la información antes de asistir?</summary>
+                  <p>
+                    Sí. Consulta la ficha y la fuente oficial porque horarios, ubicaciones o
+                    inscripciones pueden cambiar.
+                  </p>
+                </details>
+                <details>
+                  <summary>¿Cómo publico un evento de esta zona?</summary>
+                  <p>
+                    Utiliza el formulario de publicación e incluye fecha, localidad, disciplina y
+                    una fuente verificable.
+                  </p>
+                </details>
+              </div>
+            </ZoneSeoDisclosure>
           </div>
         </section>
 
