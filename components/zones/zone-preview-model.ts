@@ -519,6 +519,24 @@ export function hasSpecificZoneFilters(filters: ZoneFilters) {
   );
 }
 
+export function hasAdvancedZoneFilters(filters: ZoneFilters) {
+  return Boolean(
+    filters.discipline
+    || filters.query
+    || filters.period === "next30"
+    || filters.period === "month"
+    || filters.period === "all",
+  );
+}
+
+export function zoneMobileResultTitle(period: ZonePeriod) {
+  if (period === "weekend") return "Eventos este fin de semana";
+  if (period === "next30") return "Eventos de los próximos 30 días";
+  if (period === "month") return "Eventos de este mes";
+  if (period === "all") return "Todos los eventos";
+  return "Eventos próximos";
+}
+
 export function visibleZoneLocalities(
   localities: ZoneFilterOption[],
   expanded: boolean,
@@ -530,8 +548,21 @@ export function visibleZoneLocalities(
 export function visibleZoneProvinces(
   provinces: ZoneFilterOption[],
   expanded: boolean,
+  limit = 8,
 ) {
-  return expanded ? provinces : provinces.slice(0, 8);
+  return expanded ? provinces : provinces.slice(0, limit);
+}
+
+const UNCONFIRMED_ZONE_PROVINCES = new Set([
+  "por confirmar",
+  "sin provincia",
+  "ubicacion por confirmar",
+]);
+
+export function featuredZoneProvinces(provinces: ZoneFilterOption[]) {
+  return provinces.filter((province) => (
+    !UNCONFIRMED_ZONE_PROVINCES.has(normalizeZoneText(province.label))
+  ));
 }
 
 function buildOptions(

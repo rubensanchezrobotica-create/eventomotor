@@ -7,6 +7,7 @@ import { SEO_ZONES } from "@/lib/seo-taxonomy";
 import type { ZoneFilters, ZonePreviewData } from "./zone-preview-model";
 import ZoneEventCard from "./ZoneEventCard";
 import ZoneExplorer from "./ZoneExplorer";
+import ZoneMobileSelector from "./ZoneMobileSelector";
 import styles from "./ZonePreview.module.css";
 
 type ZonePreviewPageProps = {
@@ -56,14 +57,21 @@ export default function ZonePreviewPage({
             <h1>{data.zone.h1}</h1>
             <p className={styles.heroLead}>{data.zone.description}</p>
             <p className={styles.heroStats} aria-label="Resumen de próximos eventos">
-              <strong>{data.stats.future}</strong> próximos eventos
-              <span aria-hidden="true">·</span>
-              <strong>{data.stats.provinces}</strong> provincias
-              <span aria-hidden="true">·</span>
-              <strong>{data.stats.disciplines}</strong> disciplinas registradas
+              <span><strong>{data.stats.future}</strong> próximos eventos</span>
+              <span className={styles.heroSecondaryStat}>
+                <span aria-hidden="true">·</span>
+                <strong>{data.stats.provinces}</strong> provincias
+              </span>
+              <span className={styles.heroSecondaryStat}>
+                <span aria-hidden="true">·</span>
+                <strong>{data.stats.disciplines}</strong> disciplinas registradas
+              </span>
             </p>
             <div className={styles.heroActions}>
-              <a className="emc-btn emc-btn-primary" href="#eventos">Ver próximos eventos</a>
+              <a className="emc-btn emc-btn-primary" href="#eventos">
+                <span className={styles.desktopOnly}>Ver próximos eventos</span>
+                <span className={styles.mobileOnly}>Ver eventos</span>
+              </a>
             </div>
             <nav aria-label="Cambiar zona" className={styles.zoneNav}>
               {SEO_ZONES.map((zone) => (
@@ -77,6 +85,7 @@ export default function ZonePreviewPage({
                 </Link>
               ))}
             </nav>
+            <ZoneMobileSelector currentZone={data.zone.id} />
           </div>
         </section>
 
@@ -91,10 +100,18 @@ export default function ZonePreviewPage({
           <div className={`emc-container ${styles.organizerCard}`}>
             <div>
               <span className={styles.eyebrow}>Para organizadores</span>
-              <h2>¿Organizas un evento en la zona {zoneName}?</h2>
+              <h2>
+                <span className={styles.desktopOnly}>¿Organizas un evento en la zona {zoneName}?</span>
+                <span className={styles.mobileOnly}>¿Organizas un evento?</span>
+              </h2>
               <p>
-                Añade tu evento a EventoMotor y haz que los aficionados de tu zona lo encuentren
-                en la agenda.
+                <span className={styles.desktopOnly}>
+                  Añade tu evento a EventoMotor y haz que los aficionados de tu zona lo encuentren
+                  en la agenda.
+                </span>
+                <span className={styles.mobileOnly}>
+                  Añade tu evento a EventoMotor y llega a más aficionados de tu zona.
+                </span>
               </p>
             </div>
             <TrackLink

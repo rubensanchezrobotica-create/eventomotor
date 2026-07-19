@@ -8,8 +8,10 @@ import {
   buildZonePreviewData,
   classifyZoneDisciplineGroup,
   createWeekendZoneFilters,
+  featuredZoneProvinces,
   filterZoneEvents,
   getZoneWeekendRange,
+  hasAdvancedZoneFilters,
   hasSpecificZoneFilters,
   isZonePreviewAvailable,
   isZonePreviewId,
@@ -24,6 +26,7 @@ import {
   ZONE_PERIOD_TABS,
   zoneEventDateLabel,
   zoneFamilySummary,
+  zoneMobileResultTitle,
   zoneResultTitle,
   zoneResultTitleParts,
 } from "./zone-preview-model";
@@ -267,7 +270,42 @@ test("excluye el fin de semana de los chips normales y limita provincias a ocho"
     label: `Provincia ${index}`,
   }));
   assert.equal(visibleZoneProvinces(provinces, false).length, 8);
+  assert.equal(visibleZoneProvinces(provinces, false, 6).length, 6);
   assert.equal(visibleZoneProvinces(provinces, true).length, 12);
+});
+
+test("abre los filtros avanzados únicamente cuando la URL contiene uno", () => {
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({})), false);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ provincia: "Madrid" })), false);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ periodo: "weekend" })), false);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ disciplina: "Rally" })), true);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ q: "Jarama" })), true);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ periodo: "next30" })), true);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ periodo: "month" })), true);
+  assert.equal(hasAdvancedZoneFilters(parseZoneFilters({ periodo: "all" })), true);
+});
+
+test("genera los cinco títulos móviles compactos del listado", () => {
+  assert.equal(zoneMobileResultTitle("upcoming"), "Eventos próximos");
+  assert.equal(zoneMobileResultTitle("weekend"), "Eventos este fin de semana");
+  assert.equal(zoneMobileResultTitle("next30"), "Eventos de los próximos 30 días");
+  assert.equal(zoneMobileResultTitle("month"), "Eventos de este mes");
+  assert.equal(zoneMobileResultTitle("all"), "Todos los eventos");
+});
+
+test("excluye provincias sin confirmar de la exploración sin perder eventos", () => {
+  const data = buildZonePreviewData([
+    event({ id: "madrid-1", slug: "madrid-1", province: "Madrid", region: "Comunidad de Madrid" }),
+    event({ id: "madrid-2", slug: "madrid-2", province: "Madrid", region: "Comunidad de Madrid" }),
+    event({ id: "pending", slug: "pending", province: "Por confirmar", region: "Comunidad de Madrid" }),
+  ], "centro", now);
+  const featured = featuredZoneProvinces(data.provinceOptions);
+
+  assert.equal(data.stats.future, 3);
+  assert.equal(data.provinceOptions.find((item) => item.label === "Por confirmar")?.count, 1);
+  assert.deepEqual(featured.map(({ label, count }) => ({ label, count })), [
+    { label: "Madrid", count: 2 },
+  ]);
 });
 
 test("muestra el contador secundario solo con filtros territoriales o editoriales concretos", () => {
@@ -445,7 +483,7 @@ test("formatea rangos de tarjeta sin saltos automáticos", () => {
   });
 });
 
-test("la preview integra filtros y exploradores sin duplicar controles", () => {
+test("la preview integra divulgación progresiva móvil sin alterar la versión de escritorio", () => {
   const explorerSource = readFileSync(
     join(process.cwd(), "components/zones/ZoneExplorer.tsx"),
     "utf8",
@@ -462,11 +500,27 @@ test("la preview integra filtros y exploradores sin duplicar controles", () => {
     join(process.cwd(), "app/preview/zonas/[zone]/page.tsx"),
     "utf8",
   );
+  const selectorSource = readFileSync(
+    join(process.cwd(), "components/zones/ZoneMobileSelector.tsx"),
+    "utf8",
+  );
+  const cardSource = readFileSync(
+    join(process.cwd(), "components/zones/ZoneEventCard.tsx"),
+    "utf8",
+  );
 
   assert.match(explorerSource, /window\.history\.replaceState/);
   assert.match(explorerSource, /function activateWeekend\(\)/);
-  assert.match(explorerSource, /createWeekendZoneFilters\(\)/);
   assert.match(explorerSource, /aria-pressed=\{isWeekendActive\}/);
+  assert.match(explorerSource, /hasAdvancedZoneFilters\(initialFilters\)/);
+  assert.match(explorerSource, /aria-controls="zone-advanced-filters"/);
+  assert.match(explorerSource, /aria-expanded=\{advancedFiltersOpen\}/);
+  assert.match(explorerSource, /Más filtros/);
+  assert.match(explorerSource, /Ocultar filtros/);
+  assert.match(explorerSource, /Ver \{filteredEvents\.length\}/);
+  assert.match(explorerSource, /Periodos principales/);
+  assert.match(explorerSource, /Este fin de semana/);
+  assert.match(explorerSource, /Periodos avanzados/);
   assert.match(explorerSource, /tabIndex=\{-1\}/);
   assert.match(explorerSource, /focus\(\{ preventScroll: true \}\)/);
   assert.match(explorerSource, /Ver todas las provincias/);
@@ -477,10 +531,15 @@ test("la preview integra filtros y exploradores sin duplicar controles", () => {
   assert.match(explorerSource, /zoneFamilySummary\(data\.stats\.disciplines, data\.disciplineGroups\.length\)/);
   assert.match(explorerSource, /zoneResultTitleParts/);
   assert.match(explorerSource, /styles\.zoneTitleSuffix/);
+  assert.match(explorerSource, /zoneMobileResultTitle/);
   assert.match(explorerSource, /Explora la zona/);
-  assert.doesNotMatch(explorerSource, /Explora más en la zona/);
-  assert.match(explorerSource, /<p className=\{styles\.resultsMeta\}>Ordenados por fecha<\/p>/);
-  assert.doesNotMatch(explorerSource, /ZONE_PERIODS\.map/);
+  assert.match(explorerSource, /toggleExploreGroup\("provinces"\)/);
+  assert.match(explorerSource, /toggleExploreGroup\("families"\)/);
+  assert.match(explorerSource, /toggleExploreGroup\("localities"\)/);
+  assert.match(explorerSource, /aria-controls="zone-provinces-panel"/);
+  assert.match(explorerSource, /aria-controls="zone-families-panel"/);
+  assert.match(explorerSource, /aria-controls="zone-localities-panel"/);
+  assert.match(explorerSource, /featuredZoneProvinces\(data\.provinceOptions\)/);
   assert.doesNotMatch(explorerSource, /weekendDayCounts/);
   assert.doesNotMatch(explorerSource, /styles\.weekendSection/);
   assert.equal(
@@ -488,9 +547,19 @@ test("la preview integra filtros y exploradores sin duplicar controles", () => {
     1,
   );
   assert.doesNotMatch(pageSource, /data\.weekendEvents\.slice/);
+  assert.match(pageSource, /ZoneMobileSelector/);
+  assert.match(pageSource, /styles\.heroSecondaryStat/);
+  assert.match(pageSource, /¿Organizas un evento\?/);
   assert.doesNotMatch(explorerSource, /source="zone_preview_weekend"/);
+  assert.match(selectorSource, /router\.push\(`\/preview\/zonas\/\$\{event\.target\.value\}`\)/);
+  assert.match(selectorSource, /aria-label="Cambiar zona territorial"/);
+  assert.match(cardSource, /className=\{styles\.multiDayMeta\}>Varios días/);
   assert.match(cssSource, /text-wrap:\s*balance/);
   assert.match(cssSource, /\.zoneTitleSuffix[\s\S]*white-space:\s*nowrap/);
+  assert.match(cssSource, /@media \(max-width: 768px\)[\s\S]*\.desktopFilterGrid[\s\S]*display:\s*none/);
+  assert.match(cssSource, /\.exploreAccordionPanel \{[\s\S]*display:\s*none/);
+  assert.match(cssSource, /\.exploreAccordionPanelOpen \{[\s\S]*display:\s*block/);
+  assert.match(cssSource, /\.cardEyebrows,[\s\S]*\.multiDayMeta[\s\S]*display:\s*none/);
   assert.match(routeSource, /isZonePreviewAvailable\(process\.env\.VERCEL_ENV\)/);
   assert.doesNotMatch(routeSource, /process\.env\.NODE_ENV/);
   assert.match(routeSource, /if \(!isZonePreviewId\(zone\)\) notFound\(\)/);

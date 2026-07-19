@@ -100,7 +100,7 @@ export default function ZoneEventCard({
         <div className={styles.eventMeta}>
           <span>{discipline}</span>
           {vehicle ? <span>{vehicle}</span> : null}
-          {isMultiDay ? <span>Varios días</span> : null}
+          {isMultiDay ? <span className={styles.multiDayMeta}>Varios días</span> : null}
         </div>
       </div>
 
