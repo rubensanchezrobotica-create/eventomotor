@@ -1,0 +1,980 @@
+{
+  "metadata": {
+    "generated_at": "2026-07-20T18:19:03.517Z",
+    "version": "1.0.0",
+    "mode": "dry-run-select-only",
+    "timezone": "Europe/Madrid",
+    "today": "2026-07-20",
+    "input_hashes": {
+      "lote-investigacion-001.json": "ba7cd62d568194198efaef7aba1ae5ab155aaed58d2a5e65582de3dbe8e4a982",
+      "lote-investigacion-001-bloque-01-propuestas.json": "46965e64ec0253c7178962cb19918846538624549cd8c611d69a8d73832e7408",
+      "lote-investigacion-001-bloque-02-propuestas.json": "4720ea9a4aff4d46043519da3806663e007ef1db10127d08d53d4f8488f64ce9",
+      "lote-investigacion-001-bloque-03-propuestas.json": "2fdbba782541476ea0b5bc1cc73db5df784b2b20840596cbdbe174d972f2ee79",
+      "lote-investigacion-001-bloque-04-propuestas.json": "abdf27ac86a6ecced1f5b637cef77ca995d9a748408594ecb2b85a324538cf0b"
+    },
+    "schema": {
+      "columns": [
+        "id",
+        "slug",
+        "title",
+        "championship",
+        "discipline",
+        "start_date",
+        "end_date",
+        "venue",
+        "city",
+        "province",
+        "region",
+        "country",
+        "level",
+        "source",
+        "source_url",
+        "source_id",
+        "ticket_url",
+        "official_url",
+        "registration_url",
+        "image_url",
+        "image_source_url",
+        "event_status",
+        "short_description",
+        "long_description",
+        "schedule_text",
+        "address",
+        "latitude",
+        "longitude",
+        "organizer_name",
+        "organizer_url",
+        "verified_at",
+        "source_type",
+        "confidence_score",
+        "needs_review",
+        "tags",
+        "vehicle_type",
+        "featured",
+        "visible",
+        "import_method",
+        "data_quality",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "nullable_columns": [
+        "slug",
+        "championship",
+        "discipline",
+        "end_date",
+        "venue",
+        "city",
+        "province",
+        "region",
+        "country",
+        "level",
+        "source",
+        "source_url",
+        "source_id",
+        "ticket_url",
+        "official_url",
+        "registration_url",
+        "image_url",
+        "image_source_url",
+        "event_status",
+        "short_description",
+        "long_description",
+        "schedule_text",
+        "address",
+        "latitude",
+        "longitude",
+        "organizer_name",
+        "organizer_url",
+        "verified_at",
+        "source_type",
+        "confidence_score",
+        "needs_review",
+        "vehicle_type",
+        "import_method",
+        "notes"
+      ],
+      "required_columns": [
+        "id",
+        "title",
+        "start_date",
+        "tags",
+        "featured",
+        "visible",
+        "data_quality",
+        "created_at",
+        "updated_at"
+      ],
+      "text_limits": "PostgreSQL text: sin límite explícito en las migraciones inspeccionadas",
+      "observed_event_status": [
+        "confirmed"
+      ],
+      "observed_source_type": [
+        "aggregator",
+        "federation",
+        "official",
+        "organizer",
+        "secondary"
+      ]
+    },
+    "safety": {
+      "selected_ids": [
+        "batch-tandas-libres-ricardo-tormo-racing100-2026-07-19",
+        "baja-espana-aragon-fia-wbc-2026-07-24",
+        "rfme-campeonato-de-espana-de-freestyle-puerto-de-santa-maria-2026-07-24",
+        "batch-karting-outeiro-de-rei-2026-07-24",
+        "batch-rallymix-ribadumia-2026-07-24",
+        "batch-boiromotos-2026-07-24",
+        "batch-xvi-concentracion-ruedas-raras-toro-2026-07-24",
+        "pujada-alp-2500-2026-07-25",
+        "batch-rallysprint-betancuria-2026-07-25",
+        "batch-x-subida-la-pizarra-2026-07-25",
+        "batch-tt-cierru-los-pinos-2026-07-25",
+        "batch-la-reconquista-motera-2026-07-25",
+        "batch-xiii-concentracion-vehiculos-clasicos-ciudad-sagunto-2026-07-26",
+        "batch-enduro-comunidad-madrid-ibio-2026-07-26",
+        "batch-tandas-libres-curso-circuito-navarra-eventos-ceni-2026-07-26",
+        "batch-tandas-libres-curso-jarama-easyrace-2026-07-26",
+        "batch-enduro-indoor-andalucia-olvera-2026-07-26",
+        "batch-campionato-galego-de-velocidade-a-madalena-julio-2026-07-26",
+        "batch-xix-rallye-blendio-cristian-lopez-2026-07-31",
+        "batch-xiv-concentracion-clasicos-coches-motos-alto-ason-2026-08-01"
+      ],
+      "operations": [
+        "select",
+        "in"
+      ],
+      "supabase_writes": false,
+      "slug_updates_allowed": false
+    }
+  },
+  "events": [
+    {
+      "id": "batch-tandas-libres-ricardo-tormo-racing100-2026-07-19",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Racing100 / Circuit Ricardo Tormo",
+        "source_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "official_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "registration_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "organizer_name": "Racing100",
+        "organizer_url": "https://www.racing100.com/",
+        "address": "Autovía A-3 Valencia–Madrid, salida 334, 46380 Cheste, Valencia, España",
+        "long_description": "Racing100 organiza dos jornadas de tandas para motos en el Circuit Ricardo Tormo los días 19 y 20 de julio de 2026. La actividad se divide en cuatro grupos por nivel, con cronometraje para recolocar participantes según tiempos, asignación de boxes según disponibilidad y servicios de neumáticos, mecánica, fotografía y alquiler de calentadores y caballetes.",
+        "schedule_text": "19 y 20 de julio de 2026. Cada jornada se organiza en cuatro grupos por nivel y seis tandas. Los horarios provisionales se facilitan desde la página oficial.",
+        "image_source_url": "https://www.racing100.com/producto/ricardo-tormo-19-julio-2026/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 96,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.circuitricardotormo.com/tandas-de-motos/",
+        "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "https://www.racing100.com/producto/ricardo-tormo-19-julio-2026/",
+        "https://www.circuitricardotormo.com/contacto/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "baja-espana-aragon-fia-wbc-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "country": "ES",
+        "source": "Baja España Aragón",
+        "source_url": "https://www.bajaaragon.com/",
+        "official_url": "https://www.bajaaragon.com/",
+        "organizer_name": "Octagon Esedos",
+        "organizer_url": "https://www.bajaaragon.com/la-carrera/organizador/",
+        "short_description": "La Baja España Aragón 2026 se disputará en Teruel del 24 al 26 de julio, con prólogo y dos etapas puntuables para campeonatos internacionales y nacionales de rally todo terreno.",
+        "long_description": "La 42.ª Baja España Aragón Trofeo GETAC tendrá Teruel y su provincia como escenario del 24 al 26 de julio de 2026. Organizada por Octagon Esedos, reúne coches, motos, quads y camiones y puntúa para competiciones FIA, FIM y nacionales de rally todo terreno.",
+        "schedule_text": "Viernes 24: salida y prólogo. Sábado 25: primera etapa. Domingo 26: segunda etapa, podio y entrega de trofeos. Los horarios varían según categoría y deben consultarse en la web oficial.",
+        "image_source_url": "https://www.bajaaragon.com/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "registration_url",
+        "address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.bajaaragon.com/",
+        "https://www.bajaaragon.com/la-carrera/organizador/",
+        "https://www.bajaaragon.com/participantes/coches/horario/",
+        "https://www.bajaaragon.com/participantes/motos-y-quads/horarios/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "rfme-campeonato-de-espana-de-freestyle-puerto-de-santa-maria-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "country": "ES",
+        "venue": "Real Plaza de Toros de El Puerto de Santa María",
+        "source": "CEFMX / RFME / Ayuntamiento de El Puerto de Santa María",
+        "source_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "official_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "registration_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "organizer_name": "CEFMX",
+        "organizer_url": "https://cefmx.com/",
+        "address": "Plaza de Elías Ahuja s/n, 11500 El Puerto de Santa María, Cádiz, España",
+        "short_description": "El Campeonato de España de Freestyle Motocross llega a la Plaza de Toros de El Puerto de Santa María el viernes 24 de julio de 2026 a las 21:30.",
+        "long_description": "La prueba reunirá pilotos de freestyle, saltos y acrobacias, producción de iluminación y sonido, concurso Best Whip y la Chupetes Cup para menores de cuatro años. La organización también ofrece una experiencia VIP con acceso preferente, entrenamientos y paddock.",
+        "schedule_text": "Viernes 24 de julio de 2026, 21:30. Apertura y horarios de acceso sujetos a la información de la organización.",
+        "image_source_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://cefmx.com/entradas/puerto-santa-maria/",
+        "https://rfme.com/campeonatos/campeonato-de-espana-de-freestyle/",
+        "https://www.elpuertodesantamaria.es/eventos/campeonato-de-espana-freestyle-motocross",
+        "https://www.elpuertodesantamaria.es/plaza-de-toros/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-karting-outeiro-de-rei-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "6.º Karting Outeiro de Rei 2026",
+        "championship": "Campionato Xunta de Galicia de Karting",
+        "venue": "Circuito de Karting Outeiro de Rei",
+        "source": "Federación Galega de Automobilismo",
+        "source_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "official_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "registration_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "short_description": "El 6.º Karting Outeiro de Rei se celebrará del 24 al 26 de julio de 2026 como cuarta prueba puntuable del Campionato Xunta de Galicia de Karting.",
+        "long_description": "La ficha oficial de la FGA reúne reglamento particular, horarios, formulario de inscripción, pasaporte técnico e información de acceso.",
+        "schedule_text": "Del viernes 24 al domingo 26 de julio de 2026. El horario detallado está disponible en el documento oficial enlazado por la FGA.",
+        "image_source_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 92,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "organizer_operational"
+      ],
+      "sources": [
+        "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-rallymix-ribadumia-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "V Rallymix Concello de Ribadumia 2026",
+        "championship": "Campionato Xunta de Galicia de Rallymix",
+        "venue": "Concello de Ribadumia",
+        "source": "Federación Galega de Automobilismo",
+        "source_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "official_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "registration_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "organizer_name": "Escudería Desguaces Tino Racing",
+        "short_description": "El V Rallymix Concello de Ribadumia se disputará del 24 al 26 de julio de 2026 como prueba puntuable del Campionato Xunta de Galicia de Rallymix.",
+        "long_description": "La prueba está organizada por la Escudería Desguaces Tino Racing. La documentación, inscripción y comunicaciones se publican en la ficha de la FGA y en Sportity con la clave RIBADUMIA2026.",
+        "schedule_text": "Actividad prevista del viernes 24 al domingo 26 de julio de 2026. Horarios y complementos en la ficha oficial y Sportity, clave RIBADUMIA2026.",
+        "image_source_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "organizer_url",
+        "address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "https://www.fga.es/wp-content/uploads/2026/01/PIRELLI-RALLYMIX.pdf"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-boiromotos-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Motoclub Boiromotos",
+        "source_url": "https://boiromotos.com/",
+        "official_url": "https://boiromotos.com/",
+        "registration_url": "https://boiromotos.com/inscripciones/",
+        "organizer_name": "Motoclub Boiromotos",
+        "organizer_url": "https://boiromotos.com/",
+        "short_description": "Boiromotos 2026 reunirá a aficionados a las motos en Boiro del 24 al 26 de julio, con inscripción oficial y actividades durante todo el fin de semana.",
+        "long_description": "El Motoclub Boiromotos celebra su concentración de 2026 los días 24, 25 y 26 de julio en Boiro. La organización ha habilitado inscripción completa y media inscripción, y anuncia un fin de semana con ambiente motero, exhibiciones, música y actividades para participantes y visitantes. Los detalles de última hora deben consultarse en la web y las redes oficiales del club.",
+        "image_source_url": "https://boiromotos.com/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 90,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "full_schedule_text",
+        "image_url"
+      ],
+      "sources": [
+        "https://boiromotos.com/",
+        "https://boiromotos.com/inscripciones/",
+        "https://www.facebook.com/events/945357301880628/"
+      ],
+      "observations": [
+        "La dirección Plaza da Mancomunidade nº 3 corresponde al contacto/sede publicada por el club; no se usa como dirección exacta del evento sin confirmación.",
+        "La fuente principal debe cambiar de agregador a la web del organizador."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-xvi-concentracion-ruedas-raras-toro-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XVI Concentración Motera Ruedas Raras Toro 2026",
+        "source": "AMT Ruedas Raras Toro",
+        "source_url": "https://ruedasraras.es/",
+        "official_url": "https://ruedasraras.es/",
+        "registration_url": "https://ruedasraras.es/",
+        "organizer_name": "AMT Ruedas Raras Toro",
+        "organizer_url": "https://ruedasraras.es/",
+        "short_description": "La XVI Concentración Motera Ruedas Raras se celebrará en Toro del 24 al 26 de julio de 2026 con rutas, conciertos, comidas, piscina, desfile de antorchas y homenaje a los moteros fallecidos.",
+        "long_description": "Toro acoge del 24 al 26 de julio la decimosexta edición de la Concentración Motera Ruedas Raras. El programa combina convivencia motera, ruta a Alaejos, comidas y desayunos, piscina municipal, sesiones de DJ, conciertos, desfile de antorchas, homenaje a los moteros fallecidos, visita al Alcázar y cata de vinos. La organización limita las inscripciones y ofrece modalidades para todo el fin de semana o solo el sábado.",
+        "schedule_text": "Viernes 24: 18:00 apertura de inscripciones y yincana; 21:00 cena; 23:55 concierto. Sábado 25: 09:00 desayuno e inscripciones; 11:00 ruta a Alaejos; 15:00 comida; 16:00 piscina; 17:00 DJs; 19:00 concierto; 22:00 cena; 23:30 desfile de antorchas; 23:55 homenaje y concierto. Domingo 26: 10:00 desayuno; 11:00 visita al Alcázar; 12:00 cata de vinos; 14:00 comida; 15:00 sorteo y despedida.",
+        "image_source_url": "https://ruedasraras.es/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://ruedasraras.es/",
+        "https://www.facebook.com/ToroAyto/posts/1495993395906348/",
+        "https://www.zamora24horas.com/provincia/toro-inunda-este-fin-semana-pasion-dos-ruedas-xvi-concentracion-ruedas-raras"
+      ],
+      "observations": [
+        "Preinscripción publicada: 35 € fin de semana y 25 € solo sábado; en taquilla, 40 € y 30 € respectivamente.",
+        "No se propone una dirección exacta hasta localizar la zona de concentración mediante fuente primaria."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "pujada-alp-2500-2026-07-25",
+      "decision": "correct_dates_and_remove_from_future_backlog",
+      "proposed_updates": {
+        "title": "XV Pujada Alp 2500 2026",
+        "start_date": "2026-07-11",
+        "end_date": "2026-07-12",
+        "venue": "Carretera GI-400 Alp–Masella",
+        "source": "Cerdanya Racing",
+        "source_url": "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "official_url": "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "organizer_name": "Cerdanya Racing y V-Line Org",
+        "organizer_url": "https://www.cerdanyaracing.com/",
+        "address": "Carretera GI-400, tramo Alp–Masella, Girona, España",
+        "short_description": "La XV Pujada Alp 2500 se celebró los días 11 y 12 de julio de 2026 en la carretera GI-400 entre Alp y Masella, dentro del Festival Motorsport Alp 2500.",
+        "long_description": "La XV Pujada Alp 2500 formó parte del 11.º Festival Motorsport Alp 2500 y fue puntuable para la Copa de España de Montaña y el Campionat de Catalunya de Muntanya. La actividad administrativa y las verificaciones se desarrollaron el sábado 11, mientras que entrenamientos, mangas de carrera y entrega de trofeos se celebraron el domingo 12 de julio.",
+        "schedule_text": "Sábado 11: 17:00-21:15 entrega de documentación y 17:30-21:30 verificaciones técnicas. Domingo 12: 07:15-08:45 documentación y verificaciones de regularidad; 09:30 cierre de la GI-400; 10:15 primera subida de entrenamientos, seguida de entrenamientos y carreras; 18:15 entrega de trofeos.",
+        "image_source_url": "https://www.cerdanyaracing.com/es/",
+        "source_type": "organizer",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url",
+        "event_status_enum_for_completed"
+      ],
+      "sources": [
+        "https://www.cerdanyaracing.com/es/",
+        "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "https://docs.gestionaweb.cat/1541/programa-horario-cem-xv-pujada-alp-2026.pdf"
+      ],
+      "observations": [
+        "La ficha actual 25-26 de julio es incorrecta; la prueba ya se celebró el 11-12 de julio.",
+        "Tras aplicar la corrección de fechas, debe desaparecer automáticamente del backlog de eventos futuros.",
+        "Antes de asignar event_status=completed, verificar los valores admitidos por el esquema."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-rallysprint-betancuria-2026-07-25",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XIII Subida a Betancuria 2026",
+        "championship": "Campeonato de Canarias de Montaña",
+        "discipline": "Subida",
+        "venue": "Carretera FV-30, Betancuria",
+        "source": "Clubs Unidos de Fuerteventura / VMRM",
+        "source_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "official_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "registration_url": "https://www.vmrm.net/rallie/inscripcion/hinscrip.php?r=691",
+        "organizer_name": "Clubs Unidos de Fuerteventura",
+        "organizer_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "address": "Carretera FV-30, Betancuria, Fuerteventura, Las Palmas, España",
+        "short_description": "La XIII Subida a Betancuria se disputará el 25 de julio de 2026 en la carretera FV-30, organizada por los Clubs Unidos de Fuerteventura.",
+        "long_description": "La XIII Subida a Betancuria abre la temporada automovilística de Fuerteventura el 25 de julio de 2026. La prueba de montaña está organizada por los Clubs Unidos de Fuerteventura y dispone de documentación oficial, briefing, programa horario, reglamento, mapas, zonas de asistencia, salidas y metas, vídeo del trazado y tiempos en línea.",
+        "schedule_text": "Sábado 25 de julio. La carretera FV-30 cerrará al tráfico antes del inicio de la actividad deportiva; el programa oficial, las verificaciones y los horarios de mangas están publicados en la web de la prueba.",
+        "image_source_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/verjpgs.php?desc=Cartel&p=250726A_cartel",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url",
+        "precise_start_finish_points"
+      ],
+      "sources": [
+        "https://fcautomovilismo.com/wp-content/uploads/2026/02/04.1-CALENDARIO-DEPORTIVO-2026_despues-de-Asamblea_11022026.pdf",
+        "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "https://www.vmrm.net/rallie/inscripcion/hinscrip.php?r=691",
+        "https://www.facebook.com/aytobetancuria/posts/2023971458318017/"
+      ],
+      "observations": [
+        "No es un rallysprint: la identidad correcta es XIII Subida a Betancuria.",
+        "La inscripción ya figura cerrada, pero el enlace se conserva como referencia oficial."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-x-subida-la-pizarra-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Médula Sport / FEXA",
+        "source_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "official_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "registration_url": "https://fexa.es/evento/x-subida-de-la-pizarra-cyl/",
+        "organizer_name": "Médula Sport",
+        "organizer_url": "https://medulasport.com/",
+        "short_description": "La X Subida de La Pizarra se celebrará el 25 de julio de 2026 en Puente de Domingo Flórez, organizada por Médula Sport.",
+        "long_description": "Médula Sport organiza la décima edición de la Subida de La Pizarra el 25 de julio de 2026. La prueba dispone de reglamento, boletín de inscripción, cartel y seguimiento de tiempos en línea. La ficha federativa publica una ventana de actividad de 08:00 a 19:00.",
+        "schedule_text": "Sábado 25 de julio de 2026, de 08:00 a 19:00 según la ficha federativa. Los horarios deportivos detallados deben comprobarse en el reglamento y las comunicaciones de Médula Sport.",
+        "image_source_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "full_program_from_regulation"
+      ],
+      "sources": [
+        "https://medulasport.com/x-subida-de-la-pizarra/",
+        "https://fexa.es/evento/x-subida-de-la-pizarra-cyl/",
+        "https://tiempos.medulasport.com/"
+      ],
+      "observations": [
+        "La dirección mostrada al pie de la página FEXA corresponde a la federación, no al evento, y no debe copiarse.",
+        "La web de tiempos indica una distancia de 9,12 km, pero conviene confirmarla en el reglamento antes de añadirla a la descripción pública."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-tt-cierru-los-pinos-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Federación de Automovilismo del Principado de Asturias",
+        "source_url": "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "official_url": "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "organizer_name": "Llanera Racing",
+        "organizer_url": "https://www.facebook.com/llaneraracing/",
+        "address": "Avenida Prudencio González, Posada de Llanera, Asturias, España",
+        "short_description": "El TT Cierru Los Pinos se disputará el sábado 25 de julio de 2026 en Posada de Llanera como cuarta cita puntuable del Campeonato de Asturias de Tramos de Tierra.",
+        "long_description": "Posada de Llanera acoge el 25 de julio de 2026 el Tramo de Tierra Cierru Los Pinos, prueba organizada por Llanera Racing y puntuable para el Campeonato de Asturias de Tramos de Tierra.",
+        "schedule_text": "Sábado 25 de julio de 2026, jornada completa. Los horarios deportivos detallados deben consultarse en FAPA y Llanera Racing.",
+        "image_source_url": "https://www.facebook.com/llaneraracing/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "registration_url",
+        "latitude",
+        "longitude",
+        "image_url",
+        "detailed_program"
+      ],
+      "sources": [
+        "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "https://fapaonline.es/calendario-tramos-tierra-2026/",
+        "https://fapaonline.es/exito-del-motor-ii-tramo-tierra-concejo-tineo/",
+        "https://www.facebook.com/llaneraracing/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-la-reconquista-motera-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "II Concentración Motera La Reconquista 2026",
+        "venue": "Plaza de la Constitución",
+        "source": "Asociación Motera Cultural La Reconquista / Tickety",
+        "source_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "official_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "registration_url": "https://entradas.tickety.es/events/la-reconquista-motera-2026/sessions/25-07-2026-18-00-plaza-de-la-constitucion",
+        "organizer_name": "Asociación Motera Cultural La Reconquista",
+        "organizer_url": "https://entradium.com/eu/organizers/asociacion-motera-cultural-la-reconquista",
+        "address": "Plaza de la Constitución, Almoguera, Guadalajara, España",
+        "short_description": "Almoguera celebrará los días 25 y 26 de julio la segunda Concentración Motera La Reconquista, con feria, exhibiciones, conciertos, ruta motera, gastronomía y zona de acampada.",
+        "long_description": "La II Concentración Motera La Reconquista se celebrará en Almoguera los días 25 y 26 de julio de 2026. Contará con feria motera, exhibición de acrobacias, música en directo, desayuno, ruta por la comarca, comida de hermandad, sorteos, zona de acampada y aparcamiento para caravanas.",
+        "schedule_text": "Sábado 25: 18:00 apertura de feria e inscripciones; 19:30 exhibición; 20:00 cierre de inscripciones; 23:00-02:30 música en directo. Domingo 26: 09:00 apertura; 09:00-11:00 desayuno; 11:00 briefing y ruta; 15:00 comida; 15:30 concierto; 17:00 sorteos; 18:00 clausura.",
+        "image_source_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://tickety.es/event/la-reconquista-motera-2026",
+        "https://entradas.tickety.es/en/events/la-reconquista-motera-2026",
+        "https://guadared.com/almoguera-celebra-la-ii-concentracion-motera-la-reconquista-con-exhibiciones-ruta-y-musica-los-dias-25-y-26-de-julio/"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-xiii-concentracion-vehiculos-clasicos-ciudad-sagunto-2026-07-26",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XII Concentración de Coches y Motos Clásicos Ciudad de Sagunto 2026",
+        "championship": "Concentración de coches y motos clásicos",
+        "source": "Ayuntamiento de Sagunto / Penyes de Sagunt",
+        "source_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "official_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "organizer_name": "Comisión de Fiestas Penyes de Sagunt",
+        "organizer_url": "https://aytosagunto.es/",
+        "address": "Plaza Cronista Chabret, Sagunto, Valencia, España",
+        "short_description": "La XII Concentración de Coches y Motos Clásicos Ciudad de Sagunto se celebrará el domingo 26 de julio de 2026 dentro de las fiestas patronales de Penyes de Sagunt.",
+        "long_description": "La actividad forma parte del programa oficial de las fiestas patronales e incluye concentración de vehículos, ruta de exposición, entrega de premios y sorteos.",
+        "schedule_text": "Domingo 26 de julio: 09:00 concentración de vehículos clásicos; 11:30 ruta de exposición; 13:00 entrega de premios y sorteos.",
+        "image_source_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "event_status": "confirmed",
+        "source_type": "municipality",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "registration_url",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "https://canaldifusion.com/concentraciones/agenda-de-eventos/"
+      ],
+      "observations": [
+        "La edición correcta es XII, no XIII.",
+        "El almuerzo popular de las 10:00 no aparece en el programa oficial y debe eliminarse."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-enduro-comunidad-madrid-ibio-2026-07-26",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XI Enduro Cueva del Oso – Sierra de Ibio 2026",
+        "championship": "Campeonatos autonómicos de Enduro",
+        "venue": "Sierra de Ibio",
+        "source": "Federaciones autonómicas de motociclismo",
+        "source_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "official_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "registration_url": "https://fvm.es/Publico/DetalleCompeticion?idCompeticion=2544",
+        "short_description": "El XI Enduro Cueva del Oso se disputará el domingo 26 de julio de 2026 en la Sierra de Ibio y será puntuable para varios campeonatos autonómicos.",
+        "long_description": "La prueba reúne participantes de los campeonatos de Cantabria, Asturias, Navarra, País Vasco, Castilla y León y Madrid, e incluye categorías de todo terreno clásico.",
+        "schedule_text": "Sábado 25: verificaciones administrativas de 19:00 a 21:00. Domingo 26: verificaciones administrativas y técnicas de 08:00 a 09:00.",
+        "image_source_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {
+        "organizer_name": "Federacion Madrilena de Motociclismo"
+      },
+      "unresolved_fields": [
+        "local_organizer",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "sunday_start_time"
+      ],
+      "sources": [
+        "https://fedemotocyl.es/xi-cueva-del-oso",
+        "https://fedemadrid.com/calendario-campeonatos/",
+        "https://fmpa.es/calendario/",
+        "https://www.fnamoto.org/calendario-egutegia/",
+        "https://fvm.es/Publico/DetalleCompeticion?idCompeticion=2544"
+      ],
+      "observations": [],
+      "validation_errors": [],
+      "validation_warnings": [
+        "null_no_borra:organizer_name",
+        "null_no_borra:organizer_url"
+      ]
+    },
+    {
+      "id": "batch-tandas-libres-curso-circuito-navarra-eventos-ceni-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Tandas libres y curso Eventos Ceni – Circuito de Navarra 2026",
+        "championship": "Tandas libres y curso de conducción",
+        "source": "Eventos Ceni / Circuito de Navarra",
+        "source_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "official_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "registration_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "organizer_name": "Eventos Ceni",
+        "organizer_url": "https://www.eventosceni.es/",
+        "address": "Calle Malvasía 5, 31210 Los Arcos, Navarra, España",
+        "short_description": "Eventos Ceni organiza el 26 de julio de 2026 una jornada de tandas libres y curso de conducción para motos en el Circuito de Navarra.",
+        "long_description": "La jornada combina tandas libres por niveles y curso de conducción. Incluye briefing obligatorio, seis sesiones de veinte minutos, cronometraje y servicios de neumáticos, fotografía, mecánica y monitores.",
+        "schedule_text": "Domingo 26 de julio de 2026. Horario de pista: 10:00-18:00. Briefing obligatorio y seis tandas de veinte minutos por nivel.",
+        "image_source_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.eventosceni.es/info-evento.php?id=4",
+        "https://www.circuitodenavarra.com/es/whats-on/26/07/26-day",
+        "https://www.circuitodenavarra.com/es/calendar/trackdays/bike",
+        "https://www.todocircuito.com/evento/9241/26-07-2026_tandas%20libres%20y%20curso_circuito-de-navarra"
+      ],
+      "observations": [
+        "La web oficial confirma 195 € más 25 € de seguro diario para tandas y 255 € más seguro para el curso.",
+        "No se propone price porque el esquema no tiene ese campo."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-tandas-libres-curso-jarama-easyrace-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Tandas libres y curso EasyRace – Jarama 2026",
+        "championship": "Tandas libres y curso de conducción",
+        "venue": "Circuito de Madrid Jarama – RACE",
+        "source": "Circuito de Madrid Jarama – RACE / EasyRace",
+        "source_url": "https://www.jarama.org/venta-de-entradas",
+        "official_url": "https://www.jarama.org/venta-de-entradas",
+        "ticket_url": "https://www.jarama.org/venta-de-entradas",
+        "organizer_name": "EasyRace",
+        "organizer_url": "https://easyrace.net/",
+        "address": "Autovía A-1, km 28, 28700 San Sebastián de los Reyes, Madrid, España",
+        "short_description": "EasyRace celebra el domingo 26 de julio de 2026 una jornada de motos en el Circuito de Madrid Jarama – RACE, con tandas por niveles y opción de curso.",
+        "long_description": "La jornada EasyRace del 26 de julio combina tandas libres y formación para motoristas en el Circuito de Madrid Jarama – RACE. La información publicada para participantes contempla dos grupos por nivel, recolocación mediante tiempos, cinco tandas por grupo y servicios de boxes, cronometraje, fotografía, mecánica, neumáticos y monitores. El circuito vende también entradas para espectadores.",
+        "schedule_text": "Domingo 26 de julio de 2026. Actividad de pista organizada en dos grupos por nivel, con cinco tandas por grupo. Los horarios definitivos de briefing y pista deben confirmarse con EasyRace.",
+        "image_source_url": "https://www.jarama.org/venta-de-entradas",
+        "event_status": "confirmed",
+        "source_type": "circuit",
+        "confidence_score": 92,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "participant_registration_url",
+        "latitude",
+        "longitude",
+        "image_url",
+        "exact_briefing_and_track_schedule"
+      ],
+      "sources": [
+        "https://www.jarama.org/venta-de-entradas",
+        "https://easyrace.net/",
+        "https://www.todocircuito.com/evento/9468/26-07-2026_tandas%20libres%20y%20curso_circuito-del-jarama"
+      ],
+      "observations": [
+        "El Circuito Jarama confirma oficialmente la fecha y vende entradas para espectadores.",
+        "Los detalles de grupos, tandas y servicios proceden de TodoCircuito y deben mantenerse marcados para revisión hasta confirmación directa de EasyRace.",
+        "No se propone registration_url para participantes porque no se localizó una página oficial específica de inscripción."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-enduro-indoor-andalucia-olvera-2026-07-26",
+      "decision": "correct_date_and_update",
+      "proposed_updates": {
+        "title": "I Enduro Indoor Ciudad de Olvera 2026",
+        "start_date": "2026-07-25",
+        "end_date": "2026-07-25",
+        "championship": "Campeonato de Andalucía de Enduro Indoor",
+        "venue": "Recinto Ferial de Olvera",
+        "source": "Federación Andaluza de Motociclismo / Ayuntamiento de Olvera",
+        "source_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "official_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "organizer_name": "Moto Club Olvera",
+        "address": "Recinto Ferial, Olvera, Cádiz, España",
+        "short_description": "Olvera acogerá el sábado 25 de julio de 2026 la primera edición de su Enduro Indoor, prueba nocturna puntuable para el Campeonato de Andalucía.",
+        "long_description": "El I Enduro Indoor Ciudad de Olvera se celebrará el 25 de julio de 2026 en el Recinto Ferial. La prueba está impulsada por el Moto Club Olvera, cuenta con apoyo institucional y es puntuable para el Campeonato de Andalucía. La organización prevé categorías Máster 40, aficionados, Júnior Sub-23, Sénior FUN y Sénior Pro, con actividad nocturna y entradas anunciadas a 7 euros anticipadas y 10 euros en taquilla.",
+        "schedule_text": "Sábado 25 de julio de 2026. Acceso del público anunciado desde las 20:00. La presentación institucional situó la actividad deportiva durante la tarde-noche, aproximadamente entre las 18:00 y las 00:00.",
+        "image_source_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "ticket_url",
+        "organizer_url",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "https://www.dipucadiz.es/prensa/actualidad/Olvera-sera-sede-de-una-prueba-de-enduro-indoor-por-primera-vez/",
+        "https://www.facebook.com/100064354704870/posts/1456734246481718/"
+      ],
+      "observations": [
+        "La fecha actual del evento es incorrecta: debe cambiar del 26 al 25 de julio.",
+        "La edición es la primera y el recinto correcto es el Recinto Ferial de Olvera."
+      ],
+      "validation_errors": [],
+      "validation_warnings": [
+        "null_no_borra:organizer_url"
+      ]
+    },
+    {
+      "id": "batch-campionato-galego-de-velocidade-a-madalena-julio-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Campionato Galego de Velocidade – A Madalena II 2026",
+        "championship": "Campionato Galego de Velocidade Xunta de Galicia",
+        "venue": "Circuíto A Madalena",
+        "source": "Federación Galega de Motociclismo",
+        "source_url": "https://fgmoto.net/probas/",
+        "official_url": "https://fgmoto.net/probas/",
+        "registration_url": "https://fgmoto.net/licenzas/inscricions/",
+        "organizer_name": "Club Sobre Rodas",
+        "short_description": "El Circuíto A Madalena de Forcarei acoge el 26 de julio de 2026 una nueva cita del Campionato Galego de Velocidade Xunta de Galicia.",
+        "long_description": "La prueba de A Madalena forma parte del Campionato Galego de Velocidade Xunta de Galicia 2026 y cuenta con el apoyo de la Federación Galega de Motociclismo y del Club Sobre Rodas. Las inscripciones se tramitan mediante la zona privada federativa y la organización ha publicado los plazos de recargo y cierre previos a la prueba.",
+        "schedule_text": "Domingo 26 de julio de 2026. Inicio del recargo de inscripción: 20 de julio a las 15:00. Cierre de inscripciones: 24 de julio a las 10:00. El horario deportivo de pista queda pendiente de publicación o verificación.",
+        "image_source_url": "https://www.facebook.com/federaciongalegamotociclismo/posts/1898111444706999/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "organizer_url",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "competition_schedule"
+      ],
+      "sources": [
+        "https://fgmoto.net/probas/",
+        "https://fgmoto.net/licenzas/inscricions/",
+        "https://www.facebook.com/federaciongalegamotociclismo/posts/1898111444706999/",
+        "https://www.instagram.com/p/Daxi1LvoN71/"
+      ],
+      "observations": [
+        "La fecha local publicada por la federación y sus redes es el 26 de julio.",
+        "La página de calendario puede mostrar 27/07 por tratamiento horario; no debe usarse para desplazar la fecha sin más comprobación."
+      ],
+      "validation_errors": [],
+      "validation_warnings": [
+        "null_no_borra:organizer_url"
+      ]
+    },
+    {
+      "id": "batch-xix-rallye-blendio-cristian-lopez-2026-07-31",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XIX Rallye Blendio Cristian López 2026",
+        "championship": "Campeonato de Cantabria de Rallyes y copas asociadas",
+        "venue": "Sarón y municipios del entorno",
+        "source": "Tribus Competición / Federación Cántabra de Automovilismo",
+        "source_url": "https://www.rallyecristianlopez.es/",
+        "official_url": "https://www.rallyecristianlopez.es/",
+        "registration_url": "https://www.fcta.es/competiciones/d730f97d-3528-4284-bfe8-d867e9251a9d",
+        "organizer_name": "C.D.E. CLH Tribu's Competición",
+        "organizer_url": "https://www.rallyecristianlopez.es/",
+        "short_description": "El XIX Rallye Blendio Cristian López se disputará los días 31 de julio y 1 de agosto de 2026 en Sarón y varios municipios del entorno, con nueve tramos especiales.",
+        "long_description": "La decimonovena edición del Rallye Blendio Cristian López está organizada por Tribus Competición y recorre Santa María de Cayón, Castañeda, Puente Viesgo y Corvera de Toranzo. El itinerario reúne nueve tramos especiales y dos pasadas, con una primera sección el viernes y la mayor parte de la competición durante el sábado.",
+        "schedule_text": "Viernes 31: verificaciones administrativas de 14:30 a 18:15 y técnicas de 14:45 a 18:30 en el Pabellón de Santa María de Cayón; salida de la primera sección a las 19:00; TC Cristian López a las 20:00; parque cerrado a las 20:13. Sábado 1: salida de la segunda sección a las 08:43; salidas de secciones posteriores a las 10:58, 15:01 y 17:48; fin del rallye a las 20:00; entrega de trofeos a las 21:30.",
+        "image_source_url": "https://www.rallyecristianlopez.es/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "single_exact_address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.rallyecristianlopez.es/",
+        "https://www.rallyecristianlopez.es/info-general",
+        "https://www.rallyecristianlopez.es/docs/programa.pdf",
+        "https://www.rallyecristianlopez.es/docs/itinerario.pdf",
+        "https://www.fcta.es/competiciones/d730f97d-3528-4284-bfe8-d867e9251a9d"
+      ],
+      "observations": [
+        "No se propone una dirección única porque el evento se desarrolla en varios municipios y localizaciones.",
+        "La inscripción ya está cerrada; la URL se conserva como referencia oficial del proceso."
+      ],
+      "validation_errors": [],
+      "validation_warnings": []
+    },
+    {
+      "id": "batch-xiv-concentracion-clasicos-coches-motos-alto-ason-2026-08-01",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XIV Concentración de Coches y Motos Clásicas del Alto Asón 2026",
+        "championship": "Concentración de coches y motos clásicas",
+        "venue": "Ramales de la Victoria",
+        "source": "Ayuntamiento de Ramales de la Victoria / Clásicos Alto Asón",
+        "source_url": "https://www.facebook.com/groups/874869043409626/posts/2104469070449611/",
+        "organizer_name": "Ayuntamiento de Ramales de la Victoria",
+        "organizer_url": "https://aytoramales.org/",
+        "short_description": "Ramales de la Victoria acogerá los días 1 y 2 de agosto de 2026 la XIV Concentración de Coches y Motos Clásicas del Alto Asón.",
+        "long_description": "La decimocuarta Concentración de Coches y Motos Clásicas del Alto Asón reunirá vehículos históricos en Ramales de la Victoria durante el primer fin de semana de agosto. El Ayuntamiento de Ramales de la Victoria figura como organizador y Clásicos Alto Asón como entidad colaboradora. El programa contempla una ruta nocturna el sábado y una jornada central de concentración el domingo.",
+        "schedule_text": "Sábado 1 de agosto: tercera ruta nocturna a partir de las 19:00. Domingo 2 de agosto: jornada central de concentración, con recepción de vehículos por la mañana. El resto del programa debe confirmarse con el cartel oficial o la organización.",
+        "image_source_url": "https://www.facebook.com/ramon.martinezrodriguez.1/posts/ya-tenemos-el-cartel-oficial-de-la-concentraci%C3%B3n-de-coches-y-motos-cl%C3%A1sicas-del-/26086801690988884/",
+        "event_status": "confirmed",
+        "source_type": "municipality",
+        "confidence_score": 88,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "explicit_clears": {},
+      "unresolved_fields": [
+        "official_event_page",
+        "registration_url",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "full_sunday_schedule",
+        "contact_phone_confirmation"
+      ],
+      "sources": [
+        "https://www.facebook.com/groups/874869043409626/posts/2104469070449611/",
+        "https://www.facebook.com/groups/117763474905058/posts/28577463445175014/",
+        "https://www.facebook.com/ramon.martinezrodriguez.1/posts/ya-tenemos-el-cartel-oficial-de-la-concentraci%C3%B3n-de-coches-y-motos-cl%C3%A1sicas-del-/26086801690988884/",
+        "https://aytoramales.org/"
+      ],
+      "observations": [
+        "Se confirma la fecha 1-2 de agosto y la edición XIV.",
+        "La organización aparece atribuida al Ayuntamiento de Ramales de la Victoria, con colaboración de Clásicos Alto Asón.",
+        "No se localizó una página oficial específica fuera de publicaciones sociales, por lo que se mantiene needs_review."
+      ],
+      "validation_errors": [],
+      "validation_warnings": [
+        "null_no_borra:official_url"
+      ]
+    }
+  ]
+}

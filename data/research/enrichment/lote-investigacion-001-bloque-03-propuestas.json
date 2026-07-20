@@ -1,0 +1,200 @@
+{
+  "metadata": {
+    "batch": "lote-investigacion-001",
+    "block": "03",
+    "event_count": 5,
+    "mode": "dry-run research proposal",
+    "supabase_writes": false,
+    "review_required": true,
+    "verified_at": "2026-07-20T00:00:00+02:00"
+  },
+  "events": [
+    {
+      "id": "batch-tt-cierru-los-pinos-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Federación de Automovilismo del Principado de Asturias",
+        "source_url": "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "official_url": "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "organizer_name": "Llanera Racing",
+        "organizer_url": "https://www.facebook.com/llaneraracing/",
+        "address": "Avenida Prudencio González, Posada de Llanera, Asturias, España",
+        "short_description": "El TT Cierru Los Pinos se disputará el sábado 25 de julio de 2026 en Posada de Llanera como cuarta cita puntuable del Campeonato de Asturias de Tramos de Tierra.",
+        "long_description": "Posada de Llanera acoge el 25 de julio de 2026 el Tramo de Tierra Cierru Los Pinos, prueba organizada por Llanera Racing y puntuable para el Campeonato de Asturias de Tramos de Tierra.",
+        "schedule_text": "Sábado 25 de julio de 2026, jornada completa. Los horarios deportivos detallados deben consultarse en FAPA y Llanera Racing.",
+        "image_source_url": "https://www.facebook.com/llaneraracing/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "registration_url",
+        "latitude",
+        "longitude",
+        "image_url",
+        "detailed_program"
+      ],
+      "sources": [
+        "https://fapaonline.es/pruebas/tramo-tierra-cierru-los-pinos-4/",
+        "https://fapaonline.es/calendario-tramos-tierra-2026/",
+        "https://fapaonline.es/exito-del-motor-ii-tramo-tierra-concejo-tineo/",
+        "https://www.facebook.com/llaneraracing/"
+      ]
+    },
+    {
+      "id": "batch-la-reconquista-motera-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "II Concentración Motera La Reconquista 2026",
+        "venue": "Plaza de la Constitución",
+        "source": "Asociación Motera Cultural La Reconquista / Tickety",
+        "source_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "official_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "registration_url": "https://entradas.tickety.es/events/la-reconquista-motera-2026/sessions/25-07-2026-18-00-plaza-de-la-constitucion",
+        "organizer_name": "Asociación Motera Cultural La Reconquista",
+        "organizer_url": "https://entradium.com/eu/organizers/asociacion-motera-cultural-la-reconquista",
+        "address": "Plaza de la Constitución, Almoguera, Guadalajara, España",
+        "short_description": "Almoguera celebrará los días 25 y 26 de julio la segunda Concentración Motera La Reconquista, con feria, exhibiciones, conciertos, ruta motera, gastronomía y zona de acampada.",
+        "long_description": "La II Concentración Motera La Reconquista se celebrará en Almoguera los días 25 y 26 de julio de 2026. Contará con feria motera, exhibición de acrobacias, música en directo, desayuno, ruta por la comarca, comida de hermandad, sorteos, zona de acampada y aparcamiento para caravanas.",
+        "schedule_text": "Sábado 25: 18:00 apertura de feria e inscripciones; 19:30 exhibición; 20:00 cierre de inscripciones; 23:00-02:30 música en directo. Domingo 26: 09:00 apertura; 09:00-11:00 desayuno; 11:00 briefing y ruta; 15:00 comida; 15:30 concierto; 17:00 sorteos; 18:00 clausura.",
+        "image_source_url": "https://tickety.es/event/la-reconquista-motera-2026",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://tickety.es/event/la-reconquista-motera-2026",
+        "https://entradas.tickety.es/en/events/la-reconquista-motera-2026",
+        "https://guadared.com/almoguera-celebra-la-ii-concentracion-motera-la-reconquista-con-exhibiciones-ruta-y-musica-los-dias-25-y-26-de-julio/"
+      ]
+    },
+    {
+      "id": "batch-xiii-concentracion-vehiculos-clasicos-ciudad-sagunto-2026-07-26",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XII Concentración de Coches y Motos Clásicos Ciudad de Sagunto 2026",
+        "championship": "Concentración de coches y motos clásicos",
+        "source": "Ayuntamiento de Sagunto / Penyes de Sagunt",
+        "source_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "official_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "organizer_name": "Comisión de Fiestas Penyes de Sagunt",
+        "organizer_url": "https://aytosagunto.es/",
+        "address": "Plaza Cronista Chabret, Sagunto, Valencia, España",
+        "short_description": "La XII Concentración de Coches y Motos Clásicos Ciudad de Sagunto se celebrará el domingo 26 de julio de 2026 dentro de las fiestas patronales de Penyes de Sagunt.",
+        "long_description": "La actividad forma parte del programa oficial de las fiestas patronales e incluye concentración de vehículos, ruta de exposición, entrega de premios y sorteos.",
+        "schedule_text": "Domingo 26 de julio: 09:00 concentración de vehículos clásicos; 11:30 ruta de exposición; 13:00 entrega de premios y sorteos.",
+        "image_source_url": "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "event_status": "confirmed",
+        "source_type": "municipality",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "registration_url",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://aytosagunto.es/media/bcvemui4/programa-de-fiestas-patronales2026.pdf",
+        "https://canaldifusion.com/concentraciones/agenda-de-eventos/"
+      ],
+      "observations": [
+        "La edición correcta es XII, no XIII.",
+        "El almuerzo popular de las 10:00 no aparece en el programa oficial y debe eliminarse."
+      ]
+    },
+    {
+      "id": "batch-enduro-comunidad-madrid-ibio-2026-07-26",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XI Enduro Cueva del Oso – Sierra de Ibio 2026",
+        "championship": "Campeonatos autonómicos de Enduro",
+        "venue": "Sierra de Ibio",
+        "source": "Federaciones autonómicas de motociclismo",
+        "source_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "official_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "registration_url": "https://fvm.es/Publico/DetalleCompeticion?idCompeticion=2544",
+        "organizer_name": null,
+        "organizer_url": null,
+        "short_description": "El XI Enduro Cueva del Oso se disputará el domingo 26 de julio de 2026 en la Sierra de Ibio y será puntuable para varios campeonatos autonómicos.",
+        "long_description": "La prueba reúne participantes de los campeonatos de Cantabria, Asturias, Navarra, País Vasco, Castilla y León y Madrid, e incluye categorías de todo terreno clásico.",
+        "schedule_text": "Sábado 25: verificaciones administrativas de 19:00 a 21:00. Domingo 26: verificaciones administrativas y técnicas de 08:00 a 09:00.",
+        "image_source_url": "https://fedemotocyl.es/xi-cueva-del-oso",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "clear_or_replace_current_values": {
+        "organizer_name": "Federacion Madrilena de Motociclismo",
+        "reason": "La FMM es uno de los campeonatos participantes, no el organizador acreditado."
+      },
+      "unresolved": [
+        "local_organizer",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "sunday_start_time"
+      ],
+      "sources": [
+        "https://fedemotocyl.es/xi-cueva-del-oso",
+        "https://fedemadrid.com/calendario-campeonatos/",
+        "https://fmpa.es/calendario/",
+        "https://www.fnamoto.org/calendario-egutegia/",
+        "https://fvm.es/Publico/DetalleCompeticion?idCompeticion=2544"
+      ]
+    },
+    {
+      "id": "batch-tandas-libres-curso-circuito-navarra-eventos-ceni-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Tandas libres y curso Eventos Ceni – Circuito de Navarra 2026",
+        "championship": "Tandas libres y curso de conducción",
+        "source": "Eventos Ceni / Circuito de Navarra",
+        "source_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "official_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "registration_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "organizer_name": "Eventos Ceni",
+        "organizer_url": "https://www.eventosceni.es/",
+        "address": "Calle Malvasía 5, 31210 Los Arcos, Navarra, España",
+        "short_description": "Eventos Ceni organiza el 26 de julio de 2026 una jornada de tandas libres y curso de conducción para motos en el Circuito de Navarra.",
+        "long_description": "La jornada combina tandas libres por niveles y curso de conducción. Incluye briefing obligatorio, seis sesiones de veinte minutos, cronometraje y servicios de neumáticos, fotografía, mecánica y monitores.",
+        "schedule_text": "Domingo 26 de julio de 2026. Horario de pista: 10:00-18:00. Briefing obligatorio y seis tandas de veinte minutos por nivel.",
+        "image_source_url": "https://www.eventosceni.es/info-evento.php?id=4",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.eventosceni.es/info-evento.php?id=4",
+        "https://www.circuitodenavarra.com/es/whats-on/26/07/26-day",
+        "https://www.circuitodenavarra.com/es/calendar/trackdays/bike",
+        "https://www.todocircuito.com/evento/9241/26-07-2026_tandas%20libres%20y%20curso_circuito-de-navarra"
+      ],
+      "observations": [
+        "La web oficial confirma 195 € más 25 € de seguro diario para tandas y 255 € más seguro para el curso.",
+        "No se propone price porque el esquema no tiene ese campo."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "batch": "lote-investigacion-001",
+    "block": "04",
+    "event_count": 5,
+    "mode": "dry-run research proposal",
+    "supabase_writes": false,
+    "review_required": true,
+    "verified_at": "2026-07-20T00:00:00+02:00"
+  },
+  "events": [
+    {
+      "id": "batch-tandas-libres-curso-jarama-easyrace-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Tandas libres y curso EasyRace – Jarama 2026",
+        "championship": "Tandas libres y curso de conducción",
+        "venue": "Circuito de Madrid Jarama – RACE",
+        "source": "Circuito de Madrid Jarama – RACE / EasyRace",
+        "source_url": "https://www.jarama.org/venta-de-entradas",
+        "official_url": "https://www.jarama.org/venta-de-entradas",
+        "ticket_url": "https://www.jarama.org/venta-de-entradas",
+        "organizer_name": "EasyRace",
+        "organizer_url": "https://easyrace.net/",
+        "address": "Autovía A-1, km 28, 28700 San Sebastián de los Reyes, Madrid, España",
+        "short_description": "EasyRace celebra el domingo 26 de julio de 2026 una jornada de motos en el Circuito de Madrid Jarama – RACE, con tandas por niveles y opción de curso.",
+        "long_description": "La jornada EasyRace del 26 de julio combina tandas libres y formación para motoristas en el Circuito de Madrid Jarama – RACE. La información publicada para participantes contempla dos grupos por nivel, recolocación mediante tiempos, cinco tandas por grupo y servicios de boxes, cronometraje, fotografía, mecánica, neumáticos y monitores. El circuito vende también entradas para espectadores.",
+        "schedule_text": "Domingo 26 de julio de 2026. Actividad de pista organizada en dos grupos por nivel, con cinco tandas por grupo. Los horarios definitivos de briefing y pista deben confirmarse con EasyRace.",
+        "image_source_url": "https://www.jarama.org/venta-de-entradas",
+        "event_status": "confirmed",
+        "source_type": "circuit",
+        "confidence_score": 92,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "participant_registration_url",
+        "latitude",
+        "longitude",
+        "image_url",
+        "exact_briefing_and_track_schedule"
+      ],
+      "sources": [
+        "https://www.jarama.org/venta-de-entradas",
+        "https://easyrace.net/",
+        "https://www.todocircuito.com/evento/9468/26-07-2026_tandas%20libres%20y%20curso_circuito-del-jarama"
+      ],
+      "observations": [
+        "El Circuito Jarama confirma oficialmente la fecha y vende entradas para espectadores.",
+        "Los detalles de grupos, tandas y servicios proceden de TodoCircuito y deben mantenerse marcados para revisión hasta confirmación directa de EasyRace.",
+        "No se propone registration_url para participantes porque no se localizó una página oficial específica de inscripción."
+      ]
+    },
+    {
+      "id": "batch-enduro-indoor-andalucia-olvera-2026-07-26",
+      "decision": "correct_date_and_update",
+      "proposed_updates": {
+        "title": "I Enduro Indoor Ciudad de Olvera 2026",
+        "start_date": "2026-07-25",
+        "end_date": "2026-07-25",
+        "championship": "Campeonato de Andalucía de Enduro Indoor",
+        "venue": "Recinto Ferial de Olvera",
+        "source": "Federación Andaluza de Motociclismo / Ayuntamiento de Olvera",
+        "source_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "official_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "organizer_name": "Moto Club Olvera",
+        "organizer_url": null,
+        "address": "Recinto Ferial, Olvera, Cádiz, España",
+        "short_description": "Olvera acogerá el sábado 25 de julio de 2026 la primera edición de su Enduro Indoor, prueba nocturna puntuable para el Campeonato de Andalucía.",
+        "long_description": "El I Enduro Indoor Ciudad de Olvera se celebrará el 25 de julio de 2026 en el Recinto Ferial. La prueba está impulsada por el Moto Club Olvera, cuenta con apoyo institucional y es puntuable para el Campeonato de Andalucía. La organización prevé categorías Máster 40, aficionados, Júnior Sub-23, Sénior FUN y Sénior Pro, con actividad nocturna y entradas anunciadas a 7 euros anticipadas y 10 euros en taquilla.",
+        "schedule_text": "Sábado 25 de julio de 2026. Acceso del público anunciado desde las 20:00. La presentación institucional situó la actividad deportiva durante la tarde-noche, aproximadamente entre las 18:00 y las 00:00.",
+        "image_source_url": "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "ticket_url",
+        "organizer_url",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://famotos.com/campeonatos/campeonato-de-andalucia-de-enduro-indoor/",
+        "https://www.dipucadiz.es/prensa/actualidad/Olvera-sera-sede-de-una-prueba-de-enduro-indoor-por-primera-vez/",
+        "https://www.facebook.com/100064354704870/posts/1456734246481718/"
+      ],
+      "observations": [
+        "La fecha actual del evento es incorrecta: debe cambiar del 26 al 25 de julio.",
+        "La edición es la primera y el recinto correcto es el Recinto Ferial de Olvera."
+      ]
+    },
+    {
+      "id": "batch-campionato-galego-de-velocidade-a-madalena-julio-2026-07-26",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "Campionato Galego de Velocidade – A Madalena II 2026",
+        "championship": "Campionato Galego de Velocidade Xunta de Galicia",
+        "venue": "Circuíto A Madalena",
+        "source": "Federación Galega de Motociclismo",
+        "source_url": "https://fgmoto.net/probas/",
+        "official_url": "https://fgmoto.net/probas/",
+        "registration_url": "https://fgmoto.net/licenzas/inscricions/",
+        "organizer_name": "Club Sobre Rodas",
+        "organizer_url": null,
+        "short_description": "El Circuíto A Madalena de Forcarei acoge el 26 de julio de 2026 una nueva cita del Campionato Galego de Velocidade Xunta de Galicia.",
+        "long_description": "La prueba de A Madalena forma parte del Campionato Galego de Velocidade Xunta de Galicia 2026 y cuenta con el apoyo de la Federación Galega de Motociclismo y del Club Sobre Rodas. Las inscripciones se tramitan mediante la zona privada federativa y la organización ha publicado los plazos de recargo y cierre previos a la prueba.",
+        "schedule_text": "Domingo 26 de julio de 2026. Inicio del recargo de inscripción: 20 de julio a las 15:00. Cierre de inscripciones: 24 de julio a las 10:00. El horario deportivo de pista queda pendiente de publicación o verificación.",
+        "image_source_url": "https://www.facebook.com/federaciongalegamotociclismo/posts/1898111444706999/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "organizer_url",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "competition_schedule"
+      ],
+      "sources": [
+        "https://fgmoto.net/probas/",
+        "https://fgmoto.net/licenzas/inscricions/",
+        "https://www.facebook.com/federaciongalegamotociclismo/posts/1898111444706999/",
+        "https://www.instagram.com/p/Daxi1LvoN71/"
+      ],
+      "observations": [
+        "La fecha local publicada por la federación y sus redes es el 26 de julio.",
+        "La página de calendario puede mostrar 27/07 por tratamiento horario; no debe usarse para desplazar la fecha sin más comprobación."
+      ]
+    },
+    {
+      "id": "batch-xix-rallye-blendio-cristian-lopez-2026-07-31",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XIX Rallye Blendio Cristian López 2026",
+        "championship": "Campeonato de Cantabria de Rallyes y copas asociadas",
+        "venue": "Sarón y municipios del entorno",
+        "source": "Tribus Competición / Federación Cántabra de Automovilismo",
+        "source_url": "https://www.rallyecristianlopez.es/",
+        "official_url": "https://www.rallyecristianlopez.es/",
+        "registration_url": "https://www.fcta.es/competiciones/d730f97d-3528-4284-bfe8-d867e9251a9d",
+        "organizer_name": "C.D.E. CLH Tribu's Competición",
+        "organizer_url": "https://www.rallyecristianlopez.es/",
+        "short_description": "El XIX Rallye Blendio Cristian López se disputará los días 31 de julio y 1 de agosto de 2026 en Sarón y varios municipios del entorno, con nueve tramos especiales.",
+        "long_description": "La decimonovena edición del Rallye Blendio Cristian López está organizada por Tribus Competición y recorre Santa María de Cayón, Castañeda, Puente Viesgo y Corvera de Toranzo. El itinerario reúne nueve tramos especiales y dos pasadas, con una primera sección el viernes y la mayor parte de la competición durante el sábado.",
+        "schedule_text": "Viernes 31: verificaciones administrativas de 14:30 a 18:15 y técnicas de 14:45 a 18:30 en el Pabellón de Santa María de Cayón; salida de la primera sección a las 19:00; TC Cristian López a las 20:00; parque cerrado a las 20:13. Sábado 1: salida de la segunda sección a las 08:43; salidas de secciones posteriores a las 10:58, 15:01 y 17:48; fin del rallye a las 20:00; entrega de trofeos a las 21:30.",
+        "image_source_url": "https://www.rallyecristianlopez.es/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "single_exact_address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.rallyecristianlopez.es/",
+        "https://www.rallyecristianlopez.es/info-general",
+        "https://www.rallyecristianlopez.es/docs/programa.pdf",
+        "https://www.rallyecristianlopez.es/docs/itinerario.pdf",
+        "https://www.fcta.es/competiciones/d730f97d-3528-4284-bfe8-d867e9251a9d"
+      ],
+      "observations": [
+        "No se propone una dirección única porque el evento se desarrolla en varios municipios y localizaciones.",
+        "La inscripción ya está cerrada; la URL se conserva como referencia oficial del proceso."
+      ]
+    },
+    {
+      "id": "batch-xiv-concentracion-clasicos-coches-motos-alto-ason-2026-08-01",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XIV Concentración de Coches y Motos Clásicas del Alto Asón 2026",
+        "championship": "Concentración de coches y motos clásicas",
+        "venue": "Ramales de la Victoria",
+        "source": "Ayuntamiento de Ramales de la Victoria / Clásicos Alto Asón",
+        "source_url": "https://www.facebook.com/groups/874869043409626/posts/2104469070449611/",
+        "official_url": null,
+        "organizer_name": "Ayuntamiento de Ramales de la Victoria",
+        "organizer_url": "https://aytoramales.org/",
+        "short_description": "Ramales de la Victoria acogerá los días 1 y 2 de agosto de 2026 la XIV Concentración de Coches y Motos Clásicas del Alto Asón.",
+        "long_description": "La decimocuarta Concentración de Coches y Motos Clásicas del Alto Asón reunirá vehículos históricos en Ramales de la Victoria durante el primer fin de semana de agosto. El Ayuntamiento de Ramales de la Victoria figura como organizador y Clásicos Alto Asón como entidad colaboradora. El programa contempla una ruta nocturna el sábado y una jornada central de concentración el domingo.",
+        "schedule_text": "Sábado 1 de agosto: tercera ruta nocturna a partir de las 19:00. Domingo 2 de agosto: jornada central de concentración, con recepción de vehículos por la mañana. El resto del programa debe confirmarse con el cartel oficial o la organización.",
+        "image_source_url": "https://www.facebook.com/ramon.martinezrodriguez.1/posts/ya-tenemos-el-cartel-oficial-de-la-concentraci%C3%B3n-de-coches-y-motos-cl%C3%A1sicas-del-/26086801690988884/",
+        "event_status": "confirmed",
+        "source_type": "municipality",
+        "confidence_score": 88,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "official_event_page",
+        "registration_url",
+        "exact_event_address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "full_sunday_schedule",
+        "contact_phone_confirmation"
+      ],
+      "sources": [
+        "https://www.facebook.com/groups/874869043409626/posts/2104469070449611/",
+        "https://www.facebook.com/groups/117763474905058/posts/28577463445175014/",
+        "https://www.facebook.com/ramon.martinezrodriguez.1/posts/ya-tenemos-el-cartel-oficial-de-la-concentraci%C3%B3n-de-coches-y-motos-cl%C3%A1sicas-del-/26086801690988884/",
+        "https://aytoramales.org/"
+      ],
+      "observations": [
+        "Se confirma la fecha 1-2 de agosto y la edición XIV.",
+        "La organización aparece atribuida al Ayuntamiento de Ramales de la Victoria, con colaboración de Clásicos Alto Asón.",
+        "No se localizó una página oficial específica fuera de publicaciones sociales, por lo que se mantiene needs_review."
+      ]
+    }
+  ]
+}

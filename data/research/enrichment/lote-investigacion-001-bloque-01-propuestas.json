@@ -1,0 +1,179 @@
+{
+  "metadata": {
+    "batch": "lote-investigacion-001",
+    "block": "01",
+    "event_count": 5,
+    "mode": "dry-run research proposal",
+    "supabase_writes": false,
+    "review_required": true
+  },
+  "events": [
+    {
+      "id": "batch-tandas-libres-ricardo-tormo-racing100-2026-07-19",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Racing100 / Circuit Ricardo Tormo",
+        "source_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "official_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "registration_url": "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "organizer_name": "Racing100",
+        "organizer_url": "https://www.racing100.com/",
+        "address": "Autovía A-3 Valencia–Madrid, salida 334, 46380 Cheste, Valencia, España",
+        "long_description": "Racing100 organiza dos jornadas de tandas para motos en el Circuit Ricardo Tormo los días 19 y 20 de julio de 2026. La actividad se divide en cuatro grupos por nivel, con cronometraje para recolocar participantes según tiempos, asignación de boxes según disponibilidad y servicios de neumáticos, mecánica, fotografía y alquiler de calentadores y caballetes.",
+        "schedule_text": "19 y 20 de julio de 2026. Cada jornada se organiza en cuatro grupos por nivel y seis tandas. Los horarios provisionales se facilitan desde la página oficial.",
+        "image_source_url": "https://www.racing100.com/producto/ricardo-tormo-19-julio-2026/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 96,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.circuitricardotormo.com/tandas-de-motos/",
+        "https://www.racing100.com/rodadas-en-ricardo-tormo-cheste/",
+        "https://www.racing100.com/producto/ricardo-tormo-19-julio-2026/",
+        "https://www.circuitricardotormo.com/contacto/"
+      ]
+    },
+    {
+      "id": "baja-espana-aragon-fia-wbc-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "country": "ES",
+        "source": "Baja España Aragón",
+        "source_url": "https://www.bajaaragon.com/",
+        "official_url": "https://www.bajaaragon.com/",
+        "organizer_name": "Octagon Esedos",
+        "organizer_url": "https://www.bajaaragon.com/la-carrera/organizador/",
+        "short_description": "La Baja España Aragón 2026 se disputará en Teruel del 24 al 26 de julio, con prólogo y dos etapas puntuables para campeonatos internacionales y nacionales de rally todo terreno.",
+        "long_description": "La 42.ª Baja España Aragón Trofeo GETAC tendrá Teruel y su provincia como escenario del 24 al 26 de julio de 2026. Organizada por Octagon Esedos, reúne coches, motos, quads y camiones y puntúa para competiciones FIA, FIM y nacionales de rally todo terreno.",
+        "schedule_text": "Viernes 24: salida y prólogo. Sábado 25: primera etapa. Domingo 26: segunda etapa, podio y entrega de trofeos. Los horarios varían según categoría y deben consultarse en la web oficial.",
+        "image_source_url": "https://www.bajaaragon.com/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "registration_url",
+        "address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.bajaaragon.com/",
+        "https://www.bajaaragon.com/la-carrera/organizador/",
+        "https://www.bajaaragon.com/participantes/coches/horario/",
+        "https://www.bajaaragon.com/participantes/motos-y-quads/horarios/"
+      ]
+    },
+    {
+      "id": "rfme-campeonato-de-espana-de-freestyle-puerto-de-santa-maria-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "country": "ES",
+        "venue": "Real Plaza de Toros de El Puerto de Santa María",
+        "source": "CEFMX / RFME / Ayuntamiento de El Puerto de Santa María",
+        "source_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "official_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "registration_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "organizer_name": "CEFMX",
+        "organizer_url": "https://cefmx.com/",
+        "address": "Plaza de Elías Ahuja s/n, 11500 El Puerto de Santa María, Cádiz, España",
+        "short_description": "El Campeonato de España de Freestyle Motocross llega a la Plaza de Toros de El Puerto de Santa María el viernes 24 de julio de 2026 a las 21:30.",
+        "long_description": "La prueba reunirá pilotos de freestyle, saltos y acrobacias, producción de iluminación y sonido, concurso Best Whip y la Chupetes Cup para menores de cuatro años. La organización también ofrece una experiencia VIP con acceso preferente, entrenamientos y paddock.",
+        "schedule_text": "Viernes 24 de julio de 2026, 21:30. Apertura y horarios de acceso sujetos a la información de la organización.",
+        "image_source_url": "https://cefmx.com/entradas/puerto-santa-maria/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://cefmx.com/entradas/puerto-santa-maria/",
+        "https://rfme.com/campeonatos/campeonato-de-espana-de-freestyle/",
+        "https://www.elpuertodesantamaria.es/eventos/campeonato-de-espana-freestyle-motocross",
+        "https://www.elpuertodesantamaria.es/plaza-de-toros/"
+      ]
+    },
+    {
+      "id": "batch-karting-outeiro-de-rei-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "6.º Karting Outeiro de Rei 2026",
+        "championship": "Campionato Xunta de Galicia de Karting",
+        "venue": "Circuito de Karting Outeiro de Rei",
+        "source": "Federación Galega de Automobilismo",
+        "source_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "official_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "registration_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "short_description": "El 6.º Karting Outeiro de Rei se celebrará del 24 al 26 de julio de 2026 como cuarta prueba puntuable del Campionato Xunta de Galicia de Karting.",
+        "long_description": "La ficha oficial de la FGA reúne reglamento particular, horarios, formulario de inscripción, pasaporte técnico e información de acceso.",
+        "schedule_text": "Del viernes 24 al domingo 26 de julio de 2026. El horario detallado está disponible en el documento oficial enlazado por la FGA.",
+        "image_source_url": "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 92,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "address",
+        "latitude",
+        "longitude",
+        "image_url",
+        "organizer_operational"
+      ],
+      "sources": [
+        "https://www.fga.es/project/6o-karting-outeiro-de-rei-2026/"
+      ]
+    },
+    {
+      "id": "batch-rallymix-ribadumia-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "V Rallymix Concello de Ribadumia 2026",
+        "championship": "Campionato Xunta de Galicia de Rallymix",
+        "venue": "Concello de Ribadumia",
+        "source": "Federación Galega de Automobilismo",
+        "source_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "official_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "registration_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "organizer_name": "Escudería Desguaces Tino Racing",
+        "short_description": "El V Rallymix Concello de Ribadumia se disputará del 24 al 26 de julio de 2026 como prueba puntuable del Campionato Xunta de Galicia de Rallymix.",
+        "long_description": "La prueba está organizada por la Escudería Desguaces Tino Racing. La documentación, inscripción y comunicaciones se publican en la ficha de la FGA y en Sportity con la clave RIBADUMIA2026.",
+        "schedule_text": "Actividad prevista del viernes 24 al domingo 26 de julio de 2026. Horarios y complementos en la ficha oficial y Sportity, clave RIBADUMIA2026.",
+        "image_source_url": "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "event_status": "confirmed",
+        "source_type": "federation",
+        "confidence_score": 94,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": [
+        "organizer_url",
+        "address",
+        "latitude",
+        "longitude",
+        "image_url"
+      ],
+      "sources": [
+        "https://www.fga.es/project/rallymix-de-ribadumia-2026/",
+        "https://www.fga.es/wp-content/uploads/2026/01/PIRELLI-RALLYMIX.pdf"
+      ]
+    }
+  ]
+}
