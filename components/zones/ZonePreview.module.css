@@ -93,18 +93,6 @@
   font-size: 17px;
 }
 
-.heroActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 11px;
-  margin-top: 16px;
-}
-
-.heroActions :global(.emc-btn) {
-  min-height: 46px;
-  justify-content: center;
-}
-
 .zoneNav {
   display: flex;
   flex-wrap: wrap;
@@ -307,56 +295,6 @@
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.weekendStrip {
-  display: flex;
-  width: 100%;
-  min-height: 64px;
-  margin: 0 0 10px;
-  padding: 10px 13px;
-  border: 1px solid rgba(255, 111, 56, 0.36);
-  border-radius: 13px;
-  background: rgba(255, 91, 31, 0.07);
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.weekendStrip:hover,
-.weekendStripActive {
-  border-color: rgba(255, 111, 56, 0.76);
-  background: rgba(255, 91, 31, 0.14);
-}
-
-.weekendStripCopy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.weekendStripCopy strong {
-  font-size: 15px;
-}
-
-.weekendStripCopy > span {
-  color: #aeb8c6;
-  font-size: 12px;
-}
-
-.weekendStripAction {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 7px;
-  min-height: 44px;
-  color: #ffac8b;
-  font-size: 13px;
-  font-weight: 820;
 }
 
 .filterSummary {
@@ -1162,6 +1100,132 @@
   clip-path: inset(50%);
 }
 
+@media (min-width: 1024px) {
+  .page .heroSection {
+    min-height: 0;
+    padding: var(--em-hero-padding-top) 0 var(--em-hero-padding-bottom);
+  }
+
+  .page .breadcrumb ol {
+    margin-bottom: 12px;
+  }
+
+  .page .heroSection h1 {
+    max-width: 1080px;
+    margin: 8px 0 12px;
+    font-size: var(--em-hero-title);
+    letter-spacing: -0.045em;
+    line-height: 0.96;
+    text-wrap: balance;
+  }
+
+  .page .heroLead {
+    max-width: 900px;
+    font-size: var(--em-hero-description);
+    line-height: 1.48;
+  }
+
+  .page .heroStats {
+    margin-top: 10px;
+  }
+
+  .page .zoneNav {
+    margin-top: 14px;
+  }
+
+  .page .zoneNav a {
+    min-height: 36px;
+    padding-block: 8px;
+  }
+
+  .page .filterSection {
+    padding-top: 24px;
+  }
+
+  .page .filterShell {
+    padding: 14px 16px 13px;
+  }
+
+  .page .filterHeading {
+    margin-bottom: 10px;
+  }
+
+  .page .filterHeading h2 {
+    font-size: var(--em-filter-title);
+    line-height: 1;
+  }
+
+  .page .resultsSection {
+    padding-top: var(--em-section-gap);
+  }
+
+  .page .sectionHeading {
+    margin-bottom: 15px;
+  }
+
+  .page .resultsSection .sectionHeading h2 {
+    max-width: var(--em-heading-max-width);
+    font-size: var(--em-list-title);
+    line-height: 1.04;
+  }
+
+  .page .exploreSection,
+  .page .organizerSection,
+  .page .seoSection,
+  .page .pastSection {
+    padding-top: var(--em-section-gap);
+  }
+
+  .page .exploreHeading {
+    max-width: var(--em-heading-max-width);
+    margin-bottom: 22px;
+  }
+
+  .page .exploreHeading h2 {
+    font-size: var(--em-explore-title);
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+
+  .page .exploreGroup h3 {
+    font-size: var(--em-subsection-title);
+    line-height: 1.12;
+  }
+
+  .page .exploreGroup + .exploreGroup {
+    margin-top: 22px;
+    padding-top: 22px;
+  }
+
+  .page .organizerCard {
+    min-height: 118px;
+    padding: 16px 22px;
+  }
+
+  .page .organizerCard h2 {
+    max-width: var(--em-heading-max-width);
+    font-size: var(--em-cta-title);
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  .page .seoContent {
+    max-width: var(--em-editorial-max-width);
+  }
+
+  .page .seoSection h2 {
+    max-width: var(--em-heading-max-width);
+    font-size: var(--em-seo-title);
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+
+  .page .seoSection p {
+    font-size: var(--em-editorial-size);
+    line-height: var(--em-editorial-line-height);
+  }
+}
+
 @media (max-width: 1250px) {
   .resultsGrid,
   .pastGrid {
@@ -1219,10 +1283,6 @@
     display: none;
   }
 
-  .heroActions {
-    display: none;
-  }
-
   .zoneNav {
     display: none;
   }
@@ -1256,7 +1316,6 @@
     grid-column: auto;
   }
 
-  .weekendStrip,
   .desktopFilterGrid,
   .desktopPeriodTabs {
     display: none;

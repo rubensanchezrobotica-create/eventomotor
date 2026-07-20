@@ -8,6 +8,7 @@ import type { ZoneFilters, ZonePreviewData } from "./zone-preview-model";
 import ZoneEventCard from "./ZoneEventCard";
 import ZoneExplorer from "./ZoneExplorer";
 import ZoneSeoDisclosure from "./ZoneSeoDisclosure";
+import scaleStyles from "@/components/shared/ExplorerPageScale.module.css";
 import styles from "./ZonePreview.module.css";
 
 type ZonePreviewPageProps = {
@@ -40,7 +41,7 @@ export default function ZonePreviewPage({
   const paragraphs = introParagraphs(data.zone.intro);
 
   return (
-    <div className={`emc-page ${styles.page}`}>
+    <div className={`emc-page ${styles.page} ${scaleStyles.explorerScale}`}>
       <ConceptStyles />
       <ConceptStaticHeader />
 
@@ -73,12 +74,6 @@ export default function ZonePreviewPage({
                 <strong>{data.stats.disciplines}</strong> disciplinas registradas
               </span>
             </p>
-            <div className={styles.heroActions}>
-              <a className="emc-btn emc-btn-primary" href="#eventos">
-                <span className={styles.desktopOnly}>Ver próximos eventos</span>
-                <span className={styles.mobileOnly}>Ver eventos</span>
-              </a>
-            </div>
             <nav aria-label="Cambiar zona" className={styles.zoneNav}>
               {SEO_ZONES.map((zone) => (
                 <Link
