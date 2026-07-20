@@ -1,0 +1,177 @@
+{
+  "metadata": {
+    "batch": "lote-investigacion-001",
+    "block": "02",
+    "event_count": 5,
+    "mode": "dry-run research proposal",
+    "supabase_writes": false,
+    "review_required": true
+  },
+  "events": [
+    {
+      "id": "batch-boiromotos-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Motoclub Boiromotos",
+        "source_url": "https://boiromotos.com/",
+        "official_url": "https://boiromotos.com/",
+        "registration_url": "https://boiromotos.com/inscripciones/",
+        "organizer_name": "Motoclub Boiromotos",
+        "organizer_url": "https://boiromotos.com/",
+        "short_description": "Boiromotos 2026 reunirá a aficionados a las motos en Boiro del 24 al 26 de julio, con inscripción oficial y actividades durante todo el fin de semana.",
+        "long_description": "El Motoclub Boiromotos celebra su concentración de 2026 los días 24, 25 y 26 de julio en Boiro. La organización ha habilitado inscripción completa y media inscripción, y anuncia un fin de semana con ambiente motero, exhibiciones, música y actividades para participantes y visitantes. Los detalles de última hora deben consultarse en la web y las redes oficiales del club.",
+        "image_source_url": "https://boiromotos.com/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 90,
+        "needs_review": true,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": ["exact_event_address", "latitude", "longitude", "full_schedule_text", "image_url"],
+      "sources": [
+        "https://boiromotos.com/",
+        "https://boiromotos.com/inscripciones/",
+        "https://www.facebook.com/events/945357301880628/"
+      ],
+      "observations": [
+        "La dirección Plaza da Mancomunidade nº 3 corresponde al contacto/sede publicada por el club; no se usa como dirección exacta del evento sin confirmación.",
+        "La fuente principal debe cambiar de agregador a la web del organizador."
+      ]
+    },
+    {
+      "id": "batch-xvi-concentracion-ruedas-raras-toro-2026-07-24",
+      "decision": "update",
+      "proposed_updates": {
+        "title": "XVI Concentración Motera Ruedas Raras Toro 2026",
+        "source": "AMT Ruedas Raras Toro",
+        "source_url": "https://ruedasraras.es/",
+        "official_url": "https://ruedasraras.es/",
+        "registration_url": "https://ruedasraras.es/",
+        "organizer_name": "AMT Ruedas Raras Toro",
+        "organizer_url": "https://ruedasraras.es/",
+        "short_description": "La XVI Concentración Motera Ruedas Raras se celebrará en Toro del 24 al 26 de julio de 2026 con rutas, conciertos, comidas, piscina, desfile de antorchas y homenaje a los moteros fallecidos.",
+        "long_description": "Toro acoge del 24 al 26 de julio la decimosexta edición de la Concentración Motera Ruedas Raras. El programa combina convivencia motera, ruta a Alaejos, comidas y desayunos, piscina municipal, sesiones de DJ, conciertos, desfile de antorchas, homenaje a los moteros fallecidos, visita al Alcázar y cata de vinos. La organización limita las inscripciones y ofrece modalidades para todo el fin de semana o solo el sábado.",
+        "schedule_text": "Viernes 24: 18:00 apertura de inscripciones y yincana; 21:00 cena; 23:55 concierto. Sábado 25: 09:00 desayuno e inscripciones; 11:00 ruta a Alaejos; 15:00 comida; 16:00 piscina; 17:00 DJs; 19:00 concierto; 22:00 cena; 23:30 desfile de antorchas; 23:55 homenaje y concierto. Domingo 26: 10:00 desayuno; 11:00 visita al Alcázar; 12:00 cata de vinos; 14:00 comida; 15:00 sorteo y despedida.",
+        "image_source_url": "https://ruedasraras.es/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": ["exact_event_address", "latitude", "longitude", "image_url"],
+      "sources": [
+        "https://ruedasraras.es/",
+        "https://www.facebook.com/ToroAyto/posts/1495993395906348/",
+        "https://www.zamora24horas.com/provincia/toro-inunda-este-fin-semana-pasion-dos-ruedas-xvi-concentracion-ruedas-raras"
+      ],
+      "observations": [
+        "Preinscripción publicada: 35 € fin de semana y 25 € solo sábado; en taquilla, 40 € y 30 € respectivamente.",
+        "No se propone una dirección exacta hasta localizar la zona de concentración mediante fuente primaria."
+      ]
+    },
+    {
+      "id": "pujada-alp-2500-2026-07-25",
+      "decision": "correct_dates_and_remove_from_future_backlog",
+      "proposed_updates": {
+        "title": "XV Pujada Alp 2500 2026",
+        "start_date": "2026-07-11",
+        "end_date": "2026-07-12",
+        "venue": "Carretera GI-400 Alp–Masella",
+        "source": "Cerdanya Racing",
+        "source_url": "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "official_url": "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "organizer_name": "Cerdanya Racing y V-Line Org",
+        "organizer_url": "https://www.cerdanyaracing.com/",
+        "address": "Carretera GI-400, tramo Alp–Masella, Girona, España",
+        "short_description": "La XV Pujada Alp 2500 se celebró los días 11 y 12 de julio de 2026 en la carretera GI-400 entre Alp y Masella, dentro del Festival Motorsport Alp 2500.",
+        "long_description": "La XV Pujada Alp 2500 formó parte del 11.º Festival Motorsport Alp 2500 y fue puntuable para la Copa de España de Montaña y el Campionat de Catalunya de Muntanya. La actividad administrativa y las verificaciones se desarrollaron el sábado 11, mientras que entrenamientos, mangas de carrera y entrega de trofeos se celebraron el domingo 12 de julio.",
+        "schedule_text": "Sábado 11: 17:00-21:15 entrega de documentación y 17:30-21:30 verificaciones técnicas. Domingo 12: 07:15-08:45 documentación y verificaciones de regularidad; 09:30 cierre de la GI-400; 10:15 primera subida de entrenamientos, seguida de entrenamientos y carreras; 18:15 entrega de trofeos.",
+        "image_source_url": "https://www.cerdanyaracing.com/es/",
+        "source_type": "organizer",
+        "confidence_score": 99,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": ["latitude", "longitude", "image_url", "event_status_enum_for_completed"],
+      "sources": [
+        "https://www.cerdanyaracing.com/es/",
+        "https://www.cerdanyaracing.com/es/pujada-alp-2500/informacion/",
+        "https://docs.gestionaweb.cat/1541/programa-horario-cem-xv-pujada-alp-2026.pdf"
+      ],
+      "observations": [
+        "La ficha actual 25-26 de julio es incorrecta; la prueba ya se celebró el 11-12 de julio.",
+        "Tras aplicar la corrección de fechas, debe desaparecer automáticamente del backlog de eventos futuros.",
+        "Antes de asignar event_status=completed, verificar los valores admitidos por el esquema."
+      ]
+    },
+    {
+      "id": "batch-rallysprint-betancuria-2026-07-25",
+      "decision": "correct_identity_and_update",
+      "proposed_updates": {
+        "title": "XIII Subida a Betancuria 2026",
+        "championship": "Campeonato de Canarias de Montaña",
+        "discipline": "Subida",
+        "venue": "Carretera FV-30, Betancuria",
+        "source": "Clubs Unidos de Fuerteventura / VMRM",
+        "source_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "official_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "registration_url": "https://www.vmrm.net/rallie/inscripcion/hinscrip.php?r=691",
+        "organizer_name": "Clubs Unidos de Fuerteventura",
+        "organizer_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "address": "Carretera FV-30, Betancuria, Fuerteventura, Las Palmas, España",
+        "short_description": "La XIII Subida a Betancuria se disputará el 25 de julio de 2026 en la carretera FV-30, organizada por los Clubs Unidos de Fuerteventura.",
+        "long_description": "La XIII Subida a Betancuria abre la temporada automovilística de Fuerteventura el 25 de julio de 2026. La prueba de montaña está organizada por los Clubs Unidos de Fuerteventura y dispone de documentación oficial, briefing, programa horario, reglamento, mapas, zonas de asistencia, salidas y metas, vídeo del trazado y tiempos en línea.",
+        "schedule_text": "Sábado 25 de julio. La carretera FV-30 cerrará al tráfico antes del inicio de la actividad deportiva; el programa oficial, las verificaciones y los horarios de mangas están publicados en la web de la prueba.",
+        "image_source_url": "https://www.vmrm.net/rallie/2026/fv_13betancuria/verjpgs.php?desc=Cartel&p=250726A_cartel",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 98,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": ["latitude", "longitude", "image_url", "precise_start_finish_points"],
+      "sources": [
+        "https://fcautomovilismo.com/wp-content/uploads/2026/02/04.1-CALENDARIO-DEPORTIVO-2026_despues-de-Asamblea_11022026.pdf",
+        "https://www.vmrm.net/rallie/2026/fv_13betancuria/index.php",
+        "https://www.vmrm.net/rallie/inscripcion/hinscrip.php?r=691",
+        "https://www.facebook.com/aytobetancuria/posts/2023971458318017/"
+      ],
+      "observations": [
+        "No es un rallysprint: la identidad correcta es XIII Subida a Betancuria.",
+        "La inscripción ya figura cerrada, pero el enlace se conserva como referencia oficial."
+      ]
+    },
+    {
+      "id": "batch-x-subida-la-pizarra-2026-07-25",
+      "decision": "update",
+      "proposed_updates": {
+        "source": "Médula Sport / FEXA",
+        "source_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "official_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "registration_url": "https://fexa.es/evento/x-subida-de-la-pizarra-cyl/",
+        "organizer_name": "Médula Sport",
+        "organizer_url": "https://medulasport.com/",
+        "short_description": "La X Subida de La Pizarra se celebrará el 25 de julio de 2026 en Puente de Domingo Flórez, organizada por Médula Sport.",
+        "long_description": "Médula Sport organiza la décima edición de la Subida de La Pizarra el 25 de julio de 2026. La prueba dispone de reglamento, boletín de inscripción, cartel y seguimiento de tiempos en línea. La ficha federativa publica una ventana de actividad de 08:00 a 19:00.",
+        "schedule_text": "Sábado 25 de julio de 2026, de 08:00 a 19:00 según la ficha federativa. Los horarios deportivos detallados deben comprobarse en el reglamento y las comunicaciones de Médula Sport.",
+        "image_source_url": "https://medulasport.com/x-subida-de-la-pizarra/",
+        "event_status": "confirmed",
+        "source_type": "organizer",
+        "confidence_score": 95,
+        "needs_review": false,
+        "verified_at": "2026-07-20T00:00:00+02:00"
+      },
+      "unresolved": ["exact_event_address", "latitude", "longitude", "image_url", "full_program_from_regulation"],
+      "sources": [
+        "https://medulasport.com/x-subida-de-la-pizarra/",
+        "https://fexa.es/evento/x-subida-de-la-pizarra-cyl/",
+        "https://tiempos.medulasport.com/"
+      ],
+      "observations": [
+        "La dirección mostrada al pie de la página FEXA corresponde a la federación, no al evento, y no debe copiarse.",
+        "La web de tiempos indica una distancia de 9,12 km, pero conviene confirmarla en el reglamento antes de añadirla a la descripción pública."
+      ]
+    }
+  ]
+}
