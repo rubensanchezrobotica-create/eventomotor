@@ -1,0 +1,255 @@
+# Newsletter reintegration R3A.1 — Ephemeral SQL validation in CI
+
+## Objetivo
+
+R3A.1 crea una validación PostgreSQL real para la migración newsletter de R1 dentro de un runner
+efímero de GitHub Actions. La migración productiva permanece en
+`database/migrations/20260721133000_newsletter_core_foundation.sql` y sigue siendo la única fuente
+de verdad.
+
+El checkpoint no inicia R3B, no crea endpoints, no conecta formularios y no configura ningún
+proveedor de correo o proyecto Supabase remoto.
+
+## Por qué se usa CI
+
+El entorno local del equipo no dispone de Docker, Supabase CLI ni `psql`. Las pruebas TypeScript y
+el preparador continúan siendo ejecutables localmente, mientras GitHub Actions aporta un runner
+Linux con Docker para validar la migración contra PostgreSQL real.
+
+No se afirma que la migración haya pasado PostgreSQL hasta que el workflow termine en verde. Los
+tests SQL versionados son expectativas ejecutables, no resultados anticipados.
+
+## Aislamiento
+
+El workflow:
+
+- Usa `ubuntu-latest` y permisos globales `contents: read`.
+- No usa environments, secrets, project refs o credenciales de producción.
+- No ejecuta login, link, push ni operaciones linked.
+- No lee `.env.local`.
+- Desactiva telemetría de la CLI.
+- No persiste claves, dumps, variables de estado o artifacts.
+- Ejecuta cleanup con `if: always()` y `stop --no-backup`.
+- Elimina el workspace generado al finalizar.
+
+El trigger es `pull_request`, no `pull_request_target`, por lo que los forks no reciben un contexto
+privilegiado. Como el job no recibe secrets y el token sólo tiene lectura, ejecutar los tests del PR
+no concede acceso de escritura o despliegue.
+
+## Versiones fijadas
+
+- `actions/checkout@v7`.
+- `actions/setup-node@v7` con Node.js 24 y caché desactivada.
+- `supabase/setup-cli@v3`.
+- Supabase CLI `2.101.0`.
+
+La CLI se fija a `2.101.0` porque es una release estable concreta y verificable; no se utiliza
+`latest` ni una beta. El workflow comprueba `supabase --version` antes de crear la base. Cualquier
+actualización de CLI debe pasar por revisión del config, comandos y comportamiento de imágenes.
+El runtime TypeScript del test del preparador se instala desde el lockfile con
+`npm ci --ignore-scripts --no-audit --no-fund`; no se descargan herramientas globales ni se ejecutan
+scripts de instalación de dependencias.
+
+## Workspace temporal
+
+`scripts/prepare-newsletter-supabase-ci.mjs` genera exclusivamente:
+
+```text
+.tmp/newsletter-supabase-ci/
+  newsletter-ci-manifest.json
+  supabase/
+    config.toml
+    migrations/
+      20260721133000_newsletter_core_foundation.sql
+    tests/
+      newsletter_schema.test.sql
+      newsletter_permissions.test.sql
+      newsletter_subscription.test.sql
+      newsletter_confirmation.test.sql
+      newsletter_unsubscribe.test.sql
+      newsletter_provider_events.test.sql
+      newsletter_rollback.test.sql
+```
+
+El workspace está ignorado por Git. No contiene seeds, otras migraciones, `.env.local`, dumps o
+configuración remota. `project_id` es `eventomotor-newsletter-ci`.
+
+Antes de copiar, el preparador elimina sólo la ruta exacta
+`.tmp/newsletter-supabase-ci`. Verifica que la ruta resuelta permanece dentro del repositorio para
+evitar borrados amplios o dependientes de variables.
+
+## Verificación de la fuente productiva
+
+El preparador calcula SHA-256 del archivo productivo y de su copia. Si no coinciden, falla antes de
+iniciar Supabase. También exige que el directorio temporal contenga exactamente una migración.
+
+El manifest generado registra rutas relativas, hash y nombres de tests, pero no credenciales.
+
+Comandos locales sin Docker:
+
+```powershell
+npm run test:newsletter-r3a1
+npm run prepare:newsletter-db-ci
+node scripts/prepare-newsletter-supabase-ci.mjs --clean
+```
+
+## Configuración Supabase local
+
+El config temporal desactiva API, Auth, Storage, Realtime, Studio, Inbucket, Edge Runtime y
+Analytics. Desactiva también seeds. Sólo son necesarios PostgreSQL y los contenedores auxiliares que
+la CLI use para pgTAP y lint.
+
+El workflow prioriza:
+
+```text
+supabase --workdir .tmp/newsletter-supabase-ci db start
+```
+
+`db start` crea PostgreSQL local y aplica la única migración copiada. No se ejecuta `db push`.
+
+## Workflow y filtros
+
+Workflow: `.github/workflows/newsletter-database-tests.yml`.
+
+Se ejecuta en `pull_request`, `push` y manualmente mediante `workflow_dispatch`. Los filtros `paths`
+incluyen:
+
+- La migración newsletter.
+- Workflow y preparador.
+- Tests SQL y del preparador.
+- Contratos R3A de repositorio y servicio que dependen de las RPC.
+- `package.json`.
+- `package-lock.json`.
+
+`concurrency` cancela ejecuciones anteriores del mismo workflow y ref. El timeout del job es de 25
+minutos.
+
+## Tests pgTAP
+
+Todos los archivos permanentes bajo `tests/newsletter/sql/`:
+
+- Empiezan con `begin`.
+- Crean o reutilizan pgTAP en el esquema de extensiones.
+- Declaran un plan fijo.
+- Llaman `finish()`.
+- Terminan con `rollback`.
+- Sólo usan direcciones reservadas `example.invalid`.
+- No dependen de datos externos.
+
+La CLI copia estos archivos a `supabase/tests/` y ejecuta:
+
+```text
+supabase --workdir .tmp/newsletter-supabase-ci test db --local
+```
+
+### Esquema
+
+Comprueba las cinco tablas, columnas y tipos críticos, primary/foreign keys, uniques, checks,
+triggers, índices, RLS, firmas exactas, tipos de retorno, `security definer`, `search_path` vacío y
+ausencia de `EXECUTE` dinámico.
+
+### RLS y grants
+
+Los tests cambian a los roles reales `anon`, `authenticated` y `service_role`:
+
+- Los roles cliente intentan seleccionar y mutar tablas y ejecutar cada RPC; deben recibir error.
+- `service_role` debe leer las cinco tablas y ejecutar las RPC.
+- Se verifican grants reales y contratos de retorno sin email, token raw, estado interno o eventos
+  de consentimiento.
+
+### Solicitud, confirmación y baja
+
+Se validan solicitudes nuevas, normalización, pending, hash, consentimientos, cooldown, límite
+diario, active sin duplicado, resuscripción, bloqueos e invalidación de tokens.
+
+Confirmación cubre subscribe, resubscribe, expirado, usado, invalidado, propósito incorrecto,
+inexistente y estados bloqueados. También comprueba la coherencia atómica entre activación, consumo
+del token, preferencia y consentimiento confirmado.
+
+Baja cubre active, pending, repetición idempotente, preferencia, invalidación, consentimiento y
+preservación de bounced, complained y suppressed.
+
+### Eventos de proveedor
+
+Se comprueban inserción, deduplicación, timestamps, fallos temporales, rebote permanente, queja,
+supresión, estados bloqueados y eventos fuera de orden. Un evento cuyo agregado falla no debe quedar
+marcado como procesado y un reintento posterior debe poder insertarlo.
+
+Estas expectativas pueden descubrir defectos de la migración actual. No se modificará SQL hasta
+tener un fallo reproducible del workflow y revisar su diagnóstico.
+
+## Rollback real
+
+`newsletter_rollback.test.sql` instala dentro de su transacción un trigger temporal controlado que
+fuerza errores al final de solicitud, confirmación y baja. Demuestra que PostgreSQL revierte:
+
+- Suscriptor, hash y consentimiento parcial de una solicitud.
+- Activación, consumo, preferencia y consentimiento de una confirmación.
+- Estado, preferencia, invalidación y consentimiento de una baja.
+- Inserción del evento cuando falla la actualización agregada.
+
+El trigger y todos los datos desaparecen con el rollback del test.
+
+## Concurrencia real
+
+`newsletter-concurrency.mjs` usa únicamente módulos Node y el `psql` incluido en el contenedor
+PostgreSQL. Cada `docker exec ... psql` abre una sesión independiente. No obtiene ni imprime claves.
+
+Con `Promise.allSettled`, timeouts y datos `example.invalid` únicos, comprueba:
+
+- Dos solicitudes simultáneas crean un subscriber y un hash.
+- Dos confirmaciones del mismo hash producen una confirmación y un token usado.
+- Dos eventos con la misma identidad producen un registro y un duplicado.
+- Dos bajas simultáneas terminan de forma idempotente.
+
+El script limpia sus filas al terminar; todo el contenedor se destruye después de todos modos.
+
+## DB lint y tipos
+
+El workflow ejecuta:
+
+```text
+supabase --workdir .tmp/newsletter-supabase-ci db lint --local --schema public --level error --fail-on error
+```
+
+Los errores PL/pgSQL son bloqueantes. Los warnings no se elevan en este checkpoint.
+
+La generación informativa de tipos queda pospuesta: los tipos productivos siguen siendo manuales y
+R3A.1 no debe sobrescribirlos. Una futura comprobación podrá ejecutar `gen types --local` y filtrar
+exclusivamente las cinco tablas y cuatro RPC si la salida resulta estable con la versión fijada.
+
+## Diagnóstico y limpieza
+
+Ante fallo, el workflow muestra únicamente nombre y estado del contenedor PostgreSQL. No imprime
+`supabase status`, claves, variables o dumps.
+
+El paso final se ejecuta siempre:
+
+```text
+supabase --workdir .tmp/newsletter-supabase-ci stop --no-backup
+node scripts/prepare-newsletter-supabase-ci.mjs --clean
+```
+
+## Qué no toca
+
+- Supabase remoto o producción.
+- `.env.local` o secretos.
+- R1, R2 o R3A salvo los filtros de CI que vigilan sus contratos.
+- Eventos, lotes, enrichment, importadores, SEO, imágenes o marca.
+- Resend, DNS, Vercel, endpoints, formularios o emails.
+
+## Bloqueo de R3B
+
+R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit o su PR demuestre:
+
+1. Aplicación limpia de la migración.
+2. Todas las suites pgTAP en verde.
+3. Concurrencia real en verde.
+4. DB lint sin errores.
+5. Revisión y corrección aislada de cualquier defecto SQL reproducible.
+
+## Propuesta de commit
+
+```text
+test(newsletter): add ephemeral SQL validation R3A.1
+```

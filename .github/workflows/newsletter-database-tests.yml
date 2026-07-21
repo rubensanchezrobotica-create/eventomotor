@@ -1,0 +1,96 @@
+name: Newsletter database tests
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/newsletter-database-tests.yml"
+      - "database/migrations/20260721133000_newsletter_core_foundation.sql"
+      - "tests/newsletter/sql/**"
+      - "scripts/prepare-newsletter-supabase-ci.mjs"
+      - "scripts/prepare-newsletter-supabase-ci.test.ts"
+      - "lib/newsletter/repository.server.ts"
+      - "lib/newsletter/service-types.ts"
+      - "package.json"
+      - "package-lock.json"
+  push:
+    paths:
+      - ".github/workflows/newsletter-database-tests.yml"
+      - "database/migrations/20260721133000_newsletter_core_foundation.sql"
+      - "tests/newsletter/sql/**"
+      - "scripts/prepare-newsletter-supabase-ci.mjs"
+      - "scripts/prepare-newsletter-supabase-ci.test.ts"
+      - "lib/newsletter/repository.server.ts"
+      - "lib/newsletter/service-types.ts"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: newsletter-database-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  newsletter-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      NEWSLETTER_CI_WORKDIR: .tmp/newsletter-supabase-ci
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Configure pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.101.0
+
+      - name: Verify local tooling
+        run: |
+          node --version
+          test "$(supabase --version)" = "2.101.0"
+
+      - name: Install locked Node.js tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Test and prepare isolated workspace
+        run: |
+          npm run test:newsletter-r3a1
+          npm run prepare:newsletter-db-ci
+
+      - name: Start ephemeral PostgreSQL and apply migration
+        run: supabase --workdir "$NEWSLETTER_CI_WORKDIR" db start
+
+      - name: Run pgTAP database tests
+        run: supabase --workdir "$NEWSLETTER_CI_WORKDIR" test db --local
+
+      - name: Run real concurrency tests
+        run: node tests/newsletter/sql/newsletter-concurrency.mjs
+
+      - name: Lint isolated newsletter schema
+        run: >-
+          supabase --workdir "$NEWSLETTER_CI_WORKDIR" db lint --local
+          --schema public --level error --fail-on error
+
+      - name: Minimal database diagnostics
+        if: failure()
+        run: >-
+          docker ps --filter "name=supabase_db_eventomotor-newsletter-ci"
+          --format "table {{.Names}}\t{{.Status}}"
+
+      - name: Stop and destroy ephemeral workspace
+        if: always()
+        run: |
+          supabase --workdir "$NEWSLETTER_CI_WORKDIR" stop --no-backup || true
+          node scripts/prepare-newsletter-supabase-ci.mjs --clean
