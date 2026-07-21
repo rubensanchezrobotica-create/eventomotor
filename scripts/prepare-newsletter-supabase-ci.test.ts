@@ -108,6 +108,31 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
   }
 });
 
+test("los rechazos de permisos pgTAP fijan SQLSTATE y usan cuatro argumentos", async () => {
+  const permissions = await readFile(
+    join(process.cwd(), "tests", "newsletter", "sql", "newsletter_permissions.test.sql"),
+    "utf8",
+  );
+  const throwsBlocks = [...permissions.matchAll(/select\s+throws_ok\(([\s\S]*?)\n\);/gi)].map(
+    (match) => match[1],
+  );
+
+  assert.equal(throwsBlocks.length, 16);
+  for (const block of throwsBlocks) {
+    assert.match(
+      block,
+      /\$\$,\s*'42501',\s*(?:'permission denied for table newsletter_subscribers'|null),\s*'[^']+'\s*$/i,
+    );
+  }
+  assert.equal(
+    throwsBlocks.filter((block) =>
+      /'permission denied for table newsletter_subscribers'/i.test(block),
+    ).length,
+    8,
+  );
+  assert.equal(throwsBlocks.filter((block) => /'42501',\s*null,/i.test(block)).length, 8);
+});
+
 test("el workflow es read-only, efímero y no contiene rutas remotas", async () => {
   const workflow = await readFile(
     join(process.cwd(), ".github", "workflows", "newsletter-database-tests.yml"),
@@ -117,8 +142,11 @@ test("el workflow es read-only, efímero y no contiene rutas remotas", async () 
   assert.match(workflow, /runs-on: ubuntu-latest/);
   assert.match(workflow, /if: always\(\)/);
   assert.match(workflow, /supabase\/setup-cli@v3[\s\S]+version: 2\.101\.0/);
+  assert.match(workflow, /docker ps -aq --filter "name=\^\/\$\{postgres_container_name\}\$"/);
+  assert.match(workflow, /docker inspect --format[\s\S]+?ExitCode=[\s\S]+?OOMKilled=[\s\S]+?Health=/);
+  assert.match(workflow, /docker logs --tail 300 --timestamps/);
   assert.doesNotMatch(
     workflow,
-    /pull_request_target|secrets\.|supabase\s+(?:link|login)|db\s+push|--linked|project[_-]?ref|\.env\.local/i,
+    /pull_request_target|secrets\.|supabase\s+(?:link|login)|db\s+push|--linked|project[_-]?ref|\.env\.local|upload-artifact|supabase\s+status/i,
   );
 });

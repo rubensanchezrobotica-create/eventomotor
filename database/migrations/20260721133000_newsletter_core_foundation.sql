@@ -306,12 +306,12 @@ begin
 
   v_purpose := case when v_subscriber.status = 'pending' then 'subscribe' else 'resubscribe' end;
 
-  update public.newsletter_confirmation_tokens
+  update public.newsletter_confirmation_tokens as confirmation_token
   set invalidated_at = v_now
-  where subscriber_id = v_subscriber.id
-    and purpose = v_purpose
-    and used_at is null
-    and invalidated_at is null;
+  where confirmation_token.subscriber_id = v_subscriber.id
+    and confirmation_token.purpose = v_purpose
+    and confirmation_token.used_at is null
+    and confirmation_token.invalidated_at is null;
 
   insert into public.newsletter_confirmation_tokens (
     subscriber_id, token_hash, purpose, expires_at
@@ -419,7 +419,7 @@ begin
 
   insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
   values (v_subscriber.id, true)
-  on conflict (subscriber_id) do update
+  on conflict on constraint newsletter_preferences_pkey do update
     set weekly_digest_enabled = true;
 
   insert into public.newsletter_consent_events (

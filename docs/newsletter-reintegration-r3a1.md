@@ -124,6 +124,27 @@ incluyen:
 `concurrency` cancela ejecuciones anteriores del mismo workflow y ref. El timeout del job es de 25
 minutos.
 
+## Hallazgos de la primera ejecución real
+
+La ejecución `Newsletter database tests #1` aplicó correctamente la migración y descubrió dos
+defectos de validación antes de llegar a concurrencia o DB lint:
+
+- `confirm_newsletter_subscription` declaraba `subscriber_id` como columna de retorno y utilizaba
+  `ON CONFLICT (subscriber_id)` al activar la preferencia. PostgreSQL no podía decidir si el nombre
+  era la variable PL/pgSQL de retorno o la columna de `newsletter_preferences`. La función usa ahora
+  `ON CONFLICT ON CONSTRAINT newsletter_preferences_pkey`, cuya identidad se valida también contra
+  el catálogo real.
+- `request_newsletter_subscription` tenía la misma clase de riesgo en un `WHERE subscriber_id` no
+  cualificado. La tabla de tokens usa ahora un alias explícito, sin cambiar el comportamiento.
+- Las comprobaciones de permisos sí recibieron SQLSTATE `42501`; los grants y RLS funcionaron como
+  estaban diseñados. El fallo TAP procedía de usar la sobrecarga de dos argumentos de `throws_ok`,
+  que interpretaba la descripción humana como mensaje esperado. Las operaciones de tabla fijan los
+  cuatro argumentos y el mensaje observado; las RPC fijan `42501` y usan `NULL` como mensaje para no
+  depender de texto no observado o localizado.
+
+PostgreSQL se reinició durante la suite de permisos. La primera ejecución no capturó los logs del
+servidor, por lo que la causa continúa sin explicar y no se atribuye todavía a RLS, grants o una RPC.
+
 ## Tests pgTAP
 
 Todos los archivos permanentes bajo `tests/newsletter/sql/`:
@@ -220,8 +241,11 @@ exclusivamente las cinco tablas y cuatro RPC si la salida resulta estable con la
 
 ## Diagnóstico y limpieza
 
-Ante fallo, el workflow muestra únicamente nombre y estado del contenedor PostgreSQL. No imprime
-`supabase status`, claves, variables o dumps.
+Ante fallo, el workflow localiza por nombre exacto únicamente el contenedor PostgreSQL del project ID
+efímero. Un `docker inspect --format` limitado muestra nombre, estado, código de salida, `OOMKilled` y
+health status. Después imprime como máximo las últimas 300 líneas con timestamps mediante
+`docker logs`; no muestra variables del contenedor, `supabase status`, claves, credenciales o dumps y
+no sube artifacts.
 
 El paso final se ejecuta siempre:
 

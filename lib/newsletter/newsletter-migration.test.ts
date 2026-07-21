@@ -34,6 +34,17 @@ function returnedColumns(functionName: (typeof RPCS)[number]): string {
   return match[1];
 }
 
+function functionDefinition(functionName: (typeof RPCS)[number]): string {
+  const match = sql.match(
+    new RegExp(
+      `create or replace function public\\.${functionName}\\([\\s\\S]+?\\n\\$\\$;`,
+      "i",
+    ),
+  );
+  assert.ok(match, `missing definition for ${functionName}`);
+  return match[0];
+}
+
 test("defines the five isolated newsletter tables and their indexes", () => {
   for (const table of TABLES) {
     assert.match(sql, new RegExp(`create table public\\.${table}\\s*\\(`, "i"));
@@ -116,6 +127,22 @@ test("confirmation locks the token and records activation, consumption and conse
   assert.match(sql, /confirm_newsletter_subscription[\s\S]+?set used_at = v_now/i);
   assert.match(sql, /confirm_newsletter_subscription[\s\S]+?'confirmed'/i);
   assert.doesNotMatch(sql, /delete from public\.newsletter_subscribers/i);
+});
+
+test("RPC SQL avoids collisions with PL/pgSQL return columns", () => {
+  const requestDefinition = functionDefinition("request_newsletter_subscription");
+  const confirmationDefinition = functionDefinition("confirm_newsletter_subscription");
+
+  assert.match(
+    requestDefinition,
+    /update public\.newsletter_confirmation_tokens as confirmation_token[\s\S]+?where confirmation_token\.subscriber_id = v_subscriber\.id/i,
+  );
+  assert.doesNotMatch(requestDefinition, /where\s+subscriber_id\s*=/i);
+  assert.match(
+    confirmationDefinition,
+    /on conflict on constraint newsletter_preferences_pkey do update/i,
+  );
+  assert.doesNotMatch(confirmationDefinition, /on conflict\s*\(\s*subscriber_id\s*\)/i);
 });
 
 test("unsubscribe is idempotent and disables delivery inside the RPC", () => {

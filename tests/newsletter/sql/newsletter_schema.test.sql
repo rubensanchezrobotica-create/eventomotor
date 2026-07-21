@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(14);
+select plan(15);
 
 select set_eq(
   $$
@@ -57,6 +57,17 @@ select is(
   ),
   5,
   'every newsletter table has a primary key'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.newsletter_preferences'::regclass
+      and conname = 'newsletter_preferences_pkey'
+      and contype = 'p'
+  ),
+  'newsletter preferences primary key has the expected conflict constraint name'
 );
 
 select is(

@@ -6,46 +6,82 @@ set local search_path = extensions, public, pg_catalog;
 select plan(22);
 
 set local role anon;
-select throws_ok($$select * from public.newsletter_subscribers$$, 'anon cannot select subscribers');
+select throws_ok(
+  $$select * from public.newsletter_subscribers$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
+  'anon cannot select subscribers'
+);
 select throws_ok(
   $$insert into public.newsletter_subscribers (email, email_normalized, source, consent_version) values ('anon@example.invalid', 'anon@example.invalid', 'test', 'test')$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
   'anon cannot insert subscribers'
 );
 select throws_ok(
   $$update public.newsletter_subscribers set source = 'anon'$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
   'anon cannot update subscribers'
 );
-select throws_ok($$delete from public.newsletter_subscribers$$, 'anon cannot delete subscribers');
+select throws_ok(
+  $$delete from public.newsletter_subscribers$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
+  'anon cannot delete subscribers'
+);
 reset role;
 
 set local role authenticated;
-select throws_ok($$select * from public.newsletter_subscribers$$, 'authenticated cannot select subscribers');
+select throws_ok(
+  $$select * from public.newsletter_subscribers$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
+  'authenticated cannot select subscribers'
+);
 select throws_ok(
   $$insert into public.newsletter_subscribers (email, email_normalized, source, consent_version) values ('auth@example.invalid', 'auth@example.invalid', 'test', 'test')$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
   'authenticated cannot insert subscribers'
 );
 select throws_ok(
   $$update public.newsletter_subscribers set source = 'authenticated'$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
   'authenticated cannot update subscribers'
 );
-select throws_ok($$delete from public.newsletter_subscribers$$, 'authenticated cannot delete subscribers');
+select throws_ok(
+  $$delete from public.newsletter_subscribers$$,
+  '42501',
+  'permission denied for table newsletter_subscribers',
+  'authenticated cannot delete subscribers'
+);
 reset role;
 
 set local role anon;
 select throws_ok(
   $$select * from public.request_newsletter_subscription('anon@example.invalid', 'anon@example.invalid', repeat('a', 64), now() + interval '1 day', 'test', 'test')$$,
+  '42501',
+  null,
   'anon cannot execute request RPC'
 );
 select throws_ok(
   $$select * from public.confirm_newsletter_subscription(repeat('a', 64))$$,
+  '42501',
+  null,
   'anon cannot execute confirmation RPC'
 );
 select throws_ok(
   $$select * from public.unsubscribe_newsletter_subscriber('00000000-0000-4000-8000-000000000001', 'test', 'test')$$,
+  '42501',
+  null,
   'anon cannot execute unsubscribe RPC'
 );
 select throws_ok(
   $$select * from public.record_newsletter_provider_event('test', 'anon-event', null, null, 'delivered', false, now())$$,
+  '42501',
+  null,
   'anon cannot execute provider RPC'
 );
 reset role;
@@ -53,18 +89,26 @@ reset role;
 set local role authenticated;
 select throws_ok(
   $$select * from public.request_newsletter_subscription('auth@example.invalid', 'auth@example.invalid', repeat('b', 64), now() + interval '1 day', 'test', 'test')$$,
+  '42501',
+  null,
   'authenticated cannot execute request RPC'
 );
 select throws_ok(
   $$select * from public.confirm_newsletter_subscription(repeat('b', 64))$$,
+  '42501',
+  null,
   'authenticated cannot execute confirmation RPC'
 );
 select throws_ok(
   $$select * from public.unsubscribe_newsletter_subscriber('00000000-0000-4000-8000-000000000002', 'test', 'test')$$,
+  '42501',
+  null,
   'authenticated cannot execute unsubscribe RPC'
 );
 select throws_ok(
   $$select * from public.record_newsletter_provider_event('test', 'auth-event', null, null, 'delivered', false, now())$$,
+  '42501',
+  null,
   'authenticated cannot execute provider RPC'
 );
 reset role;
