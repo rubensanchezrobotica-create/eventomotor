@@ -33,6 +33,7 @@
     "test:event-cleanup": "tsx --test scripts/remove-obsolete-events.test.ts",
     "test:newsletter-core": "node --conditions=react-server --import tsx --test lib/newsletter/*.test.ts",
     "test:newsletter-r2": "node --import tsx --test components/newsletter/newsletter-preview.test.ts emails/newsletter/newsletter-emails.test.tsx",
+    "test:newsletter-r3a": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3a.test.ts",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
