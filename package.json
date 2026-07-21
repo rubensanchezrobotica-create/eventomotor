@@ -31,6 +31,8 @@
     "test:event-corrections": "tsx --test scripts/apply-event-corrections.test.ts",
     "cleanup:events": "tsx scripts/remove-obsolete-events.ts",
     "test:event-cleanup": "tsx --test scripts/remove-obsolete-events.test.ts",
+    "test:newsletter-core": "node --conditions=react-server --import tsx --test lib/newsletter/*.test.ts",
+    "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
@@ -41,7 +43,8 @@
     "next": "16.2.4",
     "nodemailer": "^8.0.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

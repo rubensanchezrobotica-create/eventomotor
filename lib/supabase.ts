@@ -11,6 +11,18 @@ import type {
   EventCandidateInput,
 } from "@/lib/event-candidates/types";
 import type { EventDataQuality, EventItem } from "@/types/event";
+import type {
+  NewsletterConfirmationTokenInsert,
+  NewsletterConfirmationTokenRow,
+  NewsletterConsentEventInsert,
+  NewsletterConsentEventRow,
+  NewsletterEmailEventInsert,
+  NewsletterEmailEventRow,
+  NewsletterPreferenceInsert,
+  NewsletterPreferenceRow,
+  NewsletterSubscriberInsert,
+  NewsletterSubscriberRow,
+} from "@/lib/newsletter/types";
 
 export type EventRow = {
   id: string;
@@ -143,7 +155,7 @@ export type EventSubmissionInsert = {
   status?: string;
 };
 
-type Database = {
+export type Database = {
   public: {
     Tables: {
       events: {
@@ -176,9 +188,91 @@ type Database = {
         Update: Partial<EventCandidateCheck>;
         Relationships: [];
       };
+      newsletter_subscribers: {
+        Row: NewsletterSubscriberRow;
+        Insert: NewsletterSubscriberInsert;
+        Update: Partial<NewsletterSubscriberInsert>;
+        Relationships: [];
+      };
+      newsletter_preferences: {
+        Row: NewsletterPreferenceRow;
+        Insert: NewsletterPreferenceInsert;
+        Update: Partial<NewsletterPreferenceInsert>;
+        Relationships: [];
+      };
+      newsletter_confirmation_tokens: {
+        Row: NewsletterConfirmationTokenRow;
+        Insert: NewsletterConfirmationTokenInsert;
+        Update: Partial<NewsletterConfirmationTokenInsert>;
+        Relationships: [];
+      };
+      newsletter_consent_events: {
+        Row: NewsletterConsentEventRow;
+        Insert: NewsletterConsentEventInsert;
+        Update: Partial<NewsletterConsentEventInsert>;
+        Relationships: [];
+      };
+      newsletter_email_events: {
+        Row: NewsletterEmailEventRow;
+        Insert: NewsletterEmailEventInsert;
+        Update: Partial<NewsletterEmailEventInsert>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      request_newsletter_subscription: {
+        Args: {
+          p_email: string;
+          p_email_normalized: string;
+          p_token_hash: string;
+          p_token_expires_at: string;
+          p_source: string;
+          p_consent_version: string;
+          p_source_path?: string | null;
+          p_source_detail?: string | null;
+          p_language_code?: string;
+          p_country_code?: string;
+          p_province_slug?: string | null;
+          p_region_slug?: string | null;
+          p_ip_hash?: string | null;
+        };
+        Returns: Array<{
+          outcome: string;
+          subscriber_id: string | null;
+          token_purpose: string | null;
+        }>;
+      };
+      confirm_newsletter_subscription: {
+        Args: { p_token_hash: string };
+        Returns: Array<{
+          outcome: string;
+          subscriber_id: string | null;
+        }>;
+      };
+      unsubscribe_newsletter_subscriber: {
+        Args: {
+          p_subscriber_id: string;
+          p_consent_version: string;
+          p_source: string;
+          p_source_path?: string | null;
+          p_ip_hash?: string | null;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      record_newsletter_provider_event: {
+        Args: {
+          p_provider: string;
+          p_provider_event_id: string;
+          p_provider_message_id: string | null;
+          p_subscriber_id: string | null;
+          p_event_type: string;
+          p_is_permanent: boolean;
+          p_occurred_at: string;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
