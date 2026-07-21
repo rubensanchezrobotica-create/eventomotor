@@ -83,6 +83,9 @@ jobs:
           supabase --workdir "$NEWSLETTER_CI_WORKDIR" db lint --local
           --schema public --level error --fail-on error
 
+      - name: Run isolated RPC permission validation
+        run: node tests/newsletter/sql/newsletter-rpc-permissions.mjs
+
       - name: Safe PostgreSQL failure diagnostics
         if: failure()
         shell: bash

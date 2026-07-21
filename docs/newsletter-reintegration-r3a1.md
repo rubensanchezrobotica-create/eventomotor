@@ -145,6 +145,51 @@ defectos de validación antes de llegar a concurrencia o DB lint:
 PostgreSQL se reinició durante la suite de permisos. La primera ejecución no capturó los logs del
 servidor, por lo que la causa continúa sin explicar y no se atribuye todavía a RLS, grants o una RPC.
 
+## Hallazgos de la segunda ejecución real y corrección R3A.1.2
+
+La ejecución `Newsletter database tests #2` (`29862643710`) volvió a aplicar correctamente la
+migración. `newsletter_confirmation.test.sql` completó sus 16 aserciones y las primeras ocho
+aserciones de permisos de tabla también pasaron. En total, las 24 aserciones emitidas fueron
+correctas; no hubo ninguna aserción SQL fallida.
+
+PostgreSQL terminó el backend que ejecutaba la novena aserción con `signal 11: Segmentation fault`.
+El proceso estaba dentro de `throws_ok`, después de `SET ROLE anon`, intentando ejecutar la RPC
+revocada `request_newsletter_subscription`. El contenedor no sufrió OOM, recuperó health
+automáticamente y no hay evidencia de un defecto en la migración, RLS, grants, revocaciones o RPC.
+
+R3A.1.2 elimina únicamente esa interacción inestable. Mantiene las ocho operaciones reales de tabla
+y sustituye las ocho ejecuciones RPC dentro de pgTAP por ocho consultas seguras al catálogo. Cada
+consulta usa `has_function_privilege` con la firma exacta convertida a `regprocedure` y comprueba que
+`anon` o `authenticated` no tiene `EXECUTE`.
+
+La segunda capa es `tests/newsletter/sql/newsletter-rpc-permissions.mjs`. Abre un proceso
+`docker exec ... psql` independiente para cada combinación de los dos roles y las cuatro RPC. Cada
+sesión ejecuta `SET ROLE`, exige que la llamada real falle y acepta exclusivamente SQLSTATE `42501`.
+Los argumentos son fixtures reservados `.invalid`; el script no muestra SQL, credenciales, variables
+ni contenido del contenedor.
+
+Antes de cada llamada, el script verifica mediante un `docker inspect` limitado que el contenedor
+exacto `supabase_db_eventomotor-newsletter-ci` está `running|healthy`. Una pérdida de conexión se
+clasifica como `postgres-process-crash`, espera health durante un tiempo limitado, no reintenta la
+RPC que produjo el crash y termina con código distinto de cero. La reproducción mínima consiste en
+una sesión `psql` nueva con `SET ROLE`, una única llamada RPC y `ON_ERROR_STOP`, sin pgTAP.
+
+El orden del workflow queda fijado así:
+
+1. Preparar el workspace aislado.
+2. Levantar PostgreSQL y aplicar la migración.
+3. Ejecutar las siete suites pgTAP.
+4. Ejecutar concurrencia real.
+5. Ejecutar DB lint.
+6. Ejecutar al final las ocho llamadas RPC externas.
+7. Recoger diagnóstico seguro si algo falla.
+8. Destruir siempre PostgreSQL y el workspace temporal.
+
+La prueba susceptible de reproducir el crash se ejecuta al final para conservar, incluso ante otra
+caída, los resultados completos de pgTAP, rollback, concurrencia y DB lint. Los planes versionados
+actuales suman 116 aserciones pgTAP, no 115: R3A.1.2 conserva exactamente esa línea base al sustituir
+ocho comprobaciones por otras ocho, sin reducir cobertura.
+
 ## Tests pgTAP
 
 Todos los archivos permanentes bajo `tests/newsletter/sql/`:
@@ -173,7 +218,9 @@ ausencia de `EXECUTE` dinámico.
 
 Los tests cambian a los roles reales `anon`, `authenticated` y `service_role`:
 
-- Los roles cliente intentan seleccionar y mutar tablas y ejecutar cada RPC; deben recibir error.
+- Los roles cliente intentan seleccionar y mutar tablas; deben recibir SQLSTATE `42501`.
+- El catálogo confirma con firmas `regprocedure` exactas que los roles cliente no pueden ejecutar
+  ninguna RPC, y un proceso `psql` externo verifica después las ocho denegaciones reales.
 - `service_role` debe leer las cinco tablas y ejecutar las RPC.
 - Se verifican grants reales y contratos de retorno sin email, token raw, estado interno o eventos
   de consentimiento.
@@ -270,10 +317,11 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 2. Todas las suites pgTAP en verde.
 3. Concurrencia real en verde.
 4. DB lint sin errores.
-5. Revisión y corrección aislada de cualquier defecto SQL reproducible.
+5. Las ocho llamadas RPC externas denegadas con SQLSTATE `42501` sin crash del servidor.
+6. Revisión y corrección aislada de cualquier defecto SQL reproducible.
 
 ## Propuesta de commit
 
 ```text
-test(newsletter): add ephemeral SQL validation R3A.1
+test(newsletter): isolate RPC permission validation
 ```

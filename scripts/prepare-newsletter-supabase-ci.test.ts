@@ -13,6 +13,15 @@ import {
   cleanNewsletterCiWorkspace,
   prepareNewsletterCiWorkspace,
 } from "./prepare-newsletter-supabase-ci.mjs";
+import {
+  EXPECTED_PERMISSION_SQLSTATE,
+  NEWSLETTER_RPC_PERMISSION_CONTAINER,
+  buildPsqlInput,
+  buildRpcPermissionCases,
+  extractSqlstate,
+  isPostgresProcessCrash,
+  runRpcPermissionValidation,
+} from "../tests/newsletter/sql/newsletter-rpc-permissions.mjs";
 
 async function createFixture() {
   const rootDir = await mkdtemp(join(tmpdir(), "newsletter-ci-preparer-"));
@@ -108,7 +117,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
   }
 });
 
-test("los rechazos de permisos pgTAP fijan SQLSTATE y usan cuatro argumentos", async () => {
+test("pgTAP conserva ocho rechazos reales de tabla y ocho comprobaciones RPC de catálogo", async () => {
   const permissions = await readFile(
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter_permissions.test.sql"),
     "utf8",
@@ -117,20 +126,185 @@ test("los rechazos de permisos pgTAP fijan SQLSTATE y usan cuatro argumentos", a
     (match) => match[1],
   );
 
-  assert.equal(throwsBlocks.length, 16);
+  assert.equal(throwsBlocks.length, 8);
   for (const block of throwsBlocks) {
     assert.match(
       block,
-      /\$\$,\s*'42501',\s*(?:'permission denied for table newsletter_subscribers'|null),\s*'[^']+'\s*$/i,
+      /\$\$,\s*'42501',\s*'permission denied for table newsletter_subscribers',\s*'[^']+'\s*$/i,
     );
   }
-  assert.equal(
-    throwsBlocks.filter((block) =>
-      /'permission denied for table newsletter_subscribers'/i.test(block),
-    ).length,
-    8,
+  const catalogChecks = [
+    ...permissions.matchAll(/not\s+has_function_privilege\(([\s\S]*?)\n\s*\)/gi),
+  ].map((match) => match[1]);
+  assert.equal(catalogChecks.length, 8);
+  assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 4);
+  assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 4);
+  for (const block of catalogChecks) {
+    assert.match(block, /'public\.[^']+\([^']*\)'::regprocedure/i);
+    assert.match(block, /'EXECUTE'/i);
+  }
+  assert.match(permissions, /select\s+plan\(22\);/i);
+});
+
+type ProcessResult = {
+  stdout: string;
+  stderr: string;
+  code: number | null;
+  signal: string | null;
+  timedOut: boolean;
+  spawnError: boolean;
+};
+
+type ProcessInvocation = {
+  command: string;
+  args: string[];
+  options: { input?: string; timeoutMs?: number };
+};
+
+const processResult = (overrides: Partial<ProcessResult> = {}): ProcessResult => ({
+  stdout: "",
+  stderr: "",
+  code: 0,
+  signal: null,
+  timedOut: false,
+  spawnError: false,
+  ...overrides,
+});
+
+function createPermissionExecutor(
+  permissionResult: ProcessResult | ((callIndex: number) => ProcessResult),
+) {
+  const invocations: ProcessInvocation[] = [];
+  let permissionCallIndex = 0;
+  const execute = async (
+    command: string,
+    args: string[],
+    options: ProcessInvocation["options"] = {},
+  ) => {
+    invocations.push({ command, args, options });
+    if (args[0] === "ps") {
+      return processResult({ stdout: `${NEWSLETTER_RPC_PERMISSION_CONTAINER}\n` });
+    }
+    if (args[0] === "inspect") return processResult({ stdout: "running|healthy\n" });
+    const result =
+      typeof permissionResult === "function"
+        ? permissionResult(permissionCallIndex)
+        : permissionResult;
+    permissionCallIndex += 1;
+    return result;
+  };
+  return { execute, invocations };
+}
+
+test("el validador externo genera ocho casos aislados para anon y authenticated", async () => {
+  const cases = buildRpcPermissionCases();
+  assert.equal(cases.length, 8);
+  assert.equal(cases.filter(({ role }) => role === "anon").length, 4);
+  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 4);
+  assert.deepEqual(
+    cases.map(({ name }) => name),
+    [
+      "request-subscription",
+      "confirm-subscription",
+      "unsubscribe-subscriber",
+      "record-provider-event",
+      "request-subscription",
+      "confirm-subscription",
+      "unsubscribe-subscriber",
+      "record-provider-event",
+    ],
   );
-  assert.equal(throwsBlocks.filter((block) => /'42501',\s*null,/i.test(block)).length, 8);
+
+  for (const testCase of cases) {
+    const input = buildPsqlInput(testCase);
+    assert.match(input, new RegExp(`set role ${testCase.role};`, "i"));
+    assert.doesNotMatch(input, /throws_ok/i);
+  }
+
+  const { execute, invocations } = createPermissionExecutor(
+    processResult({
+      code: 3,
+      stderr: "ERROR:  42501: permission denied for function fixture\n",
+    }),
+  );
+  const output: string[] = [];
+  await runRpcPermissionValidation({
+    execute,
+    writeOutput: (message: string) => output.push(message),
+    writeError: (message: string) => output.push(message),
+    pause: async () => undefined,
+  });
+
+  const psqlCalls = invocations.filter(({ args }) => args[0] === "exec");
+  assert.equal(psqlCalls.length, 8);
+  assert.equal(output.filter((message) => message.includes("denied-42501")).length, 8);
+  for (const invocation of psqlCalls) {
+    assert.equal(invocation.command, "docker");
+    assert.equal(invocation.args[2], NEWSLETTER_RPC_PERMISSION_CONTAINER);
+    assert.match(invocation.options.input ?? "", /set role (?:anon|authenticated);/i);
+  }
+});
+
+test("el validador exige 42501 y rechaza éxito u otro SQLSTATE", async () => {
+  assert.equal(EXPECTED_PERMISSION_SQLSTATE, "42501");
+  assert.equal(extractSqlstate("ERROR:  42501: denied"), "42501");
+
+  for (const permissionResult of [
+    processResult({ code: 0 }),
+    processResult({ code: 3, stderr: "ERROR:  42883: undefined function\n" }),
+  ]) {
+    const { execute } = createPermissionExecutor(permissionResult);
+    await assert.rejects(
+      runRpcPermissionValidation({
+        execute,
+        writeOutput: () => undefined,
+        writeError: () => undefined,
+        pause: async () => undefined,
+      }),
+      /permission validation failed/i,
+    );
+  }
+});
+
+test("un cierre de conexión se clasifica como crash, espera health y no reintenta", async () => {
+  const crash = "server closed the connection unexpectedly; connection to server was lost";
+  assert.equal(isPostgresProcessCrash(crash), true);
+  const { execute, invocations } = createPermissionExecutor(
+    processResult({ code: 2, stderr: crash }),
+  );
+  const errors: string[] = [];
+
+  await assert.rejects(
+    runRpcPermissionValidation({
+      execute,
+      writeOutput: () => undefined,
+      writeError: (message: string) => errors.push(message),
+      healthTimeoutMs: 10,
+      pause: async () => undefined,
+    }),
+    /permission validation failed/i,
+  );
+
+  assert.equal(invocations.filter(({ args }) => args[0] === "exec").length, 1);
+  assert.equal(errors.filter((message) => message.includes("postgres-process-crash")).length, 1);
+});
+
+test("el validador externo no contiene rutas remotas, secrets ni salida sensible", async () => {
+  const source = await readFile(
+    join(process.cwd(), "tests", "newsletter", "sql", "newsletter-rpc-permissions.mjs"),
+    "utf8",
+  );
+  assert.match(source, /eventomotor-newsletter-ci/);
+  assert.match(source, /name=\^\/\$\{NEWSLETTER_RPC_PERMISSION_CONTAINER\}\$/);
+  assert.match(source, /--set=ON_ERROR_STOP=1/);
+  assert.doesNotMatch(
+    source,
+    /throws_ok|\.env\.local|project[_-]?ref|supabase\s+(?:link|login)|db\s+push|--linked|supabase\s+status|process\.env|docker\s+logs|inspect[^\n]+Env/i,
+  );
+  assert.doesNotMatch(
+    source,
+    /write(?:Output|Error)\([^\n]*(?:combinedOutput|testCase\.sql|result\.(?:stderr|stdout)|input)/i,
+  );
 });
 
 test("el workflow es read-only, efímero y no contiene rutas remotas", async () => {
@@ -145,6 +319,22 @@ test("el workflow es read-only, efímero y no contiene rutas remotas", async () 
   assert.match(workflow, /docker ps -aq --filter "name=\^\/\$\{postgres_container_name\}\$"/);
   assert.match(workflow, /docker inspect --format[\s\S]+?ExitCode=[\s\S]+?OOMKilled=[\s\S]+?Health=/);
   assert.match(workflow, /docker logs --tail 300 --timestamps/);
+  const orderedSteps = [
+    "Test and prepare isolated workspace",
+    "Start ephemeral PostgreSQL and apply migration",
+    "Run pgTAP database tests",
+    "Run real concurrency tests",
+    "Lint isolated newsletter schema",
+    "Run isolated RPC permission validation",
+    "Safe PostgreSQL failure diagnostics",
+    "Stop and destroy ephemeral workspace",
+  ];
+  let previousIndex = -1;
+  for (const step of orderedSteps) {
+    const index = workflow.indexOf(`- name: ${step}`);
+    assert.ok(index > previousIndex, `${step} must preserve the required workflow order`);
+    previousIndex = index;
+  }
   assert.doesNotMatch(
     workflow,
     /pull_request_target|secrets\.|supabase\s+(?:link|login)|db\s+push|--linked|project[_-]?ref|\.env\.local|upload-artifact|supabase\s+status/i,

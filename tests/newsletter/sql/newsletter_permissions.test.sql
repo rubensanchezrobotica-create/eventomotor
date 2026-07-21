@@ -59,59 +59,71 @@ select throws_ok(
 );
 reset role;
 
-set local role anon;
-select throws_ok(
-  $$select * from public.request_newsletter_subscription('anon@example.invalid', 'anon@example.invalid', repeat('a', 64), now() + interval '1 day', 'test', 'test')$$,
-  '42501',
-  null,
-  'anon cannot execute request RPC'
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on request RPC'
 );
-select throws_ok(
-  $$select * from public.confirm_newsletter_subscription(repeat('a', 64))$$,
-  '42501',
-  null,
-  'anon cannot execute confirmation RPC'
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.confirm_newsletter_subscription(text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on confirmation RPC'
 );
-select throws_ok(
-  $$select * from public.unsubscribe_newsletter_subscriber('00000000-0000-4000-8000-000000000001', 'test', 'test')$$,
-  '42501',
-  null,
-  'anon cannot execute unsubscribe RPC'
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.unsubscribe_newsletter_subscriber(uuid,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on unsubscribe RPC'
 );
-select throws_ok(
-  $$select * from public.record_newsletter_provider_event('test', 'anon-event', null, null, 'delivered', false, now())$$,
-  '42501',
-  null,
-  'anon cannot execute provider RPC'
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.record_newsletter_provider_event(text,text,text,uuid,text,boolean,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on provider RPC'
 );
-reset role;
 
-set local role authenticated;
-select throws_ok(
-  $$select * from public.request_newsletter_subscription('auth@example.invalid', 'auth@example.invalid', repeat('b', 64), now() + interval '1 day', 'test', 'test')$$,
-  '42501',
-  null,
-  'authenticated cannot execute request RPC'
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on request RPC'
 );
-select throws_ok(
-  $$select * from public.confirm_newsletter_subscription(repeat('b', 64))$$,
-  '42501',
-  null,
-  'authenticated cannot execute confirmation RPC'
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.confirm_newsletter_subscription(text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on confirmation RPC'
 );
-select throws_ok(
-  $$select * from public.unsubscribe_newsletter_subscriber('00000000-0000-4000-8000-000000000002', 'test', 'test')$$,
-  '42501',
-  null,
-  'authenticated cannot execute unsubscribe RPC'
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.unsubscribe_newsletter_subscriber(uuid,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on unsubscribe RPC'
 );
-select throws_ok(
-  $$select * from public.record_newsletter_provider_event('test', 'auth-event', null, null, 'delivered', false, now())$$,
-  '42501',
-  null,
-  'authenticated cannot execute provider RPC'
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.record_newsletter_provider_event(text,text,text,uuid,text,boolean,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on provider RPC'
 );
-reset role;
 
 set local role service_role;
 select lives_ok(
