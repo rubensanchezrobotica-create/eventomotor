@@ -230,6 +230,43 @@ compara conjuntamente outcome y estado persistido. La RPC de baja no cambia. Tam
 cobertura PostgreSQL que faltaba para demostrar que `suppressed` permanece `suppressed` ante un
 bounce. Por ello el nuevo total esperado es **117 aserciones pgTAP**.
 
+## Cuarta ejecución real y corrección R3A.1.4
+
+La ejecución `Newsletter database tests #4` (`29941195995`) aplicó correctamente la migración y
+terminó las siete suites pgTAP con **117/117 aserciones correctas**, sin `Bad plan`. La concurrencia
+real y `db lint --local --schema public --level error --fail-on error` también pasaron.
+
+El único fallo apareció al alcanzar por primera vez el validador RPC externo de R3A.1.2. La primera
+sesión `psql`, después de `SET ROLE anon`, invocó `request_newsletter_subscription` y el backend de
+PostgreSQL terminó por `signal 11: Segmentation fault` antes de devolver un SQLSTATE. El contenedor
+seguía `running`, con `ExitCode=0`, `OOMKilled=false` y health `healthy`, mientras PostgreSQL iniciaba
+su reinitialización. El cleanup detuvo el stack y eliminó correctamente el workspace efímero.
+
+R3A.1.4 conserva ese crash como anomalía conocida del runtime local, pero deja de ejecutarlo como
+gate de CI. No se presenta como corregido y no se modifica la migración, las RPC, RLS, grants o
+revocaciones. La validación operativa pasa a la ruta pública real: la Data API/PostgREST local de
+Supabase.
+
+El workflow habilita la API únicamente en el `config.toml` generado dentro del workspace temporal y
+levanta el stack efímero sin imprimir la salida completa de arranque. El validador obtiene `API_URL`,
+la clave local pública/anon y `JWT_SECRET` mediante `supabase status -o json`, captura la salida en
+memoria y registra `::add-mask::` antes de utilizar cualquiera de esos valores. No lee `.env.local`,
+no conserva `service_role`, no usa un project ref y no contacta con Supabase remoto.
+
+Se realizan ocho `POST application/json` contra `/rest/v1/rpc/<rpc_name>` con los nombres exactos de
+los parámetros y fixtures `.invalid`. Los cuatro casos anon deben devolver HTTP `401` y JSON con
+`code: "42501"`. Los cuatro casos authenticated usan la misma clave pública y un JWT HS256 local de
+cinco minutos, no persistido, con `role: "authenticated"`; deben devolver HTTP `403` y el mismo
+SQLSTATE `42501`. Un 2xx, cualquier otro 4xx, `PGRST202`, `PGRST203`, 5xx, JSON inválido, timeout o
+desconexión hace fallar la validación.
+
+Antes y después de las llamadas se comparan, mediante una sesión administrativa que no cambia de
+rol ni invoca RPC, los recuentos de subscribers, tokens, consent events y email events. Después de
+cada petición se exige además que el contenedor continúe `running|healthy`, que una consulta
+administrativa responda y que `pg_is_in_recovery()` sea falso. Los fallos de transporte, 5xx,
+recovery o pérdida de health se clasifican como `data-api-runtime-failure` y la RPC afectada no se
+reintenta.
+
 ## Tests pgTAP
 
 Todos los archivos permanentes bajo `tests/newsletter/sql/`:
@@ -260,7 +297,7 @@ Los tests cambian a los roles reales `anon`, `authenticated` y `service_role`:
 
 - Los roles cliente intentan seleccionar y mutar tablas; deben recibir SQLSTATE `42501`.
 - El catálogo confirma con firmas `regprocedure` exactas que los roles cliente no pueden ejecutar
-  ninguna RPC, y un proceso `psql` externo verifica después las ocho denegaciones reales.
+  ninguna RPC, y la Data API local verifica después las ocho denegaciones reales mediante HTTP.
 - `service_role` debe leer las cinco tablas y ejecutar las RPC.
 - Se verifican grants reales y contratos de retorno sin email, token raw, estado interno o eventos
   de consentimiento.
@@ -361,11 +398,12 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 2. Todas las suites pgTAP en verde.
 3. Concurrencia real en verde.
 4. DB lint sin errores.
-5. Las ocho llamadas RPC externas denegadas con SQLSTATE `42501` sin crash del servidor.
+5. Las cuatro llamadas anon denegadas con HTTP `401` y SQLSTATE `42501`, y las cuatro authenticated
+   denegadas con HTTP `403` y SQLSTATE `42501`, sin 5xx, recovery ni efectos laterales.
 6. Revisión y corrección aislada de cualquier defecto SQL reproducible.
 
 ## Propuesta de commit
 
 ```text
-fix(newsletter): enforce provider state precedence
+test(newsletter): validate RPC permissions through Data API
 ```
