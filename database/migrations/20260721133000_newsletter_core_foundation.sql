@@ -557,19 +557,52 @@ begin
   for update;
 
   update public.newsletter_subscribers
+  -- Provider suppression states are monotonic: bounced < complained < suppressed.
+  -- Aggregate timestamps represent the latest observed event of each type.
   set status = case
-        when p_event_type = 'complained' then 'complained'
+        when status = 'suppressed' then 'suppressed'
         when p_event_type = 'suppressed' then 'suppressed'
+        when status = 'complained' then 'complained'
+        when p_event_type = 'complained' then 'complained'
+        when status = 'bounced' then 'bounced'
         when p_event_type = 'bounced' and p_is_permanent then 'bounced'
         else status
       end,
-      bounced_at = case when p_event_type = 'bounced' and p_is_permanent then p_occurred_at else bounced_at end,
-      complained_at = case when p_event_type = 'complained' then p_occurred_at else complained_at end,
-      suppressed_at = case when p_event_type = 'suppressed' then p_occurred_at else suppressed_at end,
-      last_sent_at = case when p_event_type = 'sent' then p_occurred_at else last_sent_at end,
-      last_delivered_at = case when p_event_type = 'delivered' then p_occurred_at else last_delivered_at end,
-      last_opened_at = case when p_event_type = 'opened' then p_occurred_at else last_opened_at end,
-      last_clicked_at = case when p_event_type = 'clicked' then p_occurred_at else last_clicked_at end
+      bounced_at = case
+        when p_event_type = 'bounced' and p_is_permanent
+          then greatest(coalesce(bounced_at, p_occurred_at), p_occurred_at)
+        else bounced_at
+      end,
+      complained_at = case
+        when p_event_type = 'complained'
+          then greatest(coalesce(complained_at, p_occurred_at), p_occurred_at)
+        else complained_at
+      end,
+      suppressed_at = case
+        when p_event_type = 'suppressed'
+          then greatest(coalesce(suppressed_at, p_occurred_at), p_occurred_at)
+        else suppressed_at
+      end,
+      last_sent_at = case
+        when p_event_type = 'sent'
+          then greatest(coalesce(last_sent_at, p_occurred_at), p_occurred_at)
+        else last_sent_at
+      end,
+      last_delivered_at = case
+        when p_event_type = 'delivered'
+          then greatest(coalesce(last_delivered_at, p_occurred_at), p_occurred_at)
+        else last_delivered_at
+      end,
+      last_opened_at = case
+        when p_event_type = 'opened'
+          then greatest(coalesce(last_opened_at, p_occurred_at), p_occurred_at)
+        else last_opened_at
+      end,
+      last_clicked_at = case
+        when p_event_type = 'clicked'
+          then greatest(coalesce(last_clicked_at, p_occurred_at), p_occurred_at)
+        else last_clicked_at
+      end
   where id = v_subscriber.id
   returning * into v_subscriber;
 

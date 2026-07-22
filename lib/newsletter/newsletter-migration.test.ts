@@ -158,3 +158,35 @@ test("provider event insertion and aggregate updates share one idempotent transa
   assert.match(sql, /record_newsletter_provider_event[\s\S]+?update public\.newsletter_subscribers/i);
   assert.match(sql, /record_newsletter_provider_event[\s\S]+?weekly_digest_enabled = false/i);
 });
+
+test("provider event states and latest timestamps are monotonic", () => {
+  const providerDefinition = functionDefinition("record_newsletter_provider_event");
+
+  assert.match(
+    providerDefinition,
+    /set status = case\s+when status = 'suppressed' then 'suppressed'\s+when p_event_type = 'suppressed' then 'suppressed'\s+when status = 'complained' then 'complained'\s+when p_event_type = 'complained' then 'complained'\s+when status = 'bounced' then 'bounced'\s+when p_event_type = 'bounced' and p_is_permanent then 'bounced'\s+else status\s+end/i,
+  );
+  assert.doesNotMatch(
+    providerDefinition,
+    /set status = case\s+when p_event_type = 'complained' then 'complained'/i,
+  );
+  assert.doesNotMatch(providerDefinition, /then 'active'/i);
+
+  for (const timestamp of [
+    "bounced_at",
+    "complained_at",
+    "suppressed_at",
+    "last_sent_at",
+    "last_delivered_at",
+    "last_opened_at",
+    "last_clicked_at",
+  ]) {
+    assert.match(
+      providerDefinition,
+      new RegExp(
+        `${timestamp} = case[\\s\\S]+?greatest\\(coalesce\\(${timestamp}, p_occurred_at\\), p_occurred_at\\)[\\s\\S]+?else ${timestamp}[\\s\\S]+?end`,
+        "i",
+      ),
+    );
+  }
+});

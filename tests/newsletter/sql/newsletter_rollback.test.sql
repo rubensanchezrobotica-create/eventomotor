@@ -29,6 +29,8 @@ select throws_ok(
       now() + interval '1 day', 'sql_test', '2026-07'
     )
   $$,
+  'P0001',
+  'forced newsletter consent failure',
   'a forced late request failure aborts the RPC'
 );
 select is(
@@ -65,6 +67,8 @@ values ('40000000-0000-4000-8000-000000000001', repeat('b', 64), 'subscribe', no
 select set_config('newsletter_test.fail_action', 'confirmed', true);
 select throws_ok(
   $$select * from public.confirm_newsletter_subscription(repeat('b', 64))$$,
+  'P0001',
+  'forced newsletter consent failure',
   'a forced late confirmation failure aborts the RPC'
 );
 select is(
@@ -92,6 +96,8 @@ select is(
 
 select throws_ok(
   $$select * from public.record_newsletter_provider_event('rollback-provider', 'rollback-event', null, '40000000-0000-4000-8000-000000000099', 'delivered', false, now())$$,
+  '23503',
+  null,
   'a missing aggregate target aborts provider event processing'
 );
 select is(
@@ -116,6 +122,8 @@ values ('40000000-0000-4000-8000-000000000002', repeat('c', 64), 'subscribe', no
 select set_config('newsletter_test.fail_action', 'unsubscribed', true);
 select throws_ok(
   $$select * from public.unsubscribe_newsletter_subscriber('40000000-0000-4000-8000-000000000002', '2026-07', 'sql_test')$$,
+  'P0001',
+  'forced newsletter consent failure',
   'a forced late unsubscribe failure aborts the RPC'
 );
 select is(

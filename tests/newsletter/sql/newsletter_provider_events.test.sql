@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(18);
+select plan(19);
 
 insert into public.newsletter_subscribers (
   id, email, email_normalized, status, source, consent_version, confirmed_at
@@ -100,10 +100,10 @@ select * from public.record_newsletter_provider_event(
   'test-provider', 'provider-event-7', 'message-1',
   '30000000-0000-4000-8000-000000000001', 'bounced', true, '2026-07-21T09:00:00Z'
 );
-select is(
-  (select status from public.newsletter_subscribers where id = '30000000-0000-4000-8000-000000000001'),
-  'complained',
-  'an out-of-order bounce does not degrade complained'
+select results_eq(
+  $$select status, bounced_at from public.newsletter_subscribers where id = '30000000-0000-4000-8000-000000000001'$$,
+  $$values ('complained'::text, '2026-07-21T10:20:00Z'::timestamptz)$$,
+  'an out-of-order bounce does not degrade complained or its latest bounce timestamp'
 );
 
 select * from public.record_newsletter_provider_event(
@@ -118,16 +118,28 @@ select is(
 
 select * from public.record_newsletter_provider_event(
   'test-provider', 'provider-event-9', 'message-1',
-  '30000000-0000-4000-8000-000000000001', 'complained', false, '2026-07-21T10:35:00Z'
+  '30000000-0000-4000-8000-000000000001', 'bounced', true, '2026-07-21T10:10:00Z'
 );
-select is(
-  (select status from public.newsletter_subscribers where id = '30000000-0000-4000-8000-000000000001'),
-  'suppressed',
-  'an out-of-order complaint does not degrade suppressed'
+select results_eq(
+  $$select status, bounced_at from public.newsletter_subscribers where id = '30000000-0000-4000-8000-000000000001'$$,
+  $$values ('suppressed'::text, '2026-07-21T10:20:00Z'::timestamptz)$$,
+  'suppressed remains suppressed after a bounce and keeps its latest bounce timestamp'
+);
+
+select * from public.record_newsletter_provider_event(
+  'test-provider', 'provider-event-10', 'message-1',
+  '30000000-0000-4000-8000-000000000001', 'complained', false, '2026-07-21T10:25:00Z'
+);
+select results_eq(
+  $$select status, complained_at from public.newsletter_subscribers where id = '30000000-0000-4000-8000-000000000001'$$,
+  $$values ('suppressed'::text, '2026-07-21T10:30:00Z'::timestamptz)$$,
+  'an out-of-order complaint does not degrade suppressed or its latest complaint timestamp'
 );
 
 select throws_ok(
   $$select * from public.record_newsletter_provider_event('test-provider', 'retryable-event', null, '30000000-0000-4000-8000-000000000099', 'delivered', false, now())$$,
+  '23503',
+  null,
   'an aggregate update failure aborts the provider RPC'
 );
 select is(

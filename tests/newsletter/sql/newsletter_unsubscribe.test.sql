@@ -67,12 +67,20 @@ insert into public.newsletter_subscribers (
   ('20000000-0000-4000-8000-000000000004', 'unsubscribe-complained@example.invalid', 'unsubscribe-complained@example.invalid', 'complained', 'sql_test', '2026-07', null, now(), null),
   ('20000000-0000-4000-8000-000000000005', 'unsubscribe-suppressed@example.invalid', 'unsubscribe-suppressed@example.invalid', 'suppressed', 'sql_test', '2026-07', null, null, now());
 
+create temporary table pending_unsubscribe_result on commit drop as
+select outcome
+from public.unsubscribe_newsletter_subscriber(
+  '20000000-0000-4000-8000-000000000002',
+  '2026-07',
+  'sql_test'
+);
+
 select results_eq(
   $$
-    with result as (
-      select outcome from public.unsubscribe_newsletter_subscriber('20000000-0000-4000-8000-000000000002', '2026-07', 'sql_test')
-    )
-    select outcome, (select status from public.newsletter_subscribers where id = '20000000-0000-4000-8000-000000000002') from result
+    select result.outcome, subscriber.status
+    from pg_temp.pending_unsubscribe_result as result
+    cross join public.newsletter_subscribers as subscriber
+    where subscriber.id = '20000000-0000-4000-8000-000000000002'
   $$,
   $$values ('unsubscribed'::text, 'unsubscribed'::text)$$,
   'a pending subscriber follows the R1 unsubscribe policy'

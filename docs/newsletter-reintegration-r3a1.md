@@ -190,6 +190,46 @@ caída, los resultados completos de pgTAP, rollback, concurrencia y DB lint. Los
 actuales suman 116 aserciones pgTAP, no 115: R3A.1.2 conserva exactamente esa línea base al sustituir
 ocho comprobaciones por otras ocho, sin reducir cobertura.
 
+## Hallazgos de la tercera ejecución real y corrección R3A.1.3
+
+La ejecución `Newsletter database tests #3` (`29864679880`) aplicó correctamente la migración y
+ejecutó las 116 aserciones planificadas: 108 pasaron y 8 fallaron. PostgreSQL permaneció healthy,
+sin OOM, pérdida de conexión ni segmentation fault; el diagnóstico seguro y el cleanup también
+terminaron correctamente. Esto confirma que el aislamiento de permisos de R3A.1.2 eliminó la
+interacción inestable observada en la ejecución anterior.
+
+Los ocho fallos se clasificaron en dos defectos funcionales y seis defectos de tests:
+
+- La RPC de eventos permitía que un bounce degradase `complained` a `bounced` y que una complaint
+  degradase `suppressed` a `complained`.
+- Cinco llamadas a `throws_ok` usaban la sobrecarga de dos argumentos. Las RPC lanzaron realmente
+  los SQLSTATE esperados (`P0001` o `23503`), pero pgTAP comparó la descripción humana como si fuese
+  el mensaje de error.
+- El test de baja de un suscriptor `pending` invocaba la RPC y leía el estado persistido dentro de
+  la misma sentencia. El outcome fue `unsubscribed`, pero la subconsulta conservó el snapshot previo.
+
+R3A.1.3 hace explícita y monotónica la precedencia operativa:
+
+```text
+bounced < complained < suppressed
+```
+
+Un evento puede escalar a un estado más restrictivo, pero nunca degradarlo. Los eventos antiguos se
+siguen registrando y deduplicando. Los timestamps agregados `bounced_at`, `complained_at`,
+`suppressed_at`, `last_sent_at`, `last_delivered_at`, `last_opened_at` y `last_clicked_at` conservan
+el valor más reciente mediante una comparación `greatest` que trata correctamente `NULL`. Estado y
+timestamps continúan actualizándose dentro de la misma RPC transaccional.
+
+Las cinco comprobaciones de excepciones usan ahora la firma de cuatro argumentos y exigen SQLSTATE:
+los tres fallos forzados de consentimiento validan `P0001` y su mensaje exacto; los dos errores de
+foreign key validan `23503` sin depender del nombre de la constraint. Las comprobaciones posteriores
+de rollback permanecen intactas.
+
+La baja `pending` materializa primero el outcome en una tabla temporal y, en una sentencia posterior,
+compara conjuntamente outcome y estado persistido. La RPC de baja no cambia. También se añade la
+cobertura PostgreSQL que faltaba para demostrar que `suppressed` permanece `suppressed` ante un
+bounce. Por ello el nuevo total esperado es **117 aserciones pgTAP**.
+
 ## Tests pgTAP
 
 Todos los archivos permanentes bajo `tests/newsletter/sql/`:
@@ -242,6 +282,10 @@ preservación de bounced, complained y suppressed.
 Se comprueban inserción, deduplicación, timestamps, fallos temporales, rebote permanente, queja,
 supresión, estados bloqueados y eventos fuera de orden. Un evento cuyo agregado falla no debe quedar
 marcado como procesado y un reintento posterior debe poder insertarlo.
+
+Los estados de bloqueo siguen la precedencia monotónica `bounced < complained < suppressed`. Un
+evento fuera de orden no puede degradar un estado más restrictivo ni sustituir un timestamp agregado
+más reciente.
 
 Estas expectativas pueden descubrir defectos de la migración actual. No se modificará SQL hasta
 tener un fallo reproducible del workflow y revisar su diagnóstico.
@@ -323,5 +367,5 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 ## Propuesta de commit
 
 ```text
-test(newsletter): isolate RPC permission validation
+fix(newsletter): enforce provider state precedence
 ```

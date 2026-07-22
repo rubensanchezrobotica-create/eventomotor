@@ -107,14 +107,67 @@ test("la reejecución limpia sólo su workspace propio", async (t) => {
 
 test("cada test pgTAP permanente declara transacción, plan, finish y rollback", async () => {
   const testsPath = join(process.cwd(), "tests", "newsletter", "sql");
+  let plannedAssertions = 0;
   for (const sqlTest of NEWSLETTER_SQL_TESTS) {
     const source = await readFile(join(testsPath, sqlTest), "utf8");
     assert.match(source, /^begin;/i, `${sqlTest} must begin a transaction`);
-    assert.match(source, /select\s+plan\(\d+\);/i, `${sqlTest} must declare a plan`);
+    const plan = source.match(/select\s+plan\((\d+)\);/i);
+    assert.ok(plan, `${sqlTest} must declare a plan`);
+    plannedAssertions += Number(plan[1]);
     assert.match(source, /select\s+\*\s+from\s+finish\(\);/i, `${sqlTest} must call finish`);
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
+  assert.equal(plannedAssertions, 117);
+});
+
+test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumentos", async () => {
+  const testsPath = join(process.cwd(), "tests", "newsletter", "sql");
+  const provider = await readFile(join(testsPath, "newsletter_provider_events.test.sql"), "utf8");
+  const rollback = await readFile(join(testsPath, "newsletter_rollback.test.sql"), "utf8");
+  const throwsBlocks = (source: string) =>
+    [...source.matchAll(/select\s+throws_ok\(([\s\S]*?)\n\);/gi)].map((match) => match[1]);
+
+  const providerThrows = throwsBlocks(provider);
+  assert.equal(providerThrows.length, 1);
+  assert.match(
+    providerThrows[0],
+    /\$\$,\s*'23503',\s*null,\s*'an aggregate update failure aborts the provider RPC'\s*$/i,
+  );
+
+  const rollbackThrows = throwsBlocks(rollback);
+  assert.equal(rollbackThrows.length, 4);
+  assert.equal(
+    rollbackThrows.filter((block) =>
+      /\$\$,\s*'P0001',\s*'forced newsletter consent failure',\s*'[^']+'\s*$/i.test(block),
+    ).length,
+    3,
+  );
+  assert.equal(
+    rollbackThrows.filter((block) => /\$\$,\s*'23503',\s*null,\s*'[^']+'\s*$/i.test(block))
+      .length,
+    1,
+  );
+});
+
+test("la baja pending materializa el outcome antes de leer el estado persistido", async () => {
+  const unsubscribe = await readFile(
+    join(process.cwd(), "tests", "newsletter", "sql", "newsletter_unsubscribe.test.sql"),
+    "utf8",
+  );
+  const materialization = unsubscribe.indexOf("create temporary table pending_unsubscribe_result");
+  const persistedRead = unsubscribe.indexOf("from pg_temp.pending_unsubscribe_result as result");
+
+  assert.ok(materialization >= 0);
+  assert.ok(persistedRead > materialization);
+  assert.match(
+    unsubscribe,
+    /create temporary table pending_unsubscribe_result on commit drop as\s+select outcome\s+from public\.unsubscribe_newsletter_subscriber\([\s\S]+?\);[\s\S]+?select results_eq\([\s\S]+?select result\.outcome, subscriber\.status\s+from pg_temp\.pending_unsubscribe_result as result/i,
+  );
+  assert.doesNotMatch(
+    unsubscribe,
+    /with result as \(\s*select outcome from public\.unsubscribe_newsletter_subscriber\('20000000-0000-4000-8000-000000000002'/i,
+  );
 });
 
 test("pgTAP conserva ocho rechazos reales de tabla y ocho comprobaciones RPC de catálogo", async () => {
