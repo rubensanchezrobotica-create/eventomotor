@@ -10,7 +10,12 @@ import {
   type NewsletterMailTransport,
 } from "@/lib/newsletter/mail-transport.server";
 import { createConfiguredNewsletterRepository } from "@/lib/newsletter/repository.server";
-import { isValidEmail, isNewsletterProviderEventType, normalizeEmail } from "@/lib/newsletter/schemas";
+import {
+  isValidEmail,
+  isValidNewsletterOpaqueToken,
+  isNewsletterProviderEventType,
+  normalizeEmail,
+} from "@/lib/newsletter/schemas";
 import {
   NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
   NewsletterOperationError,
@@ -35,7 +40,6 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 const COUNTRY_PATTERN = /^[A-Z]{2}$/;
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,1024}$/;
 
 type NewsletterServiceDependencies = {
   mode: NewsletterMode;
@@ -149,7 +153,7 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
       const ipHash = validateHash(input.ipHash);
 
       const rawToken = tokenFactory();
-      if (!TOKEN_PATTERN.test(rawToken)) {
+      if (!isValidNewsletterOpaqueToken(rawToken)) {
         throw new NewsletterOperationError("token_error", "invalid_token");
       }
       const tokenHash = tokenHasher(rawToken);
@@ -207,7 +211,7 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
     async confirmSubscription(input: NewsletterConfirmInput): Promise<NewsletterConfirmServiceResult> {
       const persistence = requirePersistence();
       const readyMailTransport = requireMailTransport();
-      if (!TOKEN_PATTERN.test(input.token)) {
+      if (!isValidNewsletterOpaqueToken(input.token)) {
         throw new NewsletterOperationError("token_error", "invalid_token");
       }
       const tokenHash = tokenHasher(input.token);

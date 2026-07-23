@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { isValidEmail } from "@/lib/newsletter/schemas";
+import { NEWSLETTER_PROVINCE_OPTIONS } from "@/lib/newsletter/audience";
 import { NEWSLETTER_EMAIL_KINDS, type NewsletterEmailKind } from "@/emails/newsletter/email-types";
+
+export { NEWSLETTER_PROVINCE_OPTIONS } from "@/lib/newsletter/audience";
 
 export const NEWSLETTER_PREVIEW_FORM_STATES = [
   "idle",
@@ -20,15 +23,6 @@ export type NewsletterPreviewOptions = {
   emailViewport: NewsletterEmailViewport;
   formState: NewsletterPreviewFormState;
 };
-
-export const NEWSLETTER_PROVINCE_OPTIONS = [
-  { slug: "barcelona", name: "Barcelona" },
-  { slug: "madrid", name: "Madrid" },
-  { slug: "valencia", name: "Valencia" },
-  { slug: "sevilla", name: "Sevilla" },
-  { slug: "a-coruna", name: "A Coruña" },
-  { slug: "santa-cruz-de-tenerife", name: "Santa Cruz de Tenerife" },
-] as const;
 
 export const NEWSLETTER_PREVIEW_METADATA: Metadata = {
   title: {

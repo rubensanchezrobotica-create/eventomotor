@@ -12,6 +12,8 @@ import {
 } from "@/lib/newsletter/types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,1024}$/;
+const ACTION_TOKEN_PATTERN = /^[A-Za-z0-9._-]{32,1024}$/;
 
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -20,6 +22,14 @@ export function normalizeEmail(value: string): string {
 export function isValidEmail(value: string): boolean {
   const normalized = normalizeEmail(value);
   return normalized.length <= 254 && EMAIL_PATTERN.test(normalized);
+}
+
+export function isValidNewsletterOpaqueToken(value: string): boolean {
+  return OPAQUE_TOKEN_PATTERN.test(value);
+}
+
+export function isValidNewsletterActionTokenShape(value: string): boolean {
+  return ACTION_TOKEN_PATTERN.test(value);
 }
 
 export function isNewsletterMode(value: string): value is NewsletterMode {
