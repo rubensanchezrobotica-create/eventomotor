@@ -95,17 +95,18 @@ node scripts/prepare-newsletter-supabase-ci.mjs --clean
 
 ## Configuración Supabase local
 
-El config temporal desactiva API, Auth, Storage, Realtime, Studio, Inbucket, Edge Runtime y
-Analytics. Desactiva también seeds. Sólo son necesarios PostgreSQL y los contenedores auxiliares que
-la CLI use para pgTAP y lint.
+El config temporal habilita exclusivamente la Data API y Auth local, además de PostgreSQL. Storage,
+Realtime, Studio, Inbucket, Edge Runtime y Analytics permanecen deshabilitados, igual que los seeds.
+Auth permite email/password, desactiva la confirmación de email, usa una `site_url` local y no
+configura OAuth ni SMTP.
 
 El workflow prioriza:
 
 ```text
-supabase --workdir .tmp/newsletter-supabase-ci db start
+supabase --workdir .tmp/newsletter-supabase-ci start
 ```
 
-`db start` crea PostgreSQL local y aplica la única migración copiada. No se ejecuta `db push`.
+`start` crea el stack local aislado y aplica la única migración copiada. No se ejecuta `db push`.
 
 ## Workflow y filtros
 
@@ -267,6 +268,40 @@ administrativa responda y que `pg_is_in_recovery()` sea falso. Los fallos de tra
 recovery o pérdida de health se clasifican como `data-api-runtime-failure` y la RPC afectada no se
 reintenta.
 
+## Quinta ejecución real y corrección R3A.1.5
+
+La ejecución `Newsletter database tests #5` (`30011397028`) volvió a aplicar correctamente la
+migración. Las 117 aserciones pgTAP, la concurrencia real y DB lint pasaron. PostgreSQL permaneció
+`running|healthy`, con `ExitCode=0`, `OOMKilled=false`, sin segmentation fault, recovery ni pérdida
+de conexión. El diagnóstico seguro y el cleanup terminaron correctamente.
+
+El validador falló en unos 415 ms, antes de ejecutar health, recuentos o cualquier petición RPC, con
+`Required local Data API credentials are unavailable.`. R3A.1.4 exigía conjuntamente URL, clave
+pública y `JWT_SECRET`; la salida disponible de `supabase status -o json` no proporcionó ese último
+campo en la configuración efímera usada. Por tanto, la ejecución #5 no demuestra ningún defecto de
+Data API, PostgREST, PostgreSQL, las RPC o sus permisos.
+
+R3A.1.5 elimina por completo la dependencia de `JWT_SECRET`: no busca material de firma, no fabrica
+JWT HS256 y no usa `service_role`. El parser acepta sólo aliases explícitos y auditables para la URL
+(`API_URL`, `api_url`, `SUPABASE_URL`) y para la clave pública (`ANON_KEY`, `anon_key`,
+`PUBLISHABLE_KEY`, `publishable_key`). La URL debe seguir siendo local. Si la preparación falla, el
+diagnóstico muestra únicamente los nombres saneados de las propiedades y los booleanos
+`api_url_present`, `public_key_present` y `auth_service_reachable`, nunca valores.
+
+El `config.toml` temporal habilita Data API y Auth local. Email/password está habilitado,
+`enable_confirmations` está desactivado, la `site_url` es local, Inbucket permanece deshabilitado y
+no se configura SMTP ni proveedor OAuth. El validador comprueba `/auth/v1/health`, crea un usuario
+único `example.invalid` mediante `/auth/v1/signup` y, si signup no devuelve sesión, usa
+`/auth/v1/token?grant_type=password`. La contraseña aleatoria y el `access_token` sólo existen en
+memoria, se enmascaran antes de usarse y se limpian en `finally`; no se conserva el refresh token.
+El usuario desaparece al destruir el stack.
+
+Las cuatro llamadas anon siguen usando sólo `apikey` y exigen HTTP `401` con `code: "42501"`. Las
+cuatro authenticated usan la misma clave pública y `Authorization: Bearer` con el token real emitido
+por Auth local; exigen HTTP `403` con `code: "42501"`. Los recuentos de las cuatro tablas newsletter
+y las comprobaciones de estabilidad PostgreSQL permanecen sin cambios. R3B continúa bloqueado hasta
+obtener las ocho denegaciones correctas en una ejecución real.
+
 ## Tests pgTAP
 
 Todos los archivos permanentes bajo `tests/newsletter/sql/`:
@@ -405,5 +440,5 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 ## Propuesta de commit
 
 ```text
-test(newsletter): validate RPC permissions through Data API
+test(newsletter): use local Auth for RPC permission validation
 ```

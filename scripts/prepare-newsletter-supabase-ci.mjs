@@ -28,7 +28,7 @@ export const NEWSLETTER_SQL_TESTS = [
 const CONFIG = `project_id = "${NEWSLETTER_CI_PROJECT_ID}"
 
 [api]
-enabled = false
+enabled = true
 
 [db]
 port = 54322
@@ -50,7 +50,20 @@ enabled = false
 enabled = false
 
 [auth]
-enabled = false
+enabled = true
+site_url = "http://127.0.0.1:54321"
+additional_redirect_urls = []
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "1s"
 
 [edge_runtime]
 enabled = false

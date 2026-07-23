@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import process from "node:process";
@@ -16,7 +16,14 @@ export const EXPECTED_PERMISSION_HTTP_STATUS = Object.freeze({
 
 const PROCESS_TIMEOUT_MS = 20_000;
 const HTTP_TIMEOUT_MS = 15_000;
-const LOCAL_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1"]);
+const LOCAL_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+const API_URL_ALIASES = ["API_URL", "api_url", "SUPABASE_URL"];
+const PUBLIC_KEY_ALIASES = [
+  "ANON_KEY",
+  "anon_key",
+  "PUBLISHABLE_KEY",
+  "publishable_key",
+];
 const COUNT_TABLES = [
   "newsletter_subscribers",
   "newsletter_confirmation_tokens",
@@ -85,28 +92,24 @@ export function buildRpcPermissionCases() {
   );
 }
 
-function encodeJwtPart(value) {
-  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+function firstStringProperty(status, aliases) {
+  for (const alias of aliases) {
+    const value = status[alias];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
 }
 
-export function createAuthenticatedJwt(jwtSecret, { now = Math.floor(Date.now() / 1000) } = {}) {
-  if (typeof jwtSecret !== "string" || jwtSecret.length < 32) {
-    throw new Error("Local JWT material is unavailable.");
-  }
-  const header = encodeJwtPart({ alg: "HS256", typ: "JWT" });
-  const payload = encodeJwtPart({
-    aud: "authenticated",
-    exp: now + 300,
-    iat: now,
-    iss: "supabase-local",
-    role: "authenticated",
-    sub: "00000000-0000-4000-8000-000000000042",
-  });
-  const unsignedToken = `${header}.${payload}`;
-  const signature = createHmac("sha256", jwtSecret)
-    .update(unsignedToken)
-    .digest("base64url");
-  return `${unsignedToken}.${signature}`;
+function safePropertyNames(status) {
+  return Object.keys(status)
+    .filter((name) => /^[A-Za-z0-9_]{1,80}$/.test(name))
+    .sort();
+}
+
+function localStatusError(message, diagnostic) {
+  const error = new Error(message);
+  error.localStatusDiagnostic = diagnostic;
+  return error;
 }
 
 export function parseLocalStatus(output) {
@@ -117,37 +120,36 @@ export function parseLocalStatus(output) {
     throw new Error("Local Supabase status is not valid JSON.");
   }
 
-  const apiUrl = status.API_URL ?? status.api_url;
-  const publicKey =
-    status.PUBLISHABLE_KEY ??
-    status.publishable_key ??
-    status.ANON_KEY ??
-    status.anon_key;
-  const jwtSecret = status.JWT_SECRET ?? status.jwt_secret;
-  if (
-    typeof apiUrl !== "string" ||
-    typeof publicKey !== "string" ||
-    publicKey.length < 20 ||
-    typeof jwtSecret !== "string" ||
-    jwtSecret.length < 32
-  ) {
-    throw new Error("Required local Data API credentials are unavailable.");
+  if (!status || typeof status !== "object" || Array.isArray(status)) {
+    throw new Error("Local Supabase status must be a JSON object.");
+  }
+
+  const propertyNames = safePropertyNames(status);
+  const apiUrl = firstStringProperty(status, API_URL_ALIASES);
+  const publicKey = firstStringProperty(status, PUBLIC_KEY_ALIASES);
+  const diagnostic = {
+    propertyNames,
+    apiUrlPresent: Boolean(apiUrl),
+    publicKeyPresent: Boolean(publicKey),
+  };
+  if (!apiUrl || !publicKey) {
+    throw localStatusError("Required local Data API credentials are unavailable.", diagnostic);
   }
 
   let parsedUrl;
   try {
     parsedUrl = new URL(apiUrl);
   } catch {
-    throw new Error("Local Data API URL is invalid.");
+    throw localStatusError("Local Data API URL is invalid.", diagnostic);
   }
   if (!LOCAL_HOSTNAMES.has(parsedUrl.hostname) || !["http:", "https:"].includes(parsedUrl.protocol)) {
-    throw new Error("Data API URL is not local.");
+    throw localStatusError("Data API URL is not local.", diagnostic);
   }
 
   return {
     apiUrl: parsedUrl.href.replace(/\/$/, ""),
     publicKey,
-    jwtSecret,
+    propertyNames,
   };
 }
 
@@ -302,19 +304,141 @@ function countsMatch(before, after) {
   return COUNT_TABLES.every((table) => before[table] === after[table]);
 }
 
-async function postRpc(fetchImpl, url, headers, body, timeoutMs) {
+function writeCredentialDiagnostic(
+  writeError,
+  {
+    propertyNames = [],
+    apiUrlPresent = false,
+    publicKeyPresent = false,
+    authServiceReachable = false,
+  } = {},
+) {
+  writeError(`local_status_properties=${propertyNames.join(",") || "none"}\n`);
+  writeError(`api_url_present=${apiUrlPresent}\n`);
+  writeError(`public_key_present=${publicKeyPresent}\n`);
+  writeError(`auth_service_reachable=${authServiceReachable}\n`);
+}
+
+async function fetchWithTimeout(fetchImpl, url, init, timeoutMs) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetchImpl(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    return await fetchImpl(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function assertLocalAuthReachable(fetchImpl, credentials, timeoutMs) {
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      fetchImpl,
+      `${credentials.apiUrl}/auth/v1/health`,
+      {
+        method: "GET",
+        headers: { apikey: credentials.publicKey },
+      },
+      timeoutMs,
+    );
+  } catch {
+    throw new Error("local-auth-runtime-failure");
+  }
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error("local-auth-runtime-failure");
+  }
+}
+
+async function readAuthAccessToken(response) {
+  if (response.status >= 500) throw new Error("local-auth-runtime-failure");
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error("local-auth-session-failure");
+  }
+  try {
+    const body = await response.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new Error("local-auth-session-failure");
+    }
+    return typeof body.access_token === "string" ? body.access_token : null;
+  } catch (error) {
+    if (error instanceof Error && error.message === "local-auth-session-failure") throw error;
+    throw new Error("local-auth-session-failure");
+  }
+}
+
+function isAuthenticatedAccessToken(token, publicKey) {
+  return (
+    typeof token === "string" &&
+    token.length >= 20 &&
+    token !== publicKey &&
+    token.split(".").length === 3 &&
+    token.split(".").every(Boolean)
+  );
+}
+
+async function requestLocalAuthSession(fetchImpl, credentials, password, timeoutMs) {
+  const email = `rpc-permission-${randomUUID()}@example.invalid`;
+  const headers = {
+    apikey: credentials.publicKey,
+    "Content-Type": "application/json",
+  };
+  let signupResponse;
+  try {
+    signupResponse = await fetchWithTimeout(
+      fetchImpl,
+      `${credentials.apiUrl}/auth/v1/signup`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email, password }),
+      },
+      timeoutMs,
+    );
+  } catch {
+    throw new Error("local-auth-runtime-failure");
+  }
+
+  const signupAccessToken = await readAuthAccessToken(signupResponse);
+  if (signupAccessToken) {
+    if (!isAuthenticatedAccessToken(signupAccessToken, credentials.publicKey)) {
+      throw new Error("local-auth-session-failure");
+    }
+    return signupAccessToken;
+  }
+
+  let loginResponse;
+  try {
+    loginResponse = await fetchWithTimeout(
+      fetchImpl,
+      `${credentials.apiUrl}/auth/v1/token?grant_type=password`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email, password }),
+      },
+      timeoutMs,
+    );
+  } catch {
+    throw new Error("local-auth-runtime-failure");
+  }
+  const loginAccessToken = await readAuthAccessToken(loginResponse);
+  if (!isAuthenticatedAccessToken(loginAccessToken, credentials.publicKey)) {
+    throw new Error("local-auth-session-failure");
+  }
+  return loginAccessToken;
+}
+
+async function postRpc(fetchImpl, url, headers, body, timeoutMs) {
+  return fetchWithTimeout(
+    fetchImpl,
+    url,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    },
+    timeoutMs,
+  );
 }
 
 export async function validateDataApiResponse(response, expectedStatus) {
@@ -349,22 +473,65 @@ export async function runRpcPermissionValidation({
     process.stdout.write(`::add-mask::${secret}\n`);
   },
   httpTimeoutMs = HTTP_TIMEOUT_MS,
-  now = Math.floor(Date.now() / 1000),
 } = {}) {
   if (typeof fetchImpl !== "function") throw new Error("data-api-runtime-failure");
 
   const container = await resolveIsolatedContainer(execute);
-  let credentials = await readLocalCredentials(execute);
-  maskSecret(credentials.publicKey);
-  maskSecret(credentials.jwtSecret);
-  let authenticatedJwt = createAuthenticatedJwt(credentials.jwtSecret, { now });
-  maskSecret(authenticatedJwt);
-
   const failures = [];
   let stopForRuntimeFailure = false;
   let beforeCounts;
+  let credentials = null;
+  let authenticatedAccessToken = "";
+  let localPassword = "";
+  let statusDiagnostic = {
+    propertyNames: [],
+    apiUrlPresent: false,
+    publicKeyPresent: false,
+    authServiceReachable: false,
+  };
 
   try {
+    try {
+      credentials = await readLocalCredentials(execute);
+      statusDiagnostic = {
+        propertyNames: credentials.propertyNames,
+        apiUrlPresent: true,
+        publicKeyPresent: true,
+        authServiceReachable: false,
+      };
+    } catch (error) {
+      const diagnostic =
+        error && typeof error === "object" && error.localStatusDiagnostic
+          ? error.localStatusDiagnostic
+          : statusDiagnostic;
+      writeCredentialDiagnostic(writeError, diagnostic);
+      throw error;
+    }
+
+    maskSecret(credentials.publicKey);
+    try {
+      await assertLocalAuthReachable(fetchImpl, credentials, httpTimeoutMs);
+      statusDiagnostic.authServiceReachable = true;
+    } catch (error) {
+      writeCredentialDiagnostic(writeError, statusDiagnostic);
+      throw error;
+    }
+
+    localPassword = `${randomBytes(32).toString("base64url")}Aa1!`;
+    maskSecret(localPassword);
+    try {
+      authenticatedAccessToken = await requestLocalAuthSession(
+        fetchImpl,
+        credentials,
+        localPassword,
+        httpTimeoutMs,
+      );
+    } catch (error) {
+      writeCredentialDiagnostic(writeError, statusDiagnostic);
+      throw error;
+    }
+    maskSecret(authenticatedAccessToken);
+
     await assertPostgresHealthy(execute, container);
     beforeCounts = await readProtectedCounts(execute, container);
 
@@ -375,7 +542,7 @@ export async function runRpcPermissionValidation({
         "Content-Type": "application/json",
       };
       if (testCase.role === "authenticated") {
-        headers.Authorization = `Bearer ${authenticatedJwt}`;
+        headers.Authorization = `Bearer ${authenticatedAccessToken}`;
       }
 
       let response;
@@ -420,9 +587,9 @@ export async function runRpcPermissionValidation({
       failures.push("unexpected-side-effect");
     }
   } finally {
-    credentials.publicKey = "";
-    credentials.jwtSecret = "";
-    authenticatedJwt = "";
+    if (credentials) credentials.publicKey = "";
+    authenticatedAccessToken = "";
+    localPassword = "";
     credentials = null;
   }
 

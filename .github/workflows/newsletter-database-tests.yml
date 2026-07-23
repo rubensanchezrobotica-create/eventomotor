@@ -69,25 +69,8 @@ jobs:
           npm run test:newsletter-r3a1
           npm run prepare:newsletter-db-ci
 
-      - name: Start ephemeral Data API and apply migration
+      - name: Start ephemeral Data API and Auth and apply migration
         run: |
-          node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from "node:fs";
-          import { join } from "node:path";
-
-          const configPath = join(
-            process.env.NEWSLETTER_CI_WORKDIR,
-            "supabase",
-            "config.toml",
-          );
-          const config = readFileSync(configPath, "utf8");
-          const enabled = config.replace(
-            "[api]\nenabled = false",
-            "[api]\nenabled = true",
-          );
-          if (enabled === config) throw new Error("Unable to enable the isolated Data API.");
-          writeFileSync(configPath, enabled, { encoding: "utf8", mode: 0o600 });
-          NODE
           if ! supabase --workdir "$NEWSLETTER_CI_WORKDIR" start > /dev/null 2>&1; then
             echo "The isolated Supabase stack failed to start."
             exit 1

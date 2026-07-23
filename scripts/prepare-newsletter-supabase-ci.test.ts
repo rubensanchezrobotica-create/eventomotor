@@ -19,7 +19,6 @@ import {
   NEWSLETTER_RPC_PERMISSION_CONTAINER,
   NEWSLETTER_RPC_PERMISSION_WORKDIR,
   buildRpcPermissionCases,
-  createAuthenticatedJwt,
   parseLocalStatus,
   runRpcPermissionValidation,
   validateDataApiResponse,
@@ -89,6 +88,14 @@ test("usa un project ID aislado y no contiene enlace o comandos remotos", async 
   ].join("\n");
 
   assert.match(config, new RegExp(`project_id = "${NEWSLETTER_CI_PROJECT_ID}"`));
+  assert.match(config, /\[api\]\s+enabled = true/i);
+  assert.match(config, /\[auth\]\s+enabled = true/i);
+  assert.match(config, /site_url = "http:\/\/127\.0\.0\.1:54321"/i);
+  assert.match(config, /\[auth\.email\][\s\S]+enable_signup = true/i);
+  assert.match(config, /\[auth\.email\][\s\S]+enable_confirmations = false/i);
+  assert.match(config, /\[inbucket\]\s+enabled = false/i);
+  assert.doesNotMatch(config, /\[auth\.external\./i);
+  assert.doesNotMatch(config, /\[auth\.email\.smtp\]/i);
   assert.doesNotMatch(generatedFiles, /project[_-]?ref|supabase\s+(?:link|login)|db\s+push|--linked/i);
 });
 
@@ -236,12 +243,10 @@ const processResult = (overrides: Partial<ProcessResult> = {}): ProcessResult =>
 });
 
 const LOCAL_PUBLIC_KEY = "sb_publishable_local_fixture_key_1234567890";
-const LOCAL_JWT_SECRET = "local-jwt-secret-for-tests-at-least-32-characters";
+const LOCAL_ACCESS_TOKEN = "local-header.local-authenticated-payload.local-signature";
 const LOCAL_STATUS = JSON.stringify({
   API_URL: "http://127.0.0.1:54321",
   PUBLISHABLE_KEY: LOCAL_PUBLIC_KEY,
-  JWT_SECRET: LOCAL_JWT_SECRET,
-  SERVICE_ROLE_KEY: "must-never-be-used",
 });
 const ZERO_COUNTS = {
   newsletter_subscribers: 0,
@@ -253,15 +258,26 @@ const ZERO_COUNTS = {
 function createDataApiHarness({
   responseForCall,
   afterCounts = ZERO_COUNTS,
+  authReachable = true,
+  signupProvidesSession = true,
+  loginProvidesSession = true,
+  authAccessToken = LOCAL_ACCESS_TOKEN,
+  localStatus = LOCAL_STATUS,
 }: {
   responseForCall?: (
     callIndex: number,
     invocation: FetchInvocation,
   ) => Response | Promise<never>;
   afterCounts?: typeof ZERO_COUNTS;
+  authReachable?: boolean;
+  signupProvidesSession?: boolean;
+  loginProvidesSession?: boolean;
+  authAccessToken?: string;
+  localStatus?: string;
 } = {}) {
   const invocations: ProcessInvocation[] = [];
   const fetchInvocations: FetchInvocation[] = [];
+  const rpcInvocations: FetchInvocation[] = [];
   let countCallIndex = 0;
   const execute = async (
     command: string,
@@ -269,7 +285,7 @@ function createDataApiHarness({
     options: ProcessInvocation["options"] = {},
   ) => {
     invocations.push({ command, args, options });
-    if (command === "supabase") return processResult({ stdout: `${LOCAL_STATUS}\n` });
+    if (command === "supabase") return processResult({ stdout: `${localStatus}\n` });
     if (args[0] === "ps") {
       return processResult({ stdout: `${NEWSLETTER_RPC_PERMISSION_CONTAINER}\n` });
     }
@@ -297,7 +313,33 @@ function createDataApiHarness({
       },
     };
     fetchInvocations.push(invocation);
-    const callIndex = fetchInvocations.length - 1;
+    if (invocation.url.endsWith("/auth/v1/health")) {
+      return new Response(JSON.stringify({ name: "GoTrue" }), {
+        status: authReachable ? 200 : 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (invocation.url.endsWith("/auth/v1/signup")) {
+      return new Response(
+        JSON.stringify(
+          signupProvidesSession
+            ? { access_token: authAccessToken, user: { id: "local-fixture" } }
+            : { user: { id: "local-fixture" } },
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (invocation.url.endsWith("/auth/v1/token?grant_type=password")) {
+      return new Response(
+        JSON.stringify(loginProvidesSession ? { access_token: authAccessToken } : {}),
+        {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+    rpcInvocations.push(invocation);
+    const callIndex = rpcInvocations.length - 1;
     if (responseForCall) return responseForCall(callIndex, invocation);
     const authenticated = Boolean(invocation.init.headers?.Authorization);
     return new Response(JSON.stringify({ code: "42501", message: "permission denied" }), {
@@ -306,7 +348,7 @@ function createDataApiHarness({
     });
   };
 
-  return { execute, fetchImpl, invocations, fetchInvocations };
+  return { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations };
 }
 
 test("el validador Data API genera cuatro casos anon y cuatro authenticated con firmas exactas", async () => {
@@ -363,43 +405,80 @@ test("el validador Data API genera cuatro casos anon y cuatro authenticated con 
   ]);
 });
 
-test("genera un JWT authenticated local HS256 de cinco minutos", () => {
-  const token = createAuthenticatedJwt(LOCAL_JWT_SECRET, { now: 1_800_000_000 });
-  const [encodedHeader, encodedPayload, signature] = token.split(".");
-  const header = JSON.parse(Buffer.from(encodedHeader, "base64url").toString("utf8"));
-  const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
-
-  assert.deepEqual(header, { alg: "HS256", typ: "JWT" });
-  assert.equal(payload.role, "authenticated");
-  assert.equal(payload.aud, "authenticated");
-  assert.equal(payload.exp - payload.iat, 300);
-  assert.match(payload.sub, /^[0-9a-f-]{36}$/i);
-  assert.ok(signature.length >= 40);
-});
-
-test("status JSON acepta sólo credenciales locales y no conserva service role", () => {
+test("status JSON acepta aliases auditables y no exige material JWT", () => {
   const parsed = parseLocalStatus(LOCAL_STATUS);
   assert.deepEqual(parsed, {
     apiUrl: "http://127.0.0.1:54321",
     publicKey: LOCAL_PUBLIC_KEY,
-    jwtSecret: LOCAL_JWT_SECRET,
+    propertyNames: ["API_URL", "PUBLISHABLE_KEY"],
   });
-  assert.doesNotMatch(JSON.stringify(parsed), /service_role|must-never-be-used/i);
+  assert.deepEqual(
+    parseLocalStatus(
+      JSON.stringify({
+        SUPABASE_URL: "http://localhost:54321",
+        ANON_KEY: LOCAL_PUBLIC_KEY,
+      }),
+    ),
+    {
+      apiUrl: "http://localhost:54321",
+      publicKey: LOCAL_PUBLIC_KEY,
+      propertyNames: ["ANON_KEY", "SUPABASE_URL"],
+    },
+  );
+  for (const apiAlias of ["API_URL", "api_url", "SUPABASE_URL"]) {
+    const parsedAlias = parseLocalStatus(
+      JSON.stringify({
+        [apiAlias]: "http://127.0.0.1:54321",
+        ANON_KEY: LOCAL_PUBLIC_KEY,
+      }),
+    );
+    assert.equal(parsedAlias.apiUrl, "http://127.0.0.1:54321");
+  }
+  for (const keyAlias of ["ANON_KEY", "anon_key", "PUBLISHABLE_KEY", "publishable_key"]) {
+    const parsedAlias = parseLocalStatus(
+      JSON.stringify({
+        API_URL: "http://127.0.0.1:54321",
+        [keyAlias]: LOCAL_PUBLIC_KEY,
+      }),
+    );
+    assert.equal(parsedAlias.publicKey, LOCAL_PUBLIC_KEY);
+  }
   assert.throws(
     () =>
       parseLocalStatus(
         JSON.stringify({
           API_URL: "https://project-ref.supabase.co",
           PUBLISHABLE_KEY: LOCAL_PUBLIC_KEY,
-          JWT_SECRET: LOCAL_JWT_SECRET,
         }),
       ),
     /not local/i,
   );
+  assert.throws(
+    () => parseLocalStatus(JSON.stringify({ API_URL: "http://127.0.0.1:54321" })),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      const diagnostic = (
+        error as Error & {
+          localStatusDiagnostic?: {
+            propertyNames: string[];
+            apiUrlPresent: boolean;
+            publicKeyPresent: boolean;
+          };
+        }
+      ).localStatusDiagnostic;
+      assert.deepEqual(diagnostic, {
+        propertyNames: ["API_URL"],
+        apiUrlPresent: true,
+        publicKeyPresent: false,
+      });
+      return true;
+    },
+  );
 });
 
 test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async () => {
-  const { execute, fetchImpl, invocations, fetchInvocations } = createDataApiHarness();
+  const { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations } =
+    createDataApiHarness();
   const output: string[] = [];
   const masked: string[] = [];
   await runRpcPermissionValidation({
@@ -408,24 +487,26 @@ test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async ()
     writeOutput: (message: string) => output.push(message),
     writeError: (message: string) => output.push(message),
     maskSecret: (secret: string) => masked.push(secret),
-    now: 1_800_000_000,
   });
 
-  assert.equal(fetchInvocations.length, 8);
+  assert.equal(rpcInvocations.length, 8);
+  assert.equal(fetchInvocations.length, 10);
   assert.equal(
     output.filter((message) => /denied-http-(?:401|403)-sqlstate-42501/.test(message)).length,
     8,
   );
   assert.equal(masked.length, 3);
   assert.ok(masked.includes(LOCAL_PUBLIC_KEY));
-  assert.ok(masked.includes(LOCAL_JWT_SECRET));
-  assert.equal(fetchInvocations.filter(({ init }) => !init.headers?.Authorization).length, 4);
+  assert.ok(masked.includes(LOCAL_ACCESS_TOKEN));
+  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 4);
   assert.equal(
-    fetchInvocations.filter(({ init }) => /^Bearer /.test(init.headers?.Authorization ?? ""))
+    rpcInvocations.filter(
+      ({ init }) => init.headers?.Authorization === `Bearer ${LOCAL_ACCESS_TOKEN}`,
+    )
       .length,
     4,
   );
-  for (const invocation of fetchInvocations) {
+  for (const invocation of rpcInvocations) {
     assert.equal(invocation.init.method, "POST");
     assert.equal(invocation.init.headers?.apikey, LOCAL_PUBLIC_KEY);
     assert.match(invocation.init.headers?.["Content-Type"] ?? "", /^application\/json$/i);
@@ -435,6 +516,18 @@ test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async ()
     );
     assert.doesNotThrow(() => JSON.parse(invocation.init.body ?? ""));
   }
+  const authHealth = fetchInvocations.find(({ url }) => url.endsWith("/auth/v1/health"));
+  assert.equal(authHealth?.init.method, "GET");
+  const signup = fetchInvocations.find(({ url }) => url.endsWith("/auth/v1/signup"));
+  assert.equal(signup?.init.method, "POST");
+  const signupBody = JSON.parse(signup?.init.body ?? "{}");
+  assert.match(signupBody.email, /^rpc-permission-[0-9a-f-]+@example\.invalid$/i);
+  assert.equal(typeof signupBody.password, "string");
+  assert.ok(signupBody.password.length >= 32);
+  assert.equal(
+    fetchInvocations.filter(({ url }) => url.includes("/auth/v1/token?grant_type=password")).length,
+    0,
+  );
 
   const statusCalls = invocations.filter(({ command }) => command === "supabase");
   assert.equal(statusCalls.length, 1);
@@ -454,6 +547,128 @@ test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async ()
     adminSql.filter((sql) => /request_newsletter_subscription|set role/i.test(sql)).length,
     0,
   );
+});
+
+test("usa login local si signup crea usuario sin devolver sesión", async () => {
+  const { execute, fetchImpl, fetchInvocations, rpcInvocations } = createDataApiHarness({
+    signupProvidesSession: false,
+  });
+  const masked: string[] = [];
+  await runRpcPermissionValidation({
+    execute,
+    fetchImpl,
+    writeOutput: () => undefined,
+    writeError: () => undefined,
+    maskSecret: (secret: string) => masked.push(secret),
+  });
+
+  assert.equal(rpcInvocations.length, 8);
+  assert.equal(
+    fetchInvocations.filter(({ url }) => url.endsWith("/auth/v1/signup")).length,
+    1,
+  );
+  assert.equal(
+    fetchInvocations.filter(({ url }) => url.endsWith("/auth/v1/token?grant_type=password")).length,
+    1,
+  );
+  assert.ok(masked.includes(LOCAL_ACCESS_TOKEN));
+});
+
+test("diagnostica propiedades y presencia sin mostrar valores sensibles", async () => {
+  const statusWithoutPublicKey = JSON.stringify({
+    API_URL: "http://127.0.0.1:54321",
+    GRAPHQL_URL: "http://127.0.0.1:54321/graphql/v1",
+  });
+  const { execute, fetchImpl, fetchInvocations } = createDataApiHarness({
+    localStatus: statusWithoutPublicKey,
+  });
+  const errors: string[] = [];
+
+  await assert.rejects(
+    runRpcPermissionValidation({
+      execute,
+      fetchImpl,
+      writeOutput: () => undefined,
+      writeError: (message: string) => errors.push(message),
+      maskSecret: () => undefined,
+    }),
+    /credentials are unavailable/i,
+  );
+
+  assert.equal(fetchInvocations.length, 0);
+  assert.deepEqual(errors, [
+    "local_status_properties=API_URL,GRAPHQL_URL\n",
+    "api_url_present=true\n",
+    "public_key_present=false\n",
+    "auth_service_reachable=false\n",
+  ]);
+  assert.doesNotMatch(errors.join(""), /127\.0\.0\.1|54321|sb_|Bearer|password/i);
+});
+
+test("falla de forma segura si Auth local no está disponible", async () => {
+  const { execute, fetchImpl, fetchInvocations, rpcInvocations } = createDataApiHarness({
+    authReachable: false,
+  });
+  const errors: string[] = [];
+
+  await assert.rejects(
+    runRpcPermissionValidation({
+      execute,
+      fetchImpl,
+      writeOutput: () => undefined,
+      writeError: (message: string) => errors.push(message),
+      maskSecret: () => undefined,
+    }),
+    /local-auth-runtime-failure/i,
+  );
+
+  assert.equal(fetchInvocations.length, 1);
+  assert.equal(rpcInvocations.length, 0);
+  assert.match(errors.join(""), /auth_service_reachable=false/);
+  assert.doesNotMatch(errors.join(""), /127\.0\.0\.1|54321|sb_|Bearer/i);
+});
+
+test("diagnostica Auth alcanzable si no puede obtener una sesión", async () => {
+  const { execute, fetchImpl, rpcInvocations } = createDataApiHarness({
+    signupProvidesSession: false,
+    loginProvidesSession: false,
+  });
+  const errors: string[] = [];
+
+  await assert.rejects(
+    runRpcPermissionValidation({
+      execute,
+      fetchImpl,
+      writeOutput: () => undefined,
+      writeError: (message: string) => errors.push(message),
+      maskSecret: () => undefined,
+    }),
+    /local-auth-session-failure/i,
+  );
+
+  assert.equal(rpcInvocations.length, 0);
+  assert.match(errors.join(""), /api_url_present=true/);
+  assert.match(errors.join(""), /public_key_present=true/);
+  assert.match(errors.join(""), /auth_service_reachable=true/);
+  assert.doesNotMatch(errors.join(""), /127\.0\.0\.1|54321|sb_|Bearer|password/i);
+});
+
+test("no acepta la clave pública como access token de usuario", async () => {
+  const { execute, fetchImpl, rpcInvocations } = createDataApiHarness({
+    authAccessToken: LOCAL_PUBLIC_KEY,
+  });
+
+  await assert.rejects(
+    runRpcPermissionValidation({
+      execute,
+      fetchImpl,
+      writeOutput: () => undefined,
+      writeError: () => undefined,
+      maskSecret: () => undefined,
+    }),
+    /local-auth-session-failure/i,
+  );
+  assert.equal(rpcInvocations.length, 0);
 });
 
 test("rechaza 2xx, otros 4xx, PGRST, 5xx y JSON inválido", async () => {
@@ -497,7 +712,7 @@ test("rechaza 2xx, otros 4xx, PGRST, 5xx y JSON inválido", async () => {
 });
 
 test("una desconexión se clasifica como runtime failure y no reintenta", async () => {
-  const { execute, fetchImpl, fetchInvocations } = createDataApiHarness({
+  const { execute, fetchImpl, rpcInvocations } = createDataApiHarness({
     responseForCall: async () => Promise.reject(new Error("connection reset")),
   });
   const errors: string[] = [];
@@ -513,7 +728,7 @@ test("una desconexión se clasifica como runtime failure y no reintenta", async 
     /Data API permission validation failed/i,
   );
 
-  assert.equal(fetchInvocations.length, 1);
+  assert.equal(rpcInvocations.length, 1);
   assert.equal(errors.filter((message) => message.includes("data-api-runtime-failure")).length, 1);
 });
 
@@ -543,17 +758,20 @@ test("el validador externo no contiene rutas remotas, secrets ni salida sensible
   assert.match(source, /eventomotor-newsletter-ci/);
   assert.match(source, /name=\^\/\$\{NEWSLETTER_RPC_PERMISSION_CONTAINER\}\$/);
   assert.match(source, /"status", "-o", "json"/);
+  assert.match(source, /\/auth\/v1\/health/);
+  assert.match(source, /\/auth\/v1\/signup/);
+  assert.match(source, /\/auth\/v1\/token\?grant_type=password/);
   assert.match(source, /\/rest\/v1\/rpc\/\$\{testCase\.rpcName\}/);
   assert.match(source, /::add-mask::\$\{secret\}/);
   assert.match(source, /pg_is_in_recovery/);
   assert.match(source, /json_build_object/);
   assert.doesNotMatch(
     source,
-    /throws_ok|set\s+role|buildPsqlInput|\.env\.local|project[_-]?ref|supabase\s+(?:link|login)|db\s+push|--linked|status[^\n]+-o[^\n]+env|process\.env|docker\s+logs|inspect[^\n]+Env|SERVICE_ROLE_KEY|service_role/i,
+    /throws_ok|set\s+role|buildPsqlInput|\.env\.local|project[_-]?ref|supabase\s+(?:link|login)|db\s+push|--linked|status[^\n]+-o[^\n]+env|process\.env|docker\s+logs|inspect[^\n]+Env|SERVICE_ROLE_KEY|service_role|JWT_SECRET|jwt_secret|createHmac|HS256/i,
   );
   assert.doesNotMatch(
     source,
-    /write(?:Output|Error)\([^\n]*(?:credentials|authenticatedJwt|testCase\.body|result\.(?:stderr|stdout)|response\.body)/i,
+    /write(?:Output|Error)\([^\n]*(?:credentials|authenticatedAccessToken|localPassword|testCase\.body|result\.(?:stderr|stdout)|response\.body)/i,
   );
 });
 
@@ -569,11 +787,10 @@ test("el workflow es read-only, efímero y no contiene rutas remotas", async () 
   assert.match(workflow, /docker ps -aq --filter "name=\^\/\$\{postgres_container_name\}\$"/);
   assert.match(workflow, /docker inspect --format[\s\S]+?ExitCode=[\s\S]+?OOMKilled=[\s\S]+?Health=/);
   assert.match(workflow, /docker logs --tail 300 --timestamps/);
-  assert.match(workflow, /"\[api\]\\nenabled = false"[\s\S]+"\[api\]\\nenabled = true"/);
   assert.match(workflow, /supabase --workdir "\$NEWSLETTER_CI_WORKDIR" start > \/dev\/null 2>&1/);
   const orderedSteps = [
     "Test and prepare isolated workspace",
-    "Start ephemeral Data API and apply migration",
+    "Start ephemeral Data API and Auth and apply migration",
     "Run pgTAP database tests",
     "Run real concurrency tests",
     "Lint isolated newsletter schema",
