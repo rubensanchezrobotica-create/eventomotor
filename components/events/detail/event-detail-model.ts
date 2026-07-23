@@ -18,6 +18,8 @@ export type EventDetailRelated = {
 
 export type EventTitleLength = "short" | "medium" | "long" | "extraLong";
 
+export type EventStatusStyle = "confirmed" | "cancelled" | "postponed" | "default";
+
 export type PracticalGridVariant = "one" | "two" | "three" | "four" | "five" | "six";
 
 export type StructuredDescriptionBlock = {
@@ -228,6 +230,15 @@ export function eventLocationLabel(event: EventItem) {
 
 export function eventStatusLabel(event: EventItem) {
   return EVENT_STATUS_LABELS[cleanText(event.eventStatus)] || "";
+}
+
+export function getEventStatusStyle(status: string | null | undefined): EventStatusStyle {
+  const normalizedStatus = cleanText(status).toLowerCase();
+
+  if (normalizedStatus === "confirmed") return "confirmed";
+  if (normalizedStatus === "cancelled") return "cancelled";
+  if (normalizedStatus === "postponed") return "postponed";
+  return "default";
 }
 
 export function formatVerifiedAt(value: string | null | undefined) {

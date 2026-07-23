@@ -77,10 +77,37 @@
   margin-bottom: 16px;
 }
 
-.statusChip {
-  border-color: rgba(74, 222, 128, 0.42) !important;
-  background: rgba(34, 197, 94, 0.13) !important;
-  color: #dcfce7 !important;
+.statusChip.statusConfirmed,
+.statusChip.statusCancelled,
+.statusChip.statusPostponed,
+.statusChip.statusDefault {
+  border-color: var(--event-status-border) !important;
+  background: var(--event-status-background) !important;
+  color: var(--event-status-text) !important;
+}
+
+.statusConfirmed {
+  --event-status-text: #dcfce7;
+  --event-status-background: rgba(34, 197, 94, 0.13);
+  --event-status-border: rgba(74, 222, 128, 0.42);
+}
+
+.statusCancelled {
+  --event-status-text: #fecaca;
+  --event-status-background: rgba(127, 29, 29, 0.4);
+  --event-status-border: rgba(239, 68, 68, 0.6);
+}
+
+.statusPostponed {
+  --event-status-text: #fde68a;
+  --event-status-background: rgba(120, 53, 15, 0.36);
+  --event-status-border: rgba(245, 158, 11, 0.55);
+}
+
+.statusDefault {
+  --event-status-text: #dbe2ec;
+  --event-status-background: rgba(100, 116, 139, 0.2);
+  --event-status-border: rgba(148, 163, 184, 0.42);
 }
 
 .date {
@@ -299,6 +326,10 @@
 .summaryCard dd {
   font-size: 12.5px;
   text-align: right;
+}
+
+.summaryCard dd.statusValue {
+  color: var(--event-status-text);
 }
 
 .contentSection,

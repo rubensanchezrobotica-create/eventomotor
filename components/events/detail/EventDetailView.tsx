@@ -24,6 +24,7 @@ import {
   formatVerifiedAt,
   getAboutText,
   getEventPrimaryAction,
+  getEventStatusStyle,
   getHeroSummary,
   getPracticalGridVariant,
   getPracticalItems,
@@ -59,6 +60,13 @@ const TITLE_CLASS_NAMES = {
   medium: styles.titleMedium,
   long: styles.titleLong,
   extraLong: styles.titleExtraLong,
+};
+
+const EVENT_STATUS_CLASS_NAMES = {
+  confirmed: styles.statusConfirmed,
+  cancelled: styles.statusCancelled,
+  postponed: styles.statusPostponed,
+  default: styles.statusDefault,
 };
 
 const PRACTICAL_GRID_CLASS_NAMES = {
@@ -135,6 +143,7 @@ export default function EventDetailView({
   const fallbackImage = isFallbackEventImage(eventImage);
   const color = getDisciplineColor(event.discipline);
   const status = eventStatusLabel(event);
+  const statusClassName = EVENT_STATUS_CLASS_NAMES[getEventStatusStyle(event.eventStatus)];
   const heroSummary = getHeroSummary(event);
   const aboutText = getAboutText(event);
   const primaryAction = getEventPrimaryAction(event);
@@ -201,7 +210,7 @@ export default function EventDetailView({
                   >
                     {event.discipline}
                   </span>
-                  {status ? <span className={`${styles.statusChip} emc-badge`}>{status}</span> : null}
+                  {status ? <span className={`${styles.statusChip} ${statusClassName} emc-badge`}>{status}</span> : null}
                 </div>
 
                 <time className={styles.date} dateTime={event.start}>{formatEventDate(event)}</time>
@@ -261,7 +270,9 @@ export default function EventDetailView({
                     {summaryItems.map((item) => (
                       <div key={item.label}>
                         <dt>{item.label}</dt>
-                        <dd>{item.value}</dd>
+                        <dd className={item.label === "Estado" ? `${styles.statusValue} ${statusClassName}` : undefined}>
+                          {item.value}
+                        </dd>
                       </div>
                     ))}
                   </dl>

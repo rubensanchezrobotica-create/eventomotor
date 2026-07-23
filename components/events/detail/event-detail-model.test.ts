@@ -10,6 +10,7 @@ import {
   classifyEventTitleLength,
   getAboutText,
   getEventPrimaryAction,
+  getEventStatusStyle,
   getPracticalGridVariant,
   getPracticalItems,
   getUsefulTags,
@@ -25,6 +26,15 @@ test("clasifica los títulos sin depender de eventos o viewports concretos", () 
     classifyEventTitleLength("Campeonato de España de Freestyle - Puerto de Santa María"),
     "extraLong",
   );
+});
+
+test("asigna un tono semántico al valor real del estado del evento", () => {
+  assert.equal(getEventStatusStyle("confirmed"), "confirmed");
+  assert.equal(getEventStatusStyle("cancelled"), "cancelled");
+  assert.equal(getEventStatusStyle("postponed"), "postponed");
+  assert.equal(getEventStatusStyle("tentative"), "default");
+  assert.equal(getEventStatusStyle("Cancelado"), "default");
+  assert.equal(getEventStatusStyle(undefined), "default");
 });
 
 function eventFixture(overrides: Partial<EventItem> = {}): EventItem {
