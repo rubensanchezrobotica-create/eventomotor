@@ -1,7 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { getVehicleType, VEHICLE_TYPE_OPTIONS, type VehicleType } from "@/lib/event-classification";
+import {
+  EventUpdateConflictError,
+  updateExistingEvent,
+} from "@/lib/event-updates";
 import { createEventSlug } from "@/lib/slug";
-import type { EventRow } from "@/lib/supabase";
+import type { EventRow, EventUpsert } from "@/lib/supabase";
 
 type AdminEvent = Pick<
   EventRow,
@@ -45,10 +49,11 @@ type AdminEvent = Pick<
   | "import_method"
   | "data_quality"
   | "notes"
+  | "updated_at"
 >;
 
 const ADMIN_EVENT_SELECT =
-  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,country,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,official_url,registration_url,image_url,image_source_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,country,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,official_url,registration_url,image_url,image_source_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes,updated_at";
 
 const DATA_QUALITY_OPTIONS = ["needs_review", "draft", "reviewed", "published", "cancelled", "pending_date"];
 const EVENT_STATUS_OPTIONS = ["confirmed", "tentative", "postponed", "cancelled"];
@@ -292,8 +297,40 @@ function parseAdminEventBody(value: unknown) {
     import_method: optionalString(value, "importMethod"),
     data_quality: parseDataQuality(value.dataQuality),
     notes: optionalString(value, "notes"),
-    updated_at: new Date().toISOString(),
   };
+}
+
+async function updateAdminEvent(
+  supabase: ReturnType<typeof createAdminClient>,
+  id: string,
+  changes: Record<string, unknown>,
+) {
+  return updateExistingEvent<EventRow>({
+    id,
+    changes,
+    repository: {
+      async readUpdatedAt(eventId) {
+        const { data, error } = await supabase
+          .from("events")
+          .select("updated_at")
+          .eq("id", eventId)
+          .maybeSingle();
+        if (error) throw error;
+        return data?.updated_at || null;
+      },
+      async updateByIdAndUpdatedAt(eventId, expectedUpdatedAt, update) {
+        const { data, error } = await supabase
+          .from("events")
+          .update(update as Partial<EventUpsert>)
+          .eq("id", eventId)
+          .eq("updated_at", expectedUpdatedAt)
+          .select(ADMIN_EVENT_SELECT)
+          .maybeSingle();
+        if (error) throw error;
+        return data as EventRow | null;
+      },
+    },
+  });
 }
 
 export async function GET(request: Request) {
@@ -334,7 +371,7 @@ export async function POST(request: Request) {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("events")
-      .insert(payload)
+      .insert({ ...payload, updated_at: new Date().toISOString() })
       .select(ADMIN_EVENT_SELECT)
       .single();
 
@@ -360,22 +397,14 @@ export async function PUT(request: Request) {
   try {
     const payload = parseAdminEventBody(await request.json());
     const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("events")
-      .update(payload)
-      .eq("id", payload.id)
-      .select(ADMIN_EVENT_SELECT)
-      .single();
+    const { updated } = await updateAdminEvent(supabase, payload.id, payload);
 
-    if (error) {
-      return jsonError(error.message, 500);
-    }
-
-    return Response.json({ ok: true, event: data as AdminEvent });
+    return Response.json({ ok: true, event: updated as AdminEvent });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const status = error instanceof EventUpdateConflictError ? 409 : 400;
 
-    return jsonError(message, 400);
+    return jsonError(message, status);
   }
 }
 
@@ -401,9 +430,7 @@ export async function PATCH(request: Request) {
       return jsonError("Missing event id.", 400);
     }
 
-    const update: Partial<Pick<EventRow, "featured" | "visible" | "data_quality" | "vehicle_type" | "notes" | "updated_at">> = {
-      updated_at: new Date().toISOString(),
-    };
+    const update: Partial<Pick<EventRow, "featured" | "visible" | "data_quality" | "vehicle_type" | "notes">> = {};
 
     if ("featured" in body) {
       if (typeof body.featured !== "boolean") {
@@ -458,21 +485,13 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("events")
-      .update(update)
-      .eq("id", body.id)
-      .select(ADMIN_EVENT_SELECT)
-      .single();
+    const { updated } = await updateAdminEvent(supabase, body.id.trim(), update);
 
-    if (error) {
-      return jsonError(error.message, 500);
-    }
-
-    return Response.json({ ok: true, event: data as AdminEvent });
+    return Response.json({ ok: true, event: updated as AdminEvent });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const status = error instanceof EventUpdateConflictError ? 409 : 500;
 
-    return jsonError(message, 500);
+    return jsonError(message, status);
   }
 }

@@ -1,8 +1,9 @@
 import type { EventItem } from "@/types/event";
+import { sanitizePublicEditorialText } from "@/lib/published-request-event";
 
 export type EventPrimaryAction = {
   href: string;
-  label: "Inscribirse" | "Comprar entradas" | "Fuente oficial";
+  label: "Inscribirse" | "Inscribirse por WhatsApp" | "Comprar entradas" | "Fuente oficial";
   type: "registration" | "ticket" | "official";
 };
 
@@ -259,7 +260,11 @@ export function getEventPrimaryAction(event: EventItem): EventPrimaryAction | nu
   const officialUrl = cleanText(event.officialUrl) || cleanText(event.sourceUrl);
 
   if (registrationUrl && (!ticketUrl || registrationUrl !== ticketUrl)) {
-    return { href: registrationUrl, label: "Inscribirse", type: "registration" };
+    return {
+      href: registrationUrl,
+      label: /^https:\/\/(?:www\.)?wa\.me\//i.test(registrationUrl) ? "Inscribirse por WhatsApp" : "Inscribirse",
+      type: "registration",
+    };
   }
 
   if (ticketUrl) {
@@ -267,7 +272,11 @@ export function getEventPrimaryAction(event: EventItem): EventPrimaryAction | nu
   }
 
   if (registrationUrl) {
-    return { href: registrationUrl, label: "Inscribirse", type: "registration" };
+    return {
+      href: registrationUrl,
+      label: /^https:\/\/(?:www\.)?wa\.me\//i.test(registrationUrl) ? "Inscribirse por WhatsApp" : "Inscribirse",
+      type: "registration",
+    };
   }
 
   return officialUrl ? { href: officialUrl, label: "Fuente oficial", type: "official" } : null;
@@ -278,13 +287,13 @@ export function getHeroSummary(event: EventItem) {
 }
 
 export function getAboutText(event: EventItem) {
-  const longDescription = cleanText(event.longDescription);
+  const longDescription = sanitizePublicEditorialText(event.longDescription);
   if (longDescription) return longDescription;
 
   const shortDescription = cleanText(event.shortDescription);
   if (shortDescription) return "";
 
-  const notes = cleanText(event.notes);
+  const notes = sanitizePublicEditorialText(event.notes);
   const normalizedNotes = normalizeText(notes);
   const isAdministrativeNote = normalizedNotes.includes("importado para revision editorial")
     || normalizedNotes.includes("verificar ubicacion exacta");

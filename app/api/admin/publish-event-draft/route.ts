@@ -1,30 +1,16 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { getVehicleType, VEHICLE_TYPE_OPTIONS, type VehicleType } from "@/lib/event-classification";
+import {
+  normalizeRegistrationUrl,
+  normalizeTicketUrl,
+  parseHttpUrl,
+  publicationDraftToEvent,
+  textValue,
+  type PublicationDraft,
+} from "@/lib/published-request-event";
 import type { EventRow, EventUpsert } from "@/lib/supabase";
 
-type DraftInput = {
-  title?: unknown;
-  slug?: unknown;
-  description?: unknown;
-  startDate?: unknown;
-  endDate?: unknown;
-  city?: unknown;
-  province?: unknown;
-  region?: unknown;
-  venue?: unknown;
-  discipline?: unknown;
-  category?: unknown;
-  vehicleType?: unknown;
-  organizer?: unknown;
-  sourceUrl?: unknown;
-  ticketUrl?: unknown;
-  registrationUrl?: unknown;
-  posterUrl?: unknown;
-  contactEmail?: unknown;
-  contactPhone?: unknown;
-  priceText?: unknown;
-  sourceSubmissionId?: unknown;
-};
+type DraftInput = PublicationDraft;
 
 type PublishPayload = {
   draft?: DraftInput;
@@ -45,7 +31,7 @@ type PossibleDuplicate = {
 
 const EVENT_SELECT = "id,slug,title,start_date,end_date,city,province,visible";
 const CREATED_EVENT_SELECT =
-  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,level,source,source_url,ticket_url,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,country,level,source,source_url,ticket_url,official_url,registration_url,image_url,image_source_url,event_status,long_description,organizer_name,organizer_url,source_type,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
 const SUBMISSION_IMPORTED_STATUS = "imported";
 
 function jsonError(message: string, status: number, extra?: Record<string, unknown>) {
@@ -74,22 +60,8 @@ function validateAdminSecret(request: Request) {
   return { ok: true as const };
 }
 
-function textValue(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function optionalText(value: unknown) {
-  const text = textValue(value);
-  return text || null;
-}
-
 function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return Boolean(parseHttpUrl(value));
 }
 
 function parseDate(value: string) {
@@ -180,19 +152,6 @@ function parseVehicleType(draft: DraftInput) {
   });
 }
 
-function buildNotes(draft: DraftInput) {
-  return [
-    textValue(draft.description) ? `Descripción: ${textValue(draft.description)}` : "",
-    textValue(draft.priceText) ? `Precio: ${textValue(draft.priceText)}` : "",
-    textValue(draft.posterUrl) ? `Cartel/imagen: ${textValue(draft.posterUrl)}` : "",
-    textValue(draft.contactEmail) ? `Email contacto: ${textValue(draft.contactEmail)}` : "",
-    textValue(draft.contactPhone) ? `Teléfono contacto: ${textValue(draft.contactPhone)}` : "",
-    textValue(draft.sourceSubmissionId) ? `Solicitud origen: ${textValue(draft.sourceSubmissionId)}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
 function validateCriticalDraft(draft: DraftInput) {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -203,7 +162,8 @@ function validateCriticalDraft(draft: DraftInput) {
   const city = textValue(draft.city);
   const province = textValue(draft.province);
   const sourceUrl = textValue(draft.sourceUrl);
-  const ticketUrl = textValue(draft.ticketUrl) || textValue(draft.registrationUrl);
+  const ticketUrl = textValue(draft.ticketUrl);
+  const registrationUrl = textValue(draft.registrationUrl);
 
   if (!title) errors.push("Falta el título del evento.");
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) errors.push("El slug falta o tiene formato no válido.");
@@ -215,50 +175,16 @@ function validateCriticalDraft(draft: DraftInput) {
   if (!city) errors.push("Falta ciudad.");
   if (!province) errors.push("Falta provincia.");
   if (!sourceUrl || !isHttpUrl(sourceUrl)) errors.push("La fuente oficial es obligatoria y debe usar http:// o https://.");
-  if (ticketUrl && !isHttpUrl(ticketUrl)) warnings.push("La URL de entradas debe usar http:// o https://.");
-  if (!textValue(draft.priceText)) warnings.push("No se ha informado precio.");
+  if (ticketUrl && !normalizeTicketUrl(ticketUrl)) warnings.push("La URL de entradas debe ser una URL HTTP/HTTPS real y no puede ser un teléfono.");
+  if (registrationUrl && !normalizeRegistrationUrl(registrationUrl)) warnings.push("La URL de inscripción no es válida.");
 
   return { errors, warnings };
 }
 
 function draftToEventUpsert(draft: DraftInput): EventUpsert {
-  const title = textValue(draft.title);
-  const slug = textValue(draft.slug);
-  const startDate = textValue(draft.startDate);
-  const endDate = textValue(draft.endDate) || startDate;
-  const category = textValue(draft.category);
-  const discipline = textValue(draft.discipline) || category || "Motor";
-  const city = textValue(draft.city);
-  const province = textValue(draft.province);
-  const organizer = textValue(draft.organizer);
-  const sourceUrl = textValue(draft.sourceUrl);
-  const ticketUrl = textValue(draft.ticketUrl) || textValue(draft.registrationUrl);
-  const tags = [discipline, category, city, province].filter((tag, index, list) => tag && list.indexOf(tag) === index);
-
   return {
-    id: `admin-${slug}`,
-    slug,
-    title,
-    championship: organizer || title,
-    discipline,
-    start_date: startDate,
-    end_date: endDate,
-    venue: optionalText(draft.venue) || "",
-    city,
-    province,
-    region: optionalText(draft.region) || province,
-    level: "Publicado",
-    source: organizer || "Solicitud de organizador",
-    source_url: sourceUrl,
-    ticket_url: ticketUrl || "",
-    tags,
+    ...publicationDraftToEvent(draft),
     vehicle_type: parseVehicleType(draft),
-    featured: false,
-    visible: true,
-    import_method: "admin-event-submission",
-    data_quality: "published",
-    notes: buildNotes(draft),
-    updated_at: new Date().toISOString(),
   };
 }
 

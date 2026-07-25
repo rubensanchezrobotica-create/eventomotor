@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { normalizeSubmissionTicketInput } from "@/lib/published-request-event";
 import type { EventSubmissionInsert } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -206,7 +207,8 @@ export async function POST(request: Request) {
 
   const eventName = stringField(body, "event_name", 180);
   const sourceUrl = normalizeUrlInput(stringField(body, "source_url", 600));
-  const ticketUrl = normalizeUrlInput(stringField(body, "ticket_url", 600));
+  const rawTicketUrl = stringField(body, "ticket_url", 600);
+  const ticketUrl = normalizeSubmissionTicketInput(rawTicketUrl) || "";
   const posterUrl = normalizeUrlInput(stringField(body, "poster_url", 600));
   const contactEmail = stringField(body, "contact_email", 220);
   const startDate = stringField(body, "start_date", 10);
@@ -218,6 +220,7 @@ export async function POST(request: Request) {
   if (!contactEmail) fields.contact_email = "Indica un email de contacto.";
   if (contactEmail && !isValidEmail(contactEmail)) fields.contact_email = "El email no parece válido.";
   if (sourceUrl && !isValidUrl(sourceUrl)) fields.source_url = "La fuente debe ser una URL válida.";
+  if (rawTicketUrl && !ticketUrl) fields.ticket_url = "El enlace de entradas o inscripción no es válido.";
   if (!isValidDate(startDate)) fields.start_date = "La fecha de inicio debe usar un formato válido.";
   if (!isValidDate(endDate)) fields.end_date = "La fecha de fin debe usar un formato válido.";
   if (startDate && endDate && endDate < startDate) fields.end_date = "La fecha de fin no puede ser anterior al inicio.";

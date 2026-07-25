@@ -1,4 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
+import {
+  normalizeRegistrationUrl,
+  normalizeTicketUrl,
+  parseHttpUrl,
+} from "@/lib/published-request-event";
 import type { EventRow } from "@/lib/supabase";
 
 type DraftInput = {
@@ -66,12 +71,7 @@ function textValue(value: unknown) {
 }
 
 function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return Boolean(parseHttpUrl(value));
 }
 
 function parseDate(value: string) {
@@ -201,7 +201,8 @@ export async function POST(request: Request) {
     const city = textValue(draft.city);
     const province = textValue(draft.province);
     const sourceUrl = textValue(draft.sourceUrl);
-    const ticketUrl = textValue(draft.ticketUrl) || textValue(draft.registrationUrl);
+    const ticketUrl = textValue(draft.ticketUrl);
+    const registrationUrl = textValue(draft.registrationUrl);
 
     if (title) addCheck(checks, "ok", "Título", "Título informado.");
     else {
@@ -264,15 +265,17 @@ export async function POST(request: Request) {
       }
     }
 
-    if (ticketUrl && isHttpUrl(ticketUrl)) addCheck(checks, "ok", "Entradas / inscripción", "URL de entradas con formato correcto.");
+    if (ticketUrl && normalizeTicketUrl(ticketUrl)) addCheck(checks, "ok", "Entradas", "URL de entradas con formato correcto.");
     else if (ticketUrl) {
-      addCheck(checks, "warning", "Entradas / inscripción", "La URL de entradas debe usar http:// o https://.");
-      warnings.push("La URL de entradas debe usar http:// o https://.");
+      addCheck(checks, "warning", "Entradas", "La URL de entradas debe ser una URL HTTP/HTTPS real y no puede ser un teléfono.");
+      warnings.push("La URL de entradas no es válida.");
     }
 
-    if (!textValue((draft as { priceText?: unknown }).priceText)) {
-      addCheck(checks, "warning", "Precio", "No se ha informado precio.");
-      warnings.push("No se ha informado precio.");
+    if (registrationUrl && normalizeRegistrationUrl(registrationUrl)) {
+      addCheck(checks, "ok", "Inscripción", "URL de inscripción con formato correcto.");
+    } else if (registrationUrl) {
+      addCheck(checks, "warning", "Inscripción", "La URL de inscripción no es válida.");
+      warnings.push("La URL de inscripción no es válida.");
     }
 
     const supabase = createSupabaseServerClient();

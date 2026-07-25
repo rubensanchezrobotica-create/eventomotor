@@ -188,19 +188,6 @@ export function getEventImage(event: EventImageInput): string {
 
   if (
     includesAny(text, [
-      "concentración",
-      "concentracion",
-      "motoalmuerzo",
-      "custom",
-      "bikers",
-      "festival motero",
-    ])
-  ) {
-    return FALLBACK_IMAGES.concentracion;
-  }
-
-  if (
-    includesAny(text, [
       "feria",
       "salón",
       "salon",
@@ -261,6 +248,19 @@ export function getEventImage(event: EventImageInput): string {
     ])
   ) {
     return FALLBACK_IMAGES.clasicos;
+  }
+
+  if (
+    includesAny(text, [
+      "concentración",
+      "concentracion",
+      "motoalmuerzo",
+      "custom",
+      "bikers",
+      "festival motero",
+    ])
+  ) {
+    return FALLBACK_IMAGES.concentracion;
   }
 
   if (includesAny(text, ["kart", "karting"])) {

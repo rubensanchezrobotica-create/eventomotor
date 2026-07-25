@@ -25,6 +25,7 @@
     "research:export-future-events": "tsx scripts/export-future-events-for-enrichment.ts",
     "research:consolidate-enrichment": "tsx scripts/consolidate-event-enrichment-proposals.ts",
     "research:apply-enrichment": "tsx scripts/apply-event-enrichment-patch.ts",
+    "fix:published-request-event": "tsx scripts/fix-published-request-event.ts",
     "import:events-batch": "tsx scripts/import-events-batch.ts",
     "test:events-dedupe": "tsx --test scripts/import-events-batch.test.ts",
     "correct:events": "tsx scripts/apply-event-corrections.ts",
