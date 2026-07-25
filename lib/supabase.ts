@@ -245,7 +245,7 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     sourceUrl,
     officialUrl: row.official_url || sourceUrl,
     ticketUrl,
-    registrationUrl: row.registration_url || ticketUrl,
+    registrationUrl: row.registration_url || "",
     imageUrl: row.image_url || "",
     image_url: row.image_url || "",
     imageSourceUrl: row.image_source_url || "",

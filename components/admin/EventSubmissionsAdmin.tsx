@@ -3,6 +3,10 @@
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  normalizeRegistrationUrl,
+  normalizeTicketUrl,
+} from "@/lib/published-request-event";
 
 type AdminSubmission = {
   id: string;
@@ -52,9 +56,6 @@ type EventDraft = {
   ticketUrl: string | null;
   registrationUrl: string | null;
   posterUrl: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  priceText: string | null;
   status: "draft" | "pending_review";
   sourceSubmissionId: string;
 };
@@ -205,10 +206,6 @@ function formatDateRange(submission: AdminSubmission) {
   return `${formatDate(submission.start_date)} - ${formatDate(submission.end_date)}`;
 }
 
-function place(submission: AdminSubmission) {
-  return [submission.city, submission.province].filter(Boolean).join(", ") || "Ubicación pendiente";
-}
-
 function statusLabel(status: string) {
   return STATUS_LABELS[status] || status || "pending";
 }
@@ -269,15 +266,6 @@ function inferCategory(submission: AdminSubmission) {
   return cleanValue(submission.discipline);
 }
 
-function extractPriceText(submission: AdminSubmission) {
-  const text = submission.description || "";
-  const lines = text
-    .split(/\r?\n|\. /)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  return lines.find((line) => /(\d+\s?€|euro|precio|inscripci[oó]n)/i.test(line)) || null;
-}
-
 function draftWarnings(submission: AdminSubmission) {
   const warnings: string[] = [];
 
@@ -291,6 +279,10 @@ function draftWarnings(submission: AdminSubmission) {
 
 function buildDraftPreview(submission: AdminSubmission): DraftPreview {
   const warnings = draftWarnings(submission);
+  const ticketUrl = normalizeTicketUrl(submission.ticket_url);
+  const registrationUrl = ticketUrl
+    ? null
+    : normalizeRegistrationUrl(submission.ticket_url);
   const draft: EventDraft = {
     title: cleanValue(submission.event_name) || "",
     slug: createDraftSlug(submission),
@@ -306,12 +298,9 @@ function buildDraftPreview(submission: AdminSubmission): DraftPreview {
     vehicleType: cleanValue(submission.vehicle_type),
     organizer: cleanValue(submission.organizer_name),
     sourceUrl: cleanValue(submission.source_url),
-    ticketUrl: cleanValue(submission.ticket_url),
-    registrationUrl: cleanValue(submission.ticket_url),
+    ticketUrl,
+    registrationUrl,
     posterUrl: cleanValue(submission.poster_url),
-    contactEmail: cleanValue(submission.contact_email),
-    contactPhone: cleanValue(submission.contact_phone),
-    priceText: extractPriceText(submission),
     status: warnings.length ? "pending_review" : "draft",
     sourceSubmissionId: submission.id,
   };

@@ -104,6 +104,10 @@ test("la acción principal respeta registro, entradas y fuente oficial", () => {
     { href: "https://example.com/registro", label: "Inscribirse", type: "registration" },
   );
   assert.deepEqual(
+    getEventPrimaryAction(eventFixture({ registrationUrl: "https://wa.me/34611636103" })),
+    { href: "https://wa.me/34611636103", label: "Inscribirse por WhatsApp", type: "registration" },
+  );
+  assert.deepEqual(
     getEventPrimaryAction(eventFixture({
       registrationUrl: "https://example.com/entrada",
       ticketUrl: "https://example.com/entrada",
@@ -180,6 +184,22 @@ test("las notas administrativas no sustituyen contenido editorial ausente", () =
   });
 
   assert.equal(getAboutText(event), "");
+});
+
+test("los metadatos internos nunca forman parte del texto público ni crean un bloque Precio falso", () => {
+  const about = getAboutText(eventFixture({
+    notes: [
+      "Descripción: Texto editorial suficientemente largo para poder mostrarse como contenido público legítimo del evento.",
+      "Cartel/imagen: https://www.instagram.com/clasicosbara/",
+      "Email contacto: privado@example.com",
+      "Teléfono contacto: +34611636103",
+      "Solicitud origen: b008383e-d4d0-4bfe-a613-894057664286",
+    ].join("\n"),
+  }));
+
+  assert.match(about, /Texto editorial/);
+  assert.doesNotMatch(about, /Cartel\/imagen|Email contacto|Teléfono contacto|Solicitud origen|b008383e/);
+  assert.equal(parseStructuredDescription(about)?.blocks.some((block) => block.label === "Precio"), false);
 });
 
 test("los relacionados se unifican, excluyen el actual y no contienen duplicados", () => {
