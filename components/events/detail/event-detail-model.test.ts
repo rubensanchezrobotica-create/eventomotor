@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
+import { mapEventRowToEventItem, type EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedEventDetails,
@@ -11,8 +13,10 @@ import {
   getAboutText,
   getEventPrimaryAction,
   getEventStatusStyle,
+  getOfficialSource,
   getPracticalGridVariant,
   getPracticalItems,
+  getSummaryItems,
   getUsefulTags,
   isFallbackEventImage,
   parseStructuredDescription,
@@ -117,6 +121,164 @@ test("la acción principal respeta registro, entradas y fuente oficial", () => {
   assert.deepEqual(
     getEventPrimaryAction(eventFixture()),
     { href: "https://example.com/oficial", label: "Fuente oficial", type: "official" },
+  );
+});
+
+test("Barañáin muestra estado, disciplina y una fuente oficial pública, nunca source_type", () => {
+  const event = eventFixture({
+    title: "II Concentración de Coches Clásicos Baifest Barañáin 2026",
+    discipline: "Clásicos",
+    eventStatus: "confirmed",
+    organizerName: "Clásicos Barañáin",
+    organizerUrl: "https://www.instagram.com/clasicosbara/",
+    officialUrl: "https://www.instagram.com/clasicosbara/",
+    source: "Clásicos Barañáin",
+    sourceType: "organizer",
+    sourceUrl: "https://www.instagram.com/clasicosbara/",
+    registrationUrl: "https://wa.me/34611636103",
+  });
+
+  assert.deepEqual(getSummaryItems(event), [
+    { label: "Estado", value: "Confirmado" },
+    { label: "Disciplina", value: "Clásicos" },
+  ]);
+  assert.deepEqual(getOfficialSource(event), {
+    href: "https://www.instagram.com/clasicosbara/",
+    label: "Clásicos Barañáin",
+  });
+  assert.equal(
+    getSummaryItems(event).some(({ label, value }) => (
+      label === "Tipo de evento"
+      || label === "Tipo de fuente"
+      || value === "Organizador"
+    )),
+    false,
+  );
+  assert.equal(getEventPrimaryAction(event)?.label, "Inscribirse por WhatsApp");
+});
+
+test("la fuente oficial respeta la prioridad de URL y texto", () => {
+  const base = eventFixture({
+    officialUrl: "https://official.example/evento",
+    organizerUrl: "https://organizer.example/evento",
+    sourceUrl: "https://source.example/evento",
+    organizerName: "Club oficial",
+    source: "Fuente secundaria",
+  });
+
+  assert.deepEqual(getOfficialSource(base), {
+    href: "https://official.example/evento",
+    label: "Club oficial",
+  });
+  assert.deepEqual(getOfficialSource({ ...base, officialUrl: "" }), {
+    href: "https://organizer.example/evento",
+    label: "Club oficial",
+  });
+  assert.deepEqual(getOfficialSource({ ...base, officialUrl: "", organizerUrl: "" }), {
+    href: "https://source.example/evento",
+    label: "Club oficial",
+  });
+  assert.equal(getOfficialSource({ ...base, organizerName: "", source: "Fuente secundaria" })?.label, "Fuente secundaria");
+  assert.equal(getOfficialSource({ ...base, organizerName: "", source: "" })?.label, "official.example");
+  assert.equal(
+    getOfficialSource({
+      ...base,
+      officialUrl: "http://127.0.0.1/source",
+      organizerUrl: "",
+      sourceUrl: "",
+      organizerName: "",
+      source: "",
+    })?.label,
+    "Ver fuente oficial",
+  );
+  assert.equal(
+    getOfficialSource({ ...base, officialUrl: "https://official.example/eventos/2026-09-12" })?.href,
+    "https://official.example/eventos/2026-09-12",
+  );
+});
+
+test("el mapeo público conserva official_url vacío para respetar organizer_url antes de source_url", () => {
+  const mapped = mapEventRowToEventItem({
+    id: "event-source-priority",
+    slug: "event-source-priority",
+    title: "Evento con organizador",
+    discipline: "Clásicos",
+    start_date: "2026-09-12",
+    source: "Fuente original",
+    source_url: "https://source.example/evento",
+    official_url: null,
+    organizer_name: "Club organizador",
+    organizer_url: "https://organizer.example/evento",
+    tags: [],
+    featured: false,
+    visible: true,
+  } as unknown as EventRow);
+
+  assert.equal(mapped.officialUrl, "");
+  assert.deepEqual(getOfficialSource(mapped), {
+    href: "https://organizer.example/evento",
+    label: "Club organizador",
+  });
+});
+
+test("omite fuentes inválidas, privadas o administrativas sin crear filas vacías", () => {
+  const rejected = [
+    "sin URL",
+    "javascript:alert(1)",
+    "data:text/plain,contenido",
+    "611636103",
+    "privado@example.com",
+    "b008383e-d4d0-4bfe-a613-894057664286",
+    "https://611636103",
+    "https://example.com/contacto/611636103",
+    "https://example.com/b008383e-d4d0-4bfe-a613-894057664286",
+  ];
+
+  for (const value of rejected) {
+    assert.equal(getOfficialSource(eventFixture({
+      officialUrl: value,
+      organizerUrl: "",
+      sourceUrl: "",
+    })), null);
+  }
+
+  assert.equal(getSummaryItems(eventFixture({ discipline: "", eventStatus: "", verifiedAt: "" })).length, 0);
+  assert.equal(
+    getOfficialSource(eventFixture({
+      organizerName: "Email contacto: privado@example.com",
+      source: "",
+    }))?.label,
+    "example.com",
+  );
+  assert.equal(
+    getOfficialSource(eventFixture({
+      organizerName: "Teléfono 611 636 103",
+      source: "",
+    }))?.label,
+    "example.com",
+  );
+});
+
+test("el enlace de fuente oficial conserva seguridad, accesibilidad y foco visible", async () => {
+  const [view, css] = await Promise.all([
+    readFile(new URL("./EventDetailView.tsx", import.meta.url), "utf8"),
+    readFile(new URL("./EventDetailView.module.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(view, /<dt>Fuente oficial<\/dt>/);
+  assert.match(view, /target="_blank"/);
+  assert.match(view, /rel="noopener noreferrer"/);
+  assert.match(view, /aria-label=\{`Fuente oficial:/);
+  assert.match(view, /aria-hidden="true">↗<\/span>/);
+  assert.match(css, /\.officialSourceLink:focus-visible/);
+});
+
+test("reviewed no altera el estado público y cancelled conserva su tono rojo", () => {
+  assert.equal(getEventStatusStyle("confirmed"), "confirmed");
+  assert.equal(getEventStatusStyle("cancelled"), "cancelled");
+  assert.deepEqual(
+    getSummaryItems(eventFixture({ dataQuality: "reviewed", eventStatus: "confirmed" }))[0],
+    { label: "Estado", value: "Confirmado" },
   );
 });
 

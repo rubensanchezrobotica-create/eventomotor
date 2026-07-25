@@ -332,6 +332,39 @@
   color: var(--event-status-text);
 }
 
+.officialSourceLink {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 5px;
+  color: #ffd2c2;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 113, 67, 0.7);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.officialSourceLink span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.officialSourceLink span:last-child {
+  flex: none;
+}
+
+.officialSourceLink:hover {
+  color: #fff;
+  text-decoration-color: #ff7143;
+}
+
+.officialSourceLink:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #ffb89e;
+  outline-offset: 3px;
+}
+
 .contentSection,
 .supportSection,
 .relatedSection,
@@ -1003,6 +1036,11 @@
   }
 
   .summaryCard dd {
+    text-align: left;
+  }
+
+  .officialSourceLink {
+    justify-content: flex-start;
     text-align: left;
   }
 

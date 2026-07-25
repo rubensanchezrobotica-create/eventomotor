@@ -243,7 +243,7 @@ export function mapEventRowToEventItem(row: EventRow): EventItem {
     level: row.level || "Publicado",
     source: row.source || "Supabase",
     sourceUrl,
-    officialUrl: row.official_url || sourceUrl,
+    officialUrl: row.official_url || "",
     ticketUrl,
     registrationUrl: row.registration_url || "",
     imageUrl: row.image_url || "",

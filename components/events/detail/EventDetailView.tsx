@@ -26,6 +26,7 @@ import {
   getEventPrimaryAction,
   getEventStatusStyle,
   getHeroSummary,
+  getOfficialSource,
   getPracticalGridVariant,
   getPracticalItems,
   getSummaryItems,
@@ -148,6 +149,7 @@ export default function EventDetailView({
   const aboutText = getAboutText(event);
   const primaryAction = getEventPrimaryAction(event);
   const summaryItems = getSummaryItems(event);
+  const officialSource = getOfficialSource(event);
   const practicalItems = getPracticalItems(event);
   const practicalGridVariant = getPracticalGridVariant(practicalItems.length);
   const usefulTags = getUsefulTags(event);
@@ -177,7 +179,7 @@ export default function EventDetailView({
     discipline: event.discipline,
     category: (event as EventItem & { category?: string }).category,
     vehicle_type: vehicleTypeOf(event),
-    source_url: cleanText(event.officialUrl) || cleanText(event.sourceUrl),
+    source_url: officialSource?.href || "",
     ticket_url: cleanText(event.registrationUrl) || cleanText(event.ticketUrl),
   };
 
@@ -260,7 +262,7 @@ export default function EventDetailView({
                 </div>
               </div>
 
-              {summaryItems.length ? (
+              {summaryItems.length || officialSource ? (
                 <aside className={styles.summaryCard} aria-label="Resumen verificado del evento">
                   <div className={styles.summaryHead}>
                     <span>En breve</span>
@@ -275,6 +277,23 @@ export default function EventDetailView({
                         </dd>
                       </div>
                     ))}
+                    {officialSource ? (
+                      <div>
+                        <dt>Fuente oficial</dt>
+                        <dd>
+                          <a
+                            aria-label={`Fuente oficial: ${officialSource.label} (se abre en una pestaña nueva)`}
+                            className={styles.officialSourceLink}
+                            href={officialSource.href}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                          >
+                            <span>{officialSource.label}</span>
+                            <span aria-hidden="true">↗</span>
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
                 </aside>
               ) : null}

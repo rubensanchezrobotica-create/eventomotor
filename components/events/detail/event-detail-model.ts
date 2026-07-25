@@ -1,5 +1,8 @@
 import type { EventItem } from "@/types/event";
-import { sanitizePublicEditorialText } from "@/lib/published-request-event";
+import {
+  parseHttpUrl,
+  sanitizePublicEditorialText,
+} from "@/lib/published-request-event";
 
 export type EventPrimaryAction = {
   href: string;
@@ -10,6 +13,11 @@ export type EventPrimaryAction = {
 export type EventDetailInfoItem = {
   label: string;
   value: string;
+};
+
+export type EventOfficialSource = {
+  href: string;
+  label: string;
 };
 
 export type EventDetailRelated = {
@@ -61,18 +69,71 @@ const EVENT_STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const SOURCE_TYPE_LABELS: Record<string, string> = {
-  official: "Fuente oficial",
-  organizer: "Organizador",
-  federation: "Federación",
-  circuit: "Circuito",
-  municipality: "Ayuntamiento",
-  media: "Medio / noticia",
-  aggregator: "Agregador",
-};
+const UUID_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i;
+const EMAIL_PATTERN = /\b[^@\s]+@[^@\s]+\.[^@\s]+\b/;
+const ADMIN_METADATA_PATTERN = /\b(?:email|tel[eé]fono)\s+contacto\b|\bsolicitud\s+origen\b/i;
 
 function cleanText(value: string | null | undefined) {
   return value?.trim() || "";
+}
+
+function containsPhoneLikeValue(value: string) {
+  const candidates = value.match(/(?:\+|00)?\d[\d\s().-]{7,}\d/g) || [];
+  return candidates.some((candidate) => candidate.replace(/\D/g, "").length >= 9);
+}
+
+function safeSourceLabel(value: string | null | undefined) {
+  const label = cleanText(value);
+  if (!label) return "";
+  if (
+    UUID_PATTERN.test(label)
+    || EMAIL_PATTERN.test(label)
+    || containsPhoneLikeValue(label)
+    || ADMIN_METADATA_PATTERN.test(label)
+  ) return "";
+
+  return label;
+}
+
+function publicSourceUrl(value: string | null | undefined) {
+  const url = parseHttpUrl(value);
+  if (!url || url.username || url.password) return null;
+
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(url.href);
+    } catch {
+      return url.href;
+    }
+  })();
+  const hostnameDigits = url.hostname.replace(/\D/g, "");
+
+  if (UUID_PATTERN.test(decoded) || EMAIL_PATTERN.test(decoded) || containsPhoneLikeValue(decoded)) return null;
+  if (hostnameDigits.length >= 9 && !/[a-z]/i.test(url.hostname)) return null;
+
+  return url;
+}
+
+function readableDomain(url: URL) {
+  const hostname = url.hostname.replace(/^www\./i, "").trim();
+  return /[a-z]/i.test(hostname) ? hostname : "";
+}
+
+export function getOfficialSource(event: EventItem): EventOfficialSource | null {
+  const url = [
+    event.officialUrl,
+    event.organizerUrl,
+    event.sourceUrl,
+  ].map((value) => publicSourceUrl(value)).find((candidate): candidate is URL => Boolean(candidate));
+
+  if (!url) return null;
+
+  const label = safeSourceLabel(event.organizerName)
+    || safeSourceLabel(event.source)
+    || readableDomain(url)
+    || "Ver fuente oficial";
+
+  return { href: url.toString(), label };
 }
 
 export function isFallbackEventImage(imageSource: string) {
@@ -257,7 +318,7 @@ export function formatVerifiedAt(value: string | null | undefined) {
 export function getEventPrimaryAction(event: EventItem): EventPrimaryAction | null {
   const registrationUrl = cleanText(event.registrationUrl);
   const ticketUrl = cleanText(event.ticketUrl);
-  const officialUrl = cleanText(event.officialUrl) || cleanText(event.sourceUrl);
+  const officialUrl = getOfficialSource(event)?.href || "";
 
   if (registrationUrl && (!ticketUrl || registrationUrl !== ticketUrl)) {
     return {
@@ -304,12 +365,12 @@ export function getAboutText(event: EventItem) {
 export function getSummaryItems(event: EventItem): EventDetailInfoItem[] {
   const status = eventStatusLabel(event);
   const verifiedAt = formatVerifiedAt(event.verifiedAt);
-  const sourceType = SOURCE_TYPE_LABELS[cleanText(event.sourceType)] || "";
+  const discipline = cleanText(event.discipline);
 
   return [
     status ? { label: "Estado", value: status } : null,
+    discipline ? { label: "Disciplina", value: discipline } : null,
     verifiedAt ? { label: "Última verificación", value: verifiedAt } : null,
-    sourceType ? { label: "Tipo de fuente", value: sourceType } : null,
   ].filter((item): item is EventDetailInfoItem => Boolean(item));
 }
 
