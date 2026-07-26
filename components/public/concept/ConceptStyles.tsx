@@ -627,15 +627,29 @@ export default function ConceptStyles() {
 .emc-event-cta-section { padding: 26px 0 46px; }
 .emc-event-cta { padding: 28px; }
 .emc-event-cta h2 { font-size: clamp(26px, 3vw, 40px); }
-.emc-my-events-hero { min-height: auto; padding: 76px 0 10px; }
-.emc-my-events-hero h1 { font-size: clamp(38px, 5.4vw, 62px); line-height: .96; letter-spacing: -2.3px; margin-bottom: 14px; }
-.emc-my-events-hero .emc-contact-lead { max-width: 720px; font-size: 17px; line-height: 1.55; }
-.emc-my-events-hero .emc-contact-lead span { display: block; margin-top: 6px; color: var(--emc-muted); font-size: 14px; font-weight: 750; }
-.emc-my-events-section { padding: 10px 0 58px; }
-.emc-my-events-empty { max-width: 760px; margin: 0 auto; padding: 34px; text-align: center; }
-.emc-my-events-empty h2 { margin-top: 10px; color: #fff; font-size: clamp(30px, 4vw, 44px); line-height: 1; letter-spacing: -1.6px; }
-.emc-my-events-empty p { margin-top: 14px; color: #cbd3df; font-weight: 750; line-height: 1.7; }
-.emc-my-events-empty .emc-contact-actions { justify-content: center; }
+.emc-my-events-page .emc-container { width: min(1180px, 92vw); }
+.emc-my-events-hero { min-height: 0; padding: 46px 0 18px; }
+.emc-my-events-page .emc-my-events-hero h1 { font-size: clamp(40px, 5vw, 60px); line-height: .96; letter-spacing: -2.3px; margin-bottom: 10px; }
+.emc-my-events-lead { max-width: 640px; color: #dbe2ec; font-size: 17px; line-height: 1.5; font-weight: 800; }
+.emc-my-events-note { margin-top: 4px; color: var(--emc-muted); font-size: 14px; line-height: 1.5; font-weight: 750; }
+.emc-my-events-section { position: relative; z-index: 1; padding: 0 0 64px; }
+.emc-my-events-content { display: grid; gap: 14px; }
+.emc-my-events-empty {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 26px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(75,163,255,.11), transparent 34%),
+    linear-gradient(180deg, rgba(16,24,38,.78), rgba(8,12,20,.92));
+}
+.emc-my-events-empty-icon { display: grid; place-items: center; width: 64px; height: 64px; border: 1px solid rgba(255,123,26,.34); border-radius: 20px; background: rgba(255,59,0,.10); color: #ffb08f; font-size: 30px; font-weight: 500; }
+.emc-my-events-empty .emc-kicker { margin-bottom: 7px; }
+.emc-my-events-page .emc-my-events-empty h2 { color: #fff; font-size: clamp(24px, 3vw, 34px); line-height: 1.05; letter-spacing: -1.2px; }
+.emc-my-events-empty p { max-width: 690px; margin-top: 9px; color: #aeb8c8; font-weight: 700; line-height: 1.55; }
+.emc-my-events-empty .emc-btn { min-width: 150px; }
 .emc-my-events-toolbar {
   display: flex;
   align-items: center;
@@ -652,17 +666,18 @@ export default function ConceptStyles() {
 }
 .emc-my-events-toolbar > div:first-child { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; min-width: 0; }
 .emc-my-events-toolbar strong { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: #fff; color: #07090f; font-size: 24px; font-weight: 950; }
-.emc-my-events-toolbar p { color: #dbe2ec; font-size: 15px; font-weight: 850; }
+.emc-my-events-toolbar span { display: block; margin-bottom: 2px; color: var(--emc-muted); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.emc-my-events-page .emc-my-events-toolbar h2 { color: #fff; font-size: 18px; line-height: 1.15; letter-spacing: -.35px; }
 .emc-my-events-toolbar-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .emc-my-events-export { min-height: 40px; padding: 10px 14px; border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.10); color: #fff; }
 .emc-my-events-grid { display: grid; gap: 14px; }
 .emc-my-event-card {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr) auto;
-  gap: 18px;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(280px, 310px);
+  gap: 16px;
   align-items: center;
-  padding: 20px;
-  border-radius: 28px;
+  padding: 17px;
+  border-radius: 24px;
   border: 1px solid rgba(255,255,255,.12);
   background:
     radial-gradient(circle at 100% 0%, rgba(255,59,0,.10), transparent 30%),
@@ -670,16 +685,20 @@ export default function ConceptStyles() {
   box-shadow: 0 20px 70px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.04);
 }
 .emc-my-event-main { min-width: 0; }
-.emc-my-event-main h3 { margin: 10px 0 7px; color: #fff; font-size: clamp(20px, 2vw, 28px); line-height: 1.08; letter-spacing: -1px; font-weight: 950; }
-.emc-my-event-main p { color: var(--emc-muted); font-size: 14px; font-weight: 750; line-height: 1.5; }
-.emc-my-event-actions { display: grid; grid-template-columns: 1fr; align-items: stretch; gap: 9px; min-width: 172px; }
+.emc-my-event-main h3 { margin: 8px 0 7px; color: #fff; font-size: clamp(19px, 2vw, 25px); line-height: 1.1; letter-spacing: -.8px; font-weight: 950; overflow-wrap: anywhere; }
+.emc-my-event-details { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.emc-my-event-main p { color: var(--emc-muted); font-size: 13px; font-weight: 750; line-height: 1.45; overflow-wrap: anywhere; }
+.emc-my-event-location { color: #d4dbe6 !important; }
+.emc-my-event-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 8px; min-width: 0; }
 .emc-my-event-actions .emc-card-action,
 .emc-my-event-actions .emc-link-button {
-  min-height: 42px;
+  min-height: 40px;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: 14px;
   margin-top: 0;
+  padding: 8px 10px;
+  text-align: center;
 }
 .emc-card-action-dark {
   border: 1px solid rgba(255,255,255,.22);
@@ -687,7 +706,7 @@ export default function ConceptStyles() {
   color: #fff !important;
 }
 .emc-calendar-card-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
-.emc-my-event-remove { padding: 0 4px; min-width: auto; color: #ffc1ad; text-decoration-color: rgba(255,193,173,.38); }
+.emc-my-event-remove { grid-column: 1 / -1; justify-self: end; min-height: 28px !important; padding: 2px 4px !important; color: #ffc1ad; text-decoration-color: rgba(255,193,173,.38); }
 .emc-eyebrow {
   display: inline-flex;
   padding: 10px 15px;
@@ -1939,6 +1958,36 @@ export default function ConceptStyles() {
 .emc-contact-list-item span { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 999px; background: var(--emc-orange); box-shadow: 0 0 18px rgba(255,59,0,.42); }
 .emc-contact-list-item strong { color: #fff; font-size: 14px; font-weight: 900; line-height: 1.25; }
 .emc-contact-list-item small { display: block; margin-top: 5px; color: var(--emc-muted); font-size: 12px; font-weight: 750; line-height: 1.35; }
+.emc-contact-compact-page .emc-container { width: min(1180px, 92vw); }
+.emc-contact-compact-hero { min-height: 0; padding: 52px 0 54px; display: block; }
+.emc-contact-compact-hero .emc-contact-grid { grid-template-columns: minmax(0, 1fr) minmax(350px, 420px); gap: 34px; align-items: stretch; }
+.emc-contact-copy { align-self: center; }
+.emc-contact-compact-hero h1 { max-width: 680px; margin-bottom: 16px; font-size: clamp(42px, 5.2vw, 64px); line-height: .94; letter-spacing: -3px; }
+.emc-contact-compact-hero .emc-contact-lead { max-width: 680px; font-size: clamp(16px, 1.6vw, 19px); line-height: 1.55; }
+.emc-contact-compact-hero .emc-contact-actions { margin-top: 20px; }
+.emc-contact-calendar-link { display: inline-flex; margin-top: 13px; color: #cbd3df !important; font-size: 13px; font-weight: 850; text-decoration: underline !important; text-decoration-color: rgba(203,211,223,.35) !important; text-underline-offset: 5px; }
+.emc-contact-calendar-link:hover { color: #fff !important; }
+.emc-contact-compact-hero .emc-contact-card { position: relative; padding: 25px; border-radius: 26px; overflow: hidden; }
+.emc-contact-mail-icon { position: absolute; top: 24px; right: 24px; width: 42px; height: 32px; border: 2px solid rgba(255,176,143,.72); border-radius: 9px; opacity: .82; }
+.emc-contact-mail-icon:before, .emc-contact-mail-icon:after { content: ""; position: absolute; top: 8px; width: 23px; height: 2px; background: rgba(255,176,143,.72); }
+.emc-contact-mail-icon:before { left: 1px; transform: rotate(34deg); }
+.emc-contact-mail-icon:after { right: 1px; transform: rotate(-34deg); }
+.emc-contact-compact-hero .emc-contact-card h2 { max-width: 260px; font-size: clamp(24px, 2.4vw, 31px); }
+.emc-contact-compact-hero .emc-contact-card a { margin-top: 6px; font-size: clamp(20px, 2vw, 26px); }
+.emc-contact-compact-hero .emc-contact-card p { margin-top: 14px; line-height: 1.55; }
+.emc-contact-reasons { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: stretch; margin-top: 24px; }
+.emc-contact-reasons-heading { padding: 18px 0; }
+.emc-contact-reasons-heading h2 { color: #fff; font-size: 25px; line-height: 1.05; letter-spacing: -.8px; }
+.emc-contact-reasons-heading p { margin-top: 10px; color: var(--emc-muted); font-size: 13px; font-weight: 700; line-height: 1.5; }
+.emc-contact-reasons-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.emc-contact-reason { min-width: 0; padding: 17px; border: 1px solid rgba(255,255,255,.09); border-radius: 20px; background: rgba(8,12,20,.76); }
+.emc-contact-reason > span { color: var(--emc-orange2); font-size: 10px; font-weight: 950; letter-spacing: .12em; }
+.emc-contact-reason h3 { margin-top: 8px; color: #fff; font-size: 16px; line-height: 1.2; }
+.emc-contact-reason p { margin-top: 7px; color: #9faabc; font-size: 12px; font-weight: 700; line-height: 1.45; }
+.emc-contact-reason a { display: inline-flex; margin-top: 10px; color: #ffd0bf !important; font-size: 12px; font-weight: 900; text-decoration: underline !important; text-decoration-color: rgba(255,208,191,.34) !important; text-underline-offset: 4px; }
+.emc-contact-reason a:hover { color: #fff !important; }
+.emc-contact-compact-page :is(a, button):focus-visible,
+.emc-my-events-page :is(a, button):focus-visible { outline: 3px solid #ffb547; outline-offset: 3px; }
 .emc-submission-form {
   padding: 34px;
   border: 1px solid rgba(255,255,255,.10);
@@ -2718,6 +2767,9 @@ export default function ConceptStyles() {
 
 @media (max-width: 1180px) {
   .emc-hero-grid, .emc-event-page-grid, .emc-event-detail-grid, .emc-explorer, .emc-calendar-wrap, .emc-pro-panel, .emc-contact-grid, .emc-contact-list-panel, .emc-publish-process, .emc-opportunity-hero-grid, .emc-opportunity-editorial, .emc-taxonomy-hero-grid { grid-template-columns: 1fr; }
+  .emc-contact-compact-hero .emc-contact-grid { grid-template-columns: 1fr; }
+  .emc-contact-reasons { grid-template-columns: 1fr; }
+  .emc-contact-reasons-heading { padding-bottom: 0; }
   .emc-event-hero-copy, .emc-event-side, .emc-event-main-flow, .emc-event-lower-flow { grid-column: 1; grid-row: auto; }
   .emc-weekend-grid, .emc-weekend-group-layout { grid-template-columns: 1fr; }
   .emc-list-view, .emc-map-view { grid-template-columns: 1fr; }
@@ -2785,6 +2837,7 @@ export default function ConceptStyles() {
   .emc-event-info-item { min-height: 72px; padding: 12px; border-radius: 16px; }
   .emc-event-info-item strong { font-size: 14px; }
   .emc-contact-hero { min-height: auto; padding: 118px 0 44px; }
+  .emc-contact-hero.emc-contact-compact-hero { min-height: 0; padding: 30px 0 42px; }
   .emc-taxonomy-hero { padding: 92px 0 28px; }
   .emc-taxonomy-hero h1 { font-size: clamp(31px, 8.4vw, 38px); line-height: .98; letter-spacing: -1.2px; }
   .emc-taxonomy-lead { margin-top: 12px; font-size: 15.5px; line-height: 1.45; }
@@ -2864,18 +2917,27 @@ export default function ConceptStyles() {
   .emc-my-events-toolbar > div:first-child { grid-template-columns: auto 1fr; }
   .emc-my-events-toolbar-actions { display: grid; grid-template-columns: 1fr; }
   .emc-my-events-toolbar .emc-btn { width: 100%; justify-content: center; }
-  .emc-my-events-hero { padding-top: 72px; padding-bottom: 8px; }
-  .emc-my-events-hero .emc-contact-lead { font-size: 15.5px; line-height: 1.5; }
-  .emc-my-events-section { padding-top: 10px; }
-  .emc-my-events-empty { padding: 22px; border-radius: 26px; }
+  .emc-my-events-page .emc-my-events-hero { padding: 30px 0 14px; }
+  .emc-my-events-page .emc-my-events-hero h1 { font-size: clamp(38px, 12vw, 50px); letter-spacing: -1.8px; }
+  .emc-my-events-lead { font-size: 15.5px; line-height: 1.5; }
+  .emc-my-events-section { padding-top: 0; padding-bottom: 42px; }
+  .emc-my-events-empty { grid-template-columns: 1fr; gap: 14px; padding: 22px; border-radius: 24px; }
+  .emc-my-events-empty-icon { width: 54px; height: 54px; border-radius: 17px; }
+  .emc-my-events-empty .emc-btn { width: 100%; }
   .emc-my-events-empty h2 { font-size: clamp(26px, 7vw, 34px); letter-spacing: -1px; }
-  .emc-my-event-card { grid-template-columns: 1fr; gap: 14px; padding: 18px; border-radius: 24px; }
+  .emc-my-events-page .emc-my-event-card { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 22px; }
   .emc-my-event-card .emc-result-date { width: 64px; height: 64px; border-radius: 18px; }
-  .emc-my-event-actions { display: grid; grid-template-columns: 1fr; min-width: 0; }
+  .emc-my-events-page .emc-my-event-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
   .emc-my-event-actions .emc-card-action,
   .emc-my-event-actions .emc-link-button { justify-content: center; width: 100%; }
+  .emc-my-events-page .emc-my-event-remove { min-height: 44px !important; justify-self: stretch; }
   .emc-contact-secondary-link { min-height: auto; justify-content: center; padding: 4px 0; font-size: 13px; }
   .emc-contact-card { padding: 20px; border-radius: 26px; }
+  .emc-contact-compact-hero .emc-contact-card { padding: 20px; }
+  .emc-contact-compact-hero h1 { font-size: clamp(38px, 11vw, 50px); line-height: .96; letter-spacing: -2px; }
+  .emc-contact-reasons { margin-top: 22px; gap: 14px; }
+  .emc-contact-reasons-grid { grid-template-columns: 1fr; }
+  .emc-contact-reason { padding: 16px; }
   .emc-contact-list-panel { padding: 22px; border-radius: 28px; }
   .emc-contact-list { grid-template-columns: 1fr; gap: 9px; }
   .emc-contact-list-item { min-height: 50px; padding: 12px; border-radius: 16px; }

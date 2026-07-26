@@ -23,19 +23,19 @@ export default function MisEventosPage() {
       <ConceptStyles />
       <ConceptStaticHeader />
 
-      <main className="emc-contact-page">
-        <section className="emc-contact-hero emc-my-events-hero">
+      <main className="emc-contact-page emc-my-events-page">
+        <section className="emc-my-events-hero">
           <div className="emc-container">
-            <div className="emc-kicker">Agenda personal</div>
+            <div className="emc-kicker">AGENDA PERSONAL</div>
             <h1>Mis eventos</h1>
-            <p className="emc-contact-lead">
-              Tu agenda personal de eventos guardados en este dispositivo.
-              <span>No necesitas iniciar sesión. Los eventos se guardan solo en este navegador.</span>
+            <p className="emc-my-events-lead">
+              Tus eventos guardados en este dispositivo.
             </p>
+            <p className="emc-my-events-note">No necesitas iniciar sesión. Se guardan solo en este navegador.</p>
           </div>
         </section>
 
-        <section className="emc-section emc-contact-section emc-my-events-section">
+        <section className="emc-my-events-section" aria-label="Agenda de eventos guardados">
           <div className="emc-container">
             <MyEventsClient />
           </div>

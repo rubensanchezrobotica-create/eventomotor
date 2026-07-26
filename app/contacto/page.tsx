@@ -10,9 +10,9 @@ import { SITE_URL } from "@/lib/seo";
 const CONTACT_EMAIL = "info@eventomotor.com";
 
 export const metadata: Metadata = {
-  title: "Contacto",
+  title: "Contacto y publicación de eventos",
   description:
-    "Contacta con EventoMotor para dudas, correcciones de eventos, colaboraciones o propuestas.",
+    "Contacta con EventoMotor para corregir o publicar eventos de motor, proponer colaboraciones o enviarnos información.",
   alternates: {
     canonical: `${SITE_URL}/contacto`,
   },
@@ -24,41 +24,89 @@ export default function ContactoPage() {
       <ConceptStyles />
       <ConceptStaticHeader />
 
-      <main className="emc-contact-page">
-        <section className="emc-contact-hero">
-          <div className="emc-container emc-contact-grid">
-            <div>
-              <div className="emc-kicker">Contacto</div>
-              <h1>Contacta con EventoMotor</h1>
-              <p className="emc-contact-lead">
-                Para dudas, correcciones de eventos, colaboraciones o propuestas, puedes escribirnos directamente.
-              </p>
-              <div className="emc-contact-actions">
-                <TrackAnchor
-                  className="emc-btn emc-btn-primary"
-                  eventName="click_contact_email"
-                  eventParams={{ location: "contact_page_cta" }}
-                  href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
-                >
-                  Escribir email
-                </TrackAnchor>
-                <Link className="emc-btn emc-btn-dark" href={HOME_SECTION_LINKS.calendar}>
+      <main className="emc-contact-page emc-contact-compact-page">
+        <section className="emc-contact-hero emc-contact-compact-hero">
+          <div className="emc-container">
+            <div className="emc-contact-grid">
+              <div className="emc-contact-copy">
+                <div className="emc-kicker">CONTACTO</div>
+                <h1>Contacta con EventoMotor</h1>
+                <p className="emc-contact-lead">
+                  Para correcciones, publicación de eventos, colaboraciones o propuestas, escríbenos directamente.
+                </p>
+                <div className="emc-contact-actions">
+                  <TrackAnchor
+                    className="emc-btn emc-btn-primary"
+                    eventName="click_contact_email"
+                    eventParams={{ location: "contact_page_cta" }}
+                    href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
+                  >
+                    Escribir a {CONTACT_EMAIL}
+                  </TrackAnchor>
+                  <Link className="emc-btn emc-btn-dark" href="/publicar-evento">
+                    Publicar un evento
+                  </Link>
+                </div>
+                <Link className="emc-contact-calendar-link" href={HOME_SECTION_LINKS.calendar}>
                   Volver al calendario
                 </Link>
               </div>
+
+              <aside className="emc-panel emc-contact-card" aria-labelledby="contact-email-title">
+                <div className="emc-contact-mail-icon" aria-hidden="true" />
+                <span>Correo directo</span>
+                <h2 id="contact-email-title">Escríbenos directamente</h2>
+                <TrackAnchor
+                  eventName="click_contact_email"
+                  eventParams={{ location: "contact_page_card" }}
+                  href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
+                >
+                  {CONTACT_EMAIL}
+                </TrackAnchor>
+                <p>
+                  Para actualizar información, publicar un evento o plantear una colaboración relacionada con el motor.
+                </p>
+              </aside>
             </div>
 
-            <aside className="emc-panel emc-contact-card" aria-label="Correo de contacto">
-              <span>Email</span>
-              <TrackAnchor
-                eventName="click_contact_email"
-                eventParams={{ location: "contact_page_card" }}
-                href={`mailto:${CONTACT_EMAIL}?subject=Contacto%20EventoMotor`}
-              >
-                {CONTACT_EMAIL}
-              </TrackAnchor>
-              <p>Contacto y publicación de eventos de motor en España.</p>
-            </aside>
+            <div className="emc-contact-reasons">
+              <div className="emc-contact-reasons-heading">
+                <h2>¿En qué podemos ayudarte?</h2>
+                <p>Elige el motivo para escribirnos o utiliza el correo directo.</p>
+              </div>
+              <div className="emc-contact-reasons-grid">
+                <article className="emc-contact-reason">
+                  <span aria-hidden="true">01</span>
+                  <h3>Corregir un evento</h3>
+                  <p>Avísanos si encuentras una fecha, ubicación o información que debamos actualizar.</p>
+                  <TrackAnchor
+                    eventName="click_contact_email"
+                    eventParams={{ location: "contact_reason_correction" }}
+                    href={`mailto:${CONTACT_EMAIL}?subject=Correcci%C3%B3n%20de%20evento`}
+                  >
+                    Enviar corrección
+                  </TrackAnchor>
+                </article>
+                <article className="emc-contact-reason">
+                  <span aria-hidden="true">02</span>
+                  <h3>Publicar un evento</h3>
+                  <p>Los organizadores pueden enviarnos su evento gratuitamente desde el formulario de publicación.</p>
+                  <Link href="/publicar-evento">Ir al formulario</Link>
+                </article>
+                <article className="emc-contact-reason">
+                  <span aria-hidden="true">03</span>
+                  <h3>Colaboraciones</h3>
+                  <p>Propuestas, medios, clubes, circuitos y proyectos relacionados con el mundo del motor.</p>
+                  <TrackAnchor
+                    eventName="click_contact_email"
+                    eventParams={{ location: "contact_reason_collaboration" }}
+                    href={`mailto:${CONTACT_EMAIL}?subject=Colaboraci%C3%B3n%20con%20EventoMotor`}
+                  >
+                    Proponer colaboración
+                  </TrackAnchor>
+                </article>
+              </div>
+            </div>
           </div>
         </section>
       </main>
