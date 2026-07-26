@@ -1,11 +1,32 @@
-export const PUBLIC_NAVIGATION = {
+export const PUBLIC_ROUTES = {
   home: "/",
-  calendar: "/",
-  disciplines: "/disciplinas",
-  zones: "/zonas",
   contact: "/contacto",
   savedEvents: "/mis-eventos",
   publish: "/publicar-evento",
+} as const;
+
+export const HOME_SECTION_IDS = {
+  calendar: "calendario",
+  disciplines: "disciplinas",
+  zones: "zonas",
+} as const;
+
+export const HOME_SECTION_LINKS = {
+  calendar: `/#${HOME_SECTION_IDS.calendar}`,
+  disciplines: `/#${HOME_SECTION_IDS.disciplines}`,
+  zones: `/#${HOME_SECTION_IDS.zones}`,
+} as const;
+
+export const DIRECTORY_ROUTES = {
+  disciplines: "/disciplinas",
+  zones: "/zonas",
+} as const;
+
+export const PUBLIC_NAVIGATION = {
+  ...PUBLIC_ROUTES,
+  calendar: HOME_SECTION_LINKS.calendar,
+  disciplines: DIRECTORY_ROUTES.disciplines,
+  zones: DIRECTORY_ROUTES.zones,
 } as const;
 
 export type PublicNavigationSection =
@@ -16,12 +37,12 @@ export type PublicNavigationSection =
   | "savedEvents"
   | "publish";
 
-export const PUBLIC_NAVIGATION_ITEMS = [
-  { id: "calendar", label: "Calendario", href: PUBLIC_NAVIGATION.calendar },
-  { id: "disciplines", label: "Disciplinas", href: PUBLIC_NAVIGATION.disciplines },
-  { id: "zones", label: "Zonas", href: PUBLIC_NAVIGATION.zones },
-  { id: "contact", label: "Contacto", href: PUBLIC_NAVIGATION.contact },
-  { id: "savedEvents", label: "Mis eventos", href: PUBLIC_NAVIGATION.savedEvents },
+export const PRIMARY_NAVIGATION_ITEMS = [
+  { id: "calendar", label: "Calendario", href: HOME_SECTION_LINKS.calendar },
+  { id: "disciplines", label: "Disciplinas", href: HOME_SECTION_LINKS.disciplines },
+  { id: "zones", label: "Zonas", href: HOME_SECTION_LINKS.zones },
+  { id: "contact", label: "Contacto", href: PUBLIC_ROUTES.contact },
+  { id: "savedEvents", label: "Mis eventos", href: PUBLIC_ROUTES.savedEvents },
 ] as const satisfies ReadonlyArray<{
   id: PublicNavigationSection;
   label: string;
@@ -42,22 +63,21 @@ const DISCIPLINE_OPPORTUNITY_PREFIXES = [
 export function getPublicNavigationSection(pathname: string | null | undefined): PublicNavigationSection | null {
   if (!pathname) return null;
 
-  if (pathname === PUBLIC_NAVIGATION.contact) return "contact";
-  if (pathname === PUBLIC_NAVIGATION.savedEvents) return "savedEvents";
-  if (pathname === PUBLIC_NAVIGATION.publish) return "publish";
-  if (pathname === PUBLIC_NAVIGATION.disciplines || pathname.startsWith(`${PUBLIC_NAVIGATION.disciplines}/`)) {
+  if (pathname === PUBLIC_ROUTES.contact) return "contact";
+  if (pathname === PUBLIC_ROUTES.savedEvents) return "savedEvents";
+  if (pathname === PUBLIC_ROUTES.publish) return "publish";
+  if (pathname === DIRECTORY_ROUTES.disciplines || pathname.startsWith(`${DIRECTORY_ROUTES.disciplines}/`)) {
     return "disciplines";
   }
   if (
-    pathname === PUBLIC_NAVIGATION.zones
-    || pathname.startsWith(`${PUBLIC_NAVIGATION.zones}/`)
+    pathname === DIRECTORY_ROUTES.zones
+    || pathname.startsWith(`${DIRECTORY_ROUTES.zones}/`)
     || (pathname.startsWith("/eventos-motor-") && pathname !== "/eventos-motor-este-fin-de-semana")
   ) {
     return "zones";
   }
   if (
-    pathname === PUBLIC_NAVIGATION.home
-    || pathname === "/calendario"
+    pathname === "/calendario"
     || pathname.startsWith("/evento/")
     || pathname === "/eventos-motor-este-fin-de-semana"
   ) {
@@ -70,8 +90,9 @@ export function getPublicNavigationSection(pathname: string | null | undefined):
 }
 
 export function canonicalPublicHref(href: string) {
-  if (href === "/calendario") return PUBLIC_NAVIGATION.calendar;
-  if (href.startsWith("/calendario?")) return `${PUBLIC_NAVIGATION.calendar}${href.slice("/calendario".length)}`;
-  if (href.startsWith("/calendario#")) return `${PUBLIC_NAVIGATION.calendar}${href.slice("/calendario".length)}`;
+  if (href === "/calendario" || href.startsWith("/calendario#")) return HOME_SECTION_LINKS.calendar;
+  if (href.startsWith("/calendario?")) {
+    return `/${href.slice("/calendario".length)}#${HOME_SECTION_IDS.calendar}`;
+  }
   return href;
 }

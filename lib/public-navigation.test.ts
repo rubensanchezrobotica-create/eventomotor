@@ -5,9 +5,12 @@ import test from "node:test";
 import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 import {
   canonicalPublicHref,
+  DIRECTORY_ROUTES,
   getPublicNavigationSection,
-  PUBLIC_NAVIGATION,
-  PUBLIC_NAVIGATION_ITEMS,
+  HOME_SECTION_IDS,
+  HOME_SECTION_LINKS,
+  PRIMARY_NAVIGATION_ITEMS,
+  PUBLIC_ROUTES,
 } from "@/lib/public-navigation";
 
 const workspace = process.cwd();
@@ -16,25 +19,36 @@ function source(path: string) {
   return readFileSync(join(workspace, path), "utf8");
 }
 
-test("uses one canonical public destination for calendar navigation", () => {
-  assert.equal(PUBLIC_NAVIGATION.home, "/");
-  assert.equal(PUBLIC_NAVIGATION.calendar, "/");
-  assert.equal(PUBLIC_NAVIGATION.disciplines, "/disciplinas");
-  assert.equal(PUBLIC_NAVIGATION.zones, "/zonas");
-  assert.equal(PUBLIC_NAVIGATION.contact, "/contacto");
-  assert.equal(PUBLIC_NAVIGATION.savedEvents, "/mis-eventos");
-  assert.equal(PUBLIC_NAVIGATION.publish, "/publicar-evento");
+test("separates primary home sections from public directory routes", () => {
+  assert.deepEqual(HOME_SECTION_IDS, {
+    calendar: "calendario",
+    disciplines: "disciplinas",
+    zones: "zonas",
+  });
+  assert.deepEqual(HOME_SECTION_LINKS, {
+    calendar: "/#calendario",
+    disciplines: "/#disciplinas",
+    zones: "/#zonas",
+  });
+  assert.deepEqual(DIRECTORY_ROUTES, {
+    disciplines: "/disciplinas",
+    zones: "/zonas",
+  });
+  assert.equal(PUBLIC_ROUTES.home, "/");
+  assert.equal(PUBLIC_ROUTES.contact, "/contacto");
+  assert.equal(PUBLIC_ROUTES.savedEvents, "/mis-eventos");
+  assert.equal(PUBLIC_ROUTES.publish, "/publicar-evento");
 });
 
 test("preserves query strings and hashes when canonicalizing old calendar links", () => {
-  assert.equal(canonicalPublicHref("/calendario"), "/");
-  assert.equal(canonicalPublicHref("/calendario?zona=norte&vista=mapa"), "/?zona=norte&vista=mapa");
+  assert.equal(canonicalPublicHref("/calendario"), "/#calendario");
+  assert.equal(canonicalPublicHref("/calendario?zona=norte&vista=mapa"), "/?zona=norte&vista=mapa#calendario");
   assert.equal(canonicalPublicHref("/calendario#calendario"), "/#calendario");
   assert.equal(canonicalPublicHref("/contacto"), "/contacto");
 });
 
 test("marks public sections active without matching labels", () => {
-  assert.equal(getPublicNavigationSection("/"), "calendar");
+  assert.equal(getPublicNavigationSection("/"), null);
   assert.equal(getPublicNavigationSection("/evento/boiromotos-2026"), "calendar");
   assert.equal(getPublicNavigationSection("/evento/rpm-fest-2026"), "calendar");
   assert.equal(getPublicNavigationSection("/disciplinas/rallyes"), "disciplines");
@@ -51,18 +65,21 @@ test("desktop and mobile menus consume the same destinations and expose aria-cur
   const staticHeader = source("components/public/concept/ConceptStaticHeader.tsx");
   const homeHeader = source("components/public/concept/ConceptHeader.tsx");
 
-  assert.match(menu, /PUBLIC_NAVIGATION_ITEMS\.map/);
+  assert.match(menu, /PRIMARY_NAVIGATION_ITEMS\.map/);
   assert.match(menu, /aria-current=/);
   assert.match(menu, /aria-expanded=/);
   assert.match(menu, /setMobileOpen\(false\)/);
   assert.match(menu, /onNavigate=\{\(\) => setMobileOpen\(false\)\}/);
   assert.match(menu, /Navegación móvil/);
   assert.match(staticHeader, /<PublicNavigationMenu \/>/);
-  assert.match(homeHeader, /<PublicNavigationMenu onCalendar=\{onCalendar\} \/>/);
+  assert.match(homeHeader, /<PublicNavigationMenu \/>/);
+  const primaryHrefs: readonly string[] = PRIMARY_NAVIGATION_ITEMS.map(({ href }) => href);
   assert.deepEqual(
-    PUBLIC_NAVIGATION_ITEMS.map(({ href }) => href),
-    ["/", "/disciplinas", "/zonas", "/contacto", "/mis-eventos"],
+    primaryHrefs,
+    ["/#calendario", "/#disciplinas", "/#zonas", "/contacto", "/mis-eventos"],
   );
+  assert.ok(!primaryHrefs.includes(DIRECTORY_ROUTES.disciplines));
+  assert.ok(!primaryHrefs.includes(DIRECTORY_ROUTES.zones));
 });
 
 test("event details for Boiromotos and RPM FEST inherit the canonical static header", () => {
@@ -88,6 +105,24 @@ test("logo, agenda, disciplines, zones, contact, saved events and publish stay c
   assert.match(homeHeader, /href=\{PUBLIC_NAVIGATION\.home\}/);
   assert.match(homeHeader, /href=\{PUBLIC_NAVIGATION\.publish\}/);
   assert.match(footer, /href: PUBLIC_NAVIGATION\.calendar/);
+});
+
+test("home anchors exist and reserve space below the fixed header", () => {
+  const calendar = source("components/public/concept/ConceptEventExplorer.tsx");
+  const disciplines = source("components/public/concept/ConceptDisciplineExplorer.tsx");
+  const zones = source("components/public/concept/ConceptZoneExplorer.tsx");
+  const styles = source("components/public/concept/ConceptStyles.tsx");
+
+  assert.match(calendar, /id="calendario"/);
+  assert.match(disciplines, /id="disciplinas"/);
+  assert.match(zones, /id="zonas"/);
+  assert.match(styles, /#calendario, #disciplinas, #zonas \{ scroll-margin-top: 118px; \}/);
+  assert.match(styles, /#calendario, #disciplinas, #zonas \{ scroll-margin-top: 92px; \}/);
+});
+
+test("contact returns to the home calendar section", () => {
+  const contactPage = source("app/contacto/page.tsx");
+  assert.match(contactPage, /href=\{HOME_SECTION_LINKS\.calendar\}/);
 });
 
 test("active public components do not hardcode obsolete calendar hrefs or preview destinations", () => {

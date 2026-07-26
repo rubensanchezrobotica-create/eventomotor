@@ -11,6 +11,8 @@ type ConceptHeaderProps = {
 };
 
 export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
+  void onCalendar;
+
   return (
     <>
       <div className="emc-topline" />
@@ -20,7 +22,7 @@ export default function ConceptHeader({ onCalendar }: ConceptHeaderProps) {
             <EventomotorLogo compactOnMobile />
           </Link>
 
-          <PublicNavigationMenu onCalendar={onCalendar} />
+          <PublicNavigationMenu />
 
           <div className="emc-nav-actions">
             <Link
