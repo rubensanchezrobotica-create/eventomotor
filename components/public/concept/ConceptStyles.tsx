@@ -106,8 +106,45 @@ export default function ConceptStyles() {
 }
 .emc-navlinks { display: flex; align-items: center; gap: 28px; color: #cbd2de; font-size: 14px; font-weight: 800; }
 .emc-navlinks a:hover, .emc-navlink-button:hover { color: #fff; }
+.emc-navlinks a[aria-current="page"] { color: #fff; text-decoration: underline; text-decoration-color: var(--emc-accent); text-underline-offset: 7px; }
 .emc-navlink-button { border: 0; background: transparent; color: #cbd2de; font-weight: 800; padding: 0; }
 .emc-nav-actions { display: flex; gap: 10px; }
+.emc-mobile-navigation { display: none; position: relative; margin-left: auto; }
+.emc-mobile-navigation-toggle {
+  min-height: 42px;
+  border: 1px solid var(--emc-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  color: #fff;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+}
+.emc-mobile-navigation-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 120;
+  width: min(260px, calc(100vw - 32px));
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--emc-line);
+  border-radius: 18px;
+  background: rgba(8,11,17,.98);
+  box-shadow: 0 18px 50px rgba(0,0,0,.45);
+}
+.emc-mobile-navigation-link {
+  border-radius: 12px;
+  color: #cbd2de;
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.emc-mobile-navigation-link:hover,
+.emc-mobile-navigation-link:focus-visible,
+.emc-mobile-navigation-link[aria-current="page"] { background: rgba(255,255,255,.08); color: #fff; }
 .emc-filter-rail {
   display: flex;
   justify-content: flex-start;
@@ -2706,6 +2743,7 @@ export default function ConceptStyles() {
 }
 @media (max-width: 980px) {
   .emc-navlinks { display: none; }
+  .emc-mobile-navigation { display: block; }
   .emc-nav { padding-left: 16px; }
   .emc-filter-rail { flex-wrap: wrap; }
   .emc-location-menu { margin-left: auto; }

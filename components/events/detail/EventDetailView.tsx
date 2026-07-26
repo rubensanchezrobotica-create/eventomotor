@@ -7,6 +7,7 @@ import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel } from "@/components/public/concept/concept-model";
 import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
@@ -197,7 +198,7 @@ export default function EventDetailView({
                   <ol>
                     <li><Link href="/">Inicio</Link></li>
                     <li aria-hidden="true">/</li>
-                    <li><Link href="/calendario">Calendario</Link></li>
+                    <li><Link href={PUBLIC_NAVIGATION.calendar}>Calendario</Link></li>
                     <li aria-hidden="true">/</li>
                     <li><Link href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link></li>
                   </ol>
@@ -440,7 +441,7 @@ export default function EventDetailView({
                 <p>Continúa por el calendario, la disciplina o la zona de este evento.</p>
               </div>
               <div className={styles.finalActions}>
-                <Link className="emc-btn emc-btn-primary" href="/calendario">Ver calendario</Link>
+                <Link className="emc-btn emc-btn-primary" href={PUBLIC_NAVIGATION.calendar}>Ver calendario</Link>
                 <Link className="emc-btn emc-btn-dark" href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>
                   Ver más de {event.discipline}
                 </Link>

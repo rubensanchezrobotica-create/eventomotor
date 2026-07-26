@@ -5,6 +5,7 @@ import EventSubmissionForm from "@/components/public/EventSubmissionForm";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import { SITE_URL } from "@/lib/seo";
 
 const CONTACT_EMAIL = "info@eventomotor.com";
@@ -115,7 +116,7 @@ const requestedData = [
 ];
 
 const publishInternalLinks = [
-  { label: "Calendario de eventos", href: "/calendario" },
+  { label: "Calendario de eventos", href: PUBLIC_NAVIGATION.calendar },
   { label: "Eventos este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
   { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
   { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
@@ -155,7 +156,7 @@ export default function PublicarEventoPage() {
                 >
                   Enviar evento
                 </TrackAnchor>
-                <Link className="emc-contact-secondary-link" href="/calendario">
+                <Link className="emc-contact-secondary-link" href={PUBLIC_NAVIGATION.calendar}>
                   Ver calendario
                 </Link>
               </div>

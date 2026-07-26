@@ -2,6 +2,7 @@ import Link from "next/link";
 import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { SEO_ZONES } from "@/lib/seo-taxonomy";
 import type { ZoneFilters, ZonePreviewData } from "./zone-preview-model";
@@ -135,7 +136,7 @@ export default function ZonePreviewPage({
             <ZoneSeoDisclosure>
               {paragraphs.slice(1).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
               <div className={styles.internalLinks}>
-                <Link href="/calendario">Calendario completo</Link>
+                <Link href={PUBLIC_NAVIGATION.calendar}>Calendario completo</Link>
                 <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
                 {mode === "preview" ? (
                   <Link href={`/zonas/${data.zone.id}`}>Página pública actual</Link>

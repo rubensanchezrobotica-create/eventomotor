@@ -3,6 +3,7 @@ import Link from "next/link";
 import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import { canonicalPublicHref, PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
 import { eventAnalyticsParams } from "@/lib/analytics";
@@ -243,7 +244,7 @@ function CountGrid({ items }: { items: Array<{ label: string; count: number; hre
   return (
     <div className="emc-weekend-count-grid">
       {items.map((item) => (
-        <Link className={item.count ? "emc-weekend-count-card" : "emc-weekend-count-card emc-muted"} href={item.href || "/calendario"} key={item.label}>
+        <Link className={item.count ? "emc-weekend-count-card" : "emc-weekend-count-card emc-muted"} href={canonicalPublicHref(item.href || PUBLIC_NAVIGATION.calendar)} key={item.label}>
           <strong>{item.count}</strong>
           <span>{item.label}</span>
         </Link>
@@ -393,7 +394,7 @@ function MotoalmuerzosSeoHub({ events, relatedEvents, now }: { events: EventItem
         <div className="emc-container">
           <div className="emc-weekend-update">
             <span>Agenda de motoalmuerzos, matinales y quedadas de mañana publicados en EventoMotor.</span>
-            {provinces.length ? <strong>{provinces.join(" / ")}</strong> : <Link href="/calendario">Ver calendario completo</Link>}
+            {provinces.length ? <strong>{provinces.join(" / ")}</strong> : <Link href={PUBLIC_NAVIGATION.calendar}>Ver calendario completo</Link>}
           </div>
 
           <div className="emc-weekend-grid">
@@ -418,7 +419,7 @@ function MotoalmuerzosSeoHub({ events, relatedEvents, now }: { events: EventItem
               <div className="emc-kicker">Calendario completo</div>
               <h2>Agenda motera</h2>
               <div className="emc-contact-actions emc-opportunity-actions">
-                <Link className="emc-contact-secondary-link" href="/calendario">
+                <Link className="emc-contact-secondary-link" href={PUBLIC_NAVIGATION.calendar}>
                   Ver calendario completo
                 </Link>
               </div>
@@ -768,10 +769,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
               <h1>{page.h1}</h1>
               <p className="emc-opportunity-lead">{page.lead}</p>
               <div className="emc-contact-actions emc-opportunity-actions">
-                <Link className="emc-btn emc-btn-primary" href={isWeekendPage ? "#eventos" : "/calendario"}>
+                <Link className="emc-btn emc-btn-primary" href={isWeekendPage ? "#eventos" : PUBLIC_NAVIGATION.calendar}>
                   {isWeekendPage ? "Ver eventos de este fin de semana" : isMotoalmuerzosPage ? "Ver próximos motoalmuerzos" : "Ver calendario completo"}
                 </Link>
-                <Link className="emc-contact-secondary-link" href={isWeekendPage ? "/calendario" : "/publicar-evento"}>
+                <Link className="emc-contact-secondary-link" href={isWeekendPage ? PUBLIC_NAVIGATION.calendar : PUBLIC_NAVIGATION.publish}>
                   {isWeekendPage ? "Ver calendario completo" : isMotoalmuerzosPage ? "Publicar un motoalmuerzo" : "Publicar evento"}
                 </Link>
               </div>
@@ -853,7 +854,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
                     Concentraciones moteras 2026
                   </Link>
                   {isWeekendPage ? (
-                    <Link className="emc-contact-secondary-link" href="/calendario">
+                    <Link className="emc-contact-secondary-link" href={PUBLIC_NAVIGATION.calendar}>
                       Consultar calendario completo
                     </Link>
                   ) : null}
@@ -961,7 +962,7 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
             </div>
             <div className="emc-internal-links">
               {page.relatedLinks.map((link) => (
-                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
+                <Link className="emc-internal-link-card" href={canonicalPublicHref(link.href)} key={link.href}>
                   <span>Relacionado</span>
                   <strong>{link.label}</strong>
                 </Link>

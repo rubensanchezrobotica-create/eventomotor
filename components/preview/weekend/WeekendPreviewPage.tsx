@@ -2,6 +2,7 @@ import Link from "next/link";
 import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import type { WeekendFilters, WeekendPreviewData } from "./weekend-preview-model";
 import WeekendExplorer from "./WeekendExplorer";
@@ -14,7 +15,7 @@ type WeekendPreviewPageProps = {
 };
 
 const SEO_LINKS = [
-  { label: "Calendario completo", href: "/calendario" },
+  { label: "Calendario completo", href: PUBLIC_NAVIGATION.calendar },
   { label: "Eventos en Madrid", href: "/eventos-motor-madrid" },
   { label: "Eventos en Cataluña", href: "/eventos-motor-cataluna" },
   { label: "Eventos en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
@@ -87,7 +88,7 @@ export default function WeekendPreviewPage({
               </p>
               <div className={styles.heroActions}>
                 <a className="emc-btn emc-btn-primary" href="#eventos">Ver eventos</a>
-                <Link href="/calendario">Calendario completo</Link>
+                <Link href={PUBLIC_NAVIGATION.calendar}>Calendario completo</Link>
               </div>
             </div>
           </div>

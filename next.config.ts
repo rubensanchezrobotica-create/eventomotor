@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PUBLIC_NAVIGATION } from "./lib/public-navigation";
 
 const legacyRedirect = (source: string, destination: string) => ({
   source,
@@ -10,7 +11,8 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [
-      legacyRedirect("/events/:path*", "/calendario"),
+      legacyRedirect("/calendario", PUBLIC_NAVIGATION.calendar),
+      legacyRedirect("/events/:path*", PUBLIC_NAVIGATION.calendar),
       legacyRedirect("/event-organizer/:path*", "/publicar-evento"),
       legacyRedirect("/event-location/osuna", "/zonas/sur"),
       legacyRedirect("/event-location/osuna/", "/zonas/sur"),
@@ -20,7 +22,7 @@ const nextConfig: NextConfig = {
       legacyRedirect("/event-location/girona/", "/eventos-motor-cataluna"),
       legacyRedirect("/event-location/la-baneza", "/zonas/norte"),
       legacyRedirect("/event-location/la-baneza/", "/zonas/norte"),
-      legacyRedirect("/event-location/:path*", "/calendario"),
+      legacyRedirect("/event-location/:path*", PUBLIC_NAVIGATION.calendar),
       legacyRedirect("/event-type/hard-enduro", "/disciplinas/offroad"),
       legacyRedirect("/event-type/hard-enduro/", "/disciplinas/offroad"),
       legacyRedirect("/event-type/enduro", "/disciplinas/offroad"),
@@ -45,10 +47,10 @@ const nextConfig: NextConfig = {
       legacyRedirect("/event-type/superbike/", "/disciplinas/circuito"),
       legacyRedirect("/event-type/circuito", "/disciplinas/circuito"),
       legacyRedirect("/event-type/circuito/", "/disciplinas/circuito"),
-      legacyRedirect("/event-type/:path*", "/calendario"),
+      legacyRedirect("/event-type/:path*", PUBLIC_NAVIGATION.calendar),
       legacyRedirect("/event-type-2/pais-vasco", "/zonas/norte"),
       legacyRedirect("/event-type-2/pais-vasco/", "/zonas/norte"),
-      legacyRedirect("/event-type-2/:path*", "/calendario"),
+      legacyRedirect("/event-type-2/:path*", PUBLIC_NAVIGATION.calendar),
     ];
   },
 };

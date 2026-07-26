@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import { useEffect, useState } from "react";
 import { downloadIcsFile } from "@/lib/calendar-export";
 import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analytics";
@@ -22,8 +23,9 @@ export default function MyEventsClient() {
   const countLabel = events.length === 1 ? "1 evento guardado en este dispositivo." : `${events.length} eventos guardados en este dispositivo.`;
 
   useEffect(() => {
-    setEvents(getSavedEvents());
+    const savedEventsTimer = window.setTimeout(() => setEvents(getSavedEvents()), 0);
     trackEvent("open_my_events", { page_path: currentPagePath() });
+    return () => window.clearTimeout(savedEventsTimer);
   }, []);
 
   function remove(slug: string) {
@@ -65,7 +67,7 @@ export default function MyEventsClient() {
           <Link className="emc-btn emc-btn-primary" href="/eventos-motor-este-fin-de-semana">
             Ver eventos de este fin de semana
           </Link>
-          <Link className="emc-btn emc-btn-dark" href="/calendario">
+          <Link className="emc-btn emc-btn-dark" href={PUBLIC_NAVIGATION.calendar}>
             Explorar calendario
           </Link>
         </div>
@@ -84,7 +86,7 @@ export default function MyEventsClient() {
           <button className="emc-btn emc-btn-dark emc-my-events-export" onClick={exportAll} type="button">
             Exportar todos
           </button>
-          <Link className="emc-btn emc-btn-primary" href="/calendario">
+          <Link className="emc-btn emc-btn-primary" href={PUBLIC_NAVIGATION.calendar}>
             Explorar calendario
           </Link>
         </div>
