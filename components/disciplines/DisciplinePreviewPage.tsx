@@ -2,6 +2,7 @@ import Link from "next/link";
 import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import DisciplineExplorer from "./DisciplineExplorer";
@@ -126,7 +127,7 @@ export default function DisciplinePreviewPage({
             <DisciplineSeoDisclosure>
               {paragraphs.slice(1).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
               <div className={zoneStyles.internalLinks}>
-                <Link href="/calendario">Calendario completo</Link>
+                <Link href={PUBLIC_NAVIGATION.calendar}>Calendario completo</Link>
                 <Link href="/eventos-motor-este-fin-de-semana">Eventos este fin de semana</Link>
                 {mode === "preview" ? (
                   <Link href={`/disciplinas/${data.discipline.slug}`}>Página pública actual</Link>

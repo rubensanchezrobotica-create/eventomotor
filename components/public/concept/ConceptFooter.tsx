@@ -4,6 +4,7 @@ import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import { formatPreviewDisplayText } from "@/components/preview/preview-geography";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 
 export type FooterVariant = "default" | "compact";
 
@@ -39,9 +40,9 @@ export default function ConceptFooter({ contactTrackingLocation = "footer", vari
     {
       title: "Calendario",
       links: [
-        { label: "Calendario", href: "/calendario" },
+        { label: "Calendario", href: PUBLIC_NAVIGATION.calendar },
         { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-        { label: "Mis eventos", href: "/mis-eventos" },
+        { label: "Mis eventos", href: PUBLIC_NAVIGATION.savedEvents },
       ],
     },
     {
@@ -95,8 +96,8 @@ export default function ConceptFooter({ contactTrackingLocation = "footer", vari
     {
       title: "Organizadores",
       links: [
-        { label: "Publicar evento", href: "/publicar-evento" },
-        { label: "Contacto", href: "/contacto" },
+        { label: "Publicar evento", href: PUBLIC_NAVIGATION.publish },
+        { label: "Contacto", href: PUBLIC_NAVIGATION.contact },
       ],
     },
     {

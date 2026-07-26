@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 
 const LEGACY_LOCATION_REDIRECTS: Record<string, string> = {
   girona: "/eventos-motor-cataluna",
@@ -40,10 +41,10 @@ const LEGACY_MOTO_REDIRECTS: Record<string, string> = {
   "eco-rally": "/rallyes-espana-2026",
   guadalajara: "/zonas/centro",
   huelva: "/eventos-motor-andalucia",
-  huesca: "/calendario",
+  huesca: PUBLIC_NAVIGATION.calendar,
   malaga: "/eventos-motor-andalucia",
-  ourense: "/calendario",
-  pontevedra: "/calendario",
+  ourense: PUBLIC_NAVIGATION.calendar,
+  pontevedra: PUBLIC_NAVIGATION.calendar,
   "rally-historico": "/rallyes-espana-2026",
   "rally-tierra": "/rallyes-espana-2026",
   rallycross: "/rallyes-espana-2026",
@@ -51,7 +52,7 @@ const LEGACY_MOTO_REDIRECTS: Record<string, string> = {
   sevilla: "/eventos-motor-andalucia",
   soria: "/zonas/centro",
   tarragona: "/eventos-motor-cataluna",
-  zaragoza: "/calendario",
+  zaragoza: PUBLIC_NAVIGATION.calendar,
 };
 
 function safeDecode(value: string) {
@@ -73,13 +74,13 @@ export function legacyRedirect(request: Request, destination: string) {
 }
 
 export function legacyLocationDestination(slug: string) {
-  return LEGACY_LOCATION_REDIRECTS[slug] || "/calendario";
+  return LEGACY_LOCATION_REDIRECTS[slug] || PUBLIC_NAVIGATION.calendar;
 }
 
 export function legacyTypeDestination(slug: string) {
-  return LEGACY_TYPE_REDIRECTS[slug] || "/calendario";
+  return LEGACY_TYPE_REDIRECTS[slug] || PUBLIC_NAVIGATION.calendar;
 }
 
 export function legacyMotoDestination(slug: string) {
-  return LEGACY_MOTO_REDIRECTS[slug] || "/calendario";
+  return LEGACY_MOTO_REDIRECTS[slug] || PUBLIC_NAVIGATION.calendar;
 }

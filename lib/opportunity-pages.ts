@@ -3,6 +3,7 @@ import type { EventItem } from "@/types/event";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import { SEO_COMMUNITIES, matchesSeoCommunity } from "@/lib/seo-communities";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
+import { canonicalPublicHref, PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 
 type RegionalHighlight = {
   label: string;
@@ -141,7 +142,7 @@ const motoCircuitTerms = ["moto", "motos", "motociclismo", "rodada moto", "rodad
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
 const feriaTerms = ["feria", "ferias", "salon", "salón", "automovil", "automóvil", "moto", "clasicos", "clásicos", "recambios", "exposicion", "exposición", "motor show", "expo"];
 
-export const OPPORTUNITY_PAGES: OpportunityPage[] = [
+const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
     slug: "eventos-motor-este-fin-de-semana",
     h1: "Eventos de motor este fin de semana",
@@ -171,7 +172,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Puedo publicar un evento para este fin de semana?", answer: "Sí. Si organizas una concentración, rallye, rodada, feria o motoalmuerzo, puedes enviarlo desde publicar evento para que se revise antes de aparecer en el calendario." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Motoalmuerzos 2026", href: "/motoalmuerzos-2026" },
       { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
@@ -213,7 +214,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar una concentración motera?", answer: "Puedes enviar nombre, fecha, ubicación, disciplina, fuente oficial y cartel desde la página de publicar evento." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Concentraciones moteras", href: "/disciplinas/concentraciones" },
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -256,7 +257,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Eventos de motor en Cataluña", href: "/eventos-motor-cataluna" },
       { label: "Eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
       { label: "Eventos de motor en Andalucía", href: "/eventos-motor-andalucia" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) =>
@@ -295,7 +296,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     relatedLinks: [
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar un motoalmuerzo", href: "/publicar-evento" },
       { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Eventos de motor en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
@@ -337,7 +338,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo saber si un rally tiene inscripción o entradas?", answer: "La ficha puede mostrar enlace de entradas o inscripción si está disponible; si no, conviene revisar la fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Eventos en el norte", href: "/zonas/norte" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -457,7 +458,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar un evento en Barcelona?", answer: "Los organizadores pueden enviar la información oficial desde publicar evento para que se revise su inclusión." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Cataluña / Aragón", href: "/zonas/cataluna-aragon" },
       { label: "Circuito", href: "/disciplinas/circuito" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -493,7 +494,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo enviar un evento de Valencia?", answer: "Puedes enviarlo a EventoMotor desde la página de publicar evento con fecha, ubicación y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Levante", href: "/zonas/levante" },
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -522,7 +523,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Concentraciones moteras", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "moteras", "biker"] },
         { label: "Jarama y circuito", href: "/disciplinas/circuito", terms: ["jarama", "circuito", "trackday", "tandas", "rodada", "rodadas"] },
         { label: "Clasicos y coches", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico", "coche", "coches"], vehicleTypes: ["coche"] },
-        { label: "Ferias y rutas", href: "/calendario", terms: ["feria", "salon", "ruta", "mototurismo"] },
+        { label: "Ferias y rutas", href: PUBLIC_NAVIGATION.calendar, terms: ["feria", "salon", "ruta", "mototurismo"] },
       ],
     },
     intro:
@@ -544,7 +545,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento de motor en Madrid?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion y fuente verificable para que se revise." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
@@ -600,7 +601,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como enviar un evento andaluz?", answer: "Puedes proponerlo desde publicar evento aportando fecha, ubicacion, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Concentraciones", href: "/disciplinas/concentraciones" },
@@ -632,7 +633,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Barcelona, Girona y Tarragona", href: "/eventos-motor-barcelona", terms: ["barcelona", "girona", "tarragona", "lleida"] },
         { label: "Circuit de Barcelona-Catalunya", href: "/disciplinas/circuito", terms: ["montmelo", "montmeló", "circuit de barcelona", "circuito", "trackday"] },
         { label: "Rallyes y concentraciones", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "subida", "concentracion", "motoalmuerzo"] },
-        { label: "Motos, clasicos y coches", href: "/calendario", terms: ["moto", "motera", "clasico", "clasicos", "coche", "coches"], vehicleTypes: ["moto", "coche"] },
+        { label: "Motos, clasicos y coches", href: PUBLIC_NAVIGATION.calendar, terms: ["moto", "motera", "clasico", "clasicos", "coche", "coches"], vehicleTypes: ["moto", "coche"] },
       ],
     },
     intro:
@@ -654,7 +655,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Puedo publicar un evento catalan?", answer: "Si organizas un evento con fuente verificable, puedes enviarlo desde publicar evento." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
       { label: "Concentraciones", href: "/disciplinas/concentraciones" },
@@ -687,7 +688,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Valencia, Alicante y Castellon", href: "/eventos-motor-valencia", terms: ["valencia", "alicante", "castellon", "castellón"] },
         { label: "Cheste y Ricardo Tormo", href: "/disciplinas/circuito", terms: ["cheste", "ricardo tormo", "circuito", "trackday", "tandas"] },
         { label: "Rallyes valencianos", href: "/rallyes-valencia-2026", terms: ["rally", "rallye", "rallysprint", "subida", "ceramica"] },
-        { label: "Motos, coches y clasicos", href: "/calendario", terms: ["moto", "motera", "coche", "coches", "clasico", "clasicos"], vehicleTypes: ["moto", "coche"] },
+        { label: "Motos, coches y clasicos", href: PUBLIC_NAVIGATION.calendar, terms: ["moto", "motera", "coche", "coches", "clasico", "clasicos"], vehicleTypes: ["moto", "coche"] },
       ],
     },
     intro:
@@ -709,7 +710,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Comunidad Valenciana?", answer: "Puedes enviar la informacion oficial desde publicar evento para que se revise su inclusion." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes Valencia 2026", href: "/rallyes-valencia-2026" },
       { label: "Eventos de motor en Valencia", href: "/eventos-motor-valencia" },
@@ -743,7 +744,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y subidas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "subida", "montana", "montaña"] },
         { label: "Concentraciones moteras", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "moteras", "biker"] },
         { label: "Clasicos y ferias", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico", "feria", "salon"] },
-        { label: "A Coruna, Lugo y Pontevedra", href: "/calendario", terms: ["coruna", "lugo", "ourense", "orense", "pontevedra", "vigo"] },
+        { label: "A Coruna, Lugo y Pontevedra", href: PUBLIC_NAVIGATION.calendar, terms: ["coruna", "lugo", "ourense", "orense", "pontevedra", "vigo"] },
       ],
     },
     intro:
@@ -765,7 +766,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento gallego?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
@@ -797,7 +798,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "MotorLand y circuito", href: "/disciplinas/circuito", terms: ["motorland", "circuito", "trackday", "tandas"] },
         { label: "Karting", href: "/disciplinas/karting", terms: ["kart", "karting", "zuera"] },
         { label: "Rallyes y rutas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "ruta", "mototurismo"] },
-        { label: "Zaragoza, Huesca y Teruel", href: "/calendario", terms: ["zaragoza", "huesca", "teruel", "alcaniz"] },
+        { label: "Zaragoza, Huesca y Teruel", href: PUBLIC_NAVIGATION.calendar, terms: ["zaragoza", "huesca", "teruel", "alcaniz"] },
       ],
     },
     intro:
@@ -819,7 +820,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Aragon?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Trackdays en Espana 2026", href: "/trackdays-espana-2026" },
       { label: "Karting en Espana 2026", href: "/karting-espana-2026" },
@@ -851,7 +852,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Concentraciones", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "biker"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico", "retro"] },
         { label: "Rallyes y rutas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "ruta", "mototurismo"] },
-        { label: "Albacete y Toledo", href: "/calendario", terms: ["albacete", "toledo", "ciudad real", "cuenca", "guadalajara"] },
+        { label: "Albacete y Toledo", href: PUBLIC_NAVIGATION.calendar, terms: ["albacete", "toledo", "ciudad real", "cuenca", "guadalajara"] },
       ],
     },
     intro:
@@ -873,7 +874,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento manchego?", answer: "Puedes enviarlo desde publicar evento con fuente oficial y datos de ubicacion." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
@@ -904,7 +905,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y montana", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "subida", "montana", "montaña"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico", "retro"] },
         { label: "Motos y concentraciones", href: "/disciplinas/concentraciones", terms: ["moto", "motera", "concentracion", "biker"] },
-        { label: "Las Palmas y Tenerife", href: "/calendario", terms: ["las palmas", "tenerife", "gran canaria", "lanzarote"] },
+        { label: "Las Palmas y Tenerife", href: PUBLIC_NAVIGATION.calendar, terms: ["las palmas", "tenerife", "gran canaria", "lanzarote"] },
       ],
     },
     intro:
@@ -926,7 +927,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como enviar un evento en Canarias?", answer: "Puedes proponerlo desde publicar evento aportando fecha, ubicacion y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Rallyes", href: "/disciplinas/rallyes" },
@@ -979,7 +980,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento murciano?", answer: "Puedes enviarlo desde publicar evento aportando fecha, ubicacion, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
@@ -1010,7 +1011,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Concentraciones moteras", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera", "biker"] },
         { label: "Rallyes y rutas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "ruta", "mototurismo"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "clasicos", "historico"] },
-        { label: "Leon, Burgos y Valladolid", href: "/calendario", terms: ["leon", "burgos", "valladolid", "salamanca", "zamora"] },
+        { label: "Leon, Burgos y Valladolid", href: PUBLIC_NAVIGATION.calendar, terms: ["leon", "burgos", "valladolid", "salamanca", "zamora"] },
       ],
     },
     intro:
@@ -1032,7 +1033,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Castilla y Leon?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
@@ -1063,7 +1064,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y rallysprint", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "subida"] },
         { label: "Rutas moteras", href: "/disciplinas/rutas", terms: ["ruta", "mototurismo", "moto"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "historico", "regularidad"] },
-        { label: "Oviedo, Gijon y occidente", href: "/calendario", terms: ["oviedo", "gijon", "luarca", "langreo", "cangas"] },
+        { label: "Oviedo, Gijon y occidente", href: PUBLIC_NAVIGATION.calendar, terms: ["oviedo", "gijon", "luarca", "langreo", "cangas"] },
       ],
     },
     intro:
@@ -1085,7 +1086,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Asturias?", answer: "Puedes enviarlo desde publicar evento aportando fecha, ubicacion, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Rallysprint en Espana 2026", href: "/rallysprint-espana-2026" },
@@ -1116,7 +1117,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y subidas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "subida", "montana", "montaña"] },
         { label: "Clasicos y regularidad", href: "/disciplinas/clasicos", terms: ["clasico", "historico", "regularidad"] },
         { label: "Rutas moteras", href: "/disciplinas/rutas", terms: ["ruta", "mototurismo", "moto"] },
-        { label: "Santander y Torrelavega", href: "/calendario", terms: ["santander", "torrelavega", "comillas", "potes", "heras"] },
+        { label: "Santander y Torrelavega", href: PUBLIC_NAVIGATION.calendar, terms: ["santander", "torrelavega", "comillas", "potes", "heras"] },
       ],
     },
     intro:
@@ -1138,7 +1139,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Cantabria?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion, disciplina y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Clasicos", href: "/disciplinas/clasicos" },
@@ -1169,7 +1170,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Circuito de Navarra", href: "/disciplinas/circuito", terms: ["circuito de navarra", "los arcos", "trackday", "velocidad"] },
         { label: "Rallyes", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "tierra"] },
         { label: "Karting", href: "/disciplinas/karting", terms: ["kart", "karting"] },
-        { label: "Pamplona y Ribera", href: "/calendario", terms: ["pamplona", "tudela", "corella", "ultzama", "los arcos"] },
+        { label: "Pamplona y Ribera", href: PUBLIC_NAVIGATION.calendar, terms: ["pamplona", "tudela", "corella", "ultzama", "los arcos"] },
       ],
     },
     intro:
@@ -1191,7 +1192,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento navarro?", answer: "Puedes enviarlo desde publicar evento aportando fecha, ciudad, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Circuito", href: "/disciplinas/circuito" },
       { label: "Karting", href: "/disciplinas/karting" },
@@ -1222,7 +1223,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y slalom", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "slalom", "rallysprint"] },
         { label: "Karting", href: "/disciplinas/karting", terms: ["kart", "karting"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "historico", "regularidad"] },
-        { label: "Badajoz y Caceres", href: "/calendario", terms: ["badajoz", "caceres", "merida", "plasencia", "almendralejo"] },
+        { label: "Badajoz y Caceres", href: PUBLIC_NAVIGATION.calendar, terms: ["badajoz", "caceres", "merida", "plasencia", "almendralejo"] },
       ],
     },
     intro:
@@ -1244,7 +1245,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento extremeno?", answer: "Puedes enviarlo desde publicar evento con fecha, municipio, disciplina y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Karting", href: "/disciplinas/karting" },
@@ -1275,7 +1276,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y subidas", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "subida", "pujada", "rallysprint"] },
         { label: "Karting", href: "/disciplinas/karting", terms: ["kart", "karting"] },
         { label: "Concentraciones", href: "/disciplinas/concentraciones", terms: ["concentracion", "motoalmuerzo", "motera"] },
-        { label: "Mallorca, Ibiza y Menorca", href: "/calendario", terms: ["mallorca", "palma", "ibiza", "eivissa", "menorca", "llucmajor"] },
+        { label: "Mallorca, Ibiza y Menorca", href: PUBLIC_NAVIGATION.calendar, terms: ["mallorca", "palma", "ibiza", "eivissa", "menorca", "llucmajor"] },
       ],
     },
     intro:
@@ -1297,7 +1298,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento en Baleares?", answer: "Puedes enviarlo desde publicar evento aportando fecha, municipio, disciplina y fuente oficial." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Karting", href: "/disciplinas/karting" },
@@ -1328,7 +1329,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
         { label: "Rallyes y rallysprint", href: "/disciplinas/rallyes", terms: ["rally", "rallye", "rallysprint", "subida"] },
         { label: "Rutas moteras", href: "/disciplinas/rutas", terms: ["ruta", "mototurismo", "moto"] },
         { label: "Clasicos", href: "/disciplinas/clasicos", terms: ["clasico", "historico", "regularidad"] },
-        { label: "Bizkaia, Gipuzkoa y Alava", href: "/calendario", terms: ["bizkaia", "vizcaya", "gipuzkoa", "guipuzcoa", "alava", "araba"] },
+        { label: "Bizkaia, Gipuzkoa y Alava", href: PUBLIC_NAVIGATION.calendar, terms: ["bizkaia", "vizcaya", "gipuzkoa", "guipuzcoa", "alava", "araba"] },
       ],
     },
     intro:
@@ -1350,7 +1351,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "Como publicar un evento vasco?", answer: "Puedes enviarlo desde publicar evento con fecha, ubicacion, disciplina y fuente verificable." },
     ],
     relatedLinks: [
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Rallyes en Espana 2026", href: "/rallyes-espana-2026" },
       { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
@@ -1391,7 +1392,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Circuito", href: "/disciplinas/circuito" },
       { label: "Trackdays en Espana 2026", href: "/trackdays-espana-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) =>
@@ -1431,7 +1432,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Circuito", href: "/disciplinas/circuito" },
       { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) => isYear(event, 2026) && includesAny(event, circuitTerms),
@@ -1467,7 +1468,7 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     relatedLinks: [
       { label: "Disciplina Karting", href: "/disciplinas/karting" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) => isYear(event, 2026) && includesAny(event, kartingTerms),
@@ -1503,13 +1504,30 @@ export const OPPORTUNITY_PAGES: OpportunityPage[] = [
     relatedLinks: [
       { label: "Disciplina Ferias", href: "/disciplinas/ferias" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-      { label: "Calendario general", href: "/calendario" },
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
     filter: (event) => isYear(event, 2026) && includesAny(event, feriaTerms),
   },
 
 ];
+
+export const OPPORTUNITY_PAGES: OpportunityPage[] = RAW_OPPORTUNITY_PAGES.map((page) => ({
+  ...page,
+  relatedLinks: page.relatedLinks.map((link) => ({
+    ...link,
+    href: canonicalPublicHref(link.href),
+  })),
+  regionalHub: page.regionalHub
+    ? {
+        ...page.regionalHub,
+        highlights: page.regionalHub.highlights.map((highlight) => ({
+          ...highlight,
+          href: canonicalPublicHref(highlight.href),
+        })),
+      }
+    : undefined,
+}));
 
 export function getOpportunityPage(slug: string) {
   return OPPORTUNITY_PAGES.find((page) => page.slug === slug);
