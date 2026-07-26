@@ -4,6 +4,7 @@ import TrackAnchor from "@/components/analytics/TrackAnchor";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { HOME_SECTION_LINKS } from "@/lib/public-navigation";
 import { SITE_URL } from "@/lib/seo";
 
 const CONTACT_EMAIL = "info@eventomotor.com";
@@ -41,7 +42,7 @@ export default function ContactoPage() {
                 >
                   Escribir email
                 </TrackAnchor>
-                <Link className="emc-btn emc-btn-dark" href="/">
+                <Link className="emc-btn emc-btn-dark" href={HOME_SECTION_LINKS.calendar}>
                   Volver al calendario
                 </Link>
               </div>

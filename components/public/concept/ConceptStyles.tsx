@@ -109,6 +109,7 @@ export default function ConceptStyles() {
 .emc-navlinks a[aria-current="page"] { color: #fff; text-decoration: underline; text-decoration-color: var(--emc-accent); text-underline-offset: 7px; }
 .emc-navlink-button { border: 0; background: transparent; color: #cbd2de; font-weight: 800; padding: 0; }
 .emc-nav-actions { display: flex; gap: 10px; }
+#calendario, #disciplinas, #zonas { scroll-margin-top: 118px; }
 .emc-mobile-navigation { display: none; position: relative; margin-left: auto; }
 .emc-mobile-navigation-toggle {
   min-height: 42px;
@@ -2757,6 +2758,7 @@ export default function ConceptStyles() {
   }
 }
 @media (max-width: 760px) {
+  #calendario, #disciplinas, #zonas { scroll-margin-top: 92px; }
   .emc-navlinks, .emc-nav-actions .emc-btn-dark { display: none; }
   .emc-header-shell { top: 10px; width: min(94vw, 520px); padding: 8px; border-radius: 22px; }
   .emc-nav { min-height: 48px; padding: 0 4px; gap: 10px; }
