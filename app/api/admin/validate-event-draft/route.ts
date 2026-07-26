@@ -1,22 +1,17 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
 import {
+  validateEditableEventDraft,
+  type EditableEventDraft,
+  type EditableDraftField,
+} from "@/lib/admin-event-draft";
+import {
   normalizeRegistrationUrl,
   normalizeTicketUrl,
   parseHttpUrl,
 } from "@/lib/published-request-event";
 import type { EventRow } from "@/lib/supabase";
 
-type DraftInput = {
-  title?: unknown;
-  slug?: unknown;
-  startDate?: unknown;
-  endDate?: unknown;
-  city?: unknown;
-  province?: unknown;
-  sourceUrl?: unknown;
-  ticketUrl?: unknown;
-  registrationUrl?: unknown;
-};
+type DraftInput = EditableEventDraft;
 
 type ValidationStatus = "ok" | "warning" | "error";
 
@@ -39,6 +34,19 @@ type PossibleDuplicate = {
 
 const EVENT_SELECT = "id,slug,title,start_date,end_date,city,province,visible";
 const SOURCE_OK_STATUSES = new Set([200, 301, 302]);
+const EXTRA_FIELD_LABELS: Partial<Record<EditableDraftField, string>> = {
+  region: "Región",
+  country: "País",
+  discipline: "Disciplina",
+  category: "Categoría",
+  vehicleType: "Tipo de vehículo",
+  posterUrl: "Cartel",
+  organizer: "Organizador",
+  shortDescription: "Descripción breve",
+  longDescription: "Descripción larga",
+  scheduleText: "Horario",
+  tags: "Etiquetas",
+};
 
 function jsonError(message: string, status: number) {
   return Response.json({ ok: false, error: message }, { status });
@@ -189,10 +197,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const draft = (await request.json()) as DraftInput;
+    const rawDraft = await request.json();
+    const baseValidation = validateEditableEventDraft(rawDraft);
+    const draft = baseValidation.draft;
     const checks: ValidationCheck[] = [];
-    const warnings: string[] = [];
-    const errors: string[] = [];
+    const warnings: string[] = [...baseValidation.warnings];
+    const errors: string[] = [...baseValidation.errors];
 
     const title = textValue(draft.title);
     const slug = textValue(draft.slug);
@@ -278,6 +288,11 @@ export async function POST(request: Request) {
       warnings.push("La URL de inscripción no es válida.");
     }
 
+    for (const [field, message] of Object.entries(baseValidation.fieldErrors) as Array<[EditableDraftField, string]>) {
+      const label = EXTRA_FIELD_LABELS[field];
+      if (label) addCheck(checks, "error", label, message);
+    }
+
     const supabase = createSupabaseServerClient();
     let possibleDuplicates: PossibleDuplicate[] = [];
 
@@ -302,14 +317,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const status: ValidationStatus = errors.length ? "error" : warnings.length || possibleDuplicates.length ? "warning" : "ok";
+    const uniqueErrors = [...new Set(errors)];
+    const uniqueWarnings = [...new Set(warnings)];
+    const status: ValidationStatus = uniqueErrors.length ? "error" : uniqueWarnings.length || possibleDuplicates.length ? "warning" : "ok";
 
     return Response.json({
       ok: true,
       status,
       checks,
-      warnings,
-      errors,
+      warnings: uniqueWarnings,
+      errors: uniqueErrors,
+      fieldErrors: baseValidation.fieldErrors,
       possibleDuplicates,
     });
   } catch (error) {

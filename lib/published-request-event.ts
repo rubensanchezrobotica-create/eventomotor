@@ -18,6 +18,11 @@ export type PublicationDraft = {
   ticketUrl?: unknown;
   registrationUrl?: unknown;
   posterUrl?: unknown;
+  country?: unknown;
+  shortDescription?: unknown;
+  longDescription?: unknown;
+  scheduleText?: unknown;
+  tags?: unknown;
   sourceSubmissionId?: unknown;
 };
 
@@ -143,14 +148,23 @@ export function publicationDraftToEvent(draft: PublicationDraft): EventUpsert {
   const city = textValue(draft.city);
   const province = textValue(draft.province);
   const organizer = textValue(draft.organizer);
+  const country = textValue(draft.country) || "ES";
   const sourceUrl = parseHttpUrl(draft.sourceUrl)?.toString() || "";
   const rawTicket = textValue(draft.ticketUrl);
   const ticketUrl = normalizeTicketUrl(rawTicket);
   const registrationUrl = normalizeRegistrationUrl(draft.registrationUrl)
     || (!ticketUrl ? normalizeRegistrationUrl(rawTicket) : null);
   const image = publicationImageFields(draft.posterUrl);
-  const tags = [discipline, textValue(draft.category), city, province]
+  const explicitTags = Array.isArray(draft.tags)
+    ? draft.tags.map(textValue)
+    : textValue(draft.tags).split(/[,\n]/).map((tag) => tag.trim());
+  const tags = [...explicitTags, discipline, textValue(draft.category), city, province]
     .filter((tag, index, list) => tag && list.indexOf(tag) === index);
+  const shortDescription = sanitizePublicEditorialText(textValue(draft.shortDescription));
+  const longDescription = sanitizePublicEditorialText(
+    textValue(draft.longDescription) || textValue(draft.description),
+  );
+  const scheduleText = sanitizePublicEditorialText(textValue(draft.scheduleText));
 
   return {
     id: `admin-${slug}`,
@@ -164,7 +178,7 @@ export function publicationDraftToEvent(draft: PublicationDraft): EventUpsert {
     city,
     province,
     region: optionalText(draft.region) || province,
-    country: "ES",
+    country,
     level: "Publicado",
     source: organizer || "Solicitud de organizador",
     source_url: sourceUrl,
@@ -174,7 +188,9 @@ export function publicationDraftToEvent(draft: PublicationDraft): EventUpsert {
     image_url: image.image_url,
     image_source_url: image.image_source_url,
     event_status: "confirmed",
-    long_description: optionalText(draft.description),
+    short_description: shortDescription || null,
+    long_description: longDescription || null,
+    schedule_text: scheduleText || null,
     organizer_name: organizer || null,
     organizer_url: sourceUrl || null,
     source_type: "organizer",

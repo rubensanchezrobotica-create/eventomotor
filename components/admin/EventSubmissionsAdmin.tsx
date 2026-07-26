@@ -4,9 +4,20 @@ import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  normalizeRegistrationUrl,
-  normalizeTicketUrl,
-} from "@/lib/published-request-event";
+  EVENT_DRAFT_CATEGORIES,
+  EVENT_DRAFT_COUNTRIES,
+  EVENT_DRAFT_DISCIPLINES,
+  EVENT_DRAFT_REGIONS,
+  createEditableEventDraft,
+  eventDraftFingerprint,
+  isCurrentEventDraftValidated,
+  resetEditableEventDraft,
+  updateEditableEventDraft,
+  validateEditableEventDraft,
+  type EditableDraftField,
+  type EditableEventDraft,
+} from "@/lib/admin-event-draft";
+import { VEHICLE_TYPE_LABELS, VEHICLE_TYPE_OPTIONS } from "@/lib/event-classification";
 
 type AdminSubmission = {
   id: string;
@@ -38,27 +49,7 @@ type StatusUpdateResponse =
   | { ok: true; submission: AdminSubmission }
   | { ok: false; error: string };
 
-type EventDraft = {
-  title: string;
-  slug: string;
-  description: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  city: string | null;
-  province: string | null;
-  region: string | null;
-  venue: string | null;
-  discipline: string | null;
-  category: string | null;
-  vehicleType: string | null;
-  organizer: string | null;
-  sourceUrl: string | null;
-  ticketUrl: string | null;
-  registrationUrl: string | null;
-  posterUrl: string | null;
-  status: "draft" | "pending_review";
-  sourceSubmissionId: string;
-};
+type EventDraft = EditableEventDraft;
 
 type DraftPreview = {
   draft: EventDraft;
@@ -89,6 +80,7 @@ type DraftValidationResult = {
   checks: ValidationCheck[];
   warnings: string[];
   errors: string[];
+  fieldErrors: Partial<Record<EditableDraftField, string>>;
   possibleDuplicates: PossibleDuplicate[];
 };
 
@@ -134,57 +126,6 @@ const STATUS_CLASSES: Record<string, string> = {
   spam: "border-zinc-300/25 bg-zinc-300/10 text-zinc-200",
 };
 
-const PROVINCE_REGIONS: Record<string, string> = {
-  alava: "País Vasco",
-  albacete: "Castilla-La Mancha",
-  alicante: "Comunidad Valenciana",
-  almeria: "Andalucía",
-  asturias: "Asturias",
-  avila: "Castilla y León",
-  badajoz: "Extremadura",
-  barcelona: "Cataluña",
-  burgos: "Castilla y León",
-  caceres: "Extremadura",
-  cadiz: "Andalucía",
-  cantabria: "Cantabria",
-  castellon: "Comunidad Valenciana",
-  "ciudad real": "Castilla-La Mancha",
-  cordoba: "Andalucía",
-  cuenca: "Castilla-La Mancha",
-  girona: "Cataluña",
-  granada: "Andalucía",
-  guadalajara: "Castilla-La Mancha",
-  gipuzkoa: "País Vasco",
-  guipuzcoa: "País Vasco",
-  huelva: "Andalucía",
-  huesca: "Aragón",
-  jaen: "Andalucía",
-  "la rioja": "La Rioja",
-  leon: "Castilla y León",
-  lleida: "Cataluña",
-  lugo: "Galicia",
-  madrid: "Comunidad de Madrid",
-  malaga: "Andalucía",
-  murcia: "Región de Murcia",
-  navarra: "Navarra",
-  ourense: "Galicia",
-  palencia: "Castilla y León",
-  pontevedra: "Galicia",
-  salamanca: "Castilla y León",
-  segovia: "Castilla y León",
-  sevilla: "Andalucía",
-  soria: "Castilla y León",
-  tarragona: "Cataluña",
-  teruel: "Aragón",
-  toledo: "Castilla-La Mancha",
-  valencia: "Comunidad Valenciana",
-  valladolid: "Castilla y León",
-  bizkaia: "País Vasco",
-  vizcaya: "País Vasco",
-  zamora: "Castilla y León",
-  zaragoza: "Aragón",
-};
-
 function formatDate(value: string | null) {
   if (!value) return "Pendiente";
   return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
@@ -216,100 +157,6 @@ function statusClass(status: string) {
 
 function valueOrDash(value: string | null | undefined) {
   return value?.trim() || "—";
-}
-
-function cleanValue(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  return trimmed || null;
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function slugPart(value: string | null | undefined) {
-  return normalizeText(value || "")
-    .replace(/&/g, " y ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function createDraftSlug(submission: AdminSubmission) {
-  return [submission.event_name, submission.city, submission.start_date]
-    .map(slugPart)
-    .filter(Boolean)
-    .join("-")
-    .slice(0, 120)
-    .replace(/-+$/g, "");
-}
-
-function inferRegion(province: string | null) {
-  const key = normalizeText(province || "").trim();
-  return PROVINCE_REGIONS[key] || null;
-}
-
-function inferCategory(submission: AdminSubmission) {
-  const text = normalizeText([submission.event_name, submission.discipline, submission.description].filter(Boolean).join(" "));
-
-  if (text.includes("motoalmuerzo") || text.includes("almuerzo motero")) return "Motoalmuerzo";
-  if (text.includes("matinal")) return "Matinal motera";
-  if (text.includes("rallysprint")) return "Rallysprint";
-  if (text.includes("rally")) return "Rallye";
-  if (text.includes("trackday") || text.includes("tandas") || text.includes("rodada")) return "Rodada / trackday";
-  if (text.includes("feria") || text.includes("salon")) return "Feria del motor";
-  if (text.includes("clasico")) return "Clásicos";
-  if (text.includes("concentracion")) return "Concentración motera";
-
-  return cleanValue(submission.discipline);
-}
-
-function draftWarnings(submission: AdminSubmission) {
-  const warnings: string[] = [];
-
-  if (!cleanValue(submission.event_name)) warnings.push("Falta el título del evento.");
-  if (!cleanValue(submission.start_date)) warnings.push("Falta la fecha de inicio.");
-  if (!cleanValue(submission.city) || !cleanValue(submission.province)) warnings.push("Falta ciudad y/o provincia.");
-  if (!cleanValue(submission.source_url)) warnings.push("Falta fuente oficial verificable.");
-
-  return warnings;
-}
-
-function buildDraftPreview(submission: AdminSubmission): DraftPreview {
-  const warnings = draftWarnings(submission);
-  const ticketUrl = normalizeTicketUrl(submission.ticket_url);
-  const registrationUrl = ticketUrl
-    ? null
-    : normalizeRegistrationUrl(submission.ticket_url);
-  const draft: EventDraft = {
-    title: cleanValue(submission.event_name) || "",
-    slug: createDraftSlug(submission),
-    description: cleanValue(submission.description),
-    startDate: cleanValue(submission.start_date),
-    endDate: cleanValue(submission.end_date) || cleanValue(submission.start_date),
-    city: cleanValue(submission.city),
-    province: cleanValue(submission.province),
-    region: inferRegion(submission.province),
-    venue: cleanValue(submission.venue),
-    discipline: cleanValue(submission.discipline),
-    category: inferCategory(submission),
-    vehicleType: cleanValue(submission.vehicle_type),
-    organizer: cleanValue(submission.organizer_name),
-    sourceUrl: cleanValue(submission.source_url),
-    ticketUrl,
-    registrationUrl,
-    posterUrl: cleanValue(submission.poster_url),
-    status: warnings.length ? "pending_review" : "draft",
-    sourceSubmissionId: submission.id,
-  };
-
-  return {
-    draft,
-    json: JSON.stringify(draft, null, 2),
-    warnings,
-  };
 }
 
 function ExternalLink({ href, children }: { href: string | null | undefined; children: React.ReactNode }) {
@@ -373,6 +220,83 @@ function alreadyPublished(submission: AdminSubmission) {
   return ["published", "imported"].includes(submission.status);
 }
 
+function buildDraftPreview(draft: EventDraft): DraftPreview {
+  const validation = validateEditableEventDraft(draft);
+  return {
+    draft,
+    json: JSON.stringify(draft, null, 2),
+    warnings: [...validation.errors, ...validation.warnings],
+  };
+}
+
+function DraftField({
+  draft,
+  error,
+  field,
+  label,
+  multiline = false,
+  onChange,
+  options,
+  type = "text",
+  wide = false,
+}: {
+  draft: EventDraft;
+  error?: string;
+  field: EditableDraftField;
+  label: string;
+  multiline?: boolean;
+  onChange: (field: EditableDraftField, value: string) => void;
+  options?: ReadonlyArray<{ label: string; value: string }>;
+  type?: "text" | "date" | "url";
+  wide?: boolean;
+}) {
+  const inputId = `event-draft-${draft.sourceSubmissionId}-${field}`;
+  const errorId = `${inputId}-error`;
+  const value = field === "tags" ? draft.tags.join("\n") : draft[field];
+  const className = `min-h-10 w-full rounded-md border bg-black/35 px-3 py-2 text-sm text-white outline-none transition focus-visible:ring-2 focus-visible:ring-red-300/70 ${
+    error ? "border-red-400/70" : "border-white/[0.10] focus:border-red-300/60"
+  }`;
+
+  return (
+    <label className={`grid min-w-0 gap-1.5 ${wide ? "md:col-span-2" : ""}`} htmlFor={inputId}>
+      <span className="text-xs font-bold uppercase tracking-wide text-zinc-400">{label}</span>
+      {options ? (
+        <select
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={Boolean(error)}
+          className={className}
+          id={inputId}
+          onChange={(event) => onChange(field, event.target.value)}
+          value={value}
+        >
+          <option value="">Selecciona una opción</option>
+          {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      ) : multiline ? (
+        <textarea
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={Boolean(error)}
+          className={`${className} min-h-28 resize-y whitespace-pre-wrap break-words`}
+          id={inputId}
+          onChange={(event) => onChange(field, event.target.value)}
+          value={value}
+        />
+      ) : (
+        <input
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={Boolean(error)}
+          className={`${className} min-w-0`}
+          id={inputId}
+          onChange={(event) => onChange(field, event.target.value)}
+          type={type}
+          value={value}
+        />
+      )}
+      {error ? <span className="text-xs leading-5 text-red-200" id={errorId} role="alert">{error}</span> : null}
+    </label>
+  );
+}
+
 export default function EventSubmissionsAdmin() {
   const [secret, setSecret] = useState("");
   const [submissions, setSubmissions] = useState<AdminSubmission[]>([]);
@@ -384,6 +308,10 @@ export default function EventSubmissionsAdmin() {
   const [copyMessage, setCopyMessage] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, EventDraft>>({});
+  const [originalDrafts, setOriginalDrafts] = useState<Record<string, EventDraft>>({});
+  const [validatedFingerprints, setValidatedFingerprints] = useState<Record<string, string>>({});
+  const [draftChangeWarnings, setDraftChangeWarnings] = useState<Record<string, string>>({});
   const [validatingId, setValidatingId] = useState<string | null>(null);
   const [validationResults, setValidationResults] = useState<Record<string, DraftValidationResult>>({});
   const [publishingId, setPublishingId] = useState<string | null>(null);
@@ -463,24 +391,83 @@ export default function EventSubmissionsAdmin() {
   }
 
   function handleGenerateDraft(submission: AdminSubmission) {
+    const draft = createEditableEventDraft(submission);
     setExpandedId(submission.id);
     setDraftId(submission.id);
+    setDrafts((current) => ({ ...current, [submission.id]: draft }));
+    setOriginalDrafts((current) => ({ ...current, [submission.id]: structuredClone(draft) }));
+    setValidationResults((current) => {
+      const next = { ...current };
+      delete next[submission.id];
+      return next;
+    });
+    setValidatedFingerprints((current) => {
+      const next = { ...current };
+      delete next[submission.id];
+      return next;
+    });
+    setDraftChangeWarnings((current) => ({ ...current, [submission.id]: "" }));
     setCopyMessage(`Borrador generado para revisar: ${submission.event_name}`);
   }
 
   async function handleCopyDraft(submission: AdminSubmission) {
-    const draft = buildDraftPreview(submission);
+    const draft = drafts[submission.id];
+    if (!draft) return;
 
     try {
-      await navigator.clipboard.writeText(draft.json);
+      await navigator.clipboard.writeText(JSON.stringify(draft, null, 2));
       setCopyMessage(`JSON de borrador copiado: ${submission.event_name}`);
     } catch {
       setCopyMessage("No se pudo copiar el JSON al portapapeles.");
     }
   }
 
+  function handleDraftChange(submission: AdminSubmission, field: EditableDraftField, value: string) {
+    const previousWasValidated = Boolean(validatedFingerprints[submission.id]);
+    setDrafts((current) => {
+      const draft = current[submission.id];
+      if (!draft) return current;
+      return {
+        ...current,
+        [submission.id]: updateEditableEventDraft(draft, field, value),
+      };
+    });
+    setValidatedFingerprints((current) => {
+      const next = { ...current };
+      delete next[submission.id];
+      return next;
+    });
+    setPublishWarnings((current) => ({ ...current, [submission.id]: "" }));
+    setDraftChangeWarnings((current) => ({
+      ...current,
+      [submission.id]: previousWasValidated
+        ? "Has modificado el borrador. Valida de nuevo antes de publicar."
+        : current[submission.id] || "",
+    }));
+  }
+
+  function handleResetDraft(submission: AdminSubmission) {
+    const original = originalDrafts[submission.id];
+    if (!original) return;
+    setDrafts((current) => ({ ...current, [submission.id]: resetEditableEventDraft(original) }));
+    setValidationResults((current) => {
+      const next = { ...current };
+      delete next[submission.id];
+      return next;
+    });
+    setValidatedFingerprints((current) => {
+      const next = { ...current };
+      delete next[submission.id];
+      return next;
+    });
+    setDraftChangeWarnings((current) => ({ ...current, [submission.id]: "" }));
+    setPublishWarnings((current) => ({ ...current, [submission.id]: "" }));
+    setCopyMessage(`Borrador restablecido: ${submission.event_name}`);
+  }
+
   async function handleValidateDraft(submission: AdminSubmission) {
-    const preview = buildDraftPreview(submission);
+    const draft = drafts[submission.id];
+    if (!draft) return;
     setValidatingId(submission.id);
     setError("");
 
@@ -491,7 +478,7 @@ export default function EventSubmissionsAdmin() {
           authorization: `Bearer ${secret}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify(preview.draft),
+        body: JSON.stringify(draft),
       });
       const payload = (await response.json()) as DraftValidationResponse;
 
@@ -500,6 +487,11 @@ export default function EventSubmissionsAdmin() {
       }
 
       setValidationResults((current) => ({ ...current, [submission.id]: payload }));
+      setValidatedFingerprints((current) => ({
+        ...current,
+        [submission.id]: eventDraftFingerprint(draft),
+      }));
+      setDraftChangeWarnings((current) => ({ ...current, [submission.id]: "" }));
       setCopyMessage(`Validación completada: ${submission.event_name}`);
     } catch (validationError) {
       setError(validationError instanceof Error ? validationError.message : String(validationError));
@@ -509,13 +501,21 @@ export default function EventSubmissionsAdmin() {
   }
 
   async function handlePublishDraft(submission: AdminSubmission) {
-    const preview = buildDraftPreview(submission);
+    const draft = drafts[submission.id];
     const validation = validationResults[submission.id];
 
     setPublishWarnings((current) => ({ ...current, [submission.id]: "" }));
 
-    if (!validation) {
+    if (!draft || !validation) {
       setPublishWarnings((current) => ({ ...current, [submission.id]: "Valida el borrador antes de publicar." }));
+      return;
+    }
+
+    if (validatedFingerprints[submission.id] !== eventDraftFingerprint(draft)) {
+      setPublishWarnings((current) => ({
+        ...current,
+        [submission.id]: "Has modificado el borrador. Valida de nuevo antes de publicar.",
+      }));
       return;
     }
 
@@ -559,7 +559,7 @@ export default function EventSubmissionsAdmin() {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          draft: preview.draft,
+          draft,
           confirmWarnings: Boolean(hasWarnings),
           confirmPossibleDuplicates: Boolean(hasDuplicates),
         }),
@@ -835,13 +835,21 @@ export default function EventSubmissionsAdmin() {
 
                   {draftId === submission.id
                     ? (() => {
-                        const preview = buildDraftPreview(submission);
+                        const draft = drafts[submission.id];
+                        if (!draft) return null;
+                        const preview = buildDraftPreview(draft);
+                        const localValidation = validateEditableEventDraft(draft);
                         const validation = validationResults[submission.id];
                         const publishResult = publishResults[submission.id];
                         const publishWarning = publishWarnings[submission.id];
+                        const validatedExactDraft = isCurrentEventDraftValidated(
+                          draft,
+                          validatedFingerprints[submission.id],
+                        );
                         const publishBlocked =
                           alreadyPublished(submission) ||
                           !validation ||
+                          !validatedExactDraft ||
                           validation.status === "error" ||
                           validation.errors.length > 0 ||
                           hasExactSlugDuplicate(validation);
@@ -851,18 +859,18 @@ export default function EventSubmissionsAdmin() {
                             <div className="flex flex-col gap-3 border-b border-amber-200/10 pb-3 md:flex-row md:items-start md:justify-between">
                               <div>
                                 <p className="text-xs font-bold uppercase tracking-wide text-amber-200">Borrador seguro</p>
-                                <h4 className="mt-1 text-lg font-semibold text-white">JSON normalizado para revisión manual</h4>
+                                <h4 className="mt-1 text-lg font-semibold text-white">Revisar datos antes de publicar</h4>
                                 <p className="mt-1 max-w-3xl text-sm text-zinc-400">
-                                  Esta previsualización no publica nada ni escribe en events. Sirve para revisar, copiar y preparar una creación manual.
+                                  Corrige los datos necesarios y valida de nuevo. El formulario vive únicamente en este navegador hasta que se publique.
                                 </p>
                               </div>
-                              <div className="flex flex-col gap-2 sm:flex-row">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                                 <button
                                   className="rounded-md border border-white/[0.12] bg-white/[0.08] px-3 py-2 text-xs font-bold text-white hover:border-amber-200/50 hover:bg-amber-300/10"
-                                  onClick={() => handleCopyDraft(submission)}
+                                  onClick={() => handleResetDraft(submission)}
                                   type="button"
                                 >
-                                  Copiar JSON
+                                  Restablecer borrador
                                 </button>
                                 <button
                                   className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100 hover:border-emerald-200/50 hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-50"
@@ -870,14 +878,79 @@ export default function EventSubmissionsAdmin() {
                                   onClick={() => handleValidateDraft(submission)}
                                   type="button"
                                 >
-                                  {validatingId === submission.id ? "Validando" : "Validar borrador"}
+                                  {validatingId === submission.id ? "Validando" : "Validar cambios"}
                                 </button>
                               </div>
                             </div>
 
+                            {draftChangeWarnings[submission.id] ? (
+                              <p className="mt-3 rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-sm text-amber-50" role="status">
+                                {draftChangeWarnings[submission.id]}
+                              </p>
+                            ) : null}
+
+                            <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2">
+                              <DraftField draft={draft} error={localValidation.fieldErrors.title} field="title" label="Título" onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.slug} field="slug" label="Slug" onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.startDate} field="startDate" label="Fecha de inicio" onChange={(field, value) => handleDraftChange(submission, field, value)} type="date" />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.endDate} field="endDate" label="Fecha de fin" onChange={(field, value) => handleDraftChange(submission, field, value)} type="date" />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.venue} field="venue" label="Recinto" onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.city} field="city" label="Ciudad" onChange={(field, value) => handleDraftChange(submission, field, value)} />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.province} field="province" label="Provincia" onChange={(field, value) => handleDraftChange(submission, field, value)} />
+                              <DraftField
+                                draft={draft}
+                                error={localValidation.fieldErrors.region}
+                                field="region"
+                                label="Región"
+                                onChange={(field, value) => handleDraftChange(submission, field, value)}
+                                options={EVENT_DRAFT_REGIONS.map((value) => ({ label: value, value }))}
+                              />
+                              <DraftField
+                                draft={draft}
+                                error={localValidation.fieldErrors.country}
+                                field="country"
+                                label="País"
+                                onChange={(field, value) => handleDraftChange(submission, field, value)}
+                                options={EVENT_DRAFT_COUNTRIES}
+                              />
+                              <DraftField
+                                draft={draft}
+                                error={localValidation.fieldErrors.discipline}
+                                field="discipline"
+                                label="Disciplina"
+                                onChange={(field, value) => handleDraftChange(submission, field, value)}
+                                options={EVENT_DRAFT_DISCIPLINES.map((value) => ({ label: value, value }))}
+                              />
+                              <DraftField
+                                draft={draft}
+                                error={localValidation.fieldErrors.category}
+                                field="category"
+                                label="Categoría"
+                                onChange={(field, value) => handleDraftChange(submission, field, value)}
+                                options={EVENT_DRAFT_CATEGORIES.map((value) => ({ label: value, value }))}
+                              />
+                              <DraftField
+                                draft={draft}
+                                error={localValidation.fieldErrors.vehicleType}
+                                field="vehicleType"
+                                label="Tipo de vehículo"
+                                onChange={(field, value) => handleDraftChange(submission, field, value)}
+                                options={VEHICLE_TYPE_OPTIONS.map((value) => ({ label: VEHICLE_TYPE_LABELS[value], value }))}
+                              />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.organizer} field="organizer" label="Organizador" onChange={(field, value) => handleDraftChange(submission, field, value)} />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.sourceUrl} field="sourceUrl" label="Fuente oficial" onChange={(field, value) => handleDraftChange(submission, field, value)} type="url" wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.ticketUrl} field="ticketUrl" label="Entradas" onChange={(field, value) => handleDraftChange(submission, field, value)} type="url" wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.registrationUrl} field="registrationUrl" label="Inscripción" onChange={(field, value) => handleDraftChange(submission, field, value)} type="url" wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.posterUrl} field="posterUrl" label="Cartel / imagen directa" onChange={(field, value) => handleDraftChange(submission, field, value)} type="url" wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.shortDescription} field="shortDescription" label="Descripción breve" multiline onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.longDescription} field="longDescription" label="Descripción larga" multiline onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.scheduleText} field="scheduleText" label="Programa / horario" multiline onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                              <DraftField draft={draft} error={localValidation.fieldErrors.tags} field="tags" label="Etiquetas (una por línea)" multiline onChange={(field, value) => handleDraftChange(submission, field, value)} wide />
+                            </div>
+
                             {preview.warnings.length ? (
-                              <div className="mt-3 rounded-lg border border-amber-300/20 bg-black/20 p-3">
-                                <p className="text-xs font-bold uppercase tracking-wide text-amber-200">Advertencias</p>
+                              <div className="mt-4 rounded-lg border border-amber-300/20 bg-black/20 p-3">
+                                <p className="text-xs font-bold uppercase tracking-wide text-amber-200">Revisión pendiente</p>
                                 <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-amber-50/90">
                                   {preview.warnings.map((warning) => (
                                     <li key={warning}>{warning}</li>
@@ -890,9 +963,23 @@ export default function EventSubmissionsAdmin() {
                               </p>
                             )}
 
-                            <pre className="mt-3 max-h-[32rem] overflow-auto rounded-lg border border-white/[0.08] bg-black/45 p-3 text-xs leading-5 text-zinc-100">
-                              <code>{preview.json}</code>
-                            </pre>
+                            <details className="mt-4 rounded-lg border border-white/[0.08] bg-black/25">
+                              <summary className="cursor-pointer px-3 py-2 text-sm font-bold text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70">
+                                Ver JSON del borrador
+                              </summary>
+                              <div className="border-t border-white/[0.08] p-3">
+                                <button
+                                  className="mb-3 rounded-md border border-white/[0.12] bg-white/[0.08] px-3 py-2 text-xs font-bold text-white hover:border-amber-200/50 hover:bg-amber-300/10"
+                                  onClick={() => handleCopyDraft(submission)}
+                                  type="button"
+                                >
+                                  Copiar JSON
+                                </button>
+                                <pre className="max-h-[32rem] max-w-full overflow-x-auto whitespace-pre rounded-lg border border-white/[0.08] bg-black/45 p-3 text-xs leading-5 text-zinc-100">
+                                  <code>{preview.json}</code>
+                                </pre>
+                              </div>
+                            </details>
 
                             {validation ? (
                               <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/25 p-4">
@@ -978,6 +1065,25 @@ export default function EventSubmissionsAdmin() {
                                       </div>
                                     </div>
                                   ) : null}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {!validation ? (
+                              <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.035] p-4">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Publicación controlada</p>
+                                    <h5 className="mt-1 text-base font-semibold text-white">Publicar evento desde este borrador</h5>
+                                    <p className="mt-2 text-sm text-amber-100">Valida el borrador antes de publicar.</p>
+                                  </div>
+                                  <button
+                                    className="rounded-md border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-xs font-bold text-zinc-500"
+                                    disabled
+                                    type="button"
+                                  >
+                                    Publicar evento
+                                  </button>
                                 </div>
                               </div>
                             ) : null}
