@@ -1,9 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
-import { getVehicleType, VEHICLE_TYPE_OPTIONS, type VehicleType } from "@/lib/event-classification";
+import { validateEditableEventDraft } from "@/lib/admin-event-draft";
 import {
-  normalizeRegistrationUrl,
-  normalizeTicketUrl,
-  parseHttpUrl,
   publicationDraftToEvent,
   textValue,
   type PublicationDraft,
@@ -58,10 +55,6 @@ function validateAdminSecret(request: Request) {
   }
 
   return { ok: true as const };
-}
-
-function isHttpUrl(value: string) {
-  return Boolean(parseHttpUrl(value));
 }
 
 function parseDate(value: string) {
@@ -136,56 +129,8 @@ function findPossibleDuplicates(draft: DraftInput, rows: Pick<EventRow, "id" | "
   return duplicates.slice(0, 8);
 }
 
-function parseVehicleType(draft: DraftInput) {
-  const vehicleType = textValue(draft.vehicleType);
-
-  if (VEHICLE_TYPE_OPTIONS.includes(vehicleType as VehicleType)) {
-    return vehicleType;
-  }
-
-  return getVehicleType({
-    title: textValue(draft.title),
-    championship: textValue(draft.organizer) || textValue(draft.title),
-    discipline: textValue(draft.discipline),
-    tags: [textValue(draft.category), textValue(draft.city), textValue(draft.province)].filter(Boolean),
-    source: textValue(draft.organizer) || "Solicitud de organizador",
-  });
-}
-
-function validateCriticalDraft(draft: DraftInput) {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const title = textValue(draft.title);
-  const slug = textValue(draft.slug);
-  const startDate = textValue(draft.startDate);
-  const endDate = textValue(draft.endDate) || startDate;
-  const city = textValue(draft.city);
-  const province = textValue(draft.province);
-  const sourceUrl = textValue(draft.sourceUrl);
-  const ticketUrl = textValue(draft.ticketUrl);
-  const registrationUrl = textValue(draft.registrationUrl);
-
-  if (!title) errors.push("Falta el título del evento.");
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) errors.push("El slug falta o tiene formato no válido.");
-  if (!parseDate(startDate)) errors.push("Falta una fecha de inicio válida.");
-  if (endDate && !parseDate(endDate)) errors.push("La fecha fin no tiene formato válido.");
-  if (parseDate(startDate) && parseDate(endDate) && parseDate(endDate)! < parseDate(startDate)!) {
-    errors.push("La fecha fin no puede ser anterior a la fecha inicio.");
-  }
-  if (!city) errors.push("Falta ciudad.");
-  if (!province) errors.push("Falta provincia.");
-  if (!sourceUrl || !isHttpUrl(sourceUrl)) errors.push("La fuente oficial es obligatoria y debe usar http:// o https://.");
-  if (ticketUrl && !normalizeTicketUrl(ticketUrl)) warnings.push("La URL de entradas debe ser una URL HTTP/HTTPS real y no puede ser un teléfono.");
-  if (registrationUrl && !normalizeRegistrationUrl(registrationUrl)) warnings.push("La URL de inscripción no es válida.");
-
-  return { errors, warnings };
-}
-
 function draftToEventUpsert(draft: DraftInput): EventUpsert {
-  return {
-    ...publicationDraftToEvent(draft),
-    vehicle_type: parseVehicleType(draft),
-  };
+  return publicationDraftToEvent(draft);
 }
 
 export async function POST(request: Request) {
@@ -197,16 +142,21 @@ export async function POST(request: Request) {
 
   try {
     const payload = (await request.json()) as PublishPayload;
-    const draft = payload.draft;
+    const inputDraft = payload.draft;
 
-    if (!draft || typeof draft !== "object") {
+    if (!inputDraft || typeof inputDraft !== "object") {
       return jsonError("Falta el borrador de evento.", 400);
     }
 
-    const { errors, warnings } = validateCriticalDraft(draft);
+    const validation = validateEditableEventDraft(inputDraft);
+    const { draft, errors, warnings } = validation;
 
     if (errors.length) {
-      return jsonError("El borrador tiene errores críticos y no se puede publicar.", 400, { errors, warnings });
+      return jsonError("El borrador tiene errores críticos y no se puede publicar.", 400, {
+        errors,
+        warnings,
+        fieldErrors: validation.fieldErrors,
+      });
     }
 
     const supabase = createSupabaseServerClient();
