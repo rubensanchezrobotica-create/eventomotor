@@ -50,6 +50,7 @@ test("el footer público usa seis grupos equilibrados y solo las macrozonas", ()
 test("el footer conserva destinos públicos, copyright y navegación segura", () => {
   const markup = footerMarkup();
   const hrefs = footerHrefs(markup);
+  const currentYear = new Date().getFullYear();
 
   assert.equal(hrefs.length, 26);
   assert.ok(hrefs.includes("/#calendario"));
@@ -59,7 +60,10 @@ test("el footer conserva destinos públicos, copyright y navegación segura", ()
   assert.ok(hrefs.includes("/zonas"));
   assert.ok(!hrefs.some((href) => href.startsWith("/preview/")));
   assert.ok(!hrefs.includes("/calendario"));
-  assert.match(markup, /© 2026 EventoMotor\. Todos los derechos reservados\./);
+  assert.match(
+    markup,
+    new RegExp(`© ${currentYear} EventoMotor\\. Todos los derechos reservados\\.`),
+  );
   assert.match(markup, /aria-label="Enlaces de pie de página"/);
 });
 
