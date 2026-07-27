@@ -472,6 +472,22 @@ test("el layout conserva límites, cuadrícula responsive y ausencia de overflow
   assert.match(css, /overflow-x:\s*clip/);
 });
 
+test("el CTA compartido amplía el listado una sola vez, sin duplicado ni overflow móvil", () => {
+  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const css = source("components/preview/regions/RegionalLandingPreview.module.css");
+
+  assert.equal((component.match(/styles\.showAllButton/g) || []).length, 1);
+  assert.match(component, /!query\.showAll && filteredEvents\.length > REGIONAL_MOBILE_LIMIT/);
+  assert.match(component, /Ver los \{filteredEvents\.length\} eventos/);
+  assert.doesNotMatch(component, /Ver todos los \{filteredEvents\.length\} eventos/);
+  assert.doesNotMatch(component, /showAllMobile|showAllDesktop/);
+  assert.match(component, /href=\{queryHref\(pathname, \{ \.\.\.preservedFilters, show: "all" \}\)\}/);
+  assert.match(css, /\.moreRow\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)[\s\S]*width:\s*100%[\s\S]*min-width:\s*0[\s\S]*box-sizing:\s*border-box/);
+  assert.match(css, /\.showAllButton\s*\{[\s\S]*max-width:\s*100%[\s\S]*min-height:\s*48px[\s\S]*box-sizing:\s*border-box[\s\S]*text-align:\s*center[\s\S]*white-space:\s*normal/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.showAllButton\s*\{[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%[\s\S]*min-width:\s*0/);
+  assert.match(css, /@media \(min-width: 768px\)[\s\S]*\.moreRowDesktopComplete\s*\{[\s\S]*display:\s*none/);
+});
+
 test("el breadcrumb usa Inicio / Zonas / región y la tarjeta mantiene accesibilidad", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
   const card = source("components/preview/regions/RegionalEventCard.tsx");

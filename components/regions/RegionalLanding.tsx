@@ -407,21 +407,19 @@ export default function RegionalLanding({
                     ))}
                   </div>
                   {!query.showAll && filteredEvents.length > REGIONAL_MOBILE_LIMIT ? (
-                    <div className={styles.moreRow}>
+                    <div
+                      className={`${styles.moreRow} ${
+                        filteredEvents.length <= REGIONAL_DESKTOP_LIMIT
+                          ? styles.moreRowDesktopComplete
+                          : ""
+                      }`}
+                    >
                       <Link
-                        className={`${styles.showAllButton} ${styles.showAllMobile} emc-btn emc-btn-dark`}
+                        className={`${styles.showAllButton} emc-btn emc-btn-dark`}
                         href={queryHref(pathname, { ...preservedFilters, show: "all" })}
                       >
-                        Ver todos los {filteredEvents.length} eventos
+                        Ver los {filteredEvents.length} eventos
                       </Link>
-                      {filteredEvents.length > REGIONAL_DESKTOP_LIMIT ? (
-                        <Link
-                          className={`${styles.showAllButton} ${styles.showAllDesktop} emc-btn emc-btn-dark`}
-                          href={queryHref(pathname, { ...preservedFilters, show: "all" })}
-                        >
-                          Ver todos los {filteredEvents.length} eventos
-                        </Link>
-                      ) : null}
                     </div>
                   ) : null}
                 </>

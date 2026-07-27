@@ -697,18 +697,24 @@
 }
 
 .moreRow {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin-top: 24px;
 }
 
 .showAllButton {
+  width: min(320px, 100%);
+  max-width: 100%;
   min-width: 250px;
+  min-height: 48px;
+  box-sizing: border-box;
   justify-content: center;
-}
-
-.showAllMobile {
-  display: none;
+  text-align: center;
+  white-space: normal;
 }
 
 .noResults {
@@ -1266,18 +1272,6 @@
     display: none;
   }
 
-  .showAllDesktop {
-    display: none;
-  }
-
-  .showAllMobile {
-    display: inline-flex;
-  }
-
-  .showAllButton {
-    width: 100%;
-  }
-
   .noResults {
     display: grid;
     min-height: auto;
@@ -1332,5 +1326,28 @@
 
   .organizerCard > :global(.emc-btn) {
     width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .moreRow {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .showAllButton {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 48px;
+  }
+}
+
+@media (min-width: 768px) {
+  .moreRowDesktopComplete {
+    display: none;
   }
 }
