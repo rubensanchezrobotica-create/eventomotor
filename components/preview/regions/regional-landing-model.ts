@@ -1,0 +1,430 @@
+import type { Metadata } from "next";
+import { getWeekendRange, isEventInWeekendRange } from "@/components/preview/weekend/weekend-preview-model";
+import { normalizeZoneDiscipline, normalizeZoneProvince } from "@/components/zones/zone-preview-model";
+import { SEO_COMMUNITIES, matchesSeoCommunity, type SeoCommunityConfig } from "@/lib/seo-communities";
+import type { EventItem } from "@/types/event";
+
+export type RegionalPreviewId = "cataluna" | "madrid";
+
+export type RegionalCount = {
+  count: number;
+  key: string;
+  label: string;
+};
+
+export type RegionalLandingConfig = {
+  description: string;
+  eyebrow: string;
+  faqs: Array<{ answer: string; question: string }>;
+  h1: string;
+  id: RegionalPreviewId;
+  name: string;
+  publicPath: string;
+  relatedLinks: Array<{ href: string; label: string }>;
+  seoParagraphs: string[];
+};
+
+export type RegionalLandingModel = {
+  config: RegionalLandingConfig;
+  disciplineCounts: RegionalCount[];
+  fallbackNationalEvents: EventItem[];
+  pastEvents: EventItem[];
+  provinceCounts: RegionalCount[];
+  territorialTotal: number;
+  upcomingEvents: EventItem[];
+  upcomingTotal: number;
+  weekendEvents: EventItem[];
+};
+
+export type RegionalLandingQuery = {
+  discipline: string;
+  province: string;
+  show: number;
+  weekendOnly: boolean;
+};
+
+const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
+  cataluna: {
+    description:
+      "Descubre próximas citas de coches y motos en Barcelona, Girona, Lleida y Tarragona, ordenadas por fecha y con acceso directo a cada ficha.",
+    eyebrow: "Agenda territorial",
+    faqs: [
+      {
+        question: "¿Qué eventos de motor aparecen en Cataluña?",
+        answer:
+          "La agenda reúne próximos eventos visibles cuya región, provincia o localidad corresponde de forma normalizada con Cataluña.",
+      },
+      {
+        question: "¿Incluye eventos de Barcelona, Girona, Lleida y Tarragona?",
+        answer:
+          "Sí. Los accesos territoriales se generan únicamente para las provincias que tienen próximos eventos publicados.",
+      },
+      {
+        question: "¿Cómo confirmo horarios o inscripciones?",
+        answer:
+          "Abre la ficha del evento y consulta la fuente oficial disponible antes de organizar el desplazamiento.",
+      },
+    ],
+    h1: "Eventos de motor en Cataluña",
+    id: "cataluna",
+    name: "Cataluña",
+    publicPath: "/eventos-motor-cataluna",
+    relatedLinks: [
+      { href: "/eventos-motor-barcelona", label: "Eventos de motor en Barcelona" },
+      { href: "/eventos-motor-este-fin-de-semana", label: "Eventos este fin de semana" },
+      { href: "/disciplinas/rallyes", label: "Rallyes" },
+      { href: "/disciplinas/circuito", label: "Circuito y tandas" },
+      { href: "/disciplinas/concentraciones", label: "Concentraciones" },
+    ],
+    seoParagraphs: [
+      "Cataluña reúne una de las agendas de motor más variadas de España. Barcelona concentra grandes citas de circuito y encuentros vinculados al automóvil y la moto, mientras Girona, Lleida y Tarragona aportan rallyes, pruebas de montaña, karting, concentraciones, rutas, clásicos y actividades locales. Esta selección utiliza la ubicación estructurada de cada ficha para mostrar únicamente eventos relacionados con el territorio catalán y mantener separados los próximos eventos de los ya celebrados.",
+      "Los resultados se ordenan por fecha, dando prioridad a los eventos que ya están en curso. Cada tarjeta resume cuándo se celebra la cita, su ciudad, provincia y disciplina, y enlaza con una ficha donde puede existir información adicional sobre el recinto, la organización, entradas, inscripción o fuente oficial. Antes de desplazarte conviene comprobar siempre los detalles publicados por el organizador, especialmente en competiciones, rutas o eventos sujetos a cambios de horario.",
+      "Puedes explorar la agenda por provincia o por las disciplinas que realmente tienen inventario. El Circuit de Barcelona-Catalunya, los trazados de karting y las carreteras donde se celebran rallyes y pruebas de montaña forman parte del contexto habitual de la región, junto con concentraciones moteras, ferias y encuentros de vehículos clásicos.",
+    ],
+  },
+  madrid: {
+    description:
+      "Encuentra próximas citas de coches y motos en Madrid y su comunidad, desde circuito y karting hasta concentraciones, clásicos, ferias y rutas.",
+    eyebrow: "Agenda territorial",
+    faqs: [
+      {
+        question: "¿Qué eventos de motor aparecen en Madrid?",
+        answer:
+          "Se muestran próximos eventos visibles relacionados de forma normalizada con Madrid como región, provincia o localidad.",
+      },
+      {
+        question: "¿Qué ocurre si no hay eventos este fin de semana?",
+        answer:
+          "La página mantiene visibles las siguientes fechas publicadas y señala de forma compacta cuándo se celebra el próximo evento.",
+      },
+      {
+        question: "¿Cómo publico un evento de Madrid?",
+        answer:
+          "Puedes enviarlo desde Publicar un evento con fecha, ubicación y una fuente verificable para su revisión.",
+      },
+    ],
+    h1: "Eventos de motor en Madrid",
+    id: "madrid",
+    name: "Madrid",
+    publicPath: "/eventos-motor-madrid",
+    relatedLinks: [
+      { href: "/eventos-motor-este-fin-de-semana", label: "Eventos este fin de semana" },
+      { href: "/disciplinas/circuito", label: "Circuito y tandas" },
+      { href: "/disciplinas/concentraciones", label: "Concentraciones" },
+      { href: "/disciplinas/clasicos", label: "Clásicos" },
+      { href: "/disciplinas/ferias", label: "Ferias del motor" },
+    ],
+    seoParagraphs: [
+      "Madrid combina eventos de circuito, concentraciones moteras, karting, clásicos, ferias, rutas y encuentros de clubes repartidos entre la capital y los municipios de la comunidad. Esta agenda regional selecciona eventos mediante campos estructurados de región, provincia y ciudad, por lo que una referencia secundaria en el título no basta para incorporar una cita ubicada realmente en otro territorio. Los eventos futuros y en curso forman el total principal; los ya celebrados permanecen disponibles en un histórico independiente.",
+      "El Circuito de Madrid Jarama es uno de los principales focos de actividad, junto con IFEMA, instalaciones de karting y municipios que acogen concentraciones, exposiciones o rutas. Las próximas citas se presentan por orden temporal y cada tarjeta enlaza con su ficha individual. Allí puedes revisar la información disponible sobre recinto, fuente oficial, entradas o inscripción antes de planificar la visita.",
+      "Cuando no existe actividad publicada para el viernes, sábado o domingo más próximo, la landing no se presenta como vacía: señala la fecha del siguiente evento y muestra inmediatamente el resto del inventario futuro. Los accesos regionales aparecen solo cuando ofrecen una elección real y nunca se utilizan tarjetas deshabilitadas ni contadores con valor cero.",
+    ],
+  },
+};
+
+const PAGE_SIZE = 8;
+const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
+const UNRELIABLE_DATE_QUALITIES = new Set(["pending_date"]);
+
+function cleanText(value: string | null | undefined) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+export function normalizeRegionalText(value: string | null | undefined) {
+  return cleanText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function regionalFilterKey(value: string | null | undefined) {
+  return normalizeRegionalText(value).replace(/\s+/g, "-");
+}
+
+function toDate(value: string) {
+  return new Date(`${value}T12:00:00`);
+}
+
+function today(now: Date) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isValidIsoDate(value: string | null | undefined) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(toDate(value).getTime()));
+}
+
+function eventEnd(event: EventItem) {
+  return toDate(event.end || event.start);
+}
+
+function isCancelled(event: EventItem) {
+  return CANCELLED_STATUSES.has(normalizeRegionalText(event.eventStatus))
+    || event.dataQuality === "cancelled";
+}
+
+function hasReliableDate(event: EventItem) {
+  return isValidIsoDate(event.start)
+    && isValidIsoDate(event.end || event.start)
+    && !UNRELIABLE_DATE_QUALITIES.has(event.dataQuality || "");
+}
+
+function isUpcoming(event: EventItem, now: Date) {
+  return hasReliableDate(event) && eventEnd(event).getTime() >= today(now).getTime();
+}
+
+function isPast(event: EventItem, now: Date) {
+  return hasReliableDate(event) && eventEnd(event).getTime() < today(now).getTime();
+}
+
+function isInProgress(event: EventItem, now: Date) {
+  const current = today(now).getTime();
+  return toDate(event.start).getTime() <= current && eventEnd(event).getTime() >= current;
+}
+
+export function sortRegionalUpcomingEvents(events: EventItem[], now: Date) {
+  return [...events].sort((left, right) => (
+    Number(isInProgress(right, now)) - Number(isInProgress(left, now))
+    || left.start.localeCompare(right.start)
+    || (left.end || left.start).localeCompare(right.end || right.start)
+    || normalizeRegionalText(left.title).localeCompare(normalizeRegionalText(right.title), "es")
+  ));
+}
+
+function sortPastEvents(events: EventItem[]) {
+  return [...events].sort((left, right) => (
+    (right.end || right.start).localeCompare(left.end || left.start)
+    || right.start.localeCompare(left.start)
+    || left.title.localeCompare(right.title, "es")
+  ));
+}
+
+function deduplicateEvents(events: EventItem[]) {
+  const unique = new Map<string, EventItem>();
+  for (const event of events) {
+    const key = event.slug || event.id;
+    if (!unique.has(key)) unique.set(key, event);
+  }
+  return [...unique.values()];
+}
+
+function buildCounts(events: EventItem[], readLabel: (event: EventItem) => string) {
+  const counts = new Map<string, RegionalCount>();
+
+  for (const event of events) {
+    const label = cleanText(readLabel(event));
+    const key = regionalFilterKey(label);
+    if (!key || normalizeRegionalText(label) === "por confirmar") continue;
+    const current = counts.get(key);
+    counts.set(key, {
+      count: (current?.count || 0) + 1,
+      key,
+      label: current?.label || label,
+    });
+  }
+
+  return [...counts.values()]
+    .filter((item) => item.count > 0)
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "es"));
+}
+
+function communityFor(id: RegionalPreviewId): SeoCommunityConfig {
+  return id === "cataluna" ? SEO_COMMUNITIES.cataluna : SEO_COMMUNITIES.madrid;
+}
+
+export function buildRegionalLandingModel(
+  events: EventItem[],
+  id: RegionalPreviewId,
+  now: Date,
+): RegionalLandingModel {
+  const eligibleEvents = deduplicateEvents(events.filter((event) => event.visible === true && !isCancelled(event)));
+  const territorialEvents = eligibleEvents.filter((event) => matchesSeoCommunity(event, communityFor(id)));
+  const upcomingEvents = sortRegionalUpcomingEvents(
+    territorialEvents.filter((event) => isUpcoming(event, now)),
+    now,
+  );
+  const pastEvents = sortPastEvents(territorialEvents.filter((event) => isPast(event, now)));
+  const range = getWeekendRange(now);
+  const weekendEvents = upcomingEvents.filter((event) => (
+    hasReliableDate(event) && isEventInWeekendRange(event, range)
+  ));
+  const fallbackNationalEvents = sortRegionalUpcomingEvents(
+    eligibleEvents.filter((event) => (
+      isUpcoming(event, now)
+      && !territorialEvents.some((territorial) => (territorial.slug || territorial.id) === (event.slug || event.id))
+    )),
+    now,
+  ).slice(0, 4);
+
+  return {
+    config: REGIONAL_CONFIGS[id],
+    disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
+    fallbackNationalEvents,
+    pastEvents,
+    provinceCounts: buildCounts(upcomingEvents, (event) => normalizeZoneProvince(event.province)),
+    territorialTotal: upcomingEvents.length + pastEvents.length,
+    upcomingEvents,
+    upcomingTotal: upcomingEvents.length,
+    weekendEvents,
+  };
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || "" : value || "";
+}
+
+export function buildRegionalNoUpcomingFixture(
+  model: RegionalLandingModel,
+): RegionalLandingModel {
+  return {
+    ...model,
+    disciplineCounts: [],
+    provinceCounts: [],
+    upcomingEvents: [],
+    upcomingTotal: 0,
+    weekendEvents: [],
+  };
+}
+
+export function isRegionalNoUpcomingFixture(
+  searchParams: Record<string, string | string[] | undefined>,
+) {
+  return firstParam(searchParams.fixture) === "sin-futuros";
+}
+
+export function parseRegionalLandingQuery(
+  searchParams: Record<string, string | string[] | undefined>,
+): RegionalLandingQuery {
+  const parsedShow = Number.parseInt(firstParam(searchParams.mostrar), 10);
+  return {
+    discipline: regionalFilterKey(firstParam(searchParams.disciplina)),
+    province: regionalFilterKey(firstParam(searchParams.provincia)),
+    show: Number.isFinite(parsedShow) && parsedShow > PAGE_SIZE
+      ? Math.min(parsedShow, 96)
+      : PAGE_SIZE,
+    weekendOnly: firstParam(searchParams.vista) === "fin-de-semana",
+  };
+}
+
+export function filterRegionalLandingEvents(
+  model: RegionalLandingModel,
+  query: RegionalLandingQuery,
+) {
+  const events = query.weekendOnly ? model.weekendEvents : model.upcomingEvents;
+  return events.filter((event) => {
+    if (query.province && regionalFilterKey(normalizeZoneProvince(event.province)) !== query.province) return false;
+    if (query.discipline && regionalFilterKey(normalizeZoneDiscipline(event.discipline)) !== query.discipline) return false;
+    return true;
+  });
+}
+
+export function isRegionalPreviewId(value: string): value is RegionalPreviewId {
+  return value === "cataluna" || value === "madrid";
+}
+
+export function isRegionalPreviewAvailable(vercelEnvironment: string | undefined) {
+  return vercelEnvironment !== "production";
+}
+
+export function buildRegionalPreviewMetadata(id: string): Metadata {
+  const config = isRegionalPreviewId(id) ? REGIONAL_CONFIGS[id] : null;
+  return {
+    title: {
+      absolute: config
+        ? `Preview regional: ${config.h1} | EventoMotor`
+        : "Preview regional | EventoMotor",
+    },
+    description: "Preview aislada del diseño de inventario primero para landings regionales.",
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+      },
+    },
+  };
+}
+
+export function regionalEventStatusLabel(event: EventItem) {
+  if (normalizeRegionalText(event.eventStatus) === "postponed") return "Aplazado";
+  if (normalizeRegionalText(event.eventStatus) === "tentative") return "Fecha provisional";
+  return "";
+}
+
+function canonicalVehicleLabel(event: EventItem) {
+  const labels: Record<string, string> = {
+    coche: "Coche",
+    karting: "Karting",
+    mixto: "Mixto",
+    moto: "Moto",
+    otros: "Otros",
+  };
+  const value = cleanText(event.vehicleType || event.vehicle_type);
+  return labels[normalizeRegionalText(value)] || value;
+}
+
+const BADGE_ALIASES: Record<string, string> = {
+  automovilismo: "coche",
+  coches: "coche",
+  kart: "karting",
+  karts: "karting",
+  motocicleta: "moto",
+  motocicletas: "moto",
+  motociclismo: "moto",
+  motos: "moto",
+};
+
+function badgeKey(value: string) {
+  const normalized = normalizeRegionalText(value);
+  return BADGE_ALIASES[normalized] || normalized;
+}
+
+export function regionalEventBadges(event: EventItem) {
+  const status = regionalEventStatusLabel(event);
+  const discipline = cleanText(event.discipline);
+  const vehicle = canonicalVehicleLabel(event);
+  const informational: string[] = [];
+  const seen = new Set<string>();
+
+  for (const label of [discipline, vehicle]) {
+    const key = badgeKey(label);
+    if (!label || !key || key === "otros" || seen.has(key)) continue;
+    seen.add(key);
+    informational.push(label);
+  }
+
+  return {
+    informational: informational.slice(0, 2),
+    status,
+  };
+}
+
+export function nextRegionalShowLimit(current: number, total: number) {
+  return Math.min(current + PAGE_SIZE, total);
+}
+
+export function regionalEventDateLabel(event: EventItem) {
+  const start = toDate(event.start);
+  const end = eventEnd(event);
+  const month = new Intl.DateTimeFormat("es-ES", { month: "short" })
+    .format(start)
+    .replace(".", "")
+    .toUpperCase();
+
+  return {
+    day: start.getTime() === end.getTime()
+      ? String(start.getDate())
+      : `${start.getDate()}–${end.getDate()}`,
+    month,
+  };
+}
+
+export function regionalNextEventLabel(event: EventItem | undefined) {
+  if (!event) return "";
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+  }).format(toDate(event.start)).replace(".", "");
+}
