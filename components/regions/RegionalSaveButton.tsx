@@ -8,7 +8,7 @@ import {
   saveEvent,
   type SavedEvent,
 } from "@/lib/saved-events";
-import styles from "./RegionalLandingPreview.module.css";
+import styles from "./RegionalLanding.module.css";
 
 type RegionalSaveButtonProps = {
   event: SavedEvent;

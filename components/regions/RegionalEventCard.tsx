@@ -6,9 +6,9 @@ import {
   regionalEventBadges,
   regionalEventDateAriaLabel,
   regionalEventDateLabel,
-} from "./regional-landing-model";
+} from "@/lib/regions/regional-landing-model";
 import RegionalSaveButton from "./RegionalSaveButton";
-import styles from "./RegionalLandingPreview.module.css";
+import styles from "./RegionalLanding.module.css";
 
 type RegionalEventCardProps = {
   anchorId?: string;

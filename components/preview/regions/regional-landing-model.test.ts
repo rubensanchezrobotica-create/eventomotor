@@ -64,9 +64,17 @@ function numberedEvents(
   }));
 }
 
+const sourceAliases: Record<string, string> = {
+  "components/preview/regions/RegionalEventCard.tsx": "components/regions/RegionalEventCard.tsx",
+  "components/preview/regions/RegionalFilterDisclosure.tsx": "components/regions/RegionalFilterDisclosure.tsx",
+  "components/preview/regions/RegionalLandingPreview.module.css": "components/regions/RegionalLanding.module.css",
+  "components/preview/regions/RegionalLandingPreview.tsx": "components/regions/RegionalLanding.tsx",
+  "components/preview/regions/RegionalSaveButton.tsx": "components/regions/RegionalSaveButton.tsx",
+};
+
 function source(...files: string[]) {
   return files
-    .map((file) => readFileSync(path.join(process.cwd(), file), "utf8"))
+    .map((file) => readFileSync(path.join(process.cwd(), sourceAliases[file] || file), "utf8"))
     .join("\n");
 }
 
@@ -385,10 +393,14 @@ test("formatea rangos entre meses y años en dos líneas inequívocas", () => {
 test("Madrid vacío presenta el estado compacto exacto y acciones requeridas", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
+  const modelSource = source("lib/regions/regional-landing-model.ts");
 
-  assert.match(component, /Agenda en actualización/);
-  assert.match(component, /<h2>Agenda de \{model\.config\.name\} en actualización<\/h2>/);
-  assert.match(component, /Ahora mismo no hay próximas fechas confirmadas\. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos\./);
+  assert.match(modelSource, /eyebrow: "Agenda en actualización"/);
+  assert.match(modelSource, /title: "Agenda de Madrid en actualización"/);
+  assert.match(modelSource, /Ahora mismo no hay próximas fechas confirmadas\. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos\./);
+  assert.match(component, /model\.config\.emptyState\.eyebrow/);
+  assert.match(component, /model\.config\.emptyState\.title/);
+  assert.match(component, /model\.config\.emptyState\.description/);
   assert.match(component, /Publicar un evento en \{model\.config\.name\}/);
   assert.match(component, /Ver calendario nacional/);
   assert.match(component, /href=\{PUBLIC_NAVIGATION\.publish\}/);
@@ -430,7 +442,7 @@ test("el finder móvil está plegado y abre un panel completo sin overflow", () 
 
   assert.match(disclosure, /useState\(false\)/);
   assert.match(disclosure, /aria-expanded=\{expanded\}/);
-  assert.match(disclosure, /setExpanded\(\(current\) => !current\)/);
+  assert.match(disclosure, /setExpanded\(\(current\) => \{[\s\S]*return !current/);
   assert.match(disclosure, /Filtrar/);
   assert.match(disclosure, /<strong>\{totalLabel\}<\/strong>/);
   assert.match(disclosure, /sortLabel.*Ordenados por fecha/);
@@ -528,7 +540,7 @@ test("el histórico resuelve singular y plural y permanece plegado", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
 
   assert.match(component, /model\.pastEvents\.length === 1 \? "evento celebrado" : "eventos celebrados"/);
-  assert.doesNotMatch(component, /<details[^>]*open[^>]*className=\{styles\.historyDetails\}/);
+  assert.doesNotMatch(component, /<(?:details|RegionalTrackedDetails)[^>]*open[^>]*className=\{styles\.historyDetails\}/);
   assert.doesNotMatch(component, /Ver \{model\.pastEvents\.length\} eventos celebrados/);
   assert.ok(component.indexOf("<RegionalHistory model={model} />") < component.indexOf("styles.editorialSection"));
 });
@@ -565,13 +577,15 @@ test("las landings públicas conservan metadata, canonical y JSON-LD", () => {
 
   for (const route of [catalunaRoute, madridRoute]) {
     assert.match(route, /buildOpportunityMetadata\(page\)/);
-    assert.match(route, /<OpportunityPage page=\{page\} \/>/);
+    assert.match(route, /<PublicRegionalLanding/);
     assert.doesNotMatch(route, /RegionalLandingPreview/);
   }
   assert.match(opportunityModel, /alternates:\s*\{[\s\S]*canonical: url/);
-  assert.match(publicComponent, /breadcrumbJsonLd\(page\)/);
-  assert.match(publicComponent, /collectionPageJsonLd\(page\)/);
-  assert.match(publicComponent, /itemListJsonLd\(page, mainEvents\)/);
+  const pilotComponent = source("components/regions/PublicRegionalLanding.tsx");
+  assert.match(pilotComponent, /breadcrumbJsonLd\(page\)/);
+  assert.match(pilotComponent, /collectionPageJsonLd\(page\)/);
+  assert.match(pilotComponent, /itemListJsonLd\(page, model\)/);
+  assert.match(publicComponent, /export default async function OpportunityPage/);
 });
 
 test("las rutas regionales son de solo lectura y no escriben en Supabase", () => {
