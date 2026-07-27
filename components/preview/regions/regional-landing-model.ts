@@ -13,10 +13,12 @@ export type RegionalCount = {
 };
 
 export type RegionalLandingConfig = {
+  coverage: string;
   description: string;
   eyebrow: string;
   faqs: Array<{ answer: string; question: string }>;
   h1: string;
+  heroAsset: string;
   id: RegionalPreviewId;
   name: string;
   publicPath: string;
@@ -28,6 +30,7 @@ export type RegionalLandingModel = {
   config: RegionalLandingConfig;
   disciplineCounts: RegionalCount[];
   fallbackNationalEvents: EventItem[];
+  nextThirtyDaysEvents: EventItem[];
   pastEvents: EventItem[];
   provinceCounts: RegionalCount[];
   territorialTotal: number;
@@ -40,11 +43,13 @@ export type RegionalLandingQuery = {
   discipline: string;
   province: string;
   show: number;
+  thirtyDaysOnly: boolean;
   weekendOnly: boolean;
 };
 
 const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
   cataluna: {
+    coverage: "Barcelona · Girona · Lleida · Tarragona",
     description:
       "Descubre próximas citas de coches y motos en Barcelona, Girona, Lleida y Tarragona, ordenadas por fecha y con acceso directo a cada ficha.",
     eyebrow: "Agenda territorial",
@@ -66,6 +71,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
       },
     ],
     h1: "Eventos de motor en Cataluña",
+    heroAsset: "/images/zones/zone-cataluna-aragon.webp",
     id: "cataluna",
     name: "Cataluña",
     publicPath: "/eventos-motor-cataluna",
@@ -83,6 +89,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
     ],
   },
   madrid: {
+    coverage: "Madrid capital · Jarama · Municipios de toda la comunidad",
     description:
       "Encuentra próximas citas de coches y motos en Madrid y su comunidad, desde circuito y karting hasta concentraciones, clásicos, ferias y rutas.",
     eyebrow: "Agenda territorial",
@@ -104,6 +111,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
       },
     ],
     h1: "Eventos de motor en Madrid",
+    heroAsset: "/images/zones/zone-centro.webp",
     id: "madrid",
     name: "Madrid",
     publicPath: "/eventos-motor-madrid",
@@ -249,6 +257,11 @@ export function buildRegionalLandingModel(
   const weekendEvents = upcomingEvents.filter((event) => (
     hasReliableDate(event) && isEventInWeekendRange(event, range)
   ));
+  const thirtyDayLimit = today(now);
+  thirtyDayLimit.setDate(thirtyDayLimit.getDate() + 30);
+  const nextThirtyDaysEvents = upcomingEvents.filter((event) => (
+    toDate(event.start).getTime() <= thirtyDayLimit.getTime()
+  ));
   const fallbackNationalEvents = sortRegionalUpcomingEvents(
     eligibleEvents.filter((event) => (
       isUpcoming(event, now)
@@ -261,6 +274,7 @@ export function buildRegionalLandingModel(
     config: REGIONAL_CONFIGS[id],
     disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
     fallbackNationalEvents,
+    nextThirtyDaysEvents,
     pastEvents,
     provinceCounts: buildCounts(upcomingEvents, (event) => normalizeZoneProvince(event.province)),
     territorialTotal: upcomingEvents.length + pastEvents.length,
@@ -281,6 +295,7 @@ export function buildRegionalNoUpcomingFixture(
     ...model,
     disciplineCounts: [],
     provinceCounts: [],
+    nextThirtyDaysEvents: [],
     upcomingEvents: [],
     upcomingTotal: 0,
     weekendEvents: [],
@@ -303,6 +318,7 @@ export function parseRegionalLandingQuery(
     show: Number.isFinite(parsedShow) && parsedShow > PAGE_SIZE
       ? Math.min(parsedShow, 96)
       : PAGE_SIZE,
+    thirtyDaysOnly: firstParam(searchParams.vista) === "30-dias",
     weekendOnly: firstParam(searchParams.vista) === "fin-de-semana",
   };
 }
@@ -311,7 +327,11 @@ export function filterRegionalLandingEvents(
   model: RegionalLandingModel,
   query: RegionalLandingQuery,
 ) {
-  const events = query.weekendOnly ? model.weekendEvents : model.upcomingEvents;
+  const events = query.weekendOnly
+    ? model.weekendEvents
+    : query.thirtyDaysOnly
+      ? model.nextThirtyDaysEvents
+      : model.upcomingEvents;
   return events.filter((event) => {
     if (query.province && regionalFilterKey(normalizeZoneProvince(event.province)) !== query.province) return false;
     if (query.discipline && regionalFilterKey(normalizeZoneDiscipline(event.discipline)) !== query.discipline) return false;
@@ -427,4 +447,12 @@ export function regionalNextEventLabel(event: EventItem | undefined) {
     day: "numeric",
     month: "short",
   }).format(toDate(event.start)).replace(".", "");
+}
+
+export function regionalNextEventLongLabel(event: EventItem | undefined) {
+  if (!event) return "";
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "long",
+  }).format(toDate(event.start));
 }

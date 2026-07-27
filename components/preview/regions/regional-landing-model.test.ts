@@ -75,10 +75,10 @@ test("el total del CTA y el hero proceden del mismo upcomingTotal", () => {
     "utf8",
   );
 
-  assert.match(componentSource, /\{model\.upcomingTotal\} próximos eventos/);
-  assert.match(componentSource, /Ver próximos eventos/);
+  assert.match(componentSource, /upcomingCountLabel\(model\.upcomingTotal\)/);
+  assert.match(componentSource, /Explorar próximos eventos/);
   assert.match(componentSource, /href="#eventos"/);
-  assert.doesNotMatch(componentSource, /Ver próximos eventos[\s\S]{0,120}PUBLIC_NAVIGATION\.calendar/);
+  assert.doesNotMatch(componentSource, /Explorar próximos eventos[\s\S]{0,120}PUBLIC_NAVIGATION\.calendar/);
 });
 
 test("excluye cancelados, invisibles y fechas aplazadas no fiables", () => {
@@ -263,8 +263,10 @@ test("la carga progresiva y los accesos usan query parameters SSR regionales", (
     discipline: "clasicos",
     province: "lleida",
     show: 24,
+    thirtyDaysOnly: false,
     weekendOnly: true,
   });
+  assert.equal(parseRegionalLandingQuery({ vista: "30-dias" }).thirtyDaysOnly, true);
   assert.equal(nextRegionalShowLimit(8, 88), 16);
   assert.equal(nextRegionalShowLimit(80, 88), 88);
 });
@@ -351,9 +353,91 @@ test("el layout limita seis tarjetas móviles, ocho desktop y evita overflow hor
   );
 
   assert.match(component, /query\.show === 8 && index >= 6/);
-  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.mobileInitialHidden\s*\{[\s\S]*display:\s*none/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.mobileInitialHidden\s*\{[\s\S]*display:\s*none/);
   assert.match(css, /\.eventCard\s*\{[\s\S]*min-width:\s*0/);
   assert.match(css, /\.cardBody\s*\{[\s\S]*min-width:\s*0/);
-  assert.match(css, /grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 700px\)[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /\.eventGrid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.eventGrid,[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /overflow-x:\s*clip/);
+});
+
+test("el hero destaca exactamente el primer evento cronológico y conserva contexto regional", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+
+  assert.match(component, /const nextEvent = model\.upcomingEvents\[0\]/);
+  assert.match(component, /event=\{nextEvent\}[\s\S]*variant="hero"/);
+  assert.match(component, /href="#eventos"[\s\S]*Explorar próximos eventos/);
+  assert.doesNotMatch(component, /Explorar próximos eventos[\s\S]{0,160}PUBLIC_NAVIGATION\.calendar/);
+});
+
+test("la franja de fin de semana tiene estado positivo y alternativa discreta", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.module.css"),
+    "utf8",
+  );
+
+  assert.match(component, /planes"} este fin de semana/);
+  assert.match(component, /Ver planes/);
+  assert.match(component, /Tu próxima cita en \{model\.config\.name\} es el/);
+  assert.match(component, /Todavía no hay eventos publicados para este fin de semana/);
+  assert.match(css, /\.weekendStripQuiet\s*\{/);
+});
+
+test("Madrid vacío mantiene utilidad y limita el fallback nacional a tres planes", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+
+  assert.match(component, /Próximas fechas en \$\{model\.config\.name\}/);
+  assert.match(component, /Todavía no hay nuevos eventos confirmados en \{model\.config\.name\}/);
+  assert.match(component, /Planes próximos en España/);
+  assert.match(component, /fallbackNationalEvents\.slice\(0, 3\)/);
+  assert.doesNotMatch(component, />0 próximos eventos</);
+});
+
+test("las tarjetas cubren imagen real, fallback visual y guardado accesible", () => {
+  const card = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalEventCard.tsx"),
+    "utf8",
+  );
+  const saveButton = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalSaveButton.tsx"),
+    "utf8",
+  );
+
+  assert.match(card, /import Image from "next\/image"/);
+  assert.match(card, /getEventImage\(event\)/);
+  assert.match(card, /event\.image_url \|\| event\.imageUrl/);
+  assert.match(card, /eventCardWithOriginalImage/);
+  assert.match(card, /eventCardWithFallback/);
+  assert.match(card, /fill/);
+  assert.match(saveButton, /aria-label=\{saved \?/);
+  assert.match(saveButton, /aria-pressed=\{saved\}/);
+});
+
+test("la jerarquía y los controles conservan accesibilidad básica", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.module.css"),
+    "utf8",
+  );
+
+  assert.match(component, /<h1>/);
+  assert.match(component, /<h2>/);
+  assert.match(component, /<h3/);
+  assert.match(component, /aria-label="Vistas rápidas de la agenda"/);
+  assert.match(component, /aria-current=/);
+  assert.match(css, /:focus-visible/);
+  assert.match(css, /\.saveButton\s*\{[\s\S]*min-height:\s*44px/);
 });
