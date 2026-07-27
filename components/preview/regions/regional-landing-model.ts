@@ -57,7 +57,7 @@ export type RegionalLandingQuery = {
 
 const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
   cataluna: {
-    description: "Próximas citas en Barcelona, Girona, Lleida y Tarragona.",
+    description: "Agenda de eventos en Barcelona, Girona, Lleida y Tarragona.",
     eyebrow: "Agenda territorial",
     faqs: [
       {
@@ -94,7 +94,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
     ],
   },
   madrid: {
-    description: "Encuentra eventos de coches y motos en la Comunidad de Madrid.",
+    description: "Agenda de coches, motos y competición en la Comunidad de Madrid.",
     eyebrow: "Agenda territorial",
     faqs: [
       {

@@ -6,6 +6,7 @@ import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import type { EventItem } from "@/types/event";
 import RegionalEventCard from "./RegionalEventCard";
+import RegionalFilterDisclosure from "./RegionalFilterDisclosure";
 import {
   filterRegionalLandingEvents,
   normalizeRegionalText,
@@ -99,47 +100,6 @@ function FilterSelect({
   );
 }
 
-function FinderPeriodChips({
-  model,
-  pathname,
-  query,
-}: RegionalLandingPreviewProps) {
-  const preserved = {
-    discipline: query.discipline,
-    province: query.province,
-    q: query.query,
-    vehicle: query.vehicle,
-  };
-
-  return (
-    <nav aria-label="Periodo" className={styles.periodChips}>
-      <Link
-        aria-current={query.when === "upcoming" ? "page" : undefined}
-        href={queryHref(pathname, { ...preserved, when: "upcoming" }, "encuentra-evento")}
-      >
-        Próximos <strong>{model.upcomingTotal}</strong>
-      </Link>
-      {model.weekendEvents.length > 0 ? (
-        <Link
-          aria-current={query.when === "weekend" ? "page" : undefined}
-          href={queryHref(pathname, { ...preserved, when: "weekend" }, "encuentra-evento")}
-        >
-          Fin de semana <strong>{model.weekendEvents.length}</strong>
-        </Link>
-      ) : null}
-      {model.nextThirtyDaysEvents.length > 0
-      && model.nextThirtyDaysEvents.length !== model.upcomingTotal ? (
-        <Link
-          aria-current={query.when === "next30" ? "page" : undefined}
-          href={queryHref(pathname, { ...preserved, when: "next30" }, "encuentra-evento")}
-        >
-          Próximos 30 días <strong>{model.nextThirtyDaysEvents.length}</strong>
-        </Link>
-        ) : null}
-    </nav>
-  );
-}
-
 function EventFinder({
   filteredTotal,
   model,
@@ -147,27 +107,30 @@ function EventFinder({
   query,
 }: RegionalLandingPreviewProps & { filteredTotal: number }) {
   const isFull = model.finderMode === "full";
-  const showSearch = isFull || model.upcomingTotal >= 6;
+  const showSearch = isFull;
   const showProvince = model.provinceCounts.length > 1;
   const showDiscipline = model.disciplineCounts.length > 1;
   const showVehicle = model.vehicleCounts.length > 1;
+  const showNextThirtyDays = model.nextThirtyDaysEvents.length > 0
+    && model.nextThirtyDaysEvents.length !== model.upcomingTotal;
+  const activePeriodLabel = query.when === "weekend"
+    ? "Fin de semana"
+    : query.when === "next30"
+      ? "Próximos 30 días"
+      : undefined;
 
   return (
-    <section
-      aria-labelledby="regional-finder-title"
-      className={styles.finderSection}
-      id="encuentra-evento"
-    >
-      <div className="emc-container">
-        <form action={`${pathname}#eventos`} className={styles.finderPanel} method="get">
-          <div className={styles.finderHeading}>
-            <div>
-              <span className={styles.eyebrow}>Agenda a tu medida</span>
-              <h2 id="regional-finder-title">Encuentra un evento</h2>
-            </div>
-            <FinderPeriodChips model={model} pathname={pathname} query={query} />
-          </div>
-
+    <div id="encuentra-evento">
+      <RegionalFilterDisclosure
+        activePeriodLabel={activePeriodLabel}
+        totalLabel={`${countLabel(filteredTotal)} ${filteredTotal === 1 ? "ordenado" : "ordenados"} por fecha`}
+      >
+        <form
+          action={`${pathname}#eventos`}
+          aria-label="Filtrar eventos"
+          className={styles.finderPanel}
+          method="get"
+        >
           <div className={styles.finderControls}>
             {showSearch ? (
               <label className={`${styles.finderField} ${styles.searchField}`}>
@@ -196,38 +159,54 @@ function EventFinder({
                 value={query.discipline}
               />
             ) : null}
-            <input name="when" type="hidden" value={query.when} />
+            <label className={styles.finderField}>
+              <span>Cuándo</span>
+              <select defaultValue={query.when} name="when">
+                <option value="upcoming">Próximos</option>
+                {model.weekendEvents.length > 0 ? (
+                  <option value="weekend">Fin de semana</option>
+                ) : null}
+                {showNextThirtyDays ? (
+                  <option value="next30">Próximos 30 días</option>
+                ) : null}
+              </select>
+            </label>
             <button className="emc-btn emc-btn-primary" type="submit">
-              Ver {countLabel(filteredTotal)}
+              Aplicar filtros
             </button>
           </div>
 
-          {isFull && (showDiscipline || showVehicle) ? (
-            <details className={styles.moreFilters}>
-              <summary>Más filtros <span aria-hidden="true">+</span></summary>
-              <div className={styles.moreFiltersGrid}>
-                {showDiscipline ? (
-                  <FilterSelect
-                    label="Disciplina"
-                    name="discipline"
-                    options={model.disciplineCounts}
-                    value={query.discipline}
-                  />
-                ) : null}
-                {showVehicle ? (
-                  <FilterSelect
-                    label="Vehículo"
-                    name="vehicle"
-                    options={model.vehicleCounts}
-                    value={query.vehicle}
-                  />
-                ) : null}
-              </div>
-            </details>
-          ) : null}
+          <div className={styles.filterFooter}>
+            {(isFull && (showDiscipline || showVehicle)) || (!isFull && showVehicle) ? (
+              <details className={styles.moreFilters}>
+                <summary>Más filtros <span aria-hidden="true">+</span></summary>
+                <div className={styles.moreFiltersGrid}>
+                  {isFull && showDiscipline ? (
+                    <FilterSelect
+                      label="Disciplina"
+                      name="discipline"
+                      options={model.disciplineCounts}
+                      value={query.discipline}
+                    />
+                  ) : null}
+                  {showVehicle ? (
+                    <FilterSelect
+                      label="Vehículo"
+                      name="vehicle"
+                      options={model.vehicleCounts}
+                      value={query.vehicle}
+                    />
+                  ) : null}
+                </div>
+              </details>
+            ) : <span />}
+            <Link className={styles.resetFilters} href={`${pathname}#eventos`}>
+              Restablecer
+            </Link>
+          </div>
         </form>
-      </div>
-    </section>
+      </RegionalFilterDisclosure>
+    </div>
   );
 }
 
@@ -239,9 +218,9 @@ function RegionalEmptyState({
       <div className="emc-container">
         <div className={styles.emptyStateContent}>
           <span className={styles.eyebrow}>Agenda en actualización</span>
-          <h2>Próximos eventos en {model.config.name}</h2>
+          <h2>Agenda de {model.config.name} en actualización</h2>
           <p>
-            Ahora mismo no hay próximos eventos confirmados en {model.config.name}. Actualizamos la agenda a medida que se publican nuevas fechas.
+            Ahora mismo no hay próximas fechas confirmadas. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos.
           </p>
           <div className={styles.emptyStateActions}>
             <Link className={styles.emptyPrimaryLink} href={PUBLIC_NAVIGATION.publish}>
@@ -269,7 +248,7 @@ function RegionalHistory({
           <summary>
             <span>
               <small>Archivo regional</small>
-              Ver {model.pastEvents.length} eventos celebrados en {model.config.name}
+              Ver {model.pastEvents.length} {model.pastEvents.length === 1 ? "evento celebrado" : "eventos celebrados"} en {model.config.name}
             </span>
             <span aria-hidden="true">+</span>
           </summary>
@@ -297,9 +276,6 @@ export default function RegionalLandingPreview({
     ? filteredEvents
     : filteredEvents.slice(0, REGIONAL_DESKTOP_LIMIT);
   const venueHighlights = buildVenueHighlights(model.upcomingEvents);
-  const hasRealExploreChoice = model.provinceCounts.length > 1
-    || model.disciplineCounts.length > 1
-    || venueHighlights.length > 1;
   const hasActiveFilters = Boolean(
     query.discipline
     || query.province
@@ -342,15 +318,6 @@ export default function RegionalLandingPreview({
           </div>
         </section>
 
-        {model.finderMode === "full" || model.finderMode === "compact" ? (
-          <EventFinder
-            filteredTotal={filteredEvents.length}
-            model={model}
-            pathname={pathname}
-            query={query}
-          />
-        ) : null}
-
         {model.upcomingTotal === 0 ? <RegionalEmptyState model={model} /> : null}
 
         {model.upcomingTotal > 0 ? (
@@ -358,17 +325,22 @@ export default function RegionalLandingPreview({
             className={`${styles.eventsSection} ${model.upcomingTotal <= 2 ? styles.sparseEventsSection : ""}`}
             id="eventos"
           >
-            <div className="emc-container">
+            <div className={`emc-container ${
+              model.upcomingTotal === 1
+                ? styles.singleEventContainer
+                : model.upcomingTotal === 2
+                  ? styles.twoEventContainer
+                  : ""
+            }`}>
               <div className={styles.sectionHeading}>
                 <div>
-                  {model.upcomingTotal >= 3 ? <span className={styles.eyebrow}>Agenda regional</span> : null}
                   <h2>
                     {model.upcomingTotal === 1
                       ? `Próximo evento en ${model.config.name}`
                       : `Próximos eventos en ${model.config.name}`}
                   </h2>
-                  {hasActiveFilters ? (
-                    <p>{countLabel(filteredEvents.length)} · Ordenados por fecha</p>
+                  {model.finderMode === "hidden" && model.upcomingTotal > 1 ? (
+                    <p>{countLabel(filteredEvents.length)} ordenados por fecha</p>
                   ) : null}
                 </div>
                 {hasActiveFilters ? (
@@ -377,6 +349,14 @@ export default function RegionalLandingPreview({
                   </Link>
                 ) : null}
               </div>
+              {model.finderMode === "full" || model.finderMode === "compact" ? (
+                <EventFinder
+                  filteredTotal={filteredEvents.length}
+                  model={model}
+                  pathname={pathname}
+                  query={query}
+                />
+              ) : null}
               {filteredEvents.length > 0 ? (
                 <>
                   <div className={`${styles.eventGrid} ${model.upcomingTotal === 1 ? styles.singleEventGrid : ""}`}>
@@ -418,78 +398,69 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
-        {model.upcomingTotal >= 3 && hasRealExploreChoice ? (
-          <section className={styles.exploreSection}>
-            <div className="emc-container">
-              <div className={styles.sectionHeading}>
-                <div>
-                  <span className={styles.eyebrow}>Exploración regional</span>
-                  <h2>Explora eventos en {model.config.name}</h2>
-                </div>
-              </div>
-              <div className={styles.exploreSurface}>
-                {model.provinceCounts.length > 1 ? (
-                  <div className={styles.exploreGroup}>
-                    <h3>Por provincia</h3>
-                    <div className={styles.exploreGrid}>
-                      {model.provinceCounts.map((item) => (
-                        <Link
-                          href={queryHref(pathname, { province: item.key })}
-                          key={item.key}
-                        >
-                          <strong>{item.label}</strong>
-                          <span>{countLabel(item.count)} <i aria-hidden="true">→</i></span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {model.disciplineCounts.length > 1 ? (
-                  <div className={styles.exploreGroup}>
-                    <h3>Por disciplina</h3>
-                    <div className={styles.exploreGrid}>
-                      {model.disciplineCounts.slice(0, 8).map((item) => (
-                        <Link
-                          href={queryHref(pathname, { discipline: item.key })}
-                          key={item.key}
-                        >
-                          <strong>{item.label}</strong>
-                          <span>{countLabel(item.count)} <i aria-hidden="true">→</i></span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {venueHighlights.length > 1 ? (
-                  <div className={styles.exploreGroup}>
-                    <h3>Recintos destacados</h3>
-                    <div className={styles.venueGrid}>
-                      {venueHighlights.map((venue) => (
-                        <Link href={`/evento/${eventKey(venue.event)}`} key={venue.label}>
-                          <span aria-hidden="true">⌖</span>
-                          <strong>{venue.label}</strong>
-                          <small>{countLabel(venue.count)}</small>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
         {model.upcomingTotal === 0 ? <RegionalHistory model={model} /> : null}
 
         <section className={styles.editorialSection}>
           <div className={`emc-container ${styles.editorialCard}`}>
             <article>
               <span className={styles.eyebrow}>Guía regional</span>
-              <h2>Motor, territorio y próximos planes en {model.config.name}</h2>
-              {model.config.seoParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              <h2>Guía de motor en {model.config.name}</h2>
+              <p className={styles.guideIntroduction}>
+                Provincias, disciplinas, circuitos y recursos para descubrir la agenda de motor de la región.
+              </p>
+              <div className={styles.guideGroups}>
+                {model.provinceCounts.length > 0 ? (
+                  <details className={styles.guideGroup}>
+                    <summary>Provincias<span aria-hidden="true">+</span></summary>
+                    <div className={styles.guideLinkList}>
+                      {model.provinceCounts.map((item) => (
+                        <Link href={queryHref(pathname, { province: item.key })} key={item.key}>
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+                {model.disciplineCounts.length > 0 ? (
+                  <details className={styles.guideGroup}>
+                    <summary>Disciplinas<span aria-hidden="true">+</span></summary>
+                    <div className={styles.guideLinkList}>
+                      {model.disciplineCounts.slice(0, 8).map((item) => (
+                        <Link href={queryHref(pathname, { discipline: item.key })} key={item.key}>
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+                {venueHighlights.length > 0 ? (
+                  <details className={styles.guideGroup}>
+                    <summary>Recintos<span aria-hidden="true">+</span></summary>
+                    <div className={styles.guideLinkList}>
+                      {venueHighlights.map((venue) => (
+                        <Link href={`/evento/${eventKey(venue.event)}`} key={venue.label}>
+                          {venue.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+              <nav aria-label={`Recursos de ${model.config.name}`} className={styles.guideResources}>
+                {model.config.relatedLinks.map((link) => (
+                  <Link href={link.href} key={link.href}>{link.label}</Link>
+                ))}
+                <Link href={model.config.publicPath}>Página pública actual</Link>
+              </nav>
+              <details className={styles.seoDetails}>
+                <summary>Información sobre la agenda regional<span aria-hidden="true">+</span></summary>
+                <div>
+                  {model.config.seoParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                </div>
+              </details>
             </article>
             <aside className={styles.faq} aria-label="Preguntas frecuentes">
-              <span className={styles.faqLabel}>Preguntas frecuentes</span>
+              <h3 className={styles.faqLabel}>Preguntas frecuentes</h3>
               {model.config.faqs.map((faq) => (
                 <details key={faq.question}>
                   <summary>{faq.question}<span aria-hidden="true">+</span></summary>
@@ -522,19 +493,6 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
-        {model.upcomingTotal >= 3 ? (
-          <section className={styles.linksSection}>
-            <div className="emc-container">
-              <span className={styles.eyebrow}>Sigue explorando</span>
-              <div className={styles.relatedLinks}>
-                {model.config.relatedLinks.map((link) => (
-                  <Link href={link.href} key={link.href}>{link.label}<span aria-hidden="true">↗</span></Link>
-                ))}
-                <Link href={model.config.publicPath}>Página pública actual<span aria-hidden="true">↗</span></Link>
-              </div>
-            </div>
-          </section>
-        ) : null}
       </main>
 
       <ConceptFooter variant="compact" />

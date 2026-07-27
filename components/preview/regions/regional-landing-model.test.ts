@@ -73,6 +73,7 @@ function source(...files: string[]) {
 const regionalSourceFiles = [
   "app/preview/regiones/[region]/page.tsx",
   "components/preview/regions/RegionalLandingPreview.tsx",
+  "components/preview/regions/RegionalFilterDisclosure.tsx",
   "components/preview/regions/RegionalEventCard.tsx",
   "components/preview/regions/regional-landing-model.ts",
 ];
@@ -90,7 +91,8 @@ test("separa el inventario territorial futuro e histórico sin inflar el hero", 
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
   assert.doesNotMatch(component, /inventoryPill|upcomingCountLabel/);
   assert.match(component, /filteredTotal=\{filteredEvents\.length\}/);
-  assert.match(component, /Ver \{countLabel\(filteredTotal\)\}/);
+  assert.match(component, /Aplicar filtros/);
+  assert.doesNotMatch(component, /Ver \{countLabel\(filteredTotal\)\}/);
 });
 
 test("Cataluña y Madrid aíslan un fixture mixto por territorio", () => {
@@ -382,15 +384,17 @@ test("formatea rangos entre meses y años en dos líneas inequívocas", () => {
 
 test("Madrid vacío presenta el estado compacto exacto y acciones requeridas", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /Agenda en actualización/);
-  assert.match(component, /<h2>Próximos eventos en \{model\.config\.name\}<\/h2>/);
-  assert.match(component, /Ahora mismo no hay próximos eventos confirmados en \{model\.config\.name\}\. Actualizamos la agenda a medida que se publican nuevas fechas\./);
+  assert.match(component, /<h2>Agenda de \{model\.config\.name\} en actualización<\/h2>/);
+  assert.match(component, /Ahora mismo no hay próximas fechas confirmadas\. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos\./);
   assert.match(component, /Publicar un evento en \{model\.config\.name\}/);
   assert.match(component, /Ver calendario nacional/);
   assert.match(component, /href=\{PUBLIC_NAVIGATION\.publish\}/);
   assert.match(component, /href=\{PUBLIC_NAVIGATION\.calendar\}/);
-  assert.match(component, /Ver \{model\.pastEvents\.length\} eventos celebrados en \{model\.config\.name\}/);
+  assert.match(css, /\.emptyPrimaryLink\s*\{[\s\S]*min-height:\s*48px[\s\S]*background:\s*linear-gradient/);
+  assert.match(css, /\.emptySecondaryLink\s*\{/);
   assert.doesNotMatch(component, />0 eventos</);
 });
 
@@ -401,8 +405,11 @@ test("uno y dos eventos mantienen jerarquía, sin finder ni recomendaciones", ()
   assert.match(component, /model\.upcomingTotal === 1[\s\S]*`Próximo evento en \$\{model\.config\.name\}`/);
   assert.match(component, /`Próximos eventos en \$\{model\.config\.name\}`/);
   assert.match(component, /model\.upcomingTotal === 1 \? styles\.singleEventGrid/);
-  assert.match(component, /model\.upcomingTotal >= 3 \? \(\s*<section className=\{styles\.linksSection\}>/);
-  assert.match(css, /\.singleEventGrid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 760px\)/);
+  assert.match(component, /model\.upcomingTotal === 1[\s\S]*styles\.singleEventContainer/);
+  assert.match(component, /model\.upcomingTotal === 2[\s\S]*styles\.twoEventContainer/);
+  assert.match(css, /\.singleEventContainer\s*\{[\s\S]*max-width:\s*900px/);
+  assert.match(css, /\.twoEventContainer\s*\{[\s\S]*max-width:\s*1100px/);
+  assert.match(css, /\.eventGrid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(component, /Más planes cerca|También puede interesarte|RegionalAlternatives/);
 });
 
@@ -416,15 +423,19 @@ test("no quedan campos, lógica ni etiquetas de alternativas externas", () => {
   assert.doesNotMatch(sources, /classifyEventMacroZone|MacroZoneId/);
 });
 
-test("el finder móvil apila controles completos sin recortes ni overflow", () => {
+test("el finder móvil está plegado y abre un panel completo sin overflow", () => {
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
+  const disclosure = source("components/preview/regions/RegionalFilterDisclosure.tsx");
 
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.finderHeading\s*\{[\s\S]*display:\s*grid/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.periodChips\s*\{[\s\S]*width:\s*100%/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.finderControls\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.finderControls\s*\{[\s\S]*overflow:\s*visible/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.finderField input,[\s\S]*font-size:\s*16px/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.finderControls > :global\(\.emc-btn\)\s*\{[\s\S]*width:\s*100%/);
+  assert.match(disclosure, /useState\(false\)/);
+  assert.match(disclosure, /aria-expanded=\{expanded\}/);
+  assert.match(disclosure, /setExpanded\(\(current\) => !current\)/);
+  assert.match(disclosure, /Filtrar/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterSummary\s*\{[\s\S]*min-height:\s*56px/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterPanel\s*\{[\s\S]*display:\s*none/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterPanelOpen\s*\{[\s\S]*display:\s*block/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.finderControls\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.finderField input,[\s\S]*font-size:\s*16px/);
 });
 
 test("el layout conserva límites, cuadrícula responsive y ausencia de overflow global", () => {
@@ -455,16 +466,55 @@ test("el breadcrumb usa Inicio / Zonas / región y la tarjeta mantiene accesibil
   assert.match(regionalEventDateAriaLabel(eventFixture()), /8 de agosto de 2026/);
 });
 
-test("el finder usa elecciones reales, GET SSR y chips con resultados", () => {
+test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /model\.finderMode === "full" \|\| model\.finderMode === "compact"/);
+  assert.match(component, /const showSearch = isFull/);
   assert.match(component, /model\.provinceCounts\.length > 1/);
   assert.match(component, /model\.disciplineCounts\.length > 1/);
   assert.match(component, /model\.vehicleCounts\.length > 1/);
   assert.match(component, /method="get"/);
+  assert.match(component, /aria-label="Filtrar eventos"/);
+  assert.match(component, /Aplicar filtros/);
+  assert.match(component, /Restablecer/);
   assert.match(component, /model\.weekendEvents\.length > 0/);
   assert.match(component, /model\.nextThirtyDaysEvents\.length !== model\.upcomingTotal/);
+  assert.doesNotMatch(component, /Encuentra un evento|Agenda a tu medida|Ver \{countLabel\(filteredTotal\)\}/);
+  assert.match(css, /\.finderPanel\s*\{[\s\S]*padding:\s*8px[\s\S]*border-radius:\s*16px/);
+});
+
+test("el total se presenta una sola vez por finderMode antes de las tarjetas", () => {
+  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+
+  assert.match(component, /totalLabel=\{`\$\{countLabel\(filteredTotal\)\}/);
+  assert.match(component, /model\.finderMode === "hidden" && model\.upcomingTotal > 1/);
+  assert.doesNotMatch(component, /inventoryPill|upcomingCountLabel|Ver \{countLabel\(filteredTotal\)\}/);
+});
+
+test("la guía usa copy natural, details móviles y solo grupos con datos", () => {
+  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const css = source("components/preview/regions/RegionalLandingPreview.module.css");
+
+  assert.match(component, /Guía de motor en \{model\.config\.name\}/);
+  assert.match(component, /Provincias, disciplinas, circuitos y recursos para descubrir la agenda de motor de la región\./);
+  assert.doesNotMatch(component, /Motor, territorio y próximos planes/);
+  for (const group of ["Provincias", "Disciplinas", "Recintos"]) {
+    assert.match(component, new RegExp(`<summary>${group}`));
+  }
+  assert.match(component, /model\.provinceCounts\.length > 0/);
+  assert.match(component, /model\.disciplineCounts\.length > 0/);
+  assert.match(component, /venueHighlights\.length > 0/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.guideGroups\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+});
+
+test("el histórico resuelve singular y plural y permanece plegado", () => {
+  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+
+  assert.match(component, /model\.pastEvents\.length === 1 \? "evento celebrado" : "eventos celebrados"/);
+  assert.doesNotMatch(component, /<details[^>]*open[^>]*className=\{styles\.historyDetails\}/);
+  assert.doesNotMatch(component, /Ver \{model\.pastEvents\.length\} eventos celebrados/);
 });
 
 test("la preview es noindex, sin canonical, sitemap ni navegación pública", () => {
@@ -527,8 +577,9 @@ test("la jerarquía y los controles conservan accesibilidad básica", () => {
   assert.match(component, /<h1>/);
   assert.match(component, /<h2>/);
   assert.match(component, /<h3/);
-  assert.match(component, /aria-labelledby="regional-finder-title"/);
+  assert.match(component, /aria-label="Filtrar eventos"/);
   assert.match(component, /aria-current=/);
+  assert.match(source("components/preview/regions/RegionalFilterDisclosure.tsx"), /aria-expanded=\{expanded\}/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /\.saveButton\s*\{[\s\S]*min-height:\s*44px/);
 });
