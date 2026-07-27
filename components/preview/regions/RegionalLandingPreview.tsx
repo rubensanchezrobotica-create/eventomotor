@@ -123,7 +123,7 @@ function EventFinder({
     <div id="encuentra-evento">
       <RegionalFilterDisclosure
         activePeriodLabel={activePeriodLabel}
-        totalLabel={`${countLabel(filteredTotal)} ${filteredTotal === 1 ? "ordenado" : "ordenados"} por fecha`}
+        totalLabel={countLabel(filteredTotal)}
       >
         <form
           action={`${pathname}#eventos`}
@@ -151,14 +151,6 @@ function EventFinder({
                 value={query.province}
               />
             ) : null}
-            {!isFull && showDiscipline ? (
-              <FilterSelect
-                label="Disciplina"
-                name="discipline"
-                options={model.disciplineCounts}
-                value={query.discipline}
-              />
-            ) : null}
             <label className={styles.finderField}>
               <span>Cuándo</span>
               <select defaultValue={query.when} name="when">
@@ -171,17 +163,14 @@ function EventFinder({
                 ) : null}
               </select>
             </label>
-            <button className="emc-btn emc-btn-primary" type="submit">
-              Aplicar filtros
-            </button>
           </div>
 
           <div className={styles.filterFooter}>
-            {(isFull && (showDiscipline || showVehicle)) || (!isFull && showVehicle) ? (
+            {showDiscipline || showVehicle ? (
               <details className={styles.moreFilters}>
                 <summary>Más filtros <span aria-hidden="true">+</span></summary>
                 <div className={styles.moreFiltersGrid}>
-                  {isFull && showDiscipline ? (
+                  {showDiscipline ? (
                     <FilterSelect
                       label="Disciplina"
                       name="discipline"
@@ -200,10 +189,15 @@ function EventFinder({
                 </div>
               </details>
             ) : <span />}
-            <Link className={styles.resetFilters} href={`${pathname}#eventos`}>
-              Restablecer
-            </Link>
           </div>
+
+          <button className={`${styles.applyFilters} emc-btn emc-btn-primary`} type="submit">
+            Aplicar filtros
+          </button>
+
+          <Link className={styles.resetFilters} href={`${pathname}#eventos`}>
+            Restablecer
+          </Link>
         </form>
       </RegionalFilterDisclosure>
     </div>
@@ -398,7 +392,7 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
-        {model.upcomingTotal === 0 ? <RegionalHistory model={model} /> : null}
+        <RegionalHistory model={model} />
 
         <section className={styles.editorialSection}>
           <div className={`emc-container ${styles.editorialCard}`}>
@@ -470,8 +464,6 @@ export default function RegionalLandingPreview({
             </aside>
           </div>
         </section>
-
-        {model.upcomingTotal > 0 ? <RegionalHistory model={model} /> : null}
 
         {model.upcomingTotal > 0 ? (
           <section className={styles.organizerSection}>

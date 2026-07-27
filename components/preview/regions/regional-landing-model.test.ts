@@ -393,7 +393,7 @@ test("Madrid vacío presenta el estado compacto exacto y acciones requeridas", (
   assert.match(component, /Ver calendario nacional/);
   assert.match(component, /href=\{PUBLIC_NAVIGATION\.publish\}/);
   assert.match(component, /href=\{PUBLIC_NAVIGATION\.calendar\}/);
-  assert.match(css, /\.emptyPrimaryLink\s*\{[\s\S]*min-height:\s*48px[\s\S]*background:\s*linear-gradient/);
+  assert.match(css, /\.emptyPrimaryLink\s*\{[\s\S]*min-height:\s*48px[\s\S]*background:\s*#ff5416/);
   assert.match(css, /\.emptySecondaryLink\s*\{/);
   assert.doesNotMatch(component, />0 eventos</);
 });
@@ -424,6 +424,7 @@ test("no quedan campos, lógica ni etiquetas de alternativas externas", () => {
 });
 
 test("el finder móvil está plegado y abre un panel completo sin overflow", () => {
+  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
   const disclosure = source("components/preview/regions/RegionalFilterDisclosure.tsx");
 
@@ -431,10 +432,18 @@ test("el finder móvil está plegado y abre un panel completo sin overflow", () 
   assert.match(disclosure, /aria-expanded=\{expanded\}/);
   assert.match(disclosure, /setExpanded\(\(current\) => !current\)/);
   assert.match(disclosure, /Filtrar/);
+  assert.match(disclosure, /<strong>\{totalLabel\}<\/strong>/);
+  assert.match(disclosure, /sortLabel.*Ordenados por fecha/);
+  assert.match(component, /\{showSearch \? \([\s\S]*\{showProvince \? \([\s\S]*<span>Cuándo<\/span>[\s\S]*styles\.applyFilters/);
+  assert.match(component, /styles\.filterFooter[\s\S]*styles\.applyFilters[\s\S]*styles\.resetFilters/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterFooter\s*\{[\s\S]*order:\s*2/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.applyFilters\s*\{[\s\S]*order:\s*3/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.resetFilters\s*\{[\s\S]*order:\s*4/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.sortLabel\s*\{[\s\S]*display:\s*none/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterSummary\s*\{[\s\S]*min-height:\s*56px/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterPanel\s*\{[\s\S]*display:\s*none/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterPanelOpen\s*\{[\s\S]*display:\s*block/);
-  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.finderControls\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.finderControls\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.finderField input,[\s\S]*font-size:\s*16px/);
 });
 
@@ -481,14 +490,20 @@ test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
   assert.match(component, /Restablecer/);
   assert.match(component, /model\.weekendEvents\.length > 0/);
   assert.match(component, /model\.nextThirtyDaysEvents\.length !== model\.upcomingTotal/);
+  assert.match(component, /\{showDiscipline \|\| showVehicle \? \([\s\S]*<details className=\{styles\.moreFilters\}/);
+  assert.match(css, /\.finderPanel\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto/);
+  assert.match(css, /\.page \.applyFilters\s*\{[\s\S]*height:\s*46px[\s\S]*min-height:\s*46px/);
   assert.doesNotMatch(component, /Encuentra un evento|Agenda a tu medida|Ver \{countLabel\(filteredTotal\)\}/);
-  assert.match(css, /\.finderPanel\s*\{[\s\S]*padding:\s*8px[\s\S]*border-radius:\s*16px/);
+  assert.match(css, /\.finderPanel\s*\{[\s\S]*padding:\s*5px[\s\S]*border-radius:\s*16px/);
 });
 
 test("el total se presenta una sola vez por finderMode antes de las tarjetas", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const disclosure = source("components/preview/regions/RegionalFilterDisclosure.tsx");
 
-  assert.match(component, /totalLabel=\{`\$\{countLabel\(filteredTotal\)\}/);
+  assert.match(component, /totalLabel=\{countLabel\(filteredTotal\)\}/);
+  assert.equal((disclosure.match(/\{totalLabel\}/g) || []).length, 1);
+  assert.match(disclosure, /· Ordenados por fecha/);
   assert.match(component, /model\.finderMode === "hidden" && model\.upcomingTotal > 1/);
   assert.doesNotMatch(component, /inventoryPill|upcomingCountLabel|Ver \{countLabel\(filteredTotal\)\}/);
 });
@@ -515,6 +530,7 @@ test("el histórico resuelve singular y plural y permanece plegado", () => {
   assert.match(component, /model\.pastEvents\.length === 1 \? "evento celebrado" : "eventos celebrados"/);
   assert.doesNotMatch(component, /<details[^>]*open[^>]*className=\{styles\.historyDetails\}/);
   assert.doesNotMatch(component, /Ver \{model\.pastEvents\.length\} eventos celebrados/);
+  assert.ok(component.indexOf("<RegionalHistory model={model} />") < component.indexOf("styles.editorialSection"));
 });
 
 test("la preview es noindex, sin canonical, sitemap ni navegación pública", () => {

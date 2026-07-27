@@ -22,6 +22,7 @@ export default function RegionalFilterDisclosure({
       <div className={styles.filterSummary}>
         <div className={styles.filterSummaryText}>
           <strong>{totalLabel}</strong>
+          <span className={styles.sortLabel}>· Ordenados por fecha</span>
           {activePeriodLabel ? <span>{activePeriodLabel}</span> : null}
         </div>
         <button
