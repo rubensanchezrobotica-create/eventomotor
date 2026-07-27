@@ -3,7 +3,9 @@ import Link from "next/link";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { formatPreviewDisplayText } from "@/components/preview/preview-geography";
 import { SITE_URL } from "@/lib/seo";
+import { SEO_COMMUNITIES } from "@/lib/seo-communities";
 import { SEO_ZONES } from "@/lib/seo-taxonomy";
 
 export const metadata: Metadata = {
@@ -16,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default function ZonasPage() {
+  const communities = Object.values(SEO_COMMUNITIES);
+
   return (
     <div className="emc-page">
       <ConceptStyles />
@@ -41,6 +45,28 @@ export default function ZonasPage() {
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+        <section className="emc-zone-directory-section" aria-labelledby="zone-directory-title">
+          <div className="emc-container">
+            <div className="emc-section-head">
+              <div>
+                <div className="emc-kicker">Explora el territorio</div>
+                <h2 id="zone-directory-title">Eventos por comunidad</h2>
+                <p>Accede a todas las páginas territoriales desde un único directorio.</p>
+              </div>
+            </div>
+            <nav className="emc-zone-directory-grid" aria-label="Eventos de motor por comunidad">
+              {communities.map((community) => (
+                <Link
+                  className="emc-zone-directory-link"
+                  href={`/${community.landingSlug}`}
+                  key={community.landingSlug}
+                >
+                  {formatPreviewDisplayText(community.name)}
+                </Link>
+              ))}
+            </nav>
           </div>
         </section>
       </main>

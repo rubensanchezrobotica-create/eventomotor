@@ -207,7 +207,7 @@ test("la jerarquía opcional conserva todas las búsquedas y no altera la home p
   }
 });
 
-test("el footer compacto conserva todos los enlaces y la variante pública original", () => {
+test("el footer compacto conserva la misma navegación pública equilibrada", () => {
   const publicMarkup = renderToStaticMarkup(createElement(ConceptHomePage));
   const compactMarkup = renderToStaticMarkup(createElement(ConceptHomePage, {
     footerVariant: "compact",
@@ -216,18 +216,16 @@ test("el footer compacto conserva todos los enlaces y la variante pública origi
   const hrefs = (markup: string) => [...footerFragment(markup).matchAll(/href="([^"]+)"/g)]
     .map((match) => match[1])
     .sort();
-  const remainingZones = footerFragment(compactMarkup).match(/data-footer-zone-links="remaining">([\s\S]*?)<\/div>/)?.[1] || "";
 
   assert.deepEqual(hrefs(compactMarkup), hrefs(publicMarkup));
-  assert.equal(hrefs(publicMarkup).length, 37);
+  assert.equal(hrefs(publicMarkup).length, 26);
   assert.doesNotMatch(footerFragment(publicMarkup), /emc-footer-compact/);
   assert.doesNotMatch(footerFragment(publicMarkup), /<details/);
   assert.match(footerFragment(compactMarkup), /class="emc-footer emc-footer-compact"/);
   assert.match(footerFragment(compactMarkup), /Rallyes en España 2026/);
-  assert.match(footerFragment(compactMarkup), /Eventos motor Cataluña/);
-  assert.match(footerFragment(compactMarkup), /La brújula del motor/);
-  assert.match(footerFragment(publicMarkup), /Rallyes en Espana 2026/);
-  assert.match(footerFragment(publicMarkup), /La brujula del motor/);
-  assert.match(footerFragment(compactMarkup), /<summary>Ver todas las zonas<\/summary>/);
-  assert.equal((remainingZones.match(/href=/g) || []).length, 13);
+  assert.match(footerFragment(compactMarkup), /Todas las zonas/);
+  assert.match(footerFragment(compactMarkup), /Cataluña \/ Aragón/);
+  assert.match(footerFragment(publicMarkup), /Todos los derechos reservados/);
+  assert.doesNotMatch(footerFragment(compactMarkup), /eventos-motor-cataluna/);
+  assert.doesNotMatch(footerFragment(compactMarkup), /<details/);
 });

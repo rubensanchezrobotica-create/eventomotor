@@ -747,8 +747,8 @@
 }
 
 .previewPage :global(.emc-footer-compact .emc-footer-links) {
-  grid-template-columns: 0.75fr 1.55fr 1.2fr 0.9fr 0.7fr;
-  gap: 22px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .previewPage :global(.emc-footer-compact .emc-footer-column) {
@@ -756,52 +756,12 @@
   gap: 8px;
 }
 
-.previewPage :global(.emc-footer-compact .emc-footer-column-motor) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 14px;
-}
-
-.previewPage :global(.emc-footer-compact .emc-footer-column-motor > strong) {
-  grid-column: 1 / -1;
-}
-
 .previewPage :global(.emc-footer-compact .emc-footer-links a) {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  font-size: 12px;
+  min-height: 29px;
+  font-size: 13px;
   line-height: 1.4;
-}
-
-.previewPage :global(.emc-footer-zone-details) {
-  margin-top: 3px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.previewPage :global(.emc-footer-zone-details summary) {
-  min-height: 44px;
-  padding: 10px 0 2px;
-  color: #ffad90;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.4;
-  cursor: pointer;
-}
-
-.previewPage :global(.emc-footer-zone-details summary:hover) {
-  color: #fff;
-}
-
-.previewPage :global(.emc-footer-zone-details summary:focus-visible),
-.previewPage :global(.emc-footer-zone-secondary a:focus-visible) {
-  outline: 3px solid rgba(255, 139, 96, 0.76);
-  outline-offset: 3px;
-}
-
-.previewPage :global(.emc-footer-zone-secondary) {
-  display: grid;
-  gap: 7px;
-  padding: 11px 0 3px;
 }
 
 .previewPage :global(.emc-footer-compact .emc-footer-legal) {
@@ -879,16 +839,6 @@
     grid-template-columns: 1fr;
   }
 
-  .previewPage :global(.emc-footer-compact .emc-footer-legal),
-  .previewPage :global(.emc-footer-compact .emc-footer-cookie-settings) {
-    grid-column: 1;
-    justify-self: start;
-    text-align: left;
-  }
-
-  .previewPage :global(.emc-footer-compact .emc-footer-cookie-settings) {
-    margin-top: -20px;
-  }
 }
 
 @media (max-width: 1080px) {
@@ -1172,22 +1122,10 @@
     gap: 7px;
   }
 
-  .previewPage :global(.emc-footer-compact .emc-footer-column-motor) {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .previewPage :global(.emc-footer-compact .emc-footer-column-motor > strong) {
-    grid-column: 1 / -1;
-  }
-
   .previewPage :global(.emc-footer-compact .emc-footer-links a) {
-    font-size: 11.5px;
+    min-height: 44px;
+    font-size: 13px;
     line-height: 1.35;
-  }
-
-  .previewPage :global(.emc-footer-compact .emc-footer-cookie-settings) {
-    margin-top: -8px;
   }
 }
 
