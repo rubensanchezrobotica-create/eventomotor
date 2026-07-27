@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { getWeekendRange, isEventInWeekendRange } from "@/components/preview/weekend/weekend-preview-model";
 import { normalizeZoneDiscipline, normalizeZoneProvince } from "@/components/zones/zone-preview-model";
+import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
 import { SEO_COMMUNITIES, matchesSeoCommunity, type SeoCommunityConfig } from "@/lib/seo-communities";
 import type { EventItem } from "@/types/event";
 
 export type RegionalPreviewId = "cataluna" | "madrid";
 export type RegionalFinderMode = "full" | "compact" | "hidden" | "empty";
+export type RegionalFixtureId =
+  | "cataluna-amplia"
+  | "madrid-sin-finde"
+  | "madrid-sin-futuros"
+  | "un-evento"
+  | "dos-eventos";
 
 export type RegionalCount = {
   count: number;
@@ -25,7 +32,14 @@ export type RegionalLandingConfig = {
   seoParagraphs: string[];
 };
 
+export type RegionalAlternativeEvent = {
+  event: EventItem;
+  origin: "nearby" | "national";
+  originLabel: string;
+};
+
 export type RegionalLandingModel = {
+  alternativeEvents: RegionalAlternativeEvent[];
   config: RegionalLandingConfig;
   disciplineCounts: RegionalCount[];
   fallbackNationalEvents: EventItem[];
@@ -128,8 +142,22 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
 
 export const REGIONAL_DESKTOP_LIMIT = 8;
 export const REGIONAL_MOBILE_LIMIT = 6;
+const REGIONAL_FIXTURE_NOW = new Date("2026-01-01T12:00:00");
 const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
 const UNRELIABLE_DATE_QUALITIES = new Set(["pending_date"]);
+const REGIONAL_ALTERNATIVE_CONFIGS: Record<RegionalPreviewId, {
+  macroZone: MacroZoneId;
+  nearbyCommunities: readonly SeoCommunityConfig[];
+}> = {
+  cataluna: {
+    macroZone: "cataluna-aragon",
+    nearbyCommunities: [SEO_COMMUNITIES.comunidadValenciana],
+  },
+  madrid: {
+    macroZone: "centro",
+    nearbyCommunities: [],
+  },
+};
 
 function cleanText(value: string | null | undefined) {
   return String(value || "").trim().replace(/\s+/g, " ");
@@ -245,6 +273,54 @@ export function regionalFinderMode(upcomingTotal: number): RegionalFinderMode {
   return "empty";
 }
 
+export function selectRegionalAlternativeEvents(
+  events: EventItem[],
+  id: RegionalPreviewId,
+  now: Date,
+  limit = 6,
+): RegionalAlternativeEvent[] {
+  const community = communityFor(id);
+  const config = REGIONAL_ALTERNATIVE_CONFIGS[id];
+  const eligibleEvents = deduplicateEvents(events.filter((event) => (
+    event.visible === true
+    && !isCancelled(event)
+    && isUpcoming(event, now)
+    && !matchesSeoCommunity(event, community)
+  )));
+  const ranked = eligibleEvents.map((event) => {
+    const isSameMacroZone = classifyEventMacroZone(event) === config.macroZone;
+    const isConfiguredNeighbour = config.nearbyCommunities.some((nearbyCommunity) => (
+      matchesSeoCommunity(event, nearbyCommunity)
+    ));
+    const origin: RegionalAlternativeEvent["origin"] = isSameMacroZone || isConfiguredNeighbour
+      ? "nearby"
+      : "national";
+
+    return {
+      alternative: {
+        event,
+        origin,
+        originLabel: origin === "nearby"
+          ? `Cerca de ${REGIONAL_CONFIGS[id].name}`
+          : "Agenda nacional",
+      },
+      rank: isSameMacroZone ? 0 : isConfiguredNeighbour ? 1 : 2,
+    };
+  });
+
+  return ranked
+    .sort((left, right) => (
+      left.rank - right.rank
+      || left.alternative.event.start.localeCompare(right.alternative.event.start)
+      || (left.alternative.event.end || left.alternative.event.start)
+        .localeCompare(right.alternative.event.end || right.alternative.event.start)
+      || normalizeRegionalText(left.alternative.event.title)
+        .localeCompare(normalizeRegionalText(right.alternative.event.title), "es")
+    ))
+    .slice(0, limit)
+    .map(({ alternative }) => alternative);
+}
+
 export function buildRegionalLandingModel(
   events: EventItem[],
   id: RegionalPreviewId,
@@ -266,15 +342,11 @@ export function buildRegionalLandingModel(
   const nextThirtyDaysEvents = upcomingEvents.filter((event) => (
     toDate(event.start).getTime() <= thirtyDayLimit.getTime()
   ));
-  const fallbackNationalEvents = sortRegionalUpcomingEvents(
-    eligibleEvents.filter((event) => (
-      isUpcoming(event, now)
-      && !territorialEvents.some((territorial) => (territorial.slug || territorial.id) === (event.slug || event.id))
-    )),
-    now,
-  ).slice(0, 4);
+  const alternativeEvents = selectRegionalAlternativeEvents(eligibleEvents, id, now);
+  const fallbackNationalEvents = alternativeEvents.map(({ event }) => event).slice(0, 4);
 
   return {
+    alternativeEvents,
     config: REGIONAL_CONFIGS[id],
     disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
     fallbackNationalEvents,
@@ -310,10 +382,56 @@ export function buildRegionalNoUpcomingFixture(
   };
 }
 
-export function isRegionalNoUpcomingFixture(
+export function regionalFixtureId(
   searchParams: Record<string, string | string[] | undefined>,
-) {
-  return firstParam(searchParams.fixture) === "sin-futuros";
+): RegionalFixtureId | null {
+  const fixture = firstParam(searchParams.fixture);
+  if (fixture === "sin-futuros") return "madrid-sin-futuros";
+  if (
+    fixture === "cataluna-amplia"
+    || fixture === "madrid-sin-finde"
+    || fixture === "madrid-sin-futuros"
+    || fixture === "un-evento"
+    || fixture === "dos-eventos"
+  ) return fixture;
+  return null;
+}
+
+export function regionalFixtureNow(fixture: RegionalFixtureId | null, now: Date) {
+  return fixture ? new Date(REGIONAL_FIXTURE_NOW) : now;
+}
+
+function buildRegionalSparseFixture(
+  model: RegionalLandingModel,
+  count: 1 | 2,
+): RegionalLandingModel {
+  const upcomingEvents = model.upcomingEvents.slice(0, count);
+  const upcomingKeys = new Set(upcomingEvents.map((event) => event.slug || event.id));
+  return {
+    ...model,
+    disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
+    finderMode: "hidden",
+    nextThirtyDaysEvents: model.nextThirtyDaysEvents.filter((event) => (
+      upcomingKeys.has(event.slug || event.id)
+    )),
+    provinceCounts: buildCounts(upcomingEvents, (event) => normalizeZoneProvince(event.province)),
+    territorialTotal: upcomingEvents.length + model.pastEvents.length,
+    upcomingEvents,
+    upcomingTotal: upcomingEvents.length,
+    vehicleCounts: buildCounts(upcomingEvents, canonicalVehicleLabel),
+    weekendEvents: model.weekendEvents.filter((event) => upcomingKeys.has(event.slug || event.id)),
+  };
+}
+
+export function buildRegionalInventoryFixture(
+  model: RegionalLandingModel,
+  fixture: RegionalFixtureId | null,
+): RegionalLandingModel {
+  if (fixture === "madrid-sin-futuros") return buildRegionalNoUpcomingFixture(model);
+  if (fixture === "madrid-sin-finde") return { ...model, weekendEvents: [] };
+  if (fixture === "un-evento") return buildRegionalSparseFixture(model, 1);
+  if (fixture === "dos-eventos") return buildRegionalSparseFixture(model, 2);
+  return model;
 }
 
 export function parseRegionalLandingQuery(

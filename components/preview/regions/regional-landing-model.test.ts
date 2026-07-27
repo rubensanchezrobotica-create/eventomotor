@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
+  buildRegionalInventoryFixture,
   buildRegionalLandingModel,
   buildRegionalNoUpcomingFixture,
   buildRegionalPreviewMetadata,
@@ -12,7 +13,10 @@ import {
   parseRegionalLandingQuery,
   regionalEventBadges,
   regionalEventDateAriaLabel,
+  regionalFixtureId,
+  regionalFixtureNow,
   regionalFinderMode,
+  selectRegionalAlternativeEvents,
   sortRegionalUpcomingEvents,
 } from "./regional-landing-model";
 
@@ -162,6 +166,102 @@ test("una región sin futuros mantiene el total regional en cero y separa altern
   assert.equal(data.upcomingTotal, 0);
   assert.equal(data.pastEvents.length, 1);
   assert.deepEqual(data.fallbackNationalEvents.map((event) => event.slug), ["national-future"]);
+  assert.deepEqual(data.alternativeEvents.map(({ originLabel }) => originLabel), ["Agenda nacional"]);
+});
+
+test("las alternativas priorizan macrozona y comunidades limítrofes configuradas", () => {
+  const alternatives = selectRegionalAlternativeEvents([
+    eventFixture({ id: "current", slug: "current" }),
+    eventFixture({
+      id: "aragon",
+      slug: "aragon",
+      city: "Alcañiz",
+      province: "Teruel",
+      region: "Aragón",
+      start: "2026-08-10",
+      end: "2026-08-10",
+    }),
+    eventFixture({
+      id: "valencia",
+      slug: "valencia",
+      city: "Cheste",
+      province: "Valencia",
+      region: "Comunidad Valenciana",
+      start: "2026-08-08",
+      end: "2026-08-08",
+    }),
+    eventFixture({
+      id: "national",
+      slug: "national",
+      city: "Sevilla",
+      province: "Sevilla",
+      region: "Andalucía",
+      start: "2026-08-01",
+      end: "2026-08-01",
+    }),
+    eventFixture({
+      id: "cancelled",
+      slug: "cancelled",
+      city: "Zaragoza",
+      province: "Zaragoza",
+      region: "Aragón",
+      eventStatus: "cancelled",
+    }),
+  ], "cataluna", now);
+
+  assert.deepEqual(alternatives.map(({ event }) => event.slug), ["aragon", "valencia", "national"]);
+  assert.deepEqual(alternatives.map(({ origin }) => origin), ["nearby", "nearby", "national"]);
+  assert.deepEqual(alternatives.map(({ originLabel }) => originLabel), [
+    "Cerca de Cataluña",
+    "Cerca de Cataluña",
+    "Agenda nacional",
+  ]);
+});
+
+test("Madrid prioriza la macrozona Centro y excluye el inventario madrileño", () => {
+  const alternatives = selectRegionalAlternativeEvents([
+    eventFixture({
+      id: "madrid",
+      slug: "madrid",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+    }),
+    eventFixture({
+      id: "mancha",
+      slug: "mancha",
+      city: "Toledo",
+      province: "Toledo",
+      region: "Castilla-La Mancha",
+      start: "2026-08-09",
+      end: "2026-08-09",
+    }),
+    eventFixture({
+      id: "leon",
+      slug: "leon",
+      city: "Segovia",
+      province: "Segovia",
+      region: "Castilla y León",
+      start: "2026-08-08",
+      end: "2026-08-08",
+    }),
+    eventFixture({
+      id: "sur",
+      slug: "sur",
+      city: "Sevilla",
+      province: "Sevilla",
+      region: "Andalucía",
+      start: "2026-08-01",
+      end: "2026-08-01",
+    }),
+  ], "madrid", now);
+
+  assert.deepEqual(alternatives.map(({ event }) => event.slug), ["leon", "mancha", "sur"]);
+  assert.deepEqual(alternatives.map(({ originLabel }) => originLabel), [
+    "Cerca de Madrid",
+    "Cerca de Madrid",
+    "Agenda nacional",
+  ]);
 });
 
 test("el fixture visual sin futuros deriva el estado sin duplicar datos", () => {
@@ -191,6 +291,46 @@ test("el fixture visual sin futuros deriva el estado sin duplicar datos", () => 
   assert.deepEqual(fixture.vehicleCounts, []);
   assert.equal(fixture.finderMode, "empty");
   assert.equal(fixture.fallbackNationalEvents.length, 1);
+});
+
+test("los fixtures visuales cubren inventario amplio, sin fin de semana, uno, dos y cero", () => {
+  const data = buildRegionalLandingModel([
+    ...numberedEvents(12, "regional", {}),
+    eventFixture({
+      id: "national",
+      slug: "national",
+      city: "Sevilla",
+      province: "Sevilla",
+      region: "Andalucía",
+    }),
+  ], "cataluna", now);
+
+  assert.equal(buildRegionalInventoryFixture(data, "cataluna-amplia").upcomingTotal, 12);
+  assert.equal(buildRegionalInventoryFixture(data, "madrid-sin-finde").weekendEvents.length, 0);
+  assert.equal(buildRegionalInventoryFixture(data, "un-evento").upcomingTotal, 1);
+  assert.equal(buildRegionalInventoryFixture(data, "dos-eventos").upcomingTotal, 2);
+  assert.equal(buildRegionalInventoryFixture(data, "madrid-sin-futuros").upcomingTotal, 0);
+  assert.equal(regionalFixtureId({ fixture: "cataluna-amplia" }), "cataluna-amplia");
+  assert.equal(regionalFixtureId({ fixture: "sin-futuros" }), "madrid-sin-futuros");
+  assert.equal(regionalFixtureId({ fixture: "desconocido" }), null);
+  assert.equal(regionalFixtureNow("un-evento", now).getFullYear(), 2026);
+  assert.equal(regionalFixtureNow("un-evento", now).getMonth(), 0);
+  assert.equal(regionalFixtureNow("un-evento", now).getDate(), 1);
+  assert.equal(regionalFixtureNow(null, now), now);
+
+  const fixtureSources = [
+    "app/preview/regiones/[region]/page.tsx",
+    "components/preview/regions/regional-landing-model.ts",
+  ].map((file) => readFileSync(path.join(process.cwd(), file), "utf8")).join("\n");
+  for (const fixture of [
+    "cataluna-amplia",
+    "madrid-sin-finde",
+    "madrid-sin-futuros",
+    "un-evento",
+    "dos-eventos",
+  ]) {
+    assert.match(fixtureSources, new RegExp(fixture));
+  }
 });
 
 test("calcula las cuatro variantes de finderMode en sus límites", () => {
@@ -422,6 +562,18 @@ test("el layout limita seis tarjetas móviles, ocho desktop y evita overflow hor
   assert.match(css, /overflow-x:\s*clip/);
 });
 
+test("los estados escasos usan hero y tarjetas móviles compactos", () => {
+  const css = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.module.css"),
+    "utf8",
+  );
+
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*font-size:\s*clamp\(44px,\s*12vw,\s*48px\)/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.eventCard\s*\{[\s\S]*height:\s*146px/);
+  assert.match(css, /\.sparseEventsSection \+ \.alternativesSection\s*\{[\s\S]*padding-top:\s*24px/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.sparseEventsSection \+ \.alternativesSection\s*\{[\s\S]*padding-top:\s*20px/);
+});
+
 test("el hero es compacto, textual y no repite el primer evento", () => {
   const component = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
@@ -470,18 +622,36 @@ test("el módulo Encuentra un evento respeta los modos, elecciones reales y GET 
   assert.doesNotMatch(component, /EventFinder[\s\S]{0,300}PUBLIC_NAVIGATION\.calendar/);
 });
 
-test("Madrid vacío usa una nota compacta y limita el fallback nacional a tres planes", () => {
+test("Madrid vacío salta la sección regional y abre directamente la agenda cercana", () => {
   const component = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
     "utf8",
   );
 
-  assert.match(component, /Aún no hay próximos eventos confirmados en \{model\.config\.name\}/);
-  assert.match(component, /className=\{styles\.emptyNote\}/);
-  assert.match(component, /Planes próximos en España/);
-  assert.match(component, /fallbackNationalEvents\.slice\(0, 3\)/);
-  assert.doesNotMatch(component, /Próximas fechas en|Próximamente|emptyTerritory/);
+  assert.match(component, /model\.upcomingTotal > 0 \? \(\s*<section[\s\S]*styles\.eventsSection/);
+  assert.match(component, /Agenda cerca de ti/);
+  assert.match(component, /Eventos próximos cerca de \$\{model\.config\.name\}/);
+  assert.match(component, /La agenda de \{model\.config\.name\} se está actualizando/);
+  assert.match(component, /model\.alternativeEvents\.slice\(0, isEmpty \? 6 : 4\)/);
+  assert.match(component, /¿Organizas un evento en \{model\.config\.name\}\?/);
+  assert.match(component, /Publícalo gratis\./);
+  assert.doesNotMatch(component, /Planes próximos en España|Alternativas reales|Aún no hay próximos eventos confirmados/);
   assert.doesNotMatch(component, />0 próximos eventos</);
+});
+
+test("uno y dos eventos eliminan redundancias y mantienen jerarquía singular o plural", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+
+  assert.match(component, /model\.upcomingTotal >= 3 \? \(\s*<strong className=\{styles\.inventoryPill\}/);
+  assert.match(component, /model\.upcomingTotal === 1[\s\S]*`Próximo evento en \$\{model\.config\.name\}`/);
+  assert.match(component, /`Próximos eventos en \$\{model\.config\.name\}`/);
+  assert.match(component, /hasActiveFilters \? \(\s*<p>\{countLabel\(filteredEvents\.length\)\}/);
+  assert.match(component, /model\.upcomingTotal === 1[\s\S]*`Más planes cerca de \$\{model\.config\.name\}`/);
+  assert.match(component, /También puede interesarte/);
+  assert.doesNotMatch(component, /ALTERNATIVAS REALES/);
 });
 
 test("las tarjetas no usan imágenes y conservan fecha y guardado accesibles", () => {
@@ -496,7 +666,8 @@ test("las tarjetas no usan imágenes y conservan fecha y guardado accesibles", (
 
   assert.doesNotMatch(card, /next\/image|getEventImage|cardMedia/);
   assert.match(card, /aria-label=\{regionalEventDateAriaLabel\(event\)\}/);
-  assert.match(card, /badges\.informational[\s\S]*slice\(0, badges\.status \? 1 : 2\)/);
+  assert.match(card, /Math\.max\(0, 2 - Number\(Boolean\(originLabel\)\)/);
+  assert.match(card, /className=\{styles\.originBadge\}/);
   assert.match(saveButton, /aria-label=\{saved \?/);
   assert.match(saveButton, /aria-pressed=\{saved\}/);
   assert.match(regionalEventDateAriaLabel(eventFixture()), /8 de agosto de 2026/);

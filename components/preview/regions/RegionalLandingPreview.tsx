@@ -235,6 +235,57 @@ function EventFinder({
   );
 }
 
+function RegionalAlternatives({
+  model,
+}: Pick<RegionalLandingPreviewProps, "model">) {
+  if (!model.alternativeEvents.length || model.upcomingTotal > 2) return null;
+
+  const isEmpty = model.upcomingTotal === 0;
+  const title = isEmpty
+    ? `Eventos próximos cerca de ${model.config.name}`
+    : model.upcomingTotal === 1
+      ? `Más planes cerca de ${model.config.name}`
+      : "También puede interesarte";
+  const alternatives = model.alternativeEvents.slice(0, isEmpty ? 6 : 4);
+
+  return (
+    <section
+      className={`${styles.alternativesSection} ${isEmpty ? styles.emptyAlternativesSection : ""}`}
+      id={isEmpty ? "eventos" : undefined}
+    >
+      <div className="emc-container">
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.eyebrow}>{isEmpty ? "Agenda cerca de ti" : "Más planes"}</span>
+            <h2>{title}</h2>
+            {isEmpty ? (
+              <p>
+                La agenda de {model.config.name} se está actualizando. Mientras tanto, estos son los planes más cercanos.
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className={styles.eventGrid}>
+          {alternatives.map(({ event, originLabel }) => (
+            <RegionalEventCard
+              event={event}
+              key={eventKey(event)}
+              originLabel={originLabel}
+              source={`regional_preview_${model.config.id}_alternative`}
+            />
+          ))}
+        </div>
+        {isEmpty ? (
+          <p className={styles.emptyPublishCta}>
+            ¿Organizas un evento en {model.config.name}?{" "}
+            <Link href={PUBLIC_NAVIGATION.publish}>Publícalo gratis.</Link>
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export default function RegionalLandingPreview({
   model,
   pathname,
@@ -264,7 +315,11 @@ export default function RegionalLandingPreview({
   };
 
   return (
-    <div className={`emc-page ${styles.page}`} data-region={model.config.id}>
+    <div
+      className={`emc-page ${styles.page}`}
+      data-inventory={model.finderMode}
+      data-region={model.config.id}
+    >
       <ConceptStyles />
       <ConceptStaticHeader />
 
@@ -283,7 +338,7 @@ export default function RegionalLandingPreview({
             <span className={styles.eyebrow}>{model.config.eyebrow}</span>
             <h1>{model.config.h1}</h1>
             <p className={styles.heroDescription}>{model.config.description}</p>
-            {model.upcomingTotal > 0 ? (
+            {model.upcomingTotal >= 3 ? (
               <strong className={styles.inventoryPill}>
                 <span aria-hidden="true" />
                 {upcomingCountLabel(model.upcomingTotal)}
@@ -301,25 +356,31 @@ export default function RegionalLandingPreview({
           />
         ) : null}
 
-        <section className={styles.eventsSection} id="eventos">
-          <div className="emc-container">
-            <div className={styles.sectionHeading}>
-              <div>
-                <span className={styles.eyebrow}>Agenda regional</span>
-                <h2>Próximos eventos en {model.config.name}</h2>
-                {model.upcomingTotal > 0 ? (
-                  <p>{countLabel(filteredEvents.length)} · Ordenados por fecha</p>
+        {model.upcomingTotal > 0 ? (
+          <section
+            className={`${styles.eventsSection} ${model.upcomingTotal <= 2 ? styles.sparseEventsSection : ""}`}
+            id="eventos"
+          >
+            <div className="emc-container">
+              <div className={styles.sectionHeading}>
+                <div>
+                  {model.upcomingTotal >= 3 ? <span className={styles.eyebrow}>Agenda regional</span> : null}
+                  <h2>
+                    {model.upcomingTotal === 1
+                      ? `Próximo evento en ${model.config.name}`
+                      : `Próximos eventos en ${model.config.name}`}
+                  </h2>
+                  {hasActiveFilters ? (
+                    <p>{countLabel(filteredEvents.length)} · Ordenados por fecha</p>
+                  ) : null}
+                </div>
+                {hasActiveFilters ? (
+                  <Link className={styles.clearLink} href={`${pathname}#eventos`}>
+                    Quitar filtros
+                  </Link>
                 ) : null}
               </div>
-              {hasActiveFilters ? (
-                <Link className={styles.clearLink} href={`${pathname}#eventos`}>
-                  Quitar filtros
-                </Link>
-              ) : null}
-            </div>
-
-            {model.upcomingTotal > 0 ? (
-              filteredEvents.length > 0 ? (
+              {filteredEvents.length > 0 ? (
                 <>
                   <div className={styles.eventGrid}>
                     {visibleEvents.map((event, index) => (
@@ -355,46 +416,14 @@ export default function RegionalLandingPreview({
                   <strong>No hay eventos que coincidan con estos filtros.</strong>
                   <Link href={`${pathname}#eventos`}>Ver la agenda regional completa</Link>
                 </div>
-              )
-            ) : (
-              <div className={styles.emptyNote}>
-                <div>
-                  <strong>Aún no hay próximos eventos confirmados en {model.config.name}.</strong>
-                  <p>Mientras se incorporan nuevas fechas, puedes consultar alternativas reales en la agenda nacional.</p>
-                </div>
-                <div className={styles.emptyActions}>
-                  <Link href={PUBLIC_NAVIGATION.calendar}>Ver agenda nacional</Link>
-                  <Link href={PUBLIC_NAVIGATION.publish}>Publicar un evento</Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {!model.upcomingTotal && model.fallbackNationalEvents.length ? (
-          <section className={styles.nationalSection}>
-            <div className="emc-container">
-              <div className={styles.sectionHeading}>
-                <div>
-                  <span className={styles.eyebrow}>Alternativas reales</span>
-                  <h2>Planes próximos en España</h2>
-                  <p>Selección nacional ordenada por fecha.</p>
-                </div>
-              </div>
-              <div className={styles.eventGrid}>
-                {model.fallbackNationalEvents.slice(0, 3).map((event) => (
-                  <RegionalEventCard
-                    event={event}
-                    key={eventKey(event)}
-                    source="regional_preview_national_fallback"
-                  />
-                ))}
-              </div>
+              )}
             </div>
           </section>
         ) : null}
 
-        {model.upcomingTotal && hasRealExploreChoice ? (
+        <RegionalAlternatives model={model} />
+
+        {model.upcomingTotal >= 3 && hasRealExploreChoice ? (
           <section className={styles.exploreSection}>
             <div className="emc-container">
               <div className={styles.sectionHeading}>
@@ -498,23 +527,25 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
-        <section className={styles.organizerSection}>
-          <div className={`emc-container ${styles.organizerCard}`}>
-            <div>
-              <span className={styles.eyebrow}>Para organizadores</span>
-              <h2>Haz visible tu próximo evento en {model.config.name}</h2>
-              <p>Publica la fecha, ubicación y fuente oficial para que los aficionados puedan descubrirla.</p>
+        {model.upcomingTotal > 0 ? (
+          <section className={styles.organizerSection}>
+            <div className={`emc-container ${styles.organizerCard}`}>
+              <div>
+                <span className={styles.eyebrow}>Para organizadores</span>
+                <h2>Haz visible tu próximo evento en {model.config.name}</h2>
+                <p>Publica la fecha, ubicación y fuente oficial para que los aficionados puedan descubrirla.</p>
+              </div>
+              <TrackLink
+                className="emc-btn emc-btn-primary"
+                eventName="click_publish_event"
+                eventParams={{ source: `regional_preview_${model.config.id}_organizer` }}
+                href={PUBLIC_NAVIGATION.publish}
+              >
+                Publicar un evento
+              </TrackLink>
             </div>
-            <TrackLink
-              className="emc-btn emc-btn-primary"
-              eventName="click_publish_event"
-              eventParams={{ source: `regional_preview_${model.config.id}_organizer` }}
-              href={PUBLIC_NAVIGATION.publish}
-            >
-              Publicar un evento
-            </TrackLink>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <section className={styles.linksSection}>
           <div className="emc-container">

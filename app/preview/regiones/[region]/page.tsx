@@ -3,16 +3,20 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import RegionalLandingPreview from "@/components/preview/regions/RegionalLandingPreview";
 import {
+  buildRegionalInventoryFixture,
   buildRegionalLandingModel,
-  buildRegionalNoUpcomingFixture,
   buildRegionalPreviewMetadata,
-  isRegionalNoUpcomingFixture,
   isRegionalPreviewAvailable,
   isRegionalPreviewId,
   parseRegionalLandingQuery,
+  regionalFixtureId,
+  regionalFixtureNow,
 } from "@/components/preview/regions/regional-landing-model";
+import regionalWideFixtureEvents from "@/data/eventomotor-events-2026-seed-84.json";
+import madridNoWeekendFixtureEvents from "@/data/eventomotor-rallyes-coches-2026-seed-77.json";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import type { EventItem } from "@/types/event";
 
 type RegionalPreviewRouteProps = {
   params: Promise<{ region: string }>;
@@ -45,10 +49,21 @@ export default async function RegionalPreviewRoute({
   // normalized input explicitly keeps the shared model strict, including when
   // the reader falls back to local events whose legacy records omit this field.
   const visibleEvents = events.map((event) => ({ ...event, visible: true }));
-  const inventoryModel = buildRegionalLandingModel(visibleEvents, region, new Date());
-  const model = isRegionalNoUpcomingFixture(queryParams)
-    ? buildRegionalNoUpcomingFixture(inventoryModel)
-    : inventoryModel;
+  const fixture = regionalFixtureId(queryParams);
+  const now = regionalFixtureNow(fixture, new Date());
+  const fixtureEvents = fixture === "cataluna-amplia"
+    || fixture === "un-evento"
+    || fixture === "dos-eventos"
+    ? regionalWideFixtureEvents
+    : fixture === "madrid-sin-finde"
+      ? madridNoWeekendFixtureEvents
+      : visibleEvents;
+  const inventoryModel = buildRegionalLandingModel(
+    (fixtureEvents as EventItem[]).map((event) => ({ ...event, visible: true })),
+    region,
+    now,
+  );
+  const model = buildRegionalInventoryFixture(inventoryModel, fixture);
   const pathname = `/preview/regiones/${region}`;
   const query = parseRegionalLandingQuery(queryParams);
   const breadcrumbJsonLd = {
