@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getWeekendRange, isEventInWeekendRange } from "@/components/preview/weekend/weekend-preview-model";
 import { normalizeZoneDiscipline, normalizeZoneProvince } from "@/components/zones/zone-preview-model";
-import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
 import { SEO_COMMUNITIES, matchesSeoCommunity, type SeoCommunityConfig } from "@/lib/seo-communities";
 import type { EventItem } from "@/types/event";
 
@@ -12,7 +11,8 @@ export type RegionalFixtureId =
   | "madrid-sin-finde"
   | "madrid-sin-futuros"
   | "un-evento"
-  | "dos-eventos";
+  | "dos-eventos"
+  | "aislamiento-territorial";
 
 export type RegionalCount = {
   count: number;
@@ -32,17 +32,9 @@ export type RegionalLandingConfig = {
   seoParagraphs: string[];
 };
 
-export type RegionalAlternativeEvent = {
-  event: EventItem;
-  origin: "nearby" | "national";
-  originLabel: string;
-};
-
 export type RegionalLandingModel = {
-  alternativeEvents: RegionalAlternativeEvent[];
   config: RegionalLandingConfig;
   disciplineCounts: RegionalCount[];
-  fallbackNationalEvents: EventItem[];
   finderMode: RegionalFinderMode;
   nextThirtyDaysEvents: EventItem[];
   pastEvents: EventItem[];
@@ -102,7 +94,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
     ],
   },
   madrid: {
-    description: "Encuentra eventos de coches y motos en Madrid y la zona centro.",
+    description: "Encuentra eventos de coches y motos en la Comunidad de Madrid.",
     eyebrow: "Agenda territorial",
     faqs: [
       {
@@ -145,19 +137,10 @@ export const REGIONAL_MOBILE_LIMIT = 6;
 const REGIONAL_FIXTURE_NOW = new Date("2026-01-01T12:00:00");
 const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
 const UNRELIABLE_DATE_QUALITIES = new Set(["pending_date"]);
-const REGIONAL_ALTERNATIVE_CONFIGS: Record<RegionalPreviewId, {
-  macroZone: MacroZoneId;
-  nearbyCommunities: readonly SeoCommunityConfig[];
-}> = {
-  cataluna: {
-    macroZone: "cataluna-aragon",
-    nearbyCommunities: [SEO_COMMUNITIES.comunidadValenciana],
-  },
-  madrid: {
-    macroZone: "centro",
-    nearbyCommunities: [],
-  },
-};
+const SPANISH_MONTHS = [
+  "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+  "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
+] as const;
 
 function cleanText(value: string | null | undefined) {
   return String(value || "").trim().replace(/\s+/g, " ");
@@ -266,59 +249,18 @@ function communityFor(id: RegionalPreviewId): SeoCommunityConfig {
   return id === "cataluna" ? SEO_COMMUNITIES.cataluna : SEO_COMMUNITIES.madrid;
 }
 
+export function eventBelongsToRegionalLanding(
+  event: EventItem,
+  id: RegionalPreviewId,
+) {
+  return matchesSeoCommunity(event, communityFor(id));
+}
+
 export function regionalFinderMode(upcomingTotal: number): RegionalFinderMode {
   if (upcomingTotal >= 10) return "full";
   if (upcomingTotal >= 3) return "compact";
   if (upcomingTotal >= 1) return "hidden";
   return "empty";
-}
-
-export function selectRegionalAlternativeEvents(
-  events: EventItem[],
-  id: RegionalPreviewId,
-  now: Date,
-  limit = 6,
-): RegionalAlternativeEvent[] {
-  const community = communityFor(id);
-  const config = REGIONAL_ALTERNATIVE_CONFIGS[id];
-  const eligibleEvents = deduplicateEvents(events.filter((event) => (
-    event.visible === true
-    && !isCancelled(event)
-    && isUpcoming(event, now)
-    && !matchesSeoCommunity(event, community)
-  )));
-  const ranked = eligibleEvents.map((event) => {
-    const isSameMacroZone = classifyEventMacroZone(event) === config.macroZone;
-    const isConfiguredNeighbour = config.nearbyCommunities.some((nearbyCommunity) => (
-      matchesSeoCommunity(event, nearbyCommunity)
-    ));
-    const origin: RegionalAlternativeEvent["origin"] = isSameMacroZone || isConfiguredNeighbour
-      ? "nearby"
-      : "national";
-
-    return {
-      alternative: {
-        event,
-        origin,
-        originLabel: origin === "nearby"
-          ? `Cerca de ${REGIONAL_CONFIGS[id].name}`
-          : "Agenda nacional",
-      },
-      rank: isSameMacroZone ? 0 : isConfiguredNeighbour ? 1 : 2,
-    };
-  });
-
-  return ranked
-    .sort((left, right) => (
-      left.rank - right.rank
-      || left.alternative.event.start.localeCompare(right.alternative.event.start)
-      || (left.alternative.event.end || left.alternative.event.start)
-        .localeCompare(right.alternative.event.end || right.alternative.event.start)
-      || normalizeRegionalText(left.alternative.event.title)
-        .localeCompare(normalizeRegionalText(right.alternative.event.title), "es")
-    ))
-    .slice(0, limit)
-    .map(({ alternative }) => alternative);
 }
 
 export function buildRegionalLandingModel(
@@ -327,7 +269,7 @@ export function buildRegionalLandingModel(
   now: Date,
 ): RegionalLandingModel {
   const eligibleEvents = deduplicateEvents(events.filter((event) => event.visible === true && !isCancelled(event)));
-  const territorialEvents = eligibleEvents.filter((event) => matchesSeoCommunity(event, communityFor(id)));
+  const territorialEvents = eligibleEvents.filter((event) => eventBelongsToRegionalLanding(event, id));
   const upcomingEvents = sortRegionalUpcomingEvents(
     territorialEvents.filter((event) => isUpcoming(event, now)),
     now,
@@ -342,14 +284,10 @@ export function buildRegionalLandingModel(
   const nextThirtyDaysEvents = upcomingEvents.filter((event) => (
     toDate(event.start).getTime() <= thirtyDayLimit.getTime()
   ));
-  const alternativeEvents = selectRegionalAlternativeEvents(eligibleEvents, id, now);
-  const fallbackNationalEvents = alternativeEvents.map(({ event }) => event).slice(0, 4);
 
   return {
-    alternativeEvents,
     config: REGIONAL_CONFIGS[id],
     disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
-    fallbackNationalEvents,
     finderMode: regionalFinderMode(upcomingEvents.length),
     nextThirtyDaysEvents,
     pastEvents,
@@ -360,6 +298,28 @@ export function buildRegionalLandingModel(
     vehicleCounts: buildCounts(upcomingEvents, canonicalVehicleLabel),
     weekendEvents,
   };
+}
+
+export function assertRegionalLandingModelTerritorial(
+  model: RegionalLandingModel,
+) {
+  const collections = [
+    model.upcomingEvents,
+    model.pastEvents,
+    model.weekendEvents,
+    model.nextThirtyDaysEvents,
+  ];
+  const externalEvent = collections
+    .flat()
+    .find((event) => !eventBelongsToRegionalLanding(event, model.config.id));
+
+  if (externalEvent) {
+    throw new Error(
+      `El evento "${externalEvent.slug || externalEvent.id}" no pertenece a ${model.config.name}.`,
+    );
+  }
+
+  return model;
 }
 
 function firstParam(value: string | string[] | undefined) {
@@ -375,6 +335,7 @@ export function buildRegionalNoUpcomingFixture(
     finderMode: "empty",
     provinceCounts: [],
     nextThirtyDaysEvents: [],
+    territorialTotal: model.pastEvents.length,
     upcomingEvents: [],
     upcomingTotal: 0,
     vehicleCounts: [],
@@ -393,11 +354,15 @@ export function regionalFixtureId(
     || fixture === "madrid-sin-futuros"
     || fixture === "un-evento"
     || fixture === "dos-eventos"
+    || fixture === "aislamiento-territorial"
   ) return fixture;
   return null;
 }
 
 export function regionalFixtureNow(fixture: RegionalFixtureId | null, now: Date) {
+  if (fixture === "madrid-sin-futuros") {
+    return new Date("2026-07-27T12:00:00");
+  }
   return fixture ? new Date(REGIONAL_FIXTURE_NOW) : now;
 }
 
@@ -459,6 +424,7 @@ export function filterRegionalLandingEvents(
       : model.upcomingEvents;
   const normalizedQuery = normalizeRegionalText(query.query);
   return events.filter((event) => {
+    if (!eventBelongsToRegionalLanding(event, model.config.id)) return false;
     if (query.province && regionalFilterKey(normalizeZoneProvince(event.province)) !== query.province) return false;
     if (query.discipline && regionalFilterKey(normalizeZoneDiscipline(event.discipline)) !== query.discipline) return false;
     if (query.vehicle && regionalFilterKey(canonicalVehicleLabel(event)) !== query.vehicle) return false;
@@ -560,16 +526,33 @@ export function regionalEventBadges(event: EventItem) {
 export function regionalEventDateLabel(event: EventItem) {
   const start = toDate(event.start);
   const end = eventEnd(event);
-  const month = new Intl.DateTimeFormat("es-ES", { month: "short" })
-    .format(start)
-    .replace(".", "")
-    .toUpperCase();
+  const sameDay = start.getTime() === end.getTime();
+  const sameMonth = start.getFullYear() === end.getFullYear()
+    && start.getMonth() === end.getMonth();
+
+  if (sameDay) {
+    return {
+      lines: [{ day: String(start.getDate()), month: SPANISH_MONTHS[start.getMonth()] }],
+      splitRange: false,
+    };
+  }
+
+  if (sameMonth) {
+    return {
+      lines: [{
+        day: `${start.getDate()}–${end.getDate()}`,
+        month: SPANISH_MONTHS[start.getMonth()],
+      }],
+      splitRange: false,
+    };
+  }
 
   return {
-    day: start.getTime() === end.getTime()
-      ? String(start.getDate())
-      : `${start.getDate()}–${end.getDate()}`,
-    month,
+    lines: [
+      { day: String(start.getDate()), month: SPANISH_MONTHS[start.getMonth()] },
+      { day: String(end.getDate()), month: SPANISH_MONTHS[end.getMonth()] },
+    ],
+    splitRange: true,
   };
 }
 

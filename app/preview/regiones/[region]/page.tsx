@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import RegionalLandingPreview from "@/components/preview/regions/RegionalLandingPreview";
 import {
+  assertRegionalLandingModelTerritorial,
   buildRegionalInventoryFixture,
   buildRegionalLandingModel,
   buildRegionalPreviewMetadata,
@@ -56,14 +57,19 @@ export default async function RegionalPreviewRoute({
     || fixture === "dos-eventos"
     ? regionalWideFixtureEvents
     : fixture === "madrid-sin-finde"
+      || fixture === "madrid-sin-futuros"
       ? madridNoWeekendFixtureEvents
+      : fixture === "aislamiento-territorial"
+        ? [...regionalWideFixtureEvents, ...madridNoWeekendFixtureEvents]
       : visibleEvents;
   const inventoryModel = buildRegionalLandingModel(
     (fixtureEvents as EventItem[]).map((event) => ({ ...event, visible: true })),
     region,
     now,
   );
-  const model = buildRegionalInventoryFixture(inventoryModel, fixture);
+  const model = assertRegionalLandingModelTerritorial(
+    buildRegionalInventoryFixture(inventoryModel, fixture),
+  );
   const pathname = `/preview/regiones/${region}`;
   const query = parseRegionalLandingQuery(queryParams);
   const breadcrumbJsonLd = {

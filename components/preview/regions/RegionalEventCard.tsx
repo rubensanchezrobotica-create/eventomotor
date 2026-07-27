@@ -14,7 +14,6 @@ type RegionalEventCardProps = {
   anchorId?: string;
   event: EventItem;
   hideOnMobileInitially?: boolean;
-  originLabel?: string;
   source: string;
 };
 
@@ -22,7 +21,6 @@ export default function RegionalEventCard({
   anchorId,
   event,
   hideOnMobileInitially = false,
-  originLabel,
   source,
 }: RegionalEventCardProps) {
   const date = regionalEventDateLabel(event);
@@ -68,19 +66,22 @@ export default function RegionalEventCard({
 
       <time
         aria-label={regionalEventDateAriaLabel(event)}
-        className={`${styles.dateBlock} ${date.day.includes("–") ? styles.dateBlockRange : ""}`}
+        className={`${styles.dateBlock} ${date.splitRange ? styles.dateBlockSplit : ""}`}
         dateTime={event.start}
       >
-        <strong>{date.day}</strong>
-        <span>{date.month}</span>
+        {date.lines.map((line) => (
+          <span className={styles.dateLine} key={`${line.day}-${line.month}`}>
+            <strong>{line.day}</strong>
+            <span>{line.month}</span>
+          </span>
+        ))}
       </time>
 
       <div className={styles.cardBody}>
         <div className={styles.badges}>
-          {originLabel ? <span className={styles.originBadge}>{originLabel}</span> : null}
           {badges.status ? <span className={styles.statusBadge}>{badges.status}</span> : null}
           {badges.informational
-            .slice(0, Math.max(0, 2 - Number(Boolean(originLabel)) - Number(Boolean(badges.status))))
+            .slice(0, badges.status ? 1 : 2)
             .map((badge) => <span key={badge}>{badge}</span>)}
         </div>
         <h3 className={styles.cardTitle}>{event.title}</h3>

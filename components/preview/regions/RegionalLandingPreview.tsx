@@ -53,10 +53,6 @@ function countLabel(count: number) {
   return `${count} ${count === 1 ? "evento" : "eventos"}`;
 }
 
-function upcomingCountLabel(count: number) {
-  return count === 1 ? "1 próximo evento" : `${count} próximos eventos`;
-}
-
 function buildVenueHighlights(events: EventItem[]) {
   const venues = new Map<string, { count: number; event: EventItem; label: string }>();
 
@@ -235,52 +231,57 @@ function EventFinder({
   );
 }
 
-function RegionalAlternatives({
+function RegionalEmptyState({
   model,
 }: Pick<RegionalLandingPreviewProps, "model">) {
-  if (!model.alternativeEvents.length || model.upcomingTotal > 2) return null;
-
-  const isEmpty = model.upcomingTotal === 0;
-  const title = isEmpty
-    ? `Eventos próximos cerca de ${model.config.name}`
-    : model.upcomingTotal === 1
-      ? `Más planes cerca de ${model.config.name}`
-      : "También puede interesarte";
-  const alternatives = model.alternativeEvents.slice(0, isEmpty ? 6 : 4);
-
   return (
-    <section
-      className={`${styles.alternativesSection} ${isEmpty ? styles.emptyAlternativesSection : ""}`}
-      id={isEmpty ? "eventos" : undefined}
-    >
+    <section className={styles.emptyStateSection} id="eventos">
       <div className="emc-container">
-        <div className={styles.sectionHeading}>
-          <div>
-            <span className={styles.eyebrow}>{isEmpty ? "Agenda cerca de ti" : "Más planes"}</span>
-            <h2>{title}</h2>
-            {isEmpty ? (
-              <p>
-                La agenda de {model.config.name} se está actualizando. Mientras tanto, estos son los planes más cercanos.
-              </p>
-            ) : null}
+        <div className={styles.emptyStateContent}>
+          <span className={styles.eyebrow}>Agenda en actualización</span>
+          <h2>Próximos eventos en {model.config.name}</h2>
+          <p>
+            Ahora mismo no hay próximos eventos confirmados en {model.config.name}. Actualizamos la agenda a medida que se publican nuevas fechas.
+          </p>
+          <div className={styles.emptyStateActions}>
+            <Link className={styles.emptyPrimaryLink} href={PUBLIC_NAVIGATION.publish}>
+              Publicar un evento en {model.config.name}
+            </Link>
+            <Link className={styles.emptySecondaryLink} href={PUBLIC_NAVIGATION.calendar}>
+              Ver calendario nacional
+            </Link>
           </div>
         </div>
-        <div className={styles.eventGrid}>
-          {alternatives.map(({ event, originLabel }) => (
-            <RegionalEventCard
-              event={event}
-              key={eventKey(event)}
-              originLabel={originLabel}
-              source={`regional_preview_${model.config.id}_alternative`}
-            />
-          ))}
-        </div>
-        {isEmpty ? (
-          <p className={styles.emptyPublishCta}>
-            ¿Organizas un evento en {model.config.name}?{" "}
-            <Link href={PUBLIC_NAVIGATION.publish}>Publícalo gratis.</Link>
-          </p>
-        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function RegionalHistory({
+  model,
+}: Pick<RegionalLandingPreviewProps, "model">) {
+  if (!model.pastEvents.length) return null;
+
+  return (
+    <section className={styles.historySection}>
+      <div className="emc-container">
+        <details className={styles.historyDetails}>
+          <summary>
+            <span>
+              <small>Archivo regional</small>
+              Ver {model.pastEvents.length} eventos celebrados en {model.config.name}
+            </span>
+            <span aria-hidden="true">+</span>
+          </summary>
+          <div className={styles.historyList}>
+            {model.pastEvents.slice(0, 12).map((event) => (
+              <Link href={`/evento/${event.slug || event.id}`} key={eventKey(event)}>
+                <strong>{event.title}</strong>
+                <span>{event.start} · {event.city}, {event.province}</span>
+              </Link>
+            ))}
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -330,7 +331,7 @@ export default function RegionalLandingPreview({
               <ol>
                 <li><Link href="/">Inicio</Link></li>
                 <li aria-hidden="true">/</li>
-                <li><Link href="/zonas">Regiones</Link></li>
+                <li><Link href="/zonas">Zonas</Link></li>
                 <li aria-hidden="true">/</li>
                 <li aria-current="page">{model.config.name}</li>
               </ol>
@@ -338,12 +339,6 @@ export default function RegionalLandingPreview({
             <span className={styles.eyebrow}>{model.config.eyebrow}</span>
             <h1>{model.config.h1}</h1>
             <p className={styles.heroDescription}>{model.config.description}</p>
-            {model.upcomingTotal >= 3 ? (
-              <strong className={styles.inventoryPill}>
-                <span aria-hidden="true" />
-                {upcomingCountLabel(model.upcomingTotal)}
-              </strong>
-            ) : null}
           </div>
         </section>
 
@@ -355,6 +350,8 @@ export default function RegionalLandingPreview({
             query={query}
           />
         ) : null}
+
+        {model.upcomingTotal === 0 ? <RegionalEmptyState model={model} /> : null}
 
         {model.upcomingTotal > 0 ? (
           <section
@@ -382,7 +379,7 @@ export default function RegionalLandingPreview({
               </div>
               {filteredEvents.length > 0 ? (
                 <>
-                  <div className={styles.eventGrid}>
+                  <div className={`${styles.eventGrid} ${model.upcomingTotal === 1 ? styles.singleEventGrid : ""}`}>
                     {visibleEvents.map((event, index) => (
                       <RegionalEventCard
                         event={event}
@@ -420,8 +417,6 @@ export default function RegionalLandingPreview({
             </div>
           </section>
         ) : null}
-
-        <RegionalAlternatives model={model} />
 
         {model.upcomingTotal >= 3 && hasRealExploreChoice ? (
           <section className={styles.exploreSection}>
@@ -484,6 +479,8 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
+        {model.upcomingTotal === 0 ? <RegionalHistory model={model} /> : null}
+
         <section className={styles.editorialSection}>
           <div className={`emc-container ${styles.editorialCard}`}>
             <article>
@@ -503,29 +500,7 @@ export default function RegionalLandingPreview({
           </div>
         </section>
 
-        {model.pastEvents.length ? (
-          <section className={styles.historySection}>
-            <div className="emc-container">
-              <details className={styles.historyDetails}>
-                <summary>
-                  <span>
-                    <small>Archivo regional</small>
-                    Ver {model.pastEvents.length} eventos ya celebrados
-                  </span>
-                  <span aria-hidden="true">+</span>
-                </summary>
-                <div className={styles.historyList}>
-                  {model.pastEvents.slice(0, 12).map((event) => (
-                    <Link href={`/evento/${event.slug || event.id}`} key={eventKey(event)}>
-                      <strong>{event.title}</strong>
-                      <span>{event.start} · {event.city}, {event.province}</span>
-                    </Link>
-                  ))}
-                </div>
-              </details>
-            </div>
-          </section>
-        ) : null}
+        {model.upcomingTotal > 0 ? <RegionalHistory model={model} /> : null}
 
         {model.upcomingTotal > 0 ? (
           <section className={styles.organizerSection}>
@@ -547,17 +522,19 @@ export default function RegionalLandingPreview({
           </section>
         ) : null}
 
-        <section className={styles.linksSection}>
-          <div className="emc-container">
-            <span className={styles.eyebrow}>Sigue explorando</span>
-            <div className={styles.relatedLinks}>
-              {model.config.relatedLinks.map((link) => (
-                <Link href={link.href} key={link.href}>{link.label}<span aria-hidden="true">↗</span></Link>
-              ))}
-              <Link href={model.config.publicPath}>Página pública actual<span aria-hidden="true">↗</span></Link>
+        {model.upcomingTotal >= 3 ? (
+          <section className={styles.linksSection}>
+            <div className="emc-container">
+              <span className={styles.eyebrow}>Sigue explorando</span>
+              <div className={styles.relatedLinks}>
+                {model.config.relatedLinks.map((link) => (
+                  <Link href={link.href} key={link.href}>{link.label}<span aria-hidden="true">↗</span></Link>
+                ))}
+                <Link href={model.config.publicPath}>Página pública actual<span aria-hidden="true">↗</span></Link>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
       </main>
 
       <ConceptFooter variant="compact" />
