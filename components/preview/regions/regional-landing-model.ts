@@ -5,6 +5,7 @@ import { SEO_COMMUNITIES, matchesSeoCommunity, type SeoCommunityConfig } from "@
 import type { EventItem } from "@/types/event";
 
 export type RegionalPreviewId = "cataluna" | "madrid";
+export type RegionalFinderMode = "full" | "compact" | "hidden" | "empty";
 
 export type RegionalCount = {
   count: number;
@@ -13,12 +14,10 @@ export type RegionalCount = {
 };
 
 export type RegionalLandingConfig = {
-  coverage: string;
   description: string;
   eyebrow: string;
   faqs: Array<{ answer: string; question: string }>;
   h1: string;
-  heroAsset: string;
   id: RegionalPreviewId;
   name: string;
   publicPath: string;
@@ -30,28 +29,29 @@ export type RegionalLandingModel = {
   config: RegionalLandingConfig;
   disciplineCounts: RegionalCount[];
   fallbackNationalEvents: EventItem[];
+  finderMode: RegionalFinderMode;
   nextThirtyDaysEvents: EventItem[];
   pastEvents: EventItem[];
   provinceCounts: RegionalCount[];
   territorialTotal: number;
   upcomingEvents: EventItem[];
   upcomingTotal: number;
+  vehicleCounts: RegionalCount[];
   weekendEvents: EventItem[];
 };
 
 export type RegionalLandingQuery = {
   discipline: string;
   province: string;
-  show: number;
-  thirtyDaysOnly: boolean;
-  weekendOnly: boolean;
+  query: string;
+  showAll: boolean;
+  vehicle: string;
+  when: "upcoming" | "weekend" | "next30";
 };
 
 const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
   cataluna: {
-    coverage: "Barcelona · Girona · Lleida · Tarragona",
-    description:
-      "Descubre próximas citas de coches y motos en Barcelona, Girona, Lleida y Tarragona, ordenadas por fecha y con acceso directo a cada ficha.",
+    description: "Próximas citas en Barcelona, Girona, Lleida y Tarragona.",
     eyebrow: "Agenda territorial",
     faqs: [
       {
@@ -71,7 +71,6 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
       },
     ],
     h1: "Eventos de motor en Cataluña",
-    heroAsset: "/images/zones/zone-cataluna-aragon.webp",
     id: "cataluna",
     name: "Cataluña",
     publicPath: "/eventos-motor-cataluna",
@@ -89,9 +88,7 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
     ],
   },
   madrid: {
-    coverage: "Madrid capital · Jarama · Municipios de toda la comunidad",
-    description:
-      "Encuentra próximas citas de coches y motos en Madrid y su comunidad, desde circuito y karting hasta concentraciones, clásicos, ferias y rutas.",
+    description: "Encuentra eventos de coches y motos en Madrid y la zona centro.",
     eyebrow: "Agenda territorial",
     faqs: [
       {
@@ -111,7 +108,6 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
       },
     ],
     h1: "Eventos de motor en Madrid",
-    heroAsset: "/images/zones/zone-centro.webp",
     id: "madrid",
     name: "Madrid",
     publicPath: "/eventos-motor-madrid",
@@ -130,7 +126,8 @@ const REGIONAL_CONFIGS: Record<RegionalPreviewId, RegionalLandingConfig> = {
   },
 };
 
-const PAGE_SIZE = 8;
+export const REGIONAL_DESKTOP_LIMIT = 8;
+export const REGIONAL_MOBILE_LIMIT = 6;
 const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
 const UNRELIABLE_DATE_QUALITIES = new Set(["pending_date"]);
 
@@ -241,6 +238,13 @@ function communityFor(id: RegionalPreviewId): SeoCommunityConfig {
   return id === "cataluna" ? SEO_COMMUNITIES.cataluna : SEO_COMMUNITIES.madrid;
 }
 
+export function regionalFinderMode(upcomingTotal: number): RegionalFinderMode {
+  if (upcomingTotal >= 10) return "full";
+  if (upcomingTotal >= 3) return "compact";
+  if (upcomingTotal >= 1) return "hidden";
+  return "empty";
+}
+
 export function buildRegionalLandingModel(
   events: EventItem[],
   id: RegionalPreviewId,
@@ -274,12 +278,14 @@ export function buildRegionalLandingModel(
     config: REGIONAL_CONFIGS[id],
     disciplineCounts: buildCounts(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
     fallbackNationalEvents,
+    finderMode: regionalFinderMode(upcomingEvents.length),
     nextThirtyDaysEvents,
     pastEvents,
     provinceCounts: buildCounts(upcomingEvents, (event) => normalizeZoneProvince(event.province)),
     territorialTotal: upcomingEvents.length + pastEvents.length,
     upcomingEvents,
     upcomingTotal: upcomingEvents.length,
+    vehicleCounts: buildCounts(upcomingEvents, canonicalVehicleLabel),
     weekendEvents,
   };
 }
@@ -294,10 +300,12 @@ export function buildRegionalNoUpcomingFixture(
   return {
     ...model,
     disciplineCounts: [],
+    finderMode: "empty",
     provinceCounts: [],
     nextThirtyDaysEvents: [],
     upcomingEvents: [],
     upcomingTotal: 0,
+    vehicleCounts: [],
     weekendEvents: [],
   };
 }
@@ -311,15 +319,14 @@ export function isRegionalNoUpcomingFixture(
 export function parseRegionalLandingQuery(
   searchParams: Record<string, string | string[] | undefined>,
 ): RegionalLandingQuery {
-  const parsedShow = Number.parseInt(firstParam(searchParams.mostrar), 10);
+  const when = firstParam(searchParams.when);
   return {
-    discipline: regionalFilterKey(firstParam(searchParams.disciplina)),
-    province: regionalFilterKey(firstParam(searchParams.provincia)),
-    show: Number.isFinite(parsedShow) && parsedShow > PAGE_SIZE
-      ? Math.min(parsedShow, 96)
-      : PAGE_SIZE,
-    thirtyDaysOnly: firstParam(searchParams.vista) === "30-dias",
-    weekendOnly: firstParam(searchParams.vista) === "fin-de-semana",
+    discipline: regionalFilterKey(firstParam(searchParams.discipline)),
+    province: regionalFilterKey(firstParam(searchParams.province)),
+    query: cleanText(firstParam(searchParams.q)),
+    showAll: firstParam(searchParams.show) === "all",
+    vehicle: regionalFilterKey(firstParam(searchParams.vehicle)),
+    when: when === "weekend" || when === "next30" ? when : "upcoming",
   };
 }
 
@@ -327,14 +334,25 @@ export function filterRegionalLandingEvents(
   model: RegionalLandingModel,
   query: RegionalLandingQuery,
 ) {
-  const events = query.weekendOnly
+  const events = query.when === "weekend"
     ? model.weekendEvents
-    : query.thirtyDaysOnly
+    : query.when === "next30"
       ? model.nextThirtyDaysEvents
       : model.upcomingEvents;
+  const normalizedQuery = normalizeRegionalText(query.query);
   return events.filter((event) => {
     if (query.province && regionalFilterKey(normalizeZoneProvince(event.province)) !== query.province) return false;
     if (query.discipline && regionalFilterKey(normalizeZoneDiscipline(event.discipline)) !== query.discipline) return false;
+    if (query.vehicle && regionalFilterKey(canonicalVehicleLabel(event)) !== query.vehicle) return false;
+    if (normalizedQuery) {
+      const searchable = normalizeRegionalText([
+        event.title,
+        event.venue,
+        event.city,
+        event.province,
+      ].filter(Boolean).join(" "));
+      if (!searchable.includes(normalizedQuery)) return false;
+    }
     return true;
   });
 }
@@ -421,10 +439,6 @@ export function regionalEventBadges(event: EventItem) {
   };
 }
 
-export function nextRegionalShowLimit(current: number, total: number) {
-  return Math.min(current + PAGE_SIZE, total);
-}
-
 export function regionalEventDateLabel(event: EventItem) {
   const start = toDate(event.start);
   const end = eventEnd(event);
@@ -441,18 +455,15 @@ export function regionalEventDateLabel(event: EventItem) {
   };
 }
 
-export function regionalNextEventLabel(event: EventItem | undefined) {
-  if (!event) return "";
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(toDate(event.start)).replace(".", "");
-}
-
-export function regionalNextEventLongLabel(event: EventItem | undefined) {
-  if (!event) return "";
-  return new Intl.DateTimeFormat("es-ES", {
+export function regionalEventDateAriaLabel(event: EventItem) {
+  const start = toDate(event.start);
+  const end = eventEnd(event);
+  const formatter = new Intl.DateTimeFormat("es-ES", {
     day: "numeric",
     month: "long",
-  }).format(toDate(event.start));
+    year: "numeric",
+  });
+  return start.getTime() === end.getTime()
+    ? formatter.format(start)
+    : `Del ${formatter.format(start)} al ${formatter.format(end)}`;
 }

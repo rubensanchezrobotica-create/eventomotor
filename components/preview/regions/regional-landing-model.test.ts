@@ -9,9 +9,10 @@ import {
   buildRegionalPreviewMetadata,
   filterRegionalLandingEvents,
   isRegionalPreviewAvailable,
-  nextRegionalShowLimit,
   parseRegionalLandingQuery,
   regionalEventBadges,
+  regionalEventDateAriaLabel,
+  regionalFinderMode,
   sortRegionalUpcomingEvents,
 } from "./regional-landing-model";
 
@@ -69,16 +70,16 @@ test("separa 122 territoriales en 88 próximos y 34 históricos sin inflar el he
   assert.equal(data.pastEvents.length, 34);
 });
 
-test("el total del CTA y el hero proceden del mismo upcomingTotal", () => {
+test("el total del hero y del buscador proceden del inventario regional", () => {
   const componentSource = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
     "utf8",
   );
 
   assert.match(componentSource, /upcomingCountLabel\(model\.upcomingTotal\)/);
-  assert.match(componentSource, /Explorar próximos eventos/);
-  assert.match(componentSource, /href="#eventos"/);
-  assert.doesNotMatch(componentSource, /Explorar próximos eventos[\s\S]{0,120}PUBLIC_NAVIGATION\.calendar/);
+  assert.match(componentSource, /filteredTotal=\{filteredEvents\.length\}/);
+  assert.match(componentSource, /Ver \{countLabel\(filteredTotal\)\}/);
+  assert.doesNotMatch(componentSource, /Explorar próximos eventos/);
 });
 
 test("excluye cancelados, invisibles y fechas aplazadas no fiables", () => {
@@ -187,21 +188,37 @@ test("el fixture visual sin futuros deriva el estado sin duplicar datos", () => 
   assert.deepEqual(fixture.weekendEvents, []);
   assert.deepEqual(fixture.provinceCounts, []);
   assert.deepEqual(fixture.disciplineCounts, []);
+  assert.deepEqual(fixture.vehicleCounts, []);
+  assert.equal(fixture.finderMode, "empty");
   assert.equal(fixture.fallbackNationalEvents.length, 1);
 });
 
-test("uno o dos eventos se muestran completos y no requieren ampliación", () => {
-  for (const total of [1, 2]) {
+test("calcula las cuatro variantes de finderMode en sus límites", () => {
+  assert.equal(regionalFinderMode(10), "full");
+  assert.equal(regionalFinderMode(9), "compact");
+  assert.equal(regionalFinderMode(3), "compact");
+  assert.equal(regionalFinderMode(2), "hidden");
+  assert.equal(regionalFinderMode(1), "hidden");
+  assert.equal(regionalFinderMode(0), "empty");
+
+  for (const [total, expected] of [[10, "full"], [6, "compact"], [2, "hidden"], [0, "empty"]] as const) {
     const data = buildRegionalLandingModel(
-      numberedEvents(total, `small-${total}`, {}),
+      numberedEvents(total, `mode-${total}`, {}),
       "cataluna",
       now,
     );
-    const query = parseRegionalLandingQuery({});
-    const filtered = filterRegionalLandingEvents(data, query);
+    assert.equal(data.finderMode, expected);
+  }
+});
 
-    assert.equal(filtered.length, total);
-    assert.equal(nextRegionalShowLimit(query.show, filtered.length), total);
+test("uno o dos eventos se muestran completos sin buscador ni ampliación", () => {
+  for (const total of [1, 2]) {
+    const data = buildRegionalLandingModel(numberedEvents(total, `small-${total}`, {}), "cataluna", now);
+    const query = parseRegionalLandingQuery({});
+
+    assert.equal(data.finderMode, "hidden");
+    assert.equal(filterRegionalLandingEvents(data, query).length, total);
+    assert.equal(query.showAll, false);
   }
 });
 
@@ -238,7 +255,7 @@ test("deduplica Karting y karting y limita las etiquetas visibles", () => {
     path.join(process.cwd(), "components/preview/regions/RegionalEventCard.tsx"),
     "utf8",
   );
-  assert.match(cardSource, /badges\.informational\.map/);
+  assert.match(cardSource, /badges\.informational[\s\S]*\.map/);
   assert.doesNotMatch(cardSource, /emc-badge[^]*event\.province/);
   assert.match(cardSource, /Ver detalles/);
 });
@@ -253,22 +270,64 @@ test("ordena primero eventos en curso y después por fecha ascendente", () => {
   assert.deepEqual(sorted.map((event) => event.slug), ["ongoing", "next", "later"]);
 });
 
-test("la carga progresiva y los accesos usan query parameters SSR regionales", () => {
+test("los filtros y la vista completa usan query parameters SSR regionales", () => {
   assert.deepEqual(parseRegionalLandingQuery({
-    disciplina: "Clásicos",
-    provincia: "Lleida",
-    mostrar: "24",
-    vista: "fin-de-semana",
+    discipline: "Clásicos",
+    province: "Lleida",
+    q: "Circuit de Barcelona",
+    show: "all",
+    vehicle: "Coche",
+    when: "weekend",
   }), {
     discipline: "clasicos",
     province: "lleida",
-    show: 24,
-    thirtyDaysOnly: false,
-    weekendOnly: true,
+    query: "Circuit de Barcelona",
+    showAll: true,
+    vehicle: "coche",
+    when: "weekend",
   });
-  assert.equal(parseRegionalLandingQuery({ vista: "30-dias" }).thirtyDaysOnly, true);
-  assert.equal(nextRegionalShowLimit(8, 88), 16);
-  assert.equal(nextRegionalShowLimit(80, 88), 88);
+  assert.equal(parseRegionalLandingQuery({ when: "next30" }).when, "next30");
+  assert.equal(parseRegionalLandingQuery({ when: "desconocido" }).when, "upcoming");
+});
+
+test("la búsqueda SSR combina texto, provincia, disciplina, vehículo y periodo", () => {
+  const data = buildRegionalLandingModel([
+    eventFixture({
+      id: "jarama",
+      slug: "jarama",
+      title: "Tandas en el Jarama",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Circuito",
+      vehicleType: "coche",
+      vehicle_type: "coche",
+      start: "2026-08-01",
+      end: "2026-08-01",
+    }),
+    eventFixture({
+      id: "karting",
+      slug: "karting",
+      title: "Trofeo de karting",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Karting",
+      vehicleType: "karting",
+      vehicle_type: "karting",
+      start: "2026-08-01",
+      end: "2026-08-01",
+    }),
+  ], "madrid", now);
+  const query = parseRegionalLandingQuery({
+    discipline: "Circuito",
+    province: "Madrid",
+    q: "Jarama",
+    vehicle: "coche",
+    when: "weekend",
+  });
+
+  assert.deepEqual(filterRegionalLandingEvents(data, query).map((event) => event.slug), ["jarama"]);
 });
 
 test("la preview está bloqueada en Vercel Production y su metadata omite canonical", () => {
@@ -352,28 +411,30 @@ test("el layout limita seis tarjetas móviles, ocho desktop y evita overflow hor
     "utf8",
   );
 
-  assert.match(component, /query\.show === 8 && index >= 6/);
+  assert.match(component, /index >= REGIONAL_MOBILE_LIMIT/);
+  assert.match(component, /filteredEvents\.slice\(0, REGIONAL_DESKTOP_LIMIT\)/);
+  assert.match(component, /show:\s*"all"/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.mobileInitialHidden\s*\{[\s\S]*display:\s*none/);
   assert.match(css, /\.eventCard\s*\{[\s\S]*min-width:\s*0/);
   assert.match(css, /\.cardBody\s*\{[\s\S]*min-width:\s*0/);
   assert.match(css, /\.eventGrid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.eventGrid,[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.eventGrid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(css, /overflow-x:\s*clip/);
 });
 
-test("el hero destaca exactamente el primer evento cronológico y conserva contexto regional", () => {
+test("el hero es compacto, textual y no repite el primer evento", () => {
   const component = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
     "utf8",
   );
 
-  assert.match(component, /const nextEvent = model\.upcomingEvents\[0\]/);
-  assert.match(component, /event=\{nextEvent\}[\s\S]*variant="hero"/);
-  assert.match(component, /href="#eventos"[\s\S]*Explorar próximos eventos/);
-  assert.doesNotMatch(component, /Explorar próximos eventos[\s\S]{0,160}PUBLIC_NAVIGATION\.calendar/);
+  assert.match(component, /<section className=\{styles\.hero\}>/);
+  assert.match(component, /model\.config\.description/);
+  assert.doesNotMatch(component, /nextEvent|variant="hero"|Próxima cita en|Explorar próximos eventos/);
+  assert.doesNotMatch(component, /import Image from "next\/image"/);
 });
 
-test("la franja de fin de semana tiene estado positivo y alternativa discreta", () => {
+test("el fin de semana solo aparece como chip cuando tiene resultados", () => {
   const component = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
     "utf8",
@@ -383,27 +444,47 @@ test("la franja de fin de semana tiene estado positivo y alternativa discreta", 
     "utf8",
   );
 
-  assert.match(component, /planes"} este fin de semana/);
-  assert.match(component, /Ver planes/);
-  assert.match(component, /Tu próxima cita en \{model\.config\.name\} es el/);
-  assert.match(component, /Todavía no hay eventos publicados para este fin de semana/);
-  assert.match(css, /\.weekendStripQuiet\s*\{/);
+  assert.match(component, /model\.weekendEvents\.length > 0/);
+  assert.match(component, /Fin de semana <strong>/);
+  assert.doesNotMatch(component, /Todavía no hay eventos publicados para este fin de semana|weekendStrip/);
+  assert.doesNotMatch(css, /\.weekendStrip/);
 });
 
-test("Madrid vacío mantiene utilidad y limita el fallback nacional a tres planes", () => {
+test("el módulo Encuentra un evento respeta los modos, elecciones reales y GET SSR", () => {
   const component = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
     "utf8",
   );
 
-  assert.match(component, /Próximas fechas en \$\{model\.config\.name\}/);
-  assert.match(component, /Todavía no hay nuevos eventos confirmados en \{model\.config\.name\}/);
+  assert.match(component, /model\.finderMode === "full" \|\| model\.finderMode === "compact"/);
+  assert.match(component, /const showSearch = isFull \|\| model\.upcomingTotal >= 6/);
+  assert.match(component, /model\.provinceCounts\.length > 1/);
+  assert.match(component, /model\.disciplineCounts\.length > 1/);
+  assert.match(component, /model\.vehicleCounts\.length > 1/);
+  assert.match(component, /method="get"/);
+  for (const name of ["q", "province", "discipline", "vehicle", "when"]) {
+    assert.match(component, new RegExp(`name="${name}"`));
+  }
+  assert.match(component, /model\.weekendEvents\.length > 0/);
+  assert.match(component, /model\.nextThirtyDaysEvents\.length !== model\.upcomingTotal/);
+  assert.doesNotMatch(component, /EventFinder[\s\S]{0,300}PUBLIC_NAVIGATION\.calendar/);
+});
+
+test("Madrid vacío usa una nota compacta y limita el fallback nacional a tres planes", () => {
+  const component = readFileSync(
+    path.join(process.cwd(), "components/preview/regions/RegionalLandingPreview.tsx"),
+    "utf8",
+  );
+
+  assert.match(component, /Aún no hay próximos eventos confirmados en \{model\.config\.name\}/);
+  assert.match(component, /className=\{styles\.emptyNote\}/);
   assert.match(component, /Planes próximos en España/);
   assert.match(component, /fallbackNationalEvents\.slice\(0, 3\)/);
+  assert.doesNotMatch(component, /Próximas fechas en|Próximamente|emptyTerritory/);
   assert.doesNotMatch(component, />0 próximos eventos</);
 });
 
-test("las tarjetas cubren imagen real, fallback visual y guardado accesible", () => {
+test("las tarjetas no usan imágenes y conservan fecha y guardado accesibles", () => {
   const card = readFileSync(
     path.join(process.cwd(), "components/preview/regions/RegionalEventCard.tsx"),
     "utf8",
@@ -413,14 +494,12 @@ test("las tarjetas cubren imagen real, fallback visual y guardado accesible", ()
     "utf8",
   );
 
-  assert.match(card, /import Image from "next\/image"/);
-  assert.match(card, /getEventImage\(event\)/);
-  assert.match(card, /event\.image_url \|\| event\.imageUrl/);
-  assert.match(card, /eventCardWithOriginalImage/);
-  assert.match(card, /eventCardWithFallback/);
-  assert.match(card, /fill/);
+  assert.doesNotMatch(card, /next\/image|getEventImage|cardMedia/);
+  assert.match(card, /aria-label=\{regionalEventDateAriaLabel\(event\)\}/);
+  assert.match(card, /badges\.informational[\s\S]*slice\(0, badges\.status \? 1 : 2\)/);
   assert.match(saveButton, /aria-label=\{saved \?/);
   assert.match(saveButton, /aria-pressed=\{saved\}/);
+  assert.match(regionalEventDateAriaLabel(eventFixture()), /8 de agosto de 2026/);
 });
 
 test("la jerarquía y los controles conservan accesibilidad básica", () => {
@@ -436,7 +515,7 @@ test("la jerarquía y los controles conservan accesibilidad básica", () => {
   assert.match(component, /<h1>/);
   assert.match(component, /<h2>/);
   assert.match(component, /<h3/);
-  assert.match(component, /aria-label="Vistas rápidas de la agenda"/);
+  assert.match(component, /aria-labelledby="regional-finder-title"/);
   assert.match(component, /aria-current=/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /\.saveButton\s*\{[\s\S]*min-height:\s*44px/);
