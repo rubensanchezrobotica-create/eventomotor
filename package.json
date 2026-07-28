@@ -42,6 +42,7 @@
     "test:newsletter-r3b2": "node --import tsx --test tests/newsletter/newsletter-r3b2.test.ts",
     "test:newsletter-r3b3": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b3.test.ts && node --import tsx --test tests/newsletter/newsletter-r3b3-render.test.tsx",
     "test:newsletter-r3b4": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b4.test.ts && node --import tsx --test tests/newsletter/newsletter-r3b4-render.test.tsx",
+    "test:newsletter-r4a": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r4a.test.ts && node --import tsx --test tests/newsletter/newsletter-r4a-render.test.tsx",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
