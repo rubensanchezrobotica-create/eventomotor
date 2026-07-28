@@ -15,6 +15,7 @@ import {
   EventUpdateConflictError,
   updateExistingEvent,
 } from "@/lib/event-updates";
+import { assertOnlyEventImageFieldsChanged } from "@/lib/event-image-update-invariants";
 import { createSupabaseServerClient, type EventRow, type EventUpsert } from "@/lib/supabase";
 
 function jsonError(error: string, status: number, extra?: Record<string, unknown>) {
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
       throw new Error("La imagen no está disponible mediante su URL pública.");
     }
 
+    let eventBefore: EventRow | null = null;
     const { updated } = await updateExistingEvent<EventRow>({
       id: eventId,
       expectedUpdatedAt: currentUpdatedAt,
@@ -119,10 +121,11 @@ export async function POST(request: Request) {
         async readUpdatedAt(id) {
           const { data, error } = await supabase
             .from("events")
-            .select("updated_at")
+            .select("*")
             .eq("id", id)
             .maybeSingle();
           if (error) throw new Error("No se pudo comprobar el evento.");
+          eventBefore = data as EventRow | null;
           return data?.updated_at || null;
         },
         async updateByIdAndUpdatedAt(id, expectedUpdatedAt, changes) {
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
             .update(changes as Partial<EventUpsert>)
             .eq("id", id)
             .eq("updated_at", expectedUpdatedAt)
-            .select("id,image_url,image_source_url,updated_at")
+            .select("*")
             .maybeSingle();
           if (error) throw new Error("No se pudo actualizar el evento.");
           return data as EventRow | null;
@@ -140,6 +143,8 @@ export async function POST(request: Request) {
     });
     databaseUpdated = true;
 
+    if (!eventBefore) throw new Error("No se pudo verificar el estado anterior del evento.");
+    assertOnlyEventImageFieldsChanged(eventBefore, updated);
     if (
       updated.image_url !== imageUrl ||
       (updated.image_source_url || null) !== imageSourceUrl

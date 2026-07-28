@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import EventDetailView from "@/components/events/detail/EventDetailView";
 import { getEventImage, getEventImageAlt } from "@/lib/event-images";
 import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
+import { eventSlugRedirectHref } from "@/lib/event-slug-redirects";
 
 type EventPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 type EventOfferData = EventItem & {
@@ -373,11 +375,15 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
   return buildEventMetadata(event, getSiteUrl(), slug);
 }
 
-export default async function EventPage({ params }: EventPageProps) {
+export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
   const events = await getVisibleEvents();
   const event = events.find((item) => item.slug === slug);
 
+  if (!event) {
+    const redirectHref = eventSlugRedirectHref(slug, await searchParams);
+    if (redirectHref) permanentRedirect(redirectHref);
+  }
   if (!event) notFound();
 
   const siteUrl = getSiteUrl();
