@@ -4,6 +4,10 @@ import path from "node:path";
 import test from "node:test";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 import {
+  REGIONAL_CONFIGS,
+  REGIONAL_REGION_IDS,
+} from "@/lib/regions/regional-config";
+import {
   buildRegionalLandingModel,
   eventBelongsToRegionalLanding,
   filterRegionalLandingEvents,
@@ -46,12 +50,9 @@ function eventFixture(overrides: Partial<EventItem> = {}): EventItem {
 }
 
 test("la configuración neutral preserva metadata y canonical públicos", () => {
-  for (const [id, slug] of [
-    ["cataluna", "eventos-motor-cataluna"],
-    ["madrid", "eventos-motor-madrid"],
-  ] as const) {
+  for (const id of REGIONAL_REGION_IDS) {
     const model = buildRegionalLandingModel([], id, now);
-    const page = getOpportunityPage(slug);
+    const page = getOpportunityPage(model.config.publicPath.slice(1));
     assert.ok(page);
     assert.equal(model.config.publicMetadata.title, page.title);
     assert.equal(model.config.publicMetadata.description, page.description);
@@ -145,8 +146,9 @@ test("los filtros SSR ignoran parámetros desconocidos y nunca añaden fallback"
 
 test("producción usa solo capas neutrales y no admite fixtures ni preview", () => {
   const production = [
-    source("app/eventos-motor-cataluna/page.tsx"),
-    source("app/eventos-motor-madrid/page.tsx"),
+    ...REGIONAL_REGION_IDS.map((id) => (
+      source(`app${REGIONAL_CONFIGS[id].publicPath}/page.tsx`)
+    )),
     source("components/regions/PublicRegionalLanding.tsx"),
     source("components/regions/RegionalLanding.tsx"),
     source("lib/regions/regional-landing-model.ts"),
@@ -179,26 +181,34 @@ test("JSON-LD público conserva CollectionPage, BreadcrumbList, FAQPage e ItemLi
   assert.match(component, /model\.upcomingEvents\.slice\(0, 20\)/);
 });
 
-test("sitemap y robots mantienen indexables las dos URLs", () => {
+test("sitemap y robots mantienen indexables todas las URLs regionales", () => {
   const sitemap = source("app/sitemap.ts");
   const robots = source("app/robots.ts");
-  const pages = ["eventos-motor-cataluna", "eventos-motor-madrid"]
-    .map((slug) => getOpportunityPage(slug));
+  const pages = REGIONAL_REGION_IDS.map((id) => (
+    getOpportunityPage(REGIONAL_CONFIGS[id].publicPath.slice(1))
+  ));
 
   assert.ok(pages.every(Boolean));
   assert.match(sitemap, /OPPORTUNITY_PAGES\.map/);
-  assert.doesNotMatch(robots, /eventos-motor-(?:cataluna|madrid)/);
+  for (const id of REGIONAL_REGION_IDS) {
+    assert.doesNotMatch(robots, new RegExp(REGIONAL_CONFIGS[id].publicPath.slice(1)));
+  }
 });
 
-test("tres regiones no piloto continúan usando OpportunityPage", () => {
-  for (const route of [
-    "app/eventos-motor-andalucia/page.tsx",
-    "app/eventos-motor-comunidad-valenciana/page.tsx",
-    "app/eventos-motor-galicia/page.tsx",
-  ]) {
+test("todas las comunidades usan el adaptador regional y las provincias quedan excluidas", () => {
+  for (const id of REGIONAL_REGION_IDS) {
+    const route = `app${REGIONAL_CONFIGS[id].publicPath}/page.tsx`;
     const routeSource = source(route);
-    assert.match(routeSource, /OpportunityPage/);
-    assert.doesNotMatch(routeSource, /PublicRegionalLanding/);
+    assert.match(routeSource, /PublicRegionalLanding/);
+    assert.match(routeSource, /searchParams=\{searchParams\}/);
+    assert.doesNotMatch(routeSource, /components\/public\/seo\/OpportunityPage/);
+  }
+  for (const route of [
+    "app/eventos-motor-barcelona/page.tsx",
+    "app/eventos-motor-valencia/page.tsx",
+  ]) {
+    assert.match(source(route), /components\/public\/seo\/OpportunityPage/);
+    assert.doesNotMatch(source(route), /PublicRegionalLanding/);
   }
 });
 

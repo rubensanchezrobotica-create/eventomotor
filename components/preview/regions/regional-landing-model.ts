@@ -9,6 +9,7 @@ import {
   type RegionalLandingModel,
   type RegionalRegionId,
 } from "@/lib/regions/regional-landing-model";
+import { REGIONAL_CONFIGS } from "@/lib/regions/regional-config";
 import type { EventItem } from "@/types/event";
 
 export * from "@/lib/regions/regional-landing-model";
@@ -21,6 +22,7 @@ export type RegionalFixtureId =
   | "madrid-sin-futuros"
   | "un-evento"
   | "dos-eventos"
+  | "seis-eventos"
   | "aislamiento-territorial";
 
 export function isRegionalPreviewId(value: string): value is RegionalRegionId {
@@ -88,6 +90,7 @@ export function regionalFixtureId(
     || fixture === "madrid-sin-futuros"
     || fixture === "un-evento"
     || fixture === "dos-eventos"
+    || fixture === "seis-eventos"
     || fixture === "aislamiento-territorial"
   ) return fixture;
   return null;
@@ -130,6 +133,24 @@ export function buildRegionalInventoryFixture(
   if (fixture === "madrid-sin-finde") return { ...model, weekendEvents: [] };
   if (fixture === "un-evento") return buildRegionalSparseFixture(model, 1);
   if (fixture === "dos-eventos") return buildRegionalSparseFixture(model, 2);
+  if (fixture === "seis-eventos") {
+    const upcomingEvents = model.upcomingEvents.slice(0, 6);
+    const upcomingKeys = new Set(upcomingEvents.map((event) => event.slug || event.id));
+    return {
+      ...model,
+      disciplineCounts: countBy(upcomingEvents, (event) => normalizeZoneDiscipline(event.discipline)),
+      finderMode: "compact",
+      nextThirtyDaysEvents: model.nextThirtyDaysEvents.filter((event) => (
+        upcomingKeys.has(event.slug || event.id)
+      )),
+      provinceCounts: countBy(upcomingEvents, (event) => normalizeZoneProvince(event.province)),
+      territorialTotal: upcomingEvents.length + model.pastEvents.length,
+      upcomingEvents,
+      upcomingTotal: upcomingEvents.length,
+      vehicleCounts: countBy(upcomingEvents, vehicleLabel),
+      weekendEvents: model.weekendEvents.filter((event) => upcomingKeys.has(event.slug || event.id)),
+    };
+  }
   return model;
 }
 
@@ -139,7 +160,7 @@ export function isRegionalPreviewAvailable(vercelEnvironment: string | undefined
 
 export function buildRegionalPreviewMetadata(id: string): Metadata {
   const title = isRegionalRegionId(id)
-    ? `Preview regional: ${id === "cataluna" ? "Eventos de motor en Cataluña" : "Eventos de motor en Madrid"} | EventoMotor`
+    ? `Preview regional: ${REGIONAL_CONFIGS[id].h1} | EventoMotor`
     : "Preview regional | EventoMotor";
   return {
     title: { absolute: title },

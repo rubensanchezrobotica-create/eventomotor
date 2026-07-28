@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import OpportunityPage from "@/components/public/seo/OpportunityPage";
+import PublicRegionalLanding from "@/components/regions/PublicRegionalLanding";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 
 const page = getOpportunityPage("eventos-motor-cantabria");
 
 export const metadata: Metadata = buildOpportunityMetadata(page);
 
-export default function EventosMotorCantabriaPage() {
+export default function EventosMotorCantabriaPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   if (!page) notFound();
-
-  return <OpportunityPage page={page} />;
+  return <PublicRegionalLanding page={page} region="cantabria" searchParams={searchParams} />;
 }

@@ -1,38 +1,24 @@
-import { SEO_COMMUNITIES, matchesSeoCommunity, type SeoCommunityConfig } from "@/lib/seo-communities";
+import {
+  isRegionalRegionId,
+  matchesRegionalCommunity,
+  REGIONAL_CONFIGS,
+  type RegionalFinderMode,
+  type RegionalLandingConfig,
+  type RegionalRegionId,
+} from "@/lib/regions/regional-config";
 import type { EventItem } from "@/types/event";
 
-export type RegionalRegionId = "cataluna" | "madrid";
-export type RegionalFinderMode = "full" | "compact" | "hidden" | "empty";
+export {
+  isRegionalRegionId,
+  type RegionalFinderMode,
+  type RegionalLandingConfig,
+  type RegionalRegionId,
+};
 
 export type RegionalCount = {
   count: number;
   key: string;
   label: string;
-};
-
-export type RegionalLandingConfig = {
-  aliases: readonly string[];
-  description: string;
-  eyebrow: string;
-  emptyState: {
-    description: string;
-    eyebrow: string;
-    title: string;
-  };
-  faqs: Array<{ answer: string; question: string }>;
-  h1: string;
-  id: RegionalRegionId;
-  name: string;
-  nameWithPreposition: string;
-  provinces: readonly string[];
-  publicMetadata: {
-    canonical: string;
-    description: string;
-    title: string;
-  };
-  publicPath: string;
-  relatedLinks: Array<{ href: string; label: string }>;
-  seoParagraphs: string[];
 };
 
 export type RegionalLandingModel = {
@@ -56,109 +42,6 @@ export type RegionalLandingQuery = {
   showAll: boolean;
   vehicle: string;
   when: "upcoming" | "weekend" | "next30";
-};
-
-const REGIONAL_CONFIGS: Record<RegionalRegionId, RegionalLandingConfig> = {
-  cataluna: {
-    aliases: ["Cataluña", "Catalunya", "Cataluna"],
-    description: "Agenda de eventos en Barcelona, Girona, Lleida y Tarragona.",
-    eyebrow: "Agenda territorial",
-    emptyState: {
-      description: "Ahora mismo no hay próximas fechas confirmadas. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos.",
-      eyebrow: "Agenda en actualización",
-      title: "Agenda de Cataluña en actualización",
-    },
-    faqs: [
-      {
-        question: "¿Qué eventos de motor aparecen en Cataluña?",
-        answer:
-          "La agenda reúne próximos eventos visibles cuya región, provincia o localidad corresponde de forma normalizada con Cataluña.",
-      },
-      {
-        question: "¿Incluye eventos de Barcelona, Girona, Lleida y Tarragona?",
-        answer:
-          "Sí. Los accesos territoriales se generan únicamente para las provincias que tienen próximos eventos publicados.",
-      },
-      {
-        question: "¿Cómo confirmo horarios o inscripciones?",
-        answer:
-          "Abre la ficha del evento y consulta la fuente oficial disponible antes de organizar el desplazamiento.",
-      },
-    ],
-    h1: "Eventos de motor en Cataluña",
-    id: "cataluna",
-    name: "Cataluña",
-    nameWithPreposition: "en Cataluña",
-    provinces: ["Barcelona", "Girona", "Lleida", "Tarragona"],
-    publicMetadata: {
-      canonical: "/eventos-motor-cataluna",
-      description: "Consulta eventos de motor en Cataluña: concentraciones moteras, rallyes, coches, motos, rutas, ferias y citas del fin de semana en Barcelona, Girona, Tarragona y Lleida, con fecha, ubicación y fuente oficial.",
-      title: "Eventos de motor en Cataluña 2026 | Este fin de semana y calendario | EventoMotor",
-    },
-    publicPath: "/eventos-motor-cataluna",
-    relatedLinks: [
-      { href: "/eventos-motor-barcelona", label: "Eventos de motor en Barcelona" },
-      { href: "/eventos-motor-este-fin-de-semana", label: "Eventos este fin de semana" },
-      { href: "/disciplinas/rallyes", label: "Rallyes" },
-      { href: "/disciplinas/circuito", label: "Circuito y tandas" },
-      { href: "/disciplinas/concentraciones", label: "Concentraciones" },
-    ],
-    seoParagraphs: [
-      "Cataluña reúne una de las agendas de motor más variadas de España. Barcelona concentra grandes citas de circuito y encuentros vinculados al automóvil y la moto, mientras Girona, Lleida y Tarragona aportan rallyes, pruebas de montaña, karting, concentraciones, rutas, clásicos y actividades locales. Esta selección utiliza la ubicación estructurada de cada ficha para mostrar únicamente eventos relacionados con el territorio catalán y mantener separados los próximos eventos de los ya celebrados.",
-      "Los resultados se ordenan por fecha, dando prioridad a los eventos que ya están en curso. Cada tarjeta resume cuándo se celebra la cita, su ciudad, provincia y disciplina, y enlaza con una ficha donde puede existir información adicional sobre el recinto, la organización, entradas, inscripción o fuente oficial. Antes de desplazarte conviene comprobar siempre los detalles publicados por el organizador, especialmente en competiciones, rutas o eventos sujetos a cambios de horario.",
-      "Puedes explorar la agenda por provincia o por las disciplinas que realmente tienen inventario. El Circuit de Barcelona-Catalunya, los trazados de karting y las carreteras donde se celebran rallyes y pruebas de montaña forman parte del contexto habitual de la región, junto con concentraciones moteras, ferias y encuentros de vehículos clásicos.",
-    ],
-  },
-  madrid: {
-    aliases: ["Madrid", "Comunidad de Madrid"],
-    description: "Agenda de coches, motos y competición en la Comunidad de Madrid.",
-    eyebrow: "Agenda territorial",
-    emptyState: {
-      description: "Ahora mismo no hay próximas fechas confirmadas. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos.",
-      eyebrow: "Agenda en actualización",
-      title: "Agenda de Madrid en actualización",
-    },
-    faqs: [
-      {
-        question: "¿Qué eventos de motor aparecen en Madrid?",
-        answer:
-          "Se muestran próximos eventos visibles relacionados de forma normalizada con Madrid como región, provincia o localidad.",
-      },
-      {
-        question: "¿Qué ocurre si no hay eventos este fin de semana?",
-        answer:
-          "La página mantiene visibles las siguientes fechas publicadas y señala de forma compacta cuándo se celebra el próximo evento.",
-      },
-      {
-        question: "¿Cómo publico un evento de Madrid?",
-        answer:
-          "Puedes enviarlo desde Publicar un evento con fecha, ubicación y una fuente verificable para su revisión.",
-      },
-    ],
-    h1: "Eventos de motor en Madrid",
-    id: "madrid",
-    name: "Madrid",
-    nameWithPreposition: "en Madrid",
-    provinces: ["Madrid"],
-    publicMetadata: {
-      canonical: "/eventos-motor-madrid",
-      description: "Consulta eventos de motor en Madrid: concentraciones moteras, karting, ferias del motor, coches, motos, circuito y planes con fuente oficial.",
-      title: "Eventos de motor en Madrid | EventoMotor",
-    },
-    publicPath: "/eventos-motor-madrid",
-    relatedLinks: [
-      { href: "/eventos-motor-este-fin-de-semana", label: "Eventos este fin de semana" },
-      { href: "/disciplinas/circuito", label: "Circuito y tandas" },
-      { href: "/disciplinas/concentraciones", label: "Concentraciones" },
-      { href: "/disciplinas/clasicos", label: "Clásicos" },
-      { href: "/disciplinas/ferias", label: "Ferias del motor" },
-    ],
-    seoParagraphs: [
-      "Madrid combina eventos de circuito, concentraciones moteras, karting, clásicos, ferias, rutas y encuentros de clubes repartidos entre la capital y los municipios de la comunidad. Esta agenda regional selecciona eventos mediante campos estructurados de región, provincia y ciudad, por lo que una referencia secundaria en el título no basta para incorporar una cita ubicada realmente en otro territorio. Los eventos futuros y en curso forman el total principal; los ya celebrados permanecen disponibles en un histórico independiente.",
-      "El Circuito de Madrid Jarama es uno de los principales focos de actividad, junto con IFEMA, instalaciones de karting y municipios que acogen concentraciones, exposiciones o rutas. Las próximas citas se presentan por orden temporal y cada tarjeta enlaza con su ficha individual. Allí puedes revisar la información disponible sobre recinto, fuente oficial, entradas o inscripción antes de planificar la visita.",
-      "Cuando no existe actividad publicada para el viernes, sábado o domingo más próximo, la landing no se presenta como vacía: señala la fecha del siguiente evento y muestra inmediatamente el resto del inventario futuro. Los accesos regionales aparecen solo cuando ofrecen una elección real y nunca se utilizan tarjetas deshabilitadas ni contadores con valor cero.",
-    ],
-  },
 };
 
 export const REGIONAL_DESKTOP_LIMIT = 8;
@@ -327,15 +210,11 @@ function buildCounts(events: EventItem[], readLabel: (event: EventItem) => strin
     .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "es"));
 }
 
-function communityFor(id: RegionalRegionId): SeoCommunityConfig {
-  return id === "cataluna" ? SEO_COMMUNITIES.cataluna : SEO_COMMUNITIES.madrid;
-}
-
 export function eventBelongsToRegionalLanding(
   event: EventItem,
   id: RegionalRegionId,
 ) {
-  return matchesSeoCommunity(event, communityFor(id));
+  return matchesRegionalCommunity(event, id);
 }
 
 export function regionalFinderMode(upcomingTotal: number): RegionalFinderMode {
@@ -448,10 +327,6 @@ export function filterRegionalLandingEvents(
     }
     return true;
   });
-}
-
-export function isRegionalRegionId(value: string): value is RegionalRegionId {
-  return value === "cataluna" || value === "madrid";
 }
 
 export function regionalEventStatusLabel(event: EventItem) {

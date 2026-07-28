@@ -55,6 +55,7 @@ export default async function RegionalPreviewRoute({
   const fixtureEvents = fixture === "cataluna-amplia"
     || fixture === "un-evento"
     || fixture === "dos-eventos"
+    || fixture === "seis-eventos"
     ? regionalWideFixtureEvents
     : fixture === "madrid-sin-finde"
       || fixture === "madrid-sin-futuros"
