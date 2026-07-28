@@ -6,13 +6,32 @@ import { Suspense, useEffect, useState } from "react";
 import { COOKIE_CONSENT_EVENT, hasAnalyticsConsent } from "@/lib/cookie-consent";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const NEWSLETTER_ANALYTICS_EXCLUDED_ROUTES = new Set([
+  "/preview/newsletter/confirm",
+  "/preview/newsletter/unsubscribe",
+]);
+
+export function isAnalyticsExcludedPath(pathname: string): boolean {
+  return (
+    NEWSLETTER_ANALYTICS_EXCLUDED_ROUTES.has(pathname) ||
+    pathname === "/preview/newsletter/mailbox" ||
+    pathname.startsWith("/preview/newsletter/mailbox/")
+  );
+}
 
 function GoogleAnalyticsPageViews({ ready }: { ready: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (!ready || !GA_ID || !hasAnalyticsConsent() || typeof window === "undefined" || typeof window.gtag !== "function") return;
+    if (
+      isAnalyticsExcludedPath(pathname) ||
+      !ready ||
+      !GA_ID ||
+      !hasAnalyticsConsent() ||
+      typeof window === "undefined" ||
+      typeof window.gtag !== "function"
+    ) return;
 
     const query = searchParams.toString();
     window.gtag("config", GA_ID, {
@@ -24,22 +43,23 @@ function GoogleAnalyticsPageViews({ ready }: { ready: boolean }) {
 }
 
 export default function GoogleAnalytics() {
+  const pathname = usePathname();
   const [analyticsAllowed, setAnalyticsAllowed] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setAnalyticsAllowed(hasAnalyticsConsent());
-
     const handleConsentChange = () => {
       setAnalyticsAllowed(hasAnalyticsConsent());
     };
 
+    queueMicrotask(handleConsentChange);
     window.addEventListener(COOKIE_CONSENT_EVENT, handleConsentChange);
     return () => window.removeEventListener(COOKIE_CONSENT_EVENT, handleConsentChange);
   }, []);
 
   if (!GA_ID) return null;
   if (!analyticsAllowed) return null;
+  if (isAnalyticsExcludedPath(pathname)) return null;
 
   return (
     <>

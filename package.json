@@ -33,6 +33,16 @@
     "test:event-corrections": "tsx --test scripts/apply-event-corrections.test.ts",
     "cleanup:events": "tsx scripts/remove-obsolete-events.ts",
     "test:event-cleanup": "tsx --test scripts/remove-obsolete-events.test.ts",
+    "test:newsletter-core": "node --conditions=react-server --import tsx --test lib/newsletter/*.test.ts",
+    "test:newsletter-r2": "node --import tsx --test components/newsletter/newsletter-preview.test.ts emails/newsletter/newsletter-emails.test.tsx",
+    "test:newsletter-r3a": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3a.test.ts",
+    "prepare:newsletter-db-ci": "node scripts/prepare-newsletter-supabase-ci.mjs",
+    "test:newsletter-r3a1": "node --import tsx --test scripts/prepare-newsletter-supabase-ci.test.ts",
+    "test:newsletter-r3b1": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b1.test.ts",
+    "test:newsletter-r3b2": "node --import tsx --test tests/newsletter/newsletter-r3b2.test.ts",
+    "test:newsletter-r3b3": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b3.test.ts && node --import tsx --test tests/newsletter/newsletter-r3b3-render.test.tsx",
+    "test:newsletter-r3b4": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b4.test.ts && node --import tsx --test tests/newsletter/newsletter-r3b4-render.test.tsx",
+    "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
     "start": "next start",
@@ -43,7 +53,9 @@
     "next": "16.2.4",
     "nodemailer": "^8.0.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-email": "6.9.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
