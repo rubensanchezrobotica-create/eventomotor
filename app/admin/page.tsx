@@ -3,11 +3,10 @@
 import type React from "react";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
+import EventImageUploader from "@/components/admin/EventImageUploader";
 
 const DATA_QUALITY_OPTIONS = ["needs_review", "reviewed", "published", "draft", "pending_date", "cancelled"];
 const VEHICLE_TYPE_OPTIONS = ["moto", "coche", "mixto", "karting", "otros"];
-const DATE_FILTERS = ["proximos", "pasados", "todos"] as const;
-const VISIBLE_FILTERS = ["todos", "visibles", "ocultos"] as const;
 
 const QUALITY_LABELS: Record<string, string> = {
   needs_review: "Necesita revisión",
@@ -88,6 +87,7 @@ type AdminEvent = {
   import_method: string | null;
   data_quality: string | null;
   notes: string | null;
+  updated_at: string;
 };
 
 type EventForm = {
@@ -134,12 +134,12 @@ type EventForm = {
 type Filters = {
   search: string;
   vehicleType: string;
-  visible: (typeof VISIBLE_FILTERS)[number];
+  visible: "todos" | "visibles" | "ocultos";
   dataQuality: string;
   importMethod: string;
   discipline: string;
   province: string;
-  date: (typeof DATE_FILTERS)[number];
+  date: "proximos" | "pasados" | "todos";
   featured: "todos" | "destacados";
   reviewOnly: boolean;
   missingSource: boolean;
@@ -526,6 +526,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImageUploadActive, setIsImageUploadActive] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [bulkAction, setBulkAction] = useState("");
   const [error, setError] = useState("");
@@ -677,6 +678,7 @@ export default function AdminPage() {
   }
 
   function editEvent(event: AdminEvent) {
+    if (isImageUploadActive) return;
     setForm(eventToForm(event));
     setEditingId(event.id);
     setError("");
@@ -684,6 +686,7 @@ export default function AdminPage() {
   }
 
   function clearForm() {
+    if (isImageUploadActive) return;
     setForm(emptyForm());
     setEditingId(null);
     setError("");
@@ -1080,7 +1083,7 @@ export default function AdminPage() {
                             <p className="text-xs font-bold uppercase tracking-wide text-red-300">Editando evento</p>
                             <h4 className="text-sm font-semibold text-white">{event.title}</h4>
                           </div>
-                          <ActionButton onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
+                          <ActionButton disabled={isImageUploadActive} onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
                         </div>
                         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                           <Field label="Título"><input className="admin-input" onChange={handleInputChange("title")} value={form.title} /></Field>
@@ -1153,8 +1156,6 @@ export default function AdminPage() {
                             <Field label="organizer_url"><input className="admin-input" onChange={handleInputChange("organizerUrl")} value={form.organizerUrl} /></Field>
                             <Field label="official_url"><input className="admin-input" onChange={handleInputChange("officialUrl")} value={form.officialUrl} /></Field>
                             <Field label="registration_url"><input className="admin-input" onChange={handleInputChange("registrationUrl")} value={form.registrationUrl} /></Field>
-                            <Field label="image_url"><input className="admin-input" onChange={handleInputChange("imageUrl")} value={form.imageUrl} /></Field>
-                            <Field label="image_source_url"><input className="admin-input" onChange={handleInputChange("imageSourceUrl")} value={form.imageSourceUrl} /></Field>
                             <Field helper="Tipo de fuente usada para verificar el evento." label="source_type">
                               <select className="admin-select" onChange={handleSelectChange("sourceType")} value={form.sourceType}>
                                 {SOURCE_TYPE_OPTIONS.map((option) => (
@@ -1173,11 +1174,38 @@ export default function AdminPage() {
                             </Field>
                           </div>
                         </details>
+                        <EventImageUploader
+                          adminSecret={secret}
+                          currentImageUrl={form.imageUrl}
+                          currentSourceUrl={form.imageSourceUrl}
+                          currentUpdatedAt={event.updated_at}
+                          eventId={event.id}
+                          key={event.id}
+                          onBusyChange={setIsImageUploadActive}
+                          onSuccess={(uploadedEvent) => {
+                            setEvents((currentEvents) => currentEvents.map((currentEvent) => (
+                              currentEvent.id === uploadedEvent.id
+                                ? {
+                                    ...currentEvent,
+                                    image_url: uploadedEvent.image_url,
+                                    image_source_url: uploadedEvent.image_source_url,
+                                    updated_at: uploadedEvent.updated_at,
+                                  }
+                                : currentEvent
+                            )));
+                            setForm((currentForm) => ({
+                              ...currentForm,
+                              imageUrl: uploadedEvent.image_url,
+                              imageSourceUrl: uploadedEvent.image_source_url || "",
+                            }));
+                            setNotice("Imagen actualizada correctamente");
+                          }}
+                        />
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                          <ActionButton onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
+                          <ActionButton disabled={isImageUploadActive} onClick={clearForm} title="Cancela la edición.">Cancelar</ActionButton>
                           <button
                             className="min-h-9 rounded-md bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
-                            disabled={isSaving}
+                            disabled={isSaving || isImageUploadActive}
                             type="submit"
                           >
                             {isSaving ? "Guardando" : "Guardar cambios"}

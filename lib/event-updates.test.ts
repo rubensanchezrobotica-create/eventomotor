@@ -86,6 +86,20 @@ test("un conflicto de concurrencia bloquea la actualización", async () => {
   );
 });
 
+test("rechaza el updated_at visto por un cliente desactualizado sin intentar el update", async () => {
+  const repository = new MemoryRepository();
+  await assert.rejects(
+    updateExistingEvent({
+      id: "event-1",
+      expectedUpdatedAt: "2026-07-25T16:00:00.000Z",
+      changes: { image_url: "https://example.com/new.jpg" },
+      repository,
+    }),
+    EventUpdateConflictError,
+  );
+  assert.equal(repository.updates, 0);
+});
+
 test("la verificación posterior exige que updated_at haya cambiado", async () => {
   const repository = new MemoryRepository();
   repository.keepOldTimestamp = true;
