@@ -26,6 +26,7 @@
     "research:consolidate-enrichment": "tsx scripts/consolidate-event-enrichment-proposals.ts",
     "research:apply-enrichment": "tsx scripts/apply-event-enrichment-patch.ts",
     "fix:published-request-event": "tsx scripts/fix-published-request-event.ts",
+    "fix:rpm-fest-slug": "tsx scripts/restore-rpm-fest-slug.ts",
     "import:events-batch": "tsx scripts/import-events-batch.ts",
     "test:events-dedupe": "tsx --test scripts/import-events-batch.test.ts",
     "correct:events": "tsx scripts/apply-event-corrections.ts",

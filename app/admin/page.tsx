@@ -49,6 +49,7 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
 
 type AdminEvent = {
   id: string;
+  slug: string | null;
   title: string;
   championship: string | null;
   discipline: string | null;
@@ -625,7 +626,12 @@ export default function AdminPage() {
           authorization: `Bearer ${secret}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify(formToPayload(form)),
+        body: JSON.stringify({
+          ...formToPayload(form),
+          ...(editingId
+            ? { expectedUpdatedAt: events.find((currentEvent) => currentEvent.id === editingId)?.updated_at }
+            : {}),
+        }),
       });
       const payload = (await response.json()) as EventMutationResponse;
 
@@ -660,7 +666,11 @@ export default function AdminPage() {
           authorization: `Bearer ${secret}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ id: event.id, ...requestPayload }),
+        body: JSON.stringify({
+          id: event.id,
+          expectedUpdatedAt: event.updated_at,
+          ...requestPayload,
+        }),
       });
       const payload = (await response.json()) as EventMutationResponse;
 

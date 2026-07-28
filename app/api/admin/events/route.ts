@@ -225,7 +225,7 @@ function parseVehicleType(value: unknown, fallbackEvent: Parameters<typeof getVe
   return getVehicleType(fallbackEvent);
 }
 
-function parseAdminEventBody(value: unknown) {
+function parseAdminEventBody(value: unknown, includeSlug: boolean) {
   if (!isRecord(value)) {
     throw new Error("Request body must be an object.");
   }
@@ -251,7 +251,7 @@ function parseAdminEventBody(value: unknown) {
 
   return {
     id,
-    slug: optionalString(value, "slug") || createEventSlug(title, startDate),
+    ...(includeSlug ? { slug: optionalString(value, "slug") || createEventSlug(title, startDate) } : {}),
     title,
     championship: optionalString(value, "championship") || title,
     discipline,
@@ -304,18 +304,22 @@ async function updateAdminEvent(
   supabase: ReturnType<typeof createAdminClient>,
   id: string,
   changes: Record<string, unknown>,
+  expectedUpdatedAt?: string,
 ) {
+  let preservedSlug: string | null | undefined;
   return updateExistingEvent<EventRow>({
     id,
     changes,
+    expectedUpdatedAt,
     repository: {
       async readUpdatedAt(eventId) {
         const { data, error } = await supabase
           .from("events")
-          .select("updated_at")
+          .select("slug,updated_at")
           .eq("id", eventId)
           .maybeSingle();
         if (error) throw error;
+        preservedSlug = data?.slug;
         return data?.updated_at || null;
       },
       async updateByIdAndUpdatedAt(eventId, expectedUpdatedAt, update) {
@@ -327,6 +331,9 @@ async function updateAdminEvent(
           .select(ADMIN_EVENT_SELECT)
           .maybeSingle();
         if (error) throw error;
+        if (data?.slug !== preservedSlug) {
+          throw new Error("La verificación posterior detectó un cambio de slug no autorizado.");
+        }
         return data as EventRow | null;
       },
     },
@@ -367,7 +374,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payload = parseAdminEventBody(await request.json());
+    const payload = parseAdminEventBody(await request.json(), true);
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("events")
@@ -395,9 +402,14 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const payload = parseAdminEventBody(await request.json());
+    const body = await request.json();
+    const payload = parseAdminEventBody(body, false);
+    const expectedUpdatedAt = optionalTimestamp(body, "expectedUpdatedAt", "expected_updated_at");
+    if (!expectedUpdatedAt) {
+      return jsonError("expectedUpdatedAt is required when updating an event.", 400);
+    }
     const supabase = createAdminClient();
-    const { updated } = await updateAdminEvent(supabase, payload.id, payload);
+    const { updated } = await updateAdminEvent(supabase, payload.id, payload, expectedUpdatedAt);
 
     return Response.json({ ok: true, event: updated as AdminEvent });
   } catch (error) {
@@ -424,10 +436,17 @@ export async function PATCH(request: Request) {
       vehicleType?: unknown;
       vehicle_type?: unknown;
       notes?: unknown;
+      expectedUpdatedAt?: unknown;
     };
 
     if (typeof body.id !== "string" || !body.id.trim()) {
       return jsonError("Missing event id.", 400);
+    }
+    if (
+      typeof body.expectedUpdatedAt !== "string"
+      || !Number.isFinite(Date.parse(body.expectedUpdatedAt))
+    ) {
+      return jsonError("expectedUpdatedAt is required when updating an event.", 400);
     }
 
     const update: Partial<Pick<EventRow, "featured" | "visible" | "data_quality" | "vehicle_type" | "notes">> = {};
@@ -485,7 +504,12 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = createAdminClient();
-    const { updated } = await updateAdminEvent(supabase, body.id.trim(), update);
+    const { updated } = await updateAdminEvent(
+      supabase,
+      body.id.trim(),
+      update,
+      body.expectedUpdatedAt,
+    );
 
     return Response.json({ ok: true, event: updated as AdminEvent });
   } catch (error) {
