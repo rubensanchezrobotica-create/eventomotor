@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(24);
+select plan(26);
 
 insert into public.newsletter_subscribers (
   id, email, email_normalized, status, language_code, province_slug, region_slug,
@@ -109,6 +109,23 @@ select ok(
     where token_hash = repeat('b', 64)
   ),
   'the newly rotated token is active'
+);
+select ok(
+  not exists (
+    select 1
+    from public.newsletter_unsubscribe_tokens
+    where invalidated_at is not null
+      and invalidated_at < created_at
+  ),
+  'every invalidated token is invalidated at or after creation'
+);
+select ok(
+  not exists (
+    select 1
+    from public.newsletter_unsubscribe_tokens
+    where updated_at < created_at
+  ),
+  'every unsubscribe token is updated at or after creation'
 );
 
 select throws_ok(

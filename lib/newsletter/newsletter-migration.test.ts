@@ -138,6 +138,40 @@ test("confirmation locks the token and records activation, consumption and conse
   assert.doesNotMatch(sql, /delete from public\.newsletter_subscribers/i);
 });
 
+test("welcome rotation takes wall-clock time after the subscriber lock and preserves temporal constraints", () => {
+  const definition = functionDefinition("prepare_newsletter_welcome_delivery");
+  const lockIndex = definition.indexOf("for update;");
+  const eligibilityIndex = definition.indexOf("if not found");
+  const timestampIndex = definition.indexOf("v_now := clock_timestamp();");
+  const expiryIndex = definition.indexOf("p_expires_at <= v_now");
+  const invalidationIndex = definition.indexOf("update public.newsletter_unsubscribe_tokens");
+  const insertionIndex = definition.indexOf("insert into public.newsletter_unsubscribe_tokens");
+
+  assert.ok(lockIndex >= 0);
+  assert.ok(eligibilityIndex > lockIndex);
+  assert.ok(timestampIndex > eligibilityIndex);
+  assert.ok(expiryIndex > timestampIndex);
+  assert.ok(invalidationIndex > expiryIndex);
+  assert.ok(insertionIndex > invalidationIndex);
+  assert.doesNotMatch(definition, /\b(?:now|transaction_timestamp|statement_timestamp)\s*\(/i);
+  assert.match(
+    definition,
+    /invalidated_at = greatest\(v_now, created_at\),\s*updated_at = greatest\(v_now, created_at\)/i,
+  );
+  assert.match(
+    definition,
+    /subscriber_id, token_hash, expires_at, created_at, updated_at\s*\)\s*values\s*\(\s*v_subscriber\.id, p_token_hash, p_expires_at, v_now, v_now/i,
+  );
+  assert.match(
+    sql,
+    /newsletter_unsubscribe_tokens_invalidation_check check \(\s*invalidated_at is null or invalidated_at >= created_at\s*\)/i,
+  );
+  assert.match(
+    sql,
+    /if tg_table_name = 'newsletter_unsubscribe_tokens' then\s*new\.updated_at = greatest\(clock_timestamp\(\), new\.updated_at, old\.updated_at\)/i,
+  );
+});
+
 test("RPC SQL avoids collisions with PL/pgSQL return columns", () => {
   const requestDefinition = functionDefinition("request_newsletter_subscription");
   const confirmationDefinition = functionDefinition("confirm_newsletter_subscription");

@@ -127,7 +127,28 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 149);
+  assert.equal(plannedAssertions, 151);
+});
+
+test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
+  const source = await readFile(
+    join(process.cwd(), "tests", "newsletter", "sql", "newsletter-concurrency.mjs"),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /Promise\.allSettled/);
+  assert.match(source, /const requestOutputs = await Promise\.all/);
+  assert.match(source, /const confirmationOutputs = await Promise\.all/);
+  assert.match(source, /const providerOutputs = await Promise\.all/);
+  assert.match(source, /const preparationOutputs = await Promise\.all/);
+  assert.match(source, /const unsubscribeOutputs = await Promise\.all/);
+  assert.match(source, /confirmation_required,cooldown/);
+  assert.match(source, /confirmed,used_token/);
+  assert.match(source, /duplicate,recorded/);
+  assert.match(source, /already_unsubscribed,unsubscribed/);
+  assert.match(source, /invalidated_at < created_at/);
+  assert.match(source, /updated_at < created_at/);
+  assert.match(source, /"1\|1\|0\|0"/);
 });
 
 test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumentos", async () => {

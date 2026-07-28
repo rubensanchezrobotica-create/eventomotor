@@ -72,12 +72,6 @@ function query(container, sql) {
   });
 }
 
-function fulfilledValues(results, label) {
-  const rejected = results.find((result) => result.status === "rejected");
-  if (rejected) throw new Error(`${label} concurrency operation failed.`);
-  return results.map((result) => result.value);
-}
-
 function assertEqual(actual, expected, label) {
   if (actual !== expected) throw new Error(`${label} assertion failed.`);
 }
@@ -103,11 +97,10 @@ try {
       now() + interval '1 day', 'concurrency_test', '2026-07'
     );
   `;
-  const requestResults = await Promise.allSettled([
+  const requestOutputs = await Promise.all([
     query(container, requestSql("a")),
     query(container, requestSql("b")),
   ]);
-  const requestOutputs = fulfilledValues(requestResults, "request");
   assertEqual(
     sortedOutcomes(requestOutputs),
     "confirmation_required,cooldown",
@@ -135,12 +128,12 @@ try {
     `select t.token_hash from public.newsletter_confirmation_tokens t join public.newsletter_subscribers s on s.id = t.subscriber_id where s.email_normalized = ${sqlLiteral(requestEmail)};`,
   );
   const confirmSql = `select outcome from public.confirm_newsletter_subscription(${sqlLiteral(confirmationHash)});`;
-  const confirmationResults = await Promise.allSettled([
+  const confirmationOutputs = await Promise.all([
     query(container, confirmSql),
     query(container, confirmSql),
   ]);
   assertEqual(
-    sortedOutcomes(fulfilledValues(confirmationResults, "confirmation")),
+    sortedOutcomes(confirmationOutputs),
     "confirmed,used_token",
     "confirmation outcomes",
   );
@@ -161,12 +154,12 @@ try {
       'delivered', false, now()
     );
   `;
-  const providerResults = await Promise.allSettled([
+  const providerOutputs = await Promise.all([
     query(container, providerSql),
     query(container, providerSql),
   ]);
   assertEqual(
-    sortedOutcomes(fulfilledValues(providerResults, "provider event")),
+    sortedOutcomes(providerOutputs),
     "duplicate,recorded",
     "provider event outcomes",
   );
@@ -202,18 +195,30 @@ try {
       null
     );
   `;
-  const preparationResults = await Promise.allSettled([
+  const preparationOutputs = await Promise.all([
     query(container, prepareWelcomeSql("e")),
     query(container, prepareWelcomeSql("f")),
   ]);
-  fulfilledValues(preparationResults, "welcome preparation");
+  assertEqual(preparationOutputs.length, 2, "welcome preparation result count");
+  for (const output of preparationOutputs) {
+    assertEqual(output, unsubscribeSubscriberId, "welcome preparation context");
+  }
   assertEqual(
     await query(
       container,
-      `select count(*) from public.newsletter_unsubscribe_tokens where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid and invalidated_at is null;`,
+      `
+        select concat(
+          count(*) filter (where invalidated_at is null), '|',
+          count(*) filter (where invalidated_at is not null), '|',
+          count(*) filter (where invalidated_at < created_at), '|',
+          count(*) filter (where updated_at < created_at)
+        )
+        from public.newsletter_unsubscribe_tokens
+        where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid;
+      `,
     ),
-    "1",
-    "active unsubscribe token count",
+    "1|1|0|0",
+    "concurrent welcome token state",
   );
 
   const activeUnsubscribeHash = await query(
@@ -225,12 +230,12 @@ try {
       ${sqlLiteral(activeUnsubscribeHash)}, '2026-07', 'concurrency_test'
     );
   `;
-  const unsubscribeResults = await Promise.allSettled([
+  const unsubscribeOutputs = await Promise.all([
     query(container, unsubscribeSql),
     query(container, unsubscribeSql),
   ]);
   assertEqual(
-    sortedOutcomes(fulfilledValues(unsubscribeResults, "unsubscribe")),
+    sortedOutcomes(unsubscribeOutputs),
     "already_unsubscribed,unsubscribed",
     "unsubscribe outcomes",
   );

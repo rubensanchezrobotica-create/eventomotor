@@ -32,6 +32,12 @@ estado `active`, invalida el token anterior, inserta el nuevo hash y devuelve s�
 email destinatario, provincia, región e idioma. Si cualquier validación o inserción falla,
 PostgreSQL revierte también la invalidación anterior.
 
+La rotación obtiene `clock_timestamp()` inmediatamente después del lock y valida entonces
+`p_expires_at`. El mismo instante se usa como `created_at` y `updated_at` del token nuevo. El token
+anterior se actualiza con `invalidated_at = greatest(v_now, created_at)` y
+`updated_at = greatest(v_now, created_at)`; el trigger de esta tabla conserva además un
+`updated_at` de reloj monotónico. Las constraints temporales permanecen intactas.
+
 `unsubscribe_newsletter_by_token(text, text, text, text, text)` valida y localiza el hash, bloquea
 primero el suscriptor y después el token, y reutiliza la política transaccional de
 `unsubscribe_newsletter_subscriber`. Sólo devuelve `unsubscribed`, `already_unsubscribed` o
@@ -75,11 +81,23 @@ El E2E interno verifica dos capturas, en orden `confirmation` y `welcome`, para 
 destinatario; extrae ambos enlaces, confirma, ejecuta la primera baja y repite la baja de forma
 idempotente. El estado final es `unsubscribed` y no se genera agenda semanal.
 
-La validación PostgreSQL efímera queda preparada con ocho suites y **149 aserciones pgTAP**
+La validación PostgreSQL efímera queda preparada con ocho suites y **151 aserciones pgTAP**
 esperadas. Concurrencia cubre dos preparaciones y dos bajas simultáneas. La Data API añade las dos
 RPC nuevas para un total esperado de **12 denegaciones**: seis como `anon` y seis como
 `authenticated`. Estos totales son expectativas versionadas pendientes de una ejecución posterior
 autorizada en GitHub Actions; R3B.4 no aplica la migración local ni remotamente.
+
+### Incidencia temporal del Run #10
+
+El Run #10 (`30371942800`) aplicó la migración y completó **149/149** aserciones pgTAP. Solicitudes,
+confirmaciones y eventos concurrentes pasaron, pero la segunda de dos preparaciones simultáneas
+falló por `newsletter_unsubscribe_tokens_invalidation_check`. `now()` representa el inicio de la
+transacción: la segunda sesión lo había calculado antes de esperar el lock y trató de invalidar el
+token recién creado por la primera con un instante unos microsegundos anterior a su `created_at`.
+
+La corrección toma tiempo de reloj después del lock, protege ambos timestamps mediante `greatest` y
+refuerza pgTAP y el escenario concurrente. No se considera validada en PostgreSQL real hasta una
+ejecución posterior autorizada completamente verde; R4 continúa bloqueado.
 
 ## Producción y paso a R4
 
@@ -88,6 +106,6 @@ rutas públicas. `NEWSLETTER_MODE=live` continúa fuera de alcance.
 
 R4 sólo podrá plantearse después de:
 
-1. obtener migración, 149/149 pgTAP, concurrencia, DB lint y 12/12 permisos Data API en verde;
+1. obtener migración, 151/151 pgTAP, concurrencia, DB lint y 12/12 permisos Data API en verde;
 2. revisar seguridad y privacidad del flujo completo;
 3. definir proveedor, retry durable y operación de producción en checkpoints separados.

@@ -201,7 +201,11 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  new.updated_at = now();
+  if tg_table_name = 'newsletter_unsubscribe_tokens' then
+    new.updated_at = greatest(clock_timestamp(), new.updated_at, old.updated_at);
+  else
+    new.updated_at = now();
+  end if;
   return new;
 end;
 $$;
@@ -491,12 +495,11 @@ set search_path = ''
 as $$
 declare
   v_subscriber public.newsletter_subscribers%rowtype;
-  v_now timestamptz := now();
+  v_now timestamptz;
 begin
   if p_subscriber_id is null
     or p_token_hash is null
-    or p_token_hash !~ '^[0-9a-f]{64}$'
-    or (p_expires_at is not null and p_expires_at <= v_now) then
+    or p_token_hash !~ '^[0-9a-f]{64}$' then
     raise exception 'invalid newsletter welcome context';
   end if;
 
@@ -514,15 +517,23 @@ begin
     raise exception 'newsletter welcome delivery unavailable';
   end if;
 
+  v_now := clock_timestamp();
+
+  if p_expires_at is not null and p_expires_at <= v_now then
+    raise exception 'invalid newsletter welcome context';
+  end if;
+
   update public.newsletter_unsubscribe_tokens
-  set invalidated_at = v_now
+  set
+    invalidated_at = greatest(v_now, created_at),
+    updated_at = greatest(v_now, created_at)
   where newsletter_unsubscribe_tokens.subscriber_id = v_subscriber.id
     and newsletter_unsubscribe_tokens.invalidated_at is null;
 
   insert into public.newsletter_unsubscribe_tokens (
-    subscriber_id, token_hash, expires_at
+    subscriber_id, token_hash, expires_at, created_at, updated_at
   ) values (
-    v_subscriber.id, p_token_hash, p_expires_at
+    v_subscriber.id, p_token_hash, p_expires_at, v_now, v_now
   );
 
   return query

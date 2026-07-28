@@ -380,7 +380,8 @@ El trigger y todos los datos desaparecen con el rollback del test.
 `newsletter-concurrency.mjs` usa únicamente módulos Node y el `psql` incluido en el contenedor
 PostgreSQL. Cada `docker exec ... psql` abre una sesión independiente. No obtiene ni imprime claves.
 
-Con `Promise.allSettled`, timeouts y datos `example.invalid` únicos, comprueba:
+Con `Promise.all`, rechazo inmediato ante cualquier fallo, timeouts y datos `example.invalid`
+únicos, comprueba:
 
 - Dos solicitudes simultáneas crean un subscriber y un hash.
 - Dos confirmaciones del mismo hash producen una confirmación y un token usado.
@@ -439,9 +440,13 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 6. Revisión y corrección aislada de cualquier defecto SQL reproducible.
 
 R3A.1 quedó validado con ese alcance original. R3B.4 amplía después la fundación todavía no aplicada
-a seis tablas, seis RPC, ocho suites con 149 aserciones y doce denegaciones Data API. Esos nuevos
+a seis tablas, seis RPC, ocho suites con 151 aserciones y doce denegaciones Data API. Esos nuevos
 totales deberán validarse en otra ejecución autorizada antes de iniciar R4; no sustituyen ni
 reescriben los resultados históricos de 117/117 y 8/8.
+
+El Run #10 (`30371942800`) confirmó 149/149 aserciones anteriores y detectó después una colisión
+temporal en dos preparaciones simultáneas de bienvenida. La regresión añade dos invariantes pgTAP
+para exigir `invalidated_at >= created_at` y `updated_at >= created_at`; de ahí el nuevo total 151.
 
 ## Propuesta de commit
 
