@@ -52,11 +52,21 @@ export async function updateExistingEvent<Row extends EventUpdateRow>(input: {
   id: string;
   changes: Record<string, unknown>;
   repository: ExistingEventUpdateRepository<Row>;
+  expectedUpdatedAt?: string;
   now?: Date;
 }) {
   const previousUpdatedAt = await input.repository.readUpdatedAt(input.id);
   if (!previousUpdatedAt) {
     throw new EventUpdateConflictError("No se encontró la fila de events que se quería actualizar.");
+  }
+
+  if (
+    input.expectedUpdatedAt &&
+    !sameTimestampInstant(previousUpdatedAt, input.expectedUpdatedAt)
+  ) {
+    throw new EventUpdateConflictError(
+      "El evento cambió desde que se abrió. Recarga antes de continuar.",
+    );
   }
 
   const changes = withNextEventUpdatedAt(input.changes, previousUpdatedAt, input.now);
