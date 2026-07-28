@@ -127,7 +127,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 151);
+  assert.equal(plannedAssertions, 153);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -146,9 +146,12 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /confirmed,used_token/);
   assert.match(source, /duplicate,recorded/);
   assert.match(source, /already_unsubscribed,unsubscribed/);
+  assert.match(source, /unsubscribeOutputs\.length, 2/);
+  assert.match(source, /first_used_at < created_at/);
   assert.match(source, /invalidated_at < created_at/);
   assert.match(source, /updated_at < created_at/);
   assert.match(source, /"1\|1\|0\|0"/);
+  assert.match(source, /"1\|0\|0"/);
 });
 
 test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumentos", async () => {

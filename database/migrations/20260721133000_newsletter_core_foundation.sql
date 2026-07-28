@@ -635,7 +635,7 @@ declare
   v_subscriber public.newsletter_subscribers%rowtype;
   v_token public.newsletter_unsubscribe_tokens%rowtype;
   v_unsubscribe_outcome text;
-  v_now timestamptz := now();
+  v_now timestamptz;
 begin
   if p_token_hash is null or p_token_hash !~ '^[0-9a-f]{64}$' then
     return query select 'invalid_or_expired';
@@ -678,9 +678,15 @@ begin
     and subscriber_id = v_subscriber.id
   for update;
 
-  if not found
-    or v_token.invalidated_at is not null
-    or (v_token.expires_at is not null and v_token.expires_at <= v_now) then
+  if not found then
+    return query select 'invalid_or_expired';
+    return;
+  end if;
+
+  v_now := clock_timestamp();
+
+  if v_token.invalidated_at is not null
+      or (v_token.expires_at is not null and v_token.expires_at <= v_now) then
     return query select 'invalid_or_expired';
     return;
   end if;
@@ -695,7 +701,9 @@ begin
   ) as unsubscribe_result;
 
   update public.newsletter_unsubscribe_tokens
-  set first_used_at = coalesce(first_used_at, v_now)
+  set
+    first_used_at = coalesce(first_used_at, greatest(v_now, created_at)),
+    updated_at = greatest(v_now, created_at)
   where id = v_token.id;
 
   return query

@@ -234,6 +234,7 @@ try {
     query(container, unsubscribeSql),
     query(container, unsubscribeSql),
   ]);
+  assertEqual(unsubscribeOutputs.length, 2, "unsubscribe result count");
   assertEqual(
     sortedOutcomes(unsubscribeOutputs),
     "already_unsubscribed,unsubscribed",
@@ -254,6 +255,22 @@ try {
     ),
     "1",
     "unsubscribe consent event count",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          count(*) filter (where first_used_at is not null), '|',
+          count(*) filter (where first_used_at < created_at), '|',
+          count(*) filter (where updated_at < created_at)
+        )
+        from public.newsletter_unsubscribe_tokens
+        where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid;
+      `,
+    ),
+    "1|0|0",
+    "concurrent unsubscribe token timestamps",
   );
 
   process.stdout.write("Newsletter concurrency tests passed in isolated PostgreSQL.\n");

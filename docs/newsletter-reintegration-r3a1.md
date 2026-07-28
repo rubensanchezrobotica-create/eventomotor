@@ -440,13 +440,17 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 6. Revisión y corrección aislada de cualquier defecto SQL reproducible.
 
 R3A.1 quedó validado con ese alcance original. R3B.4 amplía después la fundación todavía no aplicada
-a seis tablas, seis RPC, ocho suites con 151 aserciones y doce denegaciones Data API. Esos nuevos
+a seis tablas, seis RPC, ocho suites con 153 aserciones y doce denegaciones Data API. Esos nuevos
 totales deberán validarse en otra ejecución autorizada antes de iniciar R4; no sustituyen ni
 reescriben los resultados históricos de 117/117 y 8/8.
 
 El Run #10 (`30371942800`) confirmó 149/149 aserciones anteriores y detectó después una colisión
 temporal en dos preparaciones simultáneas de bienvenida. La regresión añade dos invariantes pgTAP
 para exigir `invalidated_at >= created_at` y `updated_at >= created_at`; de ahí el nuevo total 151.
+
+El Run #11 (`30379515569`) demostró después una segunda colisión temporal en el primer uso del token
+de baja. Dos aserciones adicionales exigen `first_used_at >= created_at` y la monotonicidad de
+`updated_at` tras ese uso; el total esperado pasa por ello a 153.
 
 ## Propuesta de commit
 

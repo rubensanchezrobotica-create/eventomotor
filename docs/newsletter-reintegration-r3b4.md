@@ -43,6 +43,12 @@ primero el suscriptor y después el token, y reutiliza la política transacciona
 `unsubscribe_newsletter_subscriber`. Sólo devuelve `unsubscribed`, `already_unsubscribed` o
 `invalid_or_expired`.
 
+Tras adquirir ambos locks, obtiene `clock_timestamp()` y sólo entonces comprueba la expiración. El
+primer uso se escribe como
+`coalesce(first_used_at, greatest(v_now, created_at))` y `updated_at` como
+`greatest(v_now, created_at)`. La RPC no depende exclusivamente del trigger para preservar las
+constraints temporales y el segundo uso conserva el primer timestamp.
+
 Las seis RPC newsletter son `security definer`, usan `search_path = ''`, revocan `EXECUTE` a los
 roles cliente y conceden ejecución exclusivamente a `service_role`. El orden común
 suscriptor → token evita invertir locks entre rotación y baja.
@@ -81,7 +87,7 @@ El E2E interno verifica dos capturas, en orden `confirmation` y `welcome`, para 
 destinatario; extrae ambos enlaces, confirma, ejecuta la primera baja y repite la baja de forma
 idempotente. El estado final es `unsubscribed` y no se genera agenda semanal.
 
-La validación PostgreSQL efímera queda preparada con ocho suites y **151 aserciones pgTAP**
+La validación PostgreSQL efímera queda preparada con ocho suites y **153 aserciones pgTAP**
 esperadas. Concurrencia cubre dos preparaciones y dos bajas simultáneas. La Data API añade las dos
 RPC nuevas para un total esperado de **12 denegaciones**: seis como `anon` y seis como
 `authenticated`. Estos totales son expectativas versionadas pendientes de una ejecución posterior
@@ -99,6 +105,19 @@ La corrección toma tiempo de reloj después del lock, protege ambos timestamps 
 refuerza pgTAP y el escenario concurrente. No se considera validada en PostgreSQL real hasta una
 ejecución posterior autorizada completamente verde; R4 continúa bloqueado.
 
+### Incidencia temporal del Run #11
+
+El Run #11 (`30379515569`) aplicó la migración y ejecutó correctamente 140 aserciones antes de que
+`newsletter_welcome_unsubscribe.test.sql` terminase con `Bad plan` (15 de 26 ejecutadas). La primera
+baja violó `newsletter_unsubscribe_tokens_first_use_check`: el `now()` inicial de
+`unsubscribe_newsletter_by_token` representaba el comienzo de la transacción pgTAP y quedó por
+detrás del `created_at` generado después por la rotación.
+
+La corrección conserva el orden suscriptor → token, obtiene tiempo de reloj después de ambos locks y
+protege explícitamente `first_used_at` y `updated_at` con `greatest(v_now, created_at)`. Las
+constraints siguen intactas. El total sube a 153 por dos aserciones específicas y R4 permanece
+bloqueado hasta validar toda la cadena en CI.
+
 ## Producción y paso a R4
 
 R3B.4 no conecta Supabase remoto, Resend, SMTP, DNS ni Vercel; no envía emails reales y no crea
@@ -106,6 +125,6 @@ rutas públicas. `NEWSLETTER_MODE=live` continúa fuera de alcance.
 
 R4 sólo podrá plantearse después de:
 
-1. obtener migración, 151/151 pgTAP, concurrencia, DB lint y 12/12 permisos Data API en verde;
+1. obtener migración, 153/153 pgTAP, concurrencia, DB lint y 12/12 permisos Data API en verde;
 2. revisar seguridad y privacidad del flujo completo;
 3. definir proveedor, retry durable y operación de producción en checkpoints separados.

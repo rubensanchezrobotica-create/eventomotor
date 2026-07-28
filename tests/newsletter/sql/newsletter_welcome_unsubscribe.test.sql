@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(26);
+select plan(28);
 
 insert into public.newsletter_subscribers (
   id, email, email_normalized, status, language_code, province_slug, region_slug,
@@ -239,6 +239,22 @@ select ok(
     where token_hash = repeat('b', 64)
   ),
   'the first token use records first_used_at'
+);
+select ok(
+  (
+    select first_used_at >= created_at
+    from public.newsletter_unsubscribe_tokens
+    where token_hash = repeat('b', 64)
+  ),
+  'the first token use cannot predate token creation'
+);
+select ok(
+  (
+    select updated_at >= created_at
+    from public.newsletter_unsubscribe_tokens
+    where token_hash = repeat('b', 64)
+  ),
+  'the first token use preserves a monotonic updated_at'
 );
 select is(
   (

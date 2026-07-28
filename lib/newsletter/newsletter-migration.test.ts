@@ -172,6 +172,61 @@ test("welcome rotation takes wall-clock time after the subscriber lock and prese
   );
 });
 
+test("token unsubscribe takes wall-clock time after subscriber and token locks", () => {
+  const definition = functionDefinition("unsubscribe_newsletter_by_token");
+  const initialLookupIndex = definition.indexOf(
+    "select unsubscribe_token.subscriber_id into v_subscriber_id",
+  );
+  const subscriberLockIndex = definition.indexOf(
+    "from public.newsletter_subscribers",
+    initialLookupIndex,
+  );
+  const tokenLockIndex = definition.indexOf(
+    "from public.newsletter_unsubscribe_tokens",
+    subscriberLockIndex,
+  );
+  const timestampIndex = definition.indexOf("v_now := clock_timestamp();");
+  const invalidationIndex = definition.indexOf("v_token.invalidated_at is not null");
+  const expiryIndex = definition.indexOf("v_token.expires_at <= v_now");
+  const unsubscribeIndex = definition.indexOf(
+    "from public.unsubscribe_newsletter_subscriber(",
+  );
+  const firstUseIndex = definition.indexOf(
+    "update public.newsletter_unsubscribe_tokens",
+    unsubscribeIndex,
+  );
+
+  assert.ok(initialLookupIndex >= 0);
+  assert.ok(subscriberLockIndex > initialLookupIndex);
+  assert.match(
+    definition.slice(subscriberLockIndex, tokenLockIndex),
+    /where id = v_subscriber_id\s*for update;/i,
+  );
+  assert.ok(tokenLockIndex > subscriberLockIndex);
+  assert.match(
+    definition.slice(tokenLockIndex, timestampIndex),
+    /where token_hash = p_token_hash\s*and subscriber_id = v_subscriber\.id\s*for update;/i,
+  );
+  assert.ok(timestampIndex > tokenLockIndex);
+  assert.ok(invalidationIndex > timestampIndex);
+  assert.ok(expiryIndex > timestampIndex);
+  assert.ok(unsubscribeIndex > expiryIndex);
+  assert.ok(firstUseIndex > unsubscribeIndex);
+  assert.doesNotMatch(definition, /\b(?:now|transaction_timestamp|statement_timestamp)\s*\(/i);
+  assert.match(
+    definition,
+    /first_used_at = coalesce\(first_used_at, greatest\(v_now, created_at\)\),\s*updated_at = greatest\(v_now, created_at\)/i,
+  );
+  assert.match(
+    sql,
+    /newsletter_unsubscribe_tokens_first_use_check check \(\s*first_used_at is null or first_used_at >= created_at\s*\)/i,
+  );
+  assert.match(
+    sql,
+    /newsletter_unsubscribe_tokens_invalidation_check check \(\s*invalidated_at is null or invalidated_at >= created_at\s*\)/i,
+  );
+});
+
 test("RPC SQL avoids collisions with PL/pgSQL return columns", () => {
   const requestDefinition = functionDefinition("request_newsletter_subscription");
   const confirmationDefinition = functionDefinition("confirm_newsletter_subscription");
