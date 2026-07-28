@@ -19,7 +19,6 @@ export type NewsletterResendEnvironment = {
   from?: string;
   replyTo?: string;
   recipientAllowlist?: string;
-  origin?: string;
   nodeEnv?: string;
   vercelEnv?: string;
 };
@@ -31,8 +30,7 @@ export type NewsletterResendConfigurationReason =
   | "api_key_invalid"
   | "from_invalid"
   | "reply_to_invalid"
-  | "allowlist_invalid"
-  | "origin_invalid";
+  | "allowlist_invalid";
 
 export type NewsletterResendConfiguration =
   | { enabled: false; reason: NewsletterResendConfigurationReason }
@@ -42,7 +40,6 @@ export type NewsletterResendConfiguration =
       from: string;
       replyTo: string;
       allowedRecipients: readonly string[];
-      origin: string;
     };
 
 export type ConfiguredNewsletterResendRuntime = {
@@ -73,25 +70,6 @@ function parseAllowlist(value: string): readonly string[] | null {
     normalized.push(recipient);
   }
   return new Set(normalized).size === normalized.length ? Object.freeze(normalized) : null;
-}
-
-function parseOrigin(value: string): string | null {
-  try {
-    const parsed = new URL(value);
-    if (
-      parsed.protocol !== "https:" ||
-      parsed.username ||
-      parsed.password ||
-      parsed.pathname !== "/" ||
-      parsed.search ||
-      parsed.hash
-    ) {
-      return null;
-    }
-    return parsed.origin;
-  } catch {
-    return null;
-  }
 }
 
 function isValidApiKey(value: string): boolean {
@@ -134,17 +112,12 @@ export function evaluateNewsletterResendConfiguration(
   if (!allowedRecipients) {
     return { enabled: false, reason: "allowlist_invalid" };
   }
-  const origin = environment.origin ? parseOrigin(environment.origin) : null;
-  if (!origin) {
-    return { enabled: false, reason: "origin_invalid" };
-  }
   return {
     enabled: true,
     apiKey: environment.apiKey,
     from: environment.from,
     replyTo: normalizeEmail(environment.replyTo),
     allowedRecipients,
-    origin,
   };
 }
 
@@ -156,7 +129,6 @@ function currentResendEnvironment(): NewsletterResendEnvironment {
     from: process.env.NEWSLETTER_RESEND_FROM,
     replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
     recipientAllowlist: process.env.NEWSLETTER_TEST_RECIPIENT_ALLOWLIST,
-    origin: process.env.NEWSLETTER_RESEND_ORIGIN,
     nodeEnv: process.env.NODE_ENV,
     vercelEnv: process.env.VERCEL_ENV,
   };
@@ -178,7 +150,6 @@ export function createConfiguredNewsletterResendRuntime(
       from: configuration.from,
       replyTo: configuration.replyTo,
       allowedRecipients: configuration.allowedRecipients,
-      origin: configuration.origin,
     }),
   };
 }

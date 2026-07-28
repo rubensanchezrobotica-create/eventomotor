@@ -24,8 +24,9 @@ de producción. El cliente mínimo permite garantizar un timeout real mediante
 `AbortController`, controlar la sanitización y limitar el alcance a
 `POST https://api.resend.com/emails`.
 
-El cliente es inyectable. Los tests usan fakes deterministas y una protección
-que hace fallar cualquier `fetch` global. No se añadió ninguna dependencia.
+El contrato de cliente es inyectable. Los tests usan fakes deterministas y una
+protección que hace fallar cualquier `fetch` global. No se añadió ninguna
+dependencia.
 
 ## Configuración
 
@@ -37,7 +38,6 @@ Todas las variables son server-only y permanecen vacías en `.env.example`:
 - `NEWSLETTER_RESEND_FROM`
 - `NEWSLETTER_RESEND_REPLY_TO`
 - `NEWSLETTER_TEST_RECIPIENT_ALLOWLIST`
-- `NEWSLETTER_RESEND_ORIGIN`
 
 Resend sólo queda disponible si `NEWSLETTER_MODE=test`,
 `NEWSLETTER_MAIL_TRANSPORT=resend`, la configuración completa es válida,
@@ -45,8 +45,17 @@ Resend sólo queda disponible si `NEWSLETTER_MODE=test`,
 `live`, producción y cualquier despliegue Vercel fallan cerrados. Vercel
 Preview nunca lo activa automáticamente.
 
-El origen debe ser HTTPS, sin credenciales, path, query ni fragmento. Se usa
-exclusivamente para construir los enlaces ya definidos por los emails.
+El origen autenticado de Resend está fijado en código como
+`https://api.resend.com`; el único endpoint implementado es `/emails`. No
+existe una variable de entorno, opción de constructor, proxy o base URL que
+permita cambiarlo. El cliente rechaza redirects para evitar que la cabecera
+`Authorization` pueda seguir una respuesta hacia otro origen.
+
+Esta decisión elimina una vía de exfiltración accidental de credenciales. Los
+tests sustituyen el contrato `NewsletterResendClient` completo por fakes y no
+modifican ni invocan el cliente HTTP real. Las URLs de contenido usan el origen
+público fijado internamente; sólo el transporte aislado permite inyectar un
+origen `.invalid` sin credenciales para verificar el renderer.
 
 ## Allowlist y destinatarios
 

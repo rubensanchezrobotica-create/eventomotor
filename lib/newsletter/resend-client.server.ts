@@ -1,6 +1,8 @@
 import "server-only";
 
-const RESEND_EMAIL_ENDPOINT = "https://api.resend.com/emails";
+const RESEND_API_BASE_URL = "https://api.resend.com";
+const RESEND_EMAIL_PATH = "/emails";
+const RESEND_EMAIL_ENDPOINT = `${RESEND_API_BASE_URL}${RESEND_EMAIL_PATH}`;
 const RESEND_RESPONSE_MAX_BYTES = 8_192;
 const DEFAULT_RESEND_TIMEOUT_MS = 10_000;
 
@@ -23,14 +25,8 @@ export interface NewsletterResendClient {
   sendEmail(payload: NewsletterResendEmailPayload): Promise<NewsletterResendClientResult>;
 }
 
-type NewsletterFetch = (
-  input: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
-
 type FetchNewsletterResendClientOptions = {
   apiKey: string;
-  fetchImpl?: NewsletterFetch;
   timeoutMs?: number;
 };
 
@@ -70,7 +66,6 @@ async function readBoundedResponse(response: Response): Promise<string | null> {
 
 export class FetchNewsletterResendClient implements NewsletterResendClient {
   private readonly apiKey: string;
-  private readonly fetchImpl: NewsletterFetch;
   private readonly timeoutMs: number;
 
   constructor(options: FetchNewsletterResendClientOptions) {
@@ -87,7 +82,6 @@ export class FetchNewsletterResendClient implements NewsletterResendClient {
       throw new Error("Newsletter Resend client configuration is invalid.");
     }
     this.apiKey = options.apiKey;
-    this.fetchImpl = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = timeoutMs;
   }
 
@@ -97,8 +91,9 @@ export class FetchNewsletterResendClient implements NewsletterResendClient {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await this.fetchImpl(RESEND_EMAIL_ENDPOINT, {
+      const response = await globalThis.fetch(RESEND_EMAIL_ENDPOINT, {
         method: "POST",
+        redirect: "error",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",

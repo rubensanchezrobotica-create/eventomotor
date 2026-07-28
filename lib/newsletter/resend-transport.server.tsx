@@ -19,6 +19,7 @@ import { isValidEmail, isValidNewsletterOpaqueToken, normalizeEmail } from "@/li
 import type { NewsletterMailCommand } from "@/lib/newsletter/service-types";
 
 const LOGO_PATH = "/brand/eventomotor-logo-horizontal-dark-header.png";
+const NEWSLETTER_LINK_ORIGIN = "https://eventomotor.com";
 const CONFIRMATION_PATH = "/preview/newsletter/confirm";
 const UNSUBSCRIBE_PATH = "/preview/newsletter/unsubscribe";
 const REGION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -47,7 +48,7 @@ type ResendNewsletterMailTransportOptions = {
   from: string;
   replyTo: string;
   allowedRecipients: readonly string[];
-  origin: string;
+  linkOrigin?: string;
   now?: () => Date;
   renderConfirmation?: (
     props: ConfirmSubscriptionEmailProps,
@@ -113,7 +114,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   ) => Promise<{ html: string; text: string }>;
 
   constructor(options: ResendNewsletterMailTransportOptions) {
-    const origin = parseTransportOrigin(options.origin);
+    const origin = parseTransportOrigin(options.linkOrigin ?? NEWSLETTER_LINK_ORIGIN);
     const allowedRecipients = options.allowedRecipients.map(normalizeEmail);
     if (
       !origin ||

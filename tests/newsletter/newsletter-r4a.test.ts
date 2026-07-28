@@ -4,7 +4,6 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
-  FetchNewsletterResendClient,
   type NewsletterResendClient,
   type NewsletterResendClientResult,
   type NewsletterResendEmailPayload,
@@ -37,7 +36,6 @@ const BASE_ENVIRONMENT: NewsletterResendEnvironment = {
   from: FROM,
   replyTo: REPLY_TO,
   recipientAllowlist: RECIPIENT,
-  origin: ORIGIN,
   nodeEnv: "test",
 };
 const CONFIRMATION_COMMAND: NewsletterMailCommand = {
@@ -74,7 +72,7 @@ function createTransport(
       from: FROM,
       replyTo: REPLY_TO,
       allowedRecipients: [RECIPIENT],
-      origin: ORIGIN,
+      linkOrigin: ORIGIN,
       now: () => new Date("2026-07-28T12:00:00.000Z"),
       async renderConfirmation() {
         return { html: "<p>html-exacto</p>", text: "texto exacto" };
@@ -99,7 +97,6 @@ for (const [label, property, reason] of [
   ["from", "from", "from_invalid"],
   ["Reply-To", "replyTo", "reply_to_invalid"],
   ["allowlist", "recipientAllowlist", "allowlist_invalid"],
-  ["origin", "origin", "origin_invalid"],
 ] as const) {
   test(`configuración incompleta sin ${label} falla cerrada`, () => {
     assert.deepEqual(
@@ -274,115 +271,21 @@ test("respuesta inválida, error, excepción y timeout nunca producen accepted n
   assert.doesNotMatch(error.message, new RegExp(`${RECIPIENT}|${TOKEN}`));
 });
 
-test("cliente HTTP hace un POST mínimo y mapea sólo un ID válido", async () => {
-  let calls = 0;
-  let capturedInit: RequestInit | undefined;
-  const client = new FetchNewsletterResendClient({
-    apiKey: API_KEY,
-    async fetchImpl(_input, init) {
-      calls += 1;
-      capturedInit = init;
-      return Response.json({ id: "provider-id" });
-    },
-  });
-  const payload: NewsletterResendEmailPayload = {
-    from: FROM,
-    to: [RECIPIENT],
-    replyTo: REPLY_TO,
-    subject: "asunto",
-    html: "<p>contenido</p>",
-    text: "contenido",
-  };
-  assert.deepEqual(await client.sendEmail(payload), {
-    status: "accepted",
-    providerMessageId: "provider-id",
-  });
-  assert.equal(calls, 1);
-  assert.equal(capturedInit?.method, "POST");
-  assert.deepEqual(JSON.parse(String(capturedInit?.body)), {
-    from: FROM,
-    to: [RECIPIENT],
-    reply_to: REPLY_TO,
-    subject: "asunto",
-    html: "<p>contenido</p>",
-    text: "contenido",
-  });
-});
-
-test("cliente HTTP trata error, respuesta inválida y excepción sin reintentar", async () => {
-  for (const response of [
-    new Response("provider details", { status: 429 }),
-    new Response("not-json", { status: 200 }),
-    Response.json({ unexpected: true }),
-  ]) {
-    let calls = 0;
-    const client = new FetchNewsletterResendClient({
-      apiKey: API_KEY,
-      async fetchImpl() {
-        calls += 1;
-        return response;
-      },
-    });
-    const result = await client.sendEmail({
-      from: FROM,
-      to: [RECIPIENT],
-      replyTo: REPLY_TO,
-      subject: "test",
-      html: "html",
-      text: "text",
-    });
-    assert.notEqual(result.status, "accepted");
-    assert.equal(calls, 1);
-  }
-  let exceptionCalls = 0;
-  const exceptionClient = new FetchNewsletterResendClient({
-    apiKey: API_KEY,
-    async fetchImpl() {
-      exceptionCalls += 1;
-      throw new Error(`provider details ${RECIPIENT} ${TOKEN}`);
-    },
-  });
-  assert.deepEqual(
-    await exceptionClient.sendEmail({
-      from: FROM,
-      to: [RECIPIENT],
-      replyTo: REPLY_TO,
-      subject: "test",
-      html: "html",
-      text: "text",
-    }),
-    { status: "provider_error", httpStatus: null },
+test("cliente real fija origen, endpoint, redirect y timeout sin aceptar fetch u origen", () => {
+  const source = readFileSync(
+    join(process.cwd(), "lib/newsletter/resend-client.server.ts"),
+    "utf8",
   );
-  assert.equal(exceptionCalls, 1);
-});
-
-test("timeout aborta la petición real y no reintenta", async () => {
-  let calls = 0;
-  let aborted = false;
-  const client = new FetchNewsletterResendClient({
-    apiKey: API_KEY,
-    timeoutMs: 5,
-    fetchImpl(_input, init) {
-      calls += 1;
-      return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          aborted = true;
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      });
-    },
-  });
-  const result = await client.sendEmail({
-    from: FROM,
-    to: [RECIPIENT],
-    replyTo: REPLY_TO,
-    subject: "test",
-    html: "html",
-    text: "text",
-  });
-  assert.deepEqual(result, { status: "timeout" });
-  assert.equal(aborted, true);
-  assert.equal(calls, 1);
+  assert.match(source, /const RESEND_API_BASE_URL = "https:\/\/api\.resend\.com"/);
+  assert.match(source, /const RESEND_EMAIL_PATH = "\/emails"/);
+  assert.match(source, /redirect: "error"/);
+  assert.match(source, /DEFAULT_RESEND_TIMEOUT_MS = 10_000/);
+  assert.match(source, /new AbortController\(\)/);
+  assert.equal((source.match(/globalThis\.fetch\(/g) ?? []).length, 1);
+  assert.doesNotMatch(
+    source,
+    /process\.env|baseUrl|origin\s*[?:]|fetchImpl|proxy|http:\/\/|RESEND_BASE_URL/,
+  );
 });
 
 test("suite usa fake inyectado y demuestra cero fetch global", async () => {
@@ -409,21 +312,14 @@ test("errores del cliente y transporte no escriben PII, token, body ni API key e
   console.error = (...args: unknown[]) => logs.push(args);
   console.log = (...args: unknown[]) => logs.push(args);
   try {
-    const client = new FetchNewsletterResendClient({
-      apiKey: API_KEY,
-      async fetchImpl() {
-        return new Response(
-          JSON.stringify({ message: `${RECIPIENT} ${TOKEN} ${API_KEY}` }),
-          { status: 400 },
-        );
-      },
-    });
+    const client = new FakeResendClient();
+    client.thrown = new Error(`${API_KEY} ${RECIPIENT} ${TOKEN}`);
     const transport = new ResendNewsletterMailTransport({
       client,
       from: FROM,
       replyTo: REPLY_TO,
       allowedRecipients: [RECIPIENT],
-      origin: ORIGIN,
+      linkOrigin: ORIGIN,
       now: () => new Date("2026-07-28T12:00:00.000Z"),
       async renderConfirmation() {
         return { html: "<p>html-exacto</p>", text: "texto exacto" };
@@ -463,11 +359,19 @@ test(".env.example sólo contiene variables vacías y ningún secreto real", () 
     "NEWSLETTER_RESEND_FROM",
     "NEWSLETTER_RESEND_REPLY_TO",
     "NEWSLETTER_TEST_RECIPIENT_ALLOWLIST",
-    "NEWSLETTER_RESEND_ORIGIN",
   ]) {
     assert.match(example, new RegExp(`^${name}=$`, "m"));
   }
+  assert.doesNotMatch(example, /NEWSLETTER_RESEND_ORIGIN/);
   assert.doesNotMatch(example, /re_[A-Za-z0-9]{20,}|@eventomotor\.com/i);
+});
+
+test("configuración runtime no lee ni expone NEWSLETTER_RESEND_ORIGIN", () => {
+  const source = readFileSync(
+    join(process.cwd(), "lib/newsletter/resend-config.server.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /NEWSLETTER_RESEND_ORIGIN|origin\??:|origin_invalid/);
 });
 
 test("R4A no crea rutas, SQL, migraciones, SDK, SMTP ni dependencias nuevas", () => {
