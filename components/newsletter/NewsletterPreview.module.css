@@ -164,7 +164,7 @@
 }
 
 .signupForm {
-  padding: 22px 28px 0;
+  padding: 22px 28px 8px;
 }
 
 .formGrid {
@@ -217,6 +217,41 @@
   color: #777d89;
   font-size: 10px;
   line-height: 1.45;
+}
+
+.field .fieldError,
+.fieldError {
+  color: #ff9a82;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.consentField {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin-top: 16px;
+  color: #b8bcc5;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.consentField input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: #ff5a1f;
+}
+
+.consentField input[aria-invalid="true"] {
+  outline: 2px solid #ff6844;
+  outline-offset: 2px;
+}
+
+.consentField a {
+  color: #f0b293;
+  text-underline-offset: 3px;
 }
 
 .primaryButton {
@@ -273,6 +308,56 @@
   font-weight: 700;
   line-height: 1.45;
   text-align: center;
+}
+
+.formResult {
+  min-height: 86px;
+  padding: 13px 0 17px;
+  color: #c9ccd3;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.formResult:empty {
+  min-height: 42px;
+}
+
+.formResult strong,
+.formResult p {
+  display: block;
+}
+
+.formResult strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.formResult p {
+  margin: 5px 0 9px;
+}
+
+.internalFormNotice {
+  margin: 0;
+  padding: 11px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #858b96;
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .stateLab {
@@ -941,6 +1026,154 @@
   margin-top: 30px;
 }
 
+.tokenPage {
+  min-height: 62vh;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(255, 59, 0, 0.16), transparent 30%),
+    linear-gradient(145deg, #090b10, #050609 72%);
+}
+
+.tokenHero {
+  padding: clamp(48px, 8vw, 104px) 0;
+}
+
+.tokenContainer {
+  width: min(100%, 850px);
+}
+
+.tokenCard {
+  min-width: 0;
+  padding: clamp(28px, 5vw, 54px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: rgba(14, 17, 23, 0.96);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+.tokenCard h1 {
+  max-width: 690px;
+  margin: 14px 0 16px;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.tokenCard > p {
+  max-width: 650px;
+  margin: 0;
+  color: #adb2bc;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.tokenStatus,
+.tokenAction,
+.tokenResult {
+  margin-top: 28px;
+  padding: 20px;
+  border: 1px solid #2c313b;
+  border-radius: 14px;
+  background: #0a0c11;
+}
+
+.tokenStatus {
+  color: #bec2ca;
+}
+
+.tokenAction p {
+  margin: 0;
+  color: #c5c8cf;
+  font-size: 14px;
+}
+
+.tokenAction .primaryButton,
+.secondaryActionButton {
+  width: auto;
+  min-width: 210px;
+  padding-inline: 24px;
+}
+
+.secondaryActionButton {
+  min-height: 50px;
+  margin-top: 16px;
+  border: 1px solid #d9dce2;
+  border-radius: 10px;
+  color: #f7f7f8;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.secondaryActionButton:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.tokenResult {
+  color: #b8bdc6;
+  line-height: 1.6;
+}
+
+.tokenResult:empty {
+  display: none;
+}
+
+.tokenResult strong {
+  display: block;
+  color: #fff;
+  font-size: 20px;
+}
+
+.tokenResult p {
+  margin: 7px 0 0;
+}
+
+.tokenFooter {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #292d36;
+  color: #767c87;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.tokenFooter a {
+  flex: none;
+  color: #ff9168;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tokenFooter span {
+  max-width: 390px;
+  text-align: right;
+}
+
+.internalNotice {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  padding: 13px 18px;
+  margin-top: 14px;
+  border: 1px dashed #343945;
+  border-radius: 12px;
+  color: #838996;
+  background: #090b10;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.internalNotice strong {
+  color: #b9bdc6;
+}
+
 @media (max-width: 1100px) {
   .heroGrid {
     grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
@@ -1188,6 +1421,31 @@
 
   .labSection .notesCard {
     margin-top: 22px;
+  }
+
+  .tokenHero {
+    padding-block: 36px;
+  }
+
+  .tokenCard {
+    padding: 26px 20px;
+    border-radius: 18px;
+  }
+
+  .tokenAction .primaryButton,
+  .secondaryActionButton {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tokenFooter,
+  .internalNotice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tokenFooter span {
+    text-align: left;
   }
 }
 

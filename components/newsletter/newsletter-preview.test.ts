@@ -37,13 +37,15 @@ test("la metadata bloquea indexación y la ruta usa la convención segura", () =
   assert.deepEqual(NEWSLETTER_PREVIEW_METADATA.robots, {
     index: false,
     follow: false,
-    googleBot: { index: false, follow: false },
+    noarchive: true,
+    googleBot: { index: false, follow: false, noarchive: true },
   });
-  const route = source("app/preview/newsletter/page.tsx");
-  assert.match(route, /await connection\(\)/);
-  assert.match(route, /process\.env\.NEWSLETTER_MODE/);
-  assert.match(route, /process\.env\.VERCEL_ENV/);
-  assert.match(route, /notFound\(\)/);
+  assert.equal(NEWSLETTER_PREVIEW_METADATA.referrer, "no-referrer");
+  const layout = source("app/preview/newsletter/layout.tsx");
+  assert.match(layout, /await connection\(\)/);
+  assert.match(layout, /process\.env\.NEWSLETTER_MODE/);
+  assert.match(layout, /process\.env\.VERCEL_ENV/);
+  assert.match(layout, /notFound\(\)/);
 });
 
 test("la preview no se publica en sitemap ni navegación", () => {
@@ -62,18 +64,20 @@ test("la validación devuelve errores genéricos sin enumerar direcciones", () =
 
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
   assert.match(form, /state === "submitting"/);
-  assert.match(form, /state === "pending_confirmation"/);
+  assert.match(form, /accepted:/);
   assert.match(form, /generic_error/);
-  assert.match(form, /Revisa tu correo/);
+  assert.match(form, /Solicitud recibida/);
+  assert.doesNotMatch(form, /Revisa tu correo|Te hemos enviado un enlace/);
   assert.doesNotMatch(form, /ya (?:existe|está registrada|estaba registrada)/i);
 });
 
-test("el formulario simulado no comunica ni persiste datos", () => {
+test("el laboratorio visual conserva estados simulados sin persistencia cliente", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
   assert.doesNotMatch(form, /\bfetch\s*\(/);
   assert.doesNotMatch(form, /localStorage|sessionStorage|console\.|analytics|supabase|resend/i);
-  assert.match(form, /setEmail\(""\)/);
-  assert.match(form, /window\.setTimeout/);
+  assert.match(form, /variant === "lab"/);
+  assert.match(form, /NewsletterSignupLab/);
+  assert.match(form, /NEWSLETTER_PREVIEW_FORM_STATES\.map/);
 });
 
 test("los parámetros de laboratorio sólo aceptan opciones conocidas", () => {

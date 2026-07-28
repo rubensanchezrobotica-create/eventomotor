@@ -26,15 +26,18 @@ export type NewsletterPreviewOptions = {
 
 export const NEWSLETTER_PREVIEW_METADATA: Metadata = {
   title: {
-    absolute: "Preview de La Agenda Motor R2 | EventoMotor",
+    absolute: "Preview de La Agenda Motor | EventoMotor",
   },
   description: "Preview interna del producto de newsletter La Agenda Motor.",
+  referrer: "no-referrer",
   robots: {
     index: false,
     follow: false,
+    noarchive: true,
     googleBot: {
       index: false,
       follow: false,
+      noarchive: true,
     },
   },
 };

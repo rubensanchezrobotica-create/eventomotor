@@ -50,7 +50,10 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
               <strong>El próximo plan empieza aquí</strong>
               <p>Elige tu provincia y recibe una selección semanal pensada para ti.</p>
             </div>
-            <NewsletterSignupForm initialState={initialOptions.formState} />
+            <NewsletterSignupForm />
+            <p className={styles.internalFormNotice}>
+              Entorno interno: el envío real de correo todavía no está habilitado.
+            </p>
           </div>
         </div>
       </section>
@@ -160,9 +163,9 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
               <h2>Qué estamos evaluando en R2</h2>
             </div>
             <div className={styles.notesGrid}>
-              <article><strong>Implementado</strong><p>Producto, captación simulada, estados, tres plantillas, HTML y texto plano.</p></article>
-              <article><strong>Simulado</strong><p>Confirmación, provincia, enlaces, feedback y contenido editorial de muestra.</p></article>
-              <article><strong>R3</strong><p>Orquestación server-only, endpoints internos, rate limiting y pruebas con base aislada.</p></article>
+              <article><strong>Implementado</strong><p>Preview conectada a los contratos HTTP internos, estados, plantillas, HTML y texto plano.</p></article>
+              <article><strong>Simulado</strong><p>Contenido editorial, variantes futuras y estados visuales del laboratorio.</p></article>
+              <article><strong>R3B.2</strong><p>Solicitud, confirmación y baja mediante POST, con producción y correo real bloqueados.</p></article>
               <article><strong>Revisión legal</strong><p>Consentimiento, preferencias, baja y textos definitivos deben aprobarse antes de una integración pública.</p></article>
             </div>
           </div>
