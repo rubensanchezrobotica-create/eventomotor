@@ -38,6 +38,7 @@
     "test:newsletter-r3a1": "node --import tsx --test scripts/prepare-newsletter-supabase-ci.test.ts",
     "test:newsletter-r3b1": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b1.test.ts",
     "test:newsletter-r3b2": "node --import tsx --test tests/newsletter/newsletter-r3b2.test.ts",
+    "test:newsletter-r3b3": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r3b3.test.ts && node --import tsx --test tests/newsletter/newsletter-r3b3-render.test.tsx",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",

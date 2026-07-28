@@ -9,6 +9,7 @@ import {
   NullNewsletterMailTransport,
   type NewsletterMailTransport,
 } from "@/lib/newsletter/mail-transport.server";
+import { createConfiguredNewsletterMailCaptureRuntime } from "@/lib/newsletter/mail-capture-config.server";
 import { createConfiguredNewsletterRepository } from "@/lib/newsletter/repository.server";
 import {
   isValidEmail,
@@ -285,9 +286,10 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
 }
 
 export function createConfiguredNewsletterService(): NewsletterService {
+  const configuredCapture = createConfiguredNewsletterMailCaptureRuntime();
   return createNewsletterService({
-    mode: getNewsletterServerConfig().mode,
+    mode: configuredCapture?.serviceMode ?? getNewsletterServerConfig().mode,
     repository: createConfiguredNewsletterRepository(),
-    mailTransport: new NullNewsletterMailTransport(),
+    mailTransport: configuredCapture?.transport ?? new NullNewsletterMailTransport(),
   });
 }

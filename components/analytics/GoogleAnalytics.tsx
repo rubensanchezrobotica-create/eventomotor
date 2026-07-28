@@ -6,13 +6,17 @@ import { Suspense, useEffect, useState } from "react";
 import { COOKIE_CONSENT_EVENT, hasAnalyticsConsent } from "@/lib/cookie-consent";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-const NEWSLETTER_TOKEN_ROUTES = new Set([
+const NEWSLETTER_ANALYTICS_EXCLUDED_ROUTES = new Set([
   "/preview/newsletter/confirm",
   "/preview/newsletter/unsubscribe",
 ]);
 
 export function isAnalyticsExcludedPath(pathname: string): boolean {
-  return NEWSLETTER_TOKEN_ROUTES.has(pathname);
+  return (
+    NEWSLETTER_ANALYTICS_EXCLUDED_ROUTES.has(pathname) ||
+    pathname === "/preview/newsletter/mailbox" ||
+    pathname.startsWith("/preview/newsletter/mailbox/")
+  );
 }
 
 function GoogleAnalyticsPageViews({ ready }: { ready: boolean }) {
