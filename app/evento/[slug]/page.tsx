@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import EventDetailView from "@/components/events/detail/EventDetailView";
-import { getEventImage, getEventImageAlt } from "@/lib/event-images";
+import { getEventImage } from "@/lib/event-images";
+import {
+  buildEventBreadcrumbJsonLd,
+  buildEventJsonLd,
+  buildEventMetadata,
+} from "@/lib/event-page-seo";
+import {
+  buildFaqPageJsonLd,
+  getEventSeoOverride,
+} from "@/lib/event-seo-overrides";
 import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
@@ -11,20 +20,6 @@ import { eventSlugRedirectHref } from "@/lib/event-slug-redirects";
 type EventPageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-type EventOfferData = EventItem & {
-  price?: number | string | null;
-  priceCurrency?: string | null;
-  validFrom?: string | null;
-  isFree?: boolean | null;
-};
-
-const EVENT_STATUS_SCHEMA: Record<string, string> = {
-  confirmed: "https://schema.org/EventScheduled",
-  tentative: "https://schema.org/EventScheduled",
-  postponed: "https://schema.org/EventPostponed",
-  cancelled: "https://schema.org/EventCancelled",
 };
 
 async function getVisibleEvents(): Promise<EventItem[]> {
@@ -50,25 +45,6 @@ async function getEventBySlug(slug: string): Promise<EventItem | null> {
 
 function cleanText(value: string | null | undefined) {
   return value?.trim() || "";
-}
-
-function effectiveOfficialUrl(event: EventItem) {
-  return cleanText(event.officialUrl) || cleanText(event.sourceUrl);
-}
-
-function effectiveRegistrationUrl(event: EventItem) {
-  return cleanText(event.registrationUrl) || cleanText(event.ticketUrl);
-}
-
-function schemaEventStatus(event: EventItem) {
-  return EVENT_STATUS_SCHEMA[cleanText(event.eventStatus)] || "https://schema.org/EventScheduled";
-}
-
-function hasCoordinates(event: EventItem) {
-  return typeof event.latitude === "number"
-    && typeof event.longitude === "number"
-    && Number.isFinite(event.latitude)
-    && Number.isFinite(event.longitude);
 }
 
 function absoluteImageUrl(value: string, siteUrl: string) {
@@ -120,7 +96,7 @@ function buildDescription(event: EventItem) {
 }
 
 function buildMetadataDescription(event: EventItem) {
-  const description = buildEventSeoDescription(event);
+  const description = getEventSeoOverride(event.slug)?.seoDescription || buildEventSeoDescription(event);
   return description.length > 170 ? `${description.slice(0, 167).trim()}...` : description;
 }
 
@@ -202,34 +178,34 @@ function hasCircuitSignal(event: EventItem) {
 
 function buildEventSeoTitle(event: EventItem) {
   if (isRallyeLaCeramica(event)) {
-    return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+    return "Rallye La Cerámica 2026 | Fecha, ubicación y fuente oficial";
   }
   if (isRallyPicosDeEuropa(event)) {
-    return "Rally Picos de Europa 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+    return "Rally Picos de Europa 2026 | Fecha, ubicación y fuente oficial";
   }
   if (isRallysprintCarreno(event)) {
-    return "Rallysprint Carreño 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+    return "Rallysprint Carreño 2026 | Fecha, ubicación y fuente oficial";
   }
   if (isRallyeCiudadDeValencia(event)) {
-    return "Rallye Ciudad de Valencia 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+    return "Rallye Ciudad de Valencia 2026 | Fecha, ubicación y fuente oficial";
   }
   if (isGallineroMotoFest(event)) {
-    return "Gallinero Moto Fest 2026 | Fecha, ubicación y fuente oficial | EventoMotor";
+    return "Gallinero Moto Fest 2026 | Fecha, ubicación y fuente oficial";
   }
   if (isClassicAlcoyEvent(event)) {
-    return "XIV Concentración Automóviles y Motocicletas Clásicas 2026 | Alcoy | EventoMotor";
+    return "XIV Concentración Automóviles y Motocicletas Clásicas 2026 | Alcoy";
   }
   if (isJaramaTrackdayEvent(event)) {
     return hasCircuitSignal(event)
-      ? "Tandas Privadas Jarama 2026 | Fecha, circuito y fuente oficial | EventoMotor"
-      : "Tandas Privadas Jarama 2026 | Fecha, ubicacion y fuente oficial | EventoMotor";
+      ? "Tandas Privadas Jarama 2026 | Fecha, circuito y fuente oficial"
+      : "Tandas Privadas Jarama 2026 | Fecha, ubicacion y fuente oficial";
   }
 
   const location = [event.city, event.province]
     .filter((value) => value && value !== "Por confirmar")
     .join(", ");
   const locationPart = location ? ` | ${location}` : "";
-  return `${event.title}${locationPart} | ${formatEventDate(event)} | EventoMotor`;
+  return `${event.title}${locationPart} | ${formatEventDate(event)}`;
 }
 
 function buildEventSeoDescription(event: EventItem) {
@@ -263,116 +239,16 @@ function buildEventSeoDescription(event: EventItem) {
   return buildDescription(event);
 }
 
-function buildEventJsonLd(event: EventItem, url: string, imageUrl: string) {
-  const registrationUrl = effectiveRegistrationUrl(event);
-  const officialUrl = effectiveOfficialUrl(event);
-  const organizerName = cleanText(event.organizerName) || cleanText(event.source);
-  const organizerUrl = cleanText(event.organizerUrl) || cleanText(event.sourceUrl);
-  const location: Record<string, unknown> = {
-    "@type": "Place",
-    name: event.venue || event.city || "Por confirmar",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: cleanText(event.address) || undefined,
-      addressLocality: event.city || undefined,
-      addressRegion: event.province || undefined,
-      addressCountry: cleanText(event.country) || "ES",
-    },
-  };
-
-  if (hasCoordinates(event)) {
-    location.geo = {
-      "@type": "GeoCoordinates",
-      latitude: event.latitude,
-      longitude: event.longitude,
-    };
-  }
-
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Event",
-    name: event.title,
-    description: buildMetadataDescription(event),
-    startDate: event.start,
-    endDate: event.end || event.start,
-    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    eventStatus: schemaEventStatus(event),
-    url,
-    mainEntityOfPage: url,
-    image: [imageUrl],
-    location,
-  };
-
-  if (officialUrl && officialUrl !== url) {
-    jsonLd.sameAs = officialUrl;
-  }
-
-  if (organizerName) {
-    jsonLd.organizer = {
-      "@type": "Organization",
-      name: organizerName,
-      url: organizerUrl || undefined,
-    };
-  }
-
-  if (registrationUrl) {
-    const offerData = event as EventOfferData;
-    const offer: Record<string, unknown> = {
-      "@type": "Offer",
-      url: registrationUrl,
-      availability: "https://schema.org/InStock",
-    };
-    const hasNumericPrice = offerData.price !== null && offerData.price !== undefined && offerData.price !== "";
-    const numericPrice = hasNumericPrice ? Number(offerData.price) : Number.NaN;
-    const hasRealPrice = Number.isFinite(numericPrice) && (numericPrice > 0 || offerData.isFree === true);
-
-    if (hasRealPrice) {
-      offer.price = String(offerData.price);
-      if (offerData.priceCurrency) offer.priceCurrency = offerData.priceCurrency;
-    }
-    if (offerData.validFrom) offer.validFrom = offerData.validFrom;
-    jsonLd.offers = offer;
-  }
-
-  return jsonLd;
-}
-
-function buildEventMetadata(event: EventItem, siteUrl: string, requestedSlug: string): Metadata {
-  const url = `${siteUrl}/evento/${event.slug || requestedSlug}`;
-  const title = buildEventSeoTitle(event);
-  const description = buildMetadataDescription(event);
-  const eventImage = getEventImage(event);
-  const eventImageAlt = getEventImageAlt(event);
-  const image = absoluteImageUrl(eventImage, siteUrl);
-
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: "EventoMotor",
-      type: "article",
-      images: [{ url: image, alt: eventImageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [image],
-    },
-  };
-}
-
 export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
 
   if (!event) return {};
 
-  return buildEventMetadata(event, getSiteUrl(), slug);
+  return buildEventMetadata(event, getSiteUrl(), slug, {
+    title: buildEventSeoTitle(event),
+    description: buildMetadataDescription(event),
+  });
 }
 
 export default async function EventPage({ params, searchParams }: EventPageProps) {
@@ -389,11 +265,20 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
   const imageUrl = absoluteImageUrl(getEventImage(event), siteUrl);
-  const jsonLd = buildEventJsonLd(event, url, imageUrl);
+  const jsonLd = buildEventJsonLd(event, url, imageUrl, buildMetadataDescription(event));
+  const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event, url, siteUrl);
+  const faqItems = getEventSeoOverride(event.slug)?.faqItems;
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      {faqItems?.length ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaqPageJsonLd(faqItems)) }}
+        />
+      ) : null}
       <EventDetailView
         analyticsSource={event.source}
         event={event}

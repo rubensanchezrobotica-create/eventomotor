@@ -4,6 +4,7 @@ import Link from "next/link";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
+import EventFaq from "@/components/events/detail/EventFaq";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
@@ -13,8 +14,10 @@ import { dayLabel } from "@/components/public/concept/concept-model";
 import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventImage, getEventImageAlt } from "@/lib/event-images";
+import { getEventSeoOverride } from "@/lib/event-seo-overrides";
 import { getDisciplineSlug } from "@/lib/event-listing-slugs";
 import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
+import { getSeoCommunityForEvent } from "@/lib/seo-communities";
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedEventDetails,
@@ -160,6 +163,8 @@ export default function EventDetailView({
   const location = eventLocationLabel(event);
   const mapsUrl = googleMapsUrl(event);
   const zone = classifyEventMacroZone(event);
+  const community = getSeoCommunityForEvent(event);
+  const faqItems = getEventSeoOverride(event.slug)?.faqItems;
   const organizerName = cleanText(event.organizerName);
   const organizerUrl = cleanText(event.organizerUrl);
   const heroMeta = [event.championship, event.source]
@@ -200,7 +205,7 @@ export default function EventDetailView({
                     <li aria-hidden="true">/</li>
                     <li><Link href={PUBLIC_NAVIGATION.calendar}>Calendario</Link></li>
                     <li aria-hidden="true">/</li>
-                    <li><Link href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>{event.discipline}</Link></li>
+                    <li aria-current="page">{event.title}</li>
                   </ol>
                 </nav>
 
@@ -350,6 +355,8 @@ export default function EventDetailView({
             </div>
           </section>
 
+          {faqItems?.length ? <EventFaq eventTitle={event.title} items={faqItems} /> : null}
+
           {organizerName || usefulTags.length ? (
             <section className={styles.supportSection}>
               <div className={`emc-container ${styles.supportGrid} ${compactTags && !organizerName ? styles.supportGridCompactTags : ""}`}>
@@ -446,6 +453,11 @@ export default function EventDetailView({
                   Ver más de {event.discipline}
                 </Link>
                 {zone ? <Link className="emc-btn emc-btn-dark" href={`/zonas/${zone}`}>Ver zona {ZONE_LABELS[zone]}</Link> : null}
+                {community ? (
+                  <Link className="emc-btn emc-btn-dark" href={`/${community.landingSlug}`}>
+                    Ver eventos en {event.region || community.name}
+                  </Link>
+                ) : null}
               </div>
             </div>
           </section>

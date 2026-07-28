@@ -124,7 +124,7 @@ const publishInternalLinks = [
 ];
 
 export const metadata: Metadata = {
-  title: "Publicar evento de motor gratis | EventoMotor",
+  title: "Publicar evento de motor gratis",
   description:
     "Publica gratis tu concentración motera, rallye, rodada, feria, ruta o evento de motor en EventoMotor. Revisamos la información y enlazamos a la fuente oficial.",
   alternates: {
