@@ -34,19 +34,13 @@ function publicModel(
       link.href !== model.config.publicPath
       && links.findIndex((candidate) => candidate.href === link.href) === index
     ));
-  const preservedEditorial = [
-    page.intro,
-    ...page.editorialBlocks.map((block) => `${block.title}. ${block.text}`),
-    ...page.usageSteps.map((step) => `${step.title}. ${step.text}`),
-  ];
-
   return {
     ...model,
     config: {
       ...model.config,
       faqs: page.faqs,
       relatedLinks,
-      seoParagraphs: [...preservedEditorial, ...model.config.seoParagraphs],
+      seoParagraphs: model.config.seoParagraphs,
     },
   };
 }

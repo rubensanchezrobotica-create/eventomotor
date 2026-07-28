@@ -238,7 +238,7 @@ test("el estado sin próximos conserva únicamente historial regional", () => {
   assert.deepEqual(empty.pastEvents.map((event) => event.slug), ["past-madrid"]);
 });
 
-test("los fixtures cubren amplio, sin fin de semana, cero, uno, dos y aislamiento", () => {
+test("los fixtures cubren amplio, sin fin de semana, cero, uno, dos, seis y aislamiento", () => {
   const model = buildRegionalLandingModel(numberedEvents(12, "regional"), "cataluna", now);
 
   assert.equal(buildRegionalInventoryFixture(model, "cataluna-amplia").upcomingTotal, 12);
@@ -246,6 +246,8 @@ test("los fixtures cubren amplio, sin fin de semana, cero, uno, dos y aislamient
   assert.equal(buildRegionalInventoryFixture(model, "madrid-sin-futuros").upcomingTotal, 0);
   assert.equal(buildRegionalInventoryFixture(model, "un-evento").upcomingTotal, 1);
   assert.equal(buildRegionalInventoryFixture(model, "dos-eventos").upcomingTotal, 2);
+  assert.equal(buildRegionalInventoryFixture(model, "seis-eventos").upcomingTotal, 6);
+  assert.equal(buildRegionalInventoryFixture(model, "seis-eventos").finderMode, "compact");
   assert.equal(regionalFixtureId({ fixture: "aislamiento-territorial" }), "aislamiento-territorial");
   assert.equal(regionalFixtureId({ fixture: "sin-futuros" }), "madrid-sin-futuros");
   assert.equal(regionalFixtureId({ fixture: "desconocido" }), null);
@@ -263,6 +265,7 @@ test("los fixtures cubren amplio, sin fin de semana, cero, uno, dos y aislamient
     "madrid-sin-futuros",
     "un-evento",
     "dos-eventos",
+    "seis-eventos",
     "aislamiento-territorial",
   ]) {
     assert.match(fixtureSources, new RegExp(fixture));
@@ -393,11 +396,14 @@ test("formatea rangos entre meses y años en dos líneas inequívocas", () => {
 test("Madrid vacío presenta el estado compacto exacto y acciones requeridas", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
-  const modelSource = source("lib/regions/regional-landing-model.ts");
+  const emptyState = buildRegionalLandingModel([], "madrid", now).config.emptyState;
 
-  assert.match(modelSource, /eyebrow: "Agenda en actualización"/);
-  assert.match(modelSource, /title: "Agenda de Madrid en actualización"/);
-  assert.match(modelSource, /Ahora mismo no hay próximas fechas confirmadas\. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos\./);
+  assert.equal(emptyState.eyebrow, "Agenda en actualización");
+  assert.equal(emptyState.title, "Agenda de Madrid en actualización");
+  assert.equal(
+    emptyState.description,
+    "Ahora mismo no hay próximas fechas confirmadas. Actualizamos la agenda cuando organizadores, clubes y circuitos publican nuevos eventos.",
+  );
   assert.match(component, /model\.config\.emptyState\.eyebrow/);
   assert.match(component, /model\.config\.emptyState\.title/);
   assert.match(component, /model\.config\.emptyState\.description/);

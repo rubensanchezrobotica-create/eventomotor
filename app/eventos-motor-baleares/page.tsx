@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import OpportunityPage from "@/components/public/seo/OpportunityPage";
+import PublicRegionalLanding from "@/components/regions/PublicRegionalLanding";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 
 const page = getOpportunityPage("eventos-motor-baleares");
 
 export const metadata: Metadata = buildOpportunityMetadata(page);
 
-export default function EventosMotorBalearesPage() {
+export default function EventosMotorBalearesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   if (!page) notFound();
-
-  return <OpportunityPage page={page} />;
+  return <PublicRegionalLanding page={page} region="baleares" searchParams={searchParams} />;
 }
