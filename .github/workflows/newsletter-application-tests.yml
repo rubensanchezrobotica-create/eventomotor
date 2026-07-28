@@ -1,0 +1,70 @@
+name: Newsletter application tests
+
+on:
+  push:
+    branches:
+      - "feature/newsletter-*"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: newsletter-application-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEWSLETTER_MODE: "off"
+  NEWSLETTER_MAIL_TRANSPORT: "disabled"
+
+jobs:
+  newsletter-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: R4A tests
+        run: npm run test:newsletter-r4a
+
+      - name: Standard application tests
+        shell: bash
+        run: |
+          mapfile -t standard_tests < <(
+            git ls-files -- '*.test.ts' '*.test.tsx' |
+              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a)\.test\.ts)$'
+          )
+          test "${#standard_tests[@]}" -gt 0
+          node --import tsx --test "${standard_tests[@]}"
+
+      - name: React-server tests
+        run: >-
+          node --conditions=react-server --import tsx --test
+          lib/newsletter/newsletter-core.test.ts
+          lib/newsletter/newsletter-migration.test.ts
+          tests/newsletter/newsletter-r3a.test.ts
+          tests/newsletter/newsletter-r3b1.test.ts
+          tests/newsletter/newsletter-r3b3.test.ts
+          tests/newsletter/newsletter-r3b4.test.ts
+          tests/newsletter/newsletter-r4a.test.ts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

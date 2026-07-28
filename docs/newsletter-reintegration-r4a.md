@@ -104,6 +104,39 @@ proveedor. R4A no inventa una clave a partir del email, token, asunto, HTML o
 texto, y no amplía el modelo. La idempotencia durable del envío queda
 pendiente de una operación persistida en una fase posterior.
 
+## CI de aplicación R4A.1
+
+El workflow independiente `Newsletter application tests` valida la capa de
+aplicación en cada push a `feature/newsletter-*` y en cada pull request hacia
+`main`. Mantiene `permissions: contents: read`, cancela ejecuciones anteriores
+de la misma rama o pull request y usa Node 24 con el lockfile de npm.
+
+El job instala con `npm ci` y ejecuta, en este orden:
+
+1. `npm run test:newsletter-r4a`;
+2. la partición estándar de tests de aplicación;
+3. las siete suites que requieren la condición `react-server`;
+4. `npm run typecheck`;
+5. `npm run build`.
+
+La partición estándar descubre todos los tests TypeScript tracked y excluye
+únicamente las siete suites ejecutadas en la partición `react-server`. Un test
+estructural protege los pasos, permisos y límites del propio workflow. El
+workflow `Newsletter database tests` permanece separado: valida migración,
+pgTAP, concurrencia, lint SQL y permisos RPC sobre un Supabase local efímero;
+el workflow de aplicación no inicia Supabase, Docker ni migraciones.
+
+La CI de aplicación define sólo `NEWSLETTER_MODE=off` y
+`NEWSLETTER_MAIL_TRANSPORT=disabled`. No consume secrets, no configura
+Supabase, Resend o SMTP, y no contiene envío, artifacts, comentarios
+automáticos ni despliegue. R4A usa el cliente fake inyectado y su guard de red:
+el cliente HTTP real no se invoca, no se contacta
+`https://api.resend.com/emails` y no se envían correos. El build demuestra que
+la aplicación compila con la newsletter deshabilitada y sin credenciales.
+
+Los workflows `Newsletter application tests` y `Newsletter database tests`
+deberán estar verdes antes de cualquier merge que afecte este flujo.
+
 ## Estado operativo y requisitos para R4B
 
 R4A no contiene claves, no consulta una cuenta Resend, no envía confirmation
