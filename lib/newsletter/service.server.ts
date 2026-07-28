@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getNewsletterServerConfig } from "@/lib/newsletter/config.server";
 import { isNewsletterProvinceSlug } from "@/lib/newsletter/audience";
 import {
   createOpaqueNewsletterToken,
@@ -10,7 +9,7 @@ import {
   NullNewsletterMailTransport,
   type NewsletterMailTransport,
 } from "@/lib/newsletter/mail-transport.server";
-import { createConfiguredNewsletterMailCaptureRuntime } from "@/lib/newsletter/mail-capture-config.server";
+import { createConfiguredNewsletterMailRuntime } from "@/lib/newsletter/mail-transport-config.server";
 import { createConfiguredNewsletterRepository } from "@/lib/newsletter/repository.server";
 import {
   isValidEmail,
@@ -348,10 +347,10 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
 }
 
 export function createConfiguredNewsletterService(): NewsletterService {
-  const configuredCapture = createConfiguredNewsletterMailCaptureRuntime();
+  const mailRuntime = createConfiguredNewsletterMailRuntime();
   return createNewsletterService({
-    mode: configuredCapture?.serviceMode ?? getNewsletterServerConfig().mode,
+    mode: mailRuntime.serviceMode,
     repository: createConfiguredNewsletterRepository(),
-    mailTransport: configuredCapture?.transport ?? new NullNewsletterMailTransport(),
+    mailTransport: mailRuntime.transport,
   });
 }
