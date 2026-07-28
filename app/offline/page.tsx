@@ -6,7 +6,7 @@ import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Sin conexión | EventoMotor",
+  title: "Sin conexión",
   description: "Página offline de EventoMotor.",
   alternates: {
     canonical: `${SITE_URL}/offline`,

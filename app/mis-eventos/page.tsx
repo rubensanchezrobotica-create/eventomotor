@@ -6,7 +6,7 @@ import MyEventsClient from "@/components/events/MyEventsClient";
 import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Mis eventos guardados | EventoMotor",
+  title: "Mis eventos guardados",
   description: "Consulta los eventos de motor que has guardado en este dispositivo.",
   alternates: {
     canonical: `${SITE_URL}/mis-eventos`,

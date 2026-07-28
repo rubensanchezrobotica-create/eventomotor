@@ -4,6 +4,7 @@ import test from "node:test";
 
 test("pública y preview consumen una única presentación neutral", () => {
   const publicRoute = readFileSync(new URL("../../../app/evento/[slug]/page.tsx", import.meta.url), "utf8");
+  const publicSeo = readFileSync(new URL("../../../lib/event-page-seo.ts", import.meta.url), "utf8");
   const previewRoute = readFileSync(new URL("../../../app/preview/evento/[slug]/page.tsx", import.meta.url), "utf8");
   const view = readFileSync(new URL("./EventDetailView.tsx", import.meta.url), "utf8");
 
@@ -11,11 +12,11 @@ test("pública y preview consumen una única presentación neutral", () => {
   assert.match(previewRoute, /components\/events\/detail\/EventDetailView/);
   assert.match(publicRoute, /if \(!event\) notFound\(\)/);
   assert.match(publicRoute, /footerContactTrackingLocation="event_detail_footer"/);
-  assert.match(publicRoute, /alternates: \{ canonical: url \}/);
-  assert.match(publicRoute, /openGraph:/);
-  assert.match(publicRoute, /twitter:/);
+  assert.match(publicSeo, /alternates: \{ canonical: url \}/);
+  assert.match(publicSeo, /openGraph:/);
+  assert.match(publicSeo, /twitter:/);
   assert.match(publicRoute, /type="application\/ld\+json"/);
-  assert.match(publicRoute, /"@type": "Event"/);
+  assert.match(publicSeo, /"@type": "Event"/);
   assert.match(previewRoute, /isEventDetailPreviewAvailable/);
   assert.match(previewRoute, /index: false/);
   assert.match(previewRoute, /follow: false/);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { EventItem } from "@/types/event";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { absoluteMetadataTitle, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { SEO_COMMUNITIES, matchesSeoCommunity } from "@/lib/seo-communities";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
 import { canonicalPublicHref, PUBLIC_NAVIGATION } from "@/lib/public-navigation";
@@ -1539,7 +1539,7 @@ export function buildOpportunityMetadata(page: OpportunityPage | undefined): Met
   const url = page ? `${SITE_URL}/${page.slug}` : SITE_URL;
 
   return {
-    title,
+    title: absoluteMetadataTitle(title),
     description,
     alternates: {
       canonical: url,

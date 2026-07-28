@@ -362,3 +362,7 @@ export function matchesSeoCommunity(event: EventItem, community: SeoCommunityCon
   const hasStructuredLocation = [event.region, event.province, event.city].some(hasUsableLocationValue);
   return !hasStructuredLocation && matchesFallbackAliases(event, community);
 }
+
+export function getSeoCommunityForEvent(event: EventItem): SeoCommunityConfig | undefined {
+  return Object.values(SEO_COMMUNITIES).find((community) => matchesSeoCommunity(event, community));
+}

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 export const SITE_URL = "https://www.eventomotor.com";
 export const SITE_NAME = "EventoMotor";
 export const CONTACT_EMAIL = "info@eventomotor.com";
@@ -11,4 +13,12 @@ export const LOGO_URL = "/brand/eventomotor-logo-horizontal-dark-header.png";
 export function absoluteUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+export function absoluteMetadataTitle(title: string): NonNullable<Metadata["title"]> {
+  return { absolute: title };
+}
+
+export function brandedPageTitle(title: string) {
+  return `${title} | ${SITE_NAME}`;
 }
