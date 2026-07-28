@@ -22,6 +22,8 @@ import type {
   NewsletterPreferenceRow,
   NewsletterSubscriberInsert,
   NewsletterSubscriberRow,
+  NewsletterUnsubscribeTokenInsert,
+  NewsletterUnsubscribeTokenRow,
 } from "@/lib/newsletter/types";
 
 export type EventRow = {
@@ -206,6 +208,12 @@ export type Database = {
         Update: Partial<NewsletterConfirmationTokenInsert>;
         Relationships: [];
       };
+      newsletter_unsubscribe_tokens: {
+        Row: NewsletterUnsubscribeTokenRow;
+        Insert: NewsletterUnsubscribeTokenInsert;
+        Update: Partial<NewsletterUnsubscribeTokenInsert>;
+        Relationships: [];
+      };
       newsletter_consent_events: {
         Row: NewsletterConsentEventRow;
         Insert: NewsletterConsentEventInsert;
@@ -250,9 +258,33 @@ export type Database = {
           subscriber_id: string | null;
         }>;
       };
+      prepare_newsletter_welcome_delivery: {
+        Args: {
+          p_subscriber_id: string;
+          p_token_hash: string;
+          p_expires_at?: string | null;
+        };
+        Returns: Array<{
+          subscriber_id: string;
+          recipient_email: string;
+          preferred_province: string | null;
+          preferred_region: string | null;
+          locale: string;
+        }>;
+      };
       unsubscribe_newsletter_subscriber: {
         Args: {
           p_subscriber_id: string;
+          p_consent_version: string;
+          p_source: string;
+          p_source_path?: string | null;
+          p_ip_hash?: string | null;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      unsubscribe_newsletter_by_token: {
+        Args: {
+          p_token_hash: string;
           p_consent_version: string;
           p_source: string;
           p_source_path?: string | null;

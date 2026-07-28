@@ -66,6 +66,7 @@ scripts de instalación de dependencias.
       newsletter_permissions.test.sql
       newsletter_subscription.test.sql
       newsletter_confirmation.test.sql
+      newsletter_welcome_unsubscribe.test.sql
       newsletter_unsubscribe.test.sql
       newsletter_provider_events.test.sql
       newsletter_rollback.test.sql
@@ -322,7 +323,7 @@ supabase --workdir .tmp/newsletter-supabase-ci test db --local
 
 ### Esquema
 
-Comprueba las cinco tablas, columnas y tipos críticos, primary/foreign keys, uniques, checks,
+Comprueba las seis tablas, columnas y tipos críticos, primary/foreign keys, uniques, checks,
 triggers, índices, RLS, firmas exactas, tipos de retorno, `security definer`, `search_path` vacío y
 ausencia de `EXECUTE` dinámico.
 
@@ -332,8 +333,8 @@ Los tests cambian a los roles reales `anon`, `authenticated` y `service_role`:
 
 - Los roles cliente intentan seleccionar y mutar tablas; deben recibir SQLSTATE `42501`.
 - El catálogo confirma con firmas `regprocedure` exactas que los roles cliente no pueden ejecutar
-  ninguna RPC, y la Data API local verifica después las ocho denegaciones reales mediante HTTP.
-- `service_role` debe leer las cinco tablas y ejecutar las RPC.
+  ninguna RPC, y la Data API local verifica después las doce denegaciones reales mediante HTTP.
+- `service_role` debe leer las seis tablas y ejecutar las seis RPC.
 - Se verifican grants reales y contratos de retorno sin email, token raw, estado interno o eventos
   de consentimiento.
 
@@ -400,7 +401,7 @@ Los errores PL/pgSQL son bloqueantes. Los warnings no se elevan en este checkpoi
 
 La generación informativa de tipos queda pospuesta: los tipos productivos siguen siendo manuales y
 R3A.1 no debe sobrescribirlos. Una futura comprobación podrá ejecutar `gen types --local` y filtrar
-exclusivamente las cinco tablas y cuatro RPC si la salida resulta estable con la versión fijada.
+exclusivamente las seis tablas y seis RPC si la salida resulta estable con la versión fijada.
 
 ## Diagnóstico y limpieza
 
@@ -425,7 +426,7 @@ node scripts/prepare-newsletter-supabase-ci.mjs --clean
 - Eventos, lotes, enrichment, importadores, SEO, imágenes o marca.
 - Resend, DNS, Vercel, endpoints, formularios o emails.
 
-## Bloqueo de R3B
+## Criterio histórico de desbloqueo de R3B
 
 R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit o su PR demuestre:
 
@@ -436,6 +437,11 @@ R3B permanece bloqueado hasta que una ejecución del workflow sobre este commit 
 5. Las cuatro llamadas anon denegadas con HTTP `401` y SQLSTATE `42501`, y las cuatro authenticated
    denegadas con HTTP `403` y SQLSTATE `42501`, sin 5xx, recovery ni efectos laterales.
 6. Revisión y corrección aislada de cualquier defecto SQL reproducible.
+
+R3A.1 quedó validado con ese alcance original. R3B.4 amplía después la fundación todavía no aplicada
+a seis tablas, seis RPC, ocho suites con 149 aserciones y doce denegaciones Data API. Esos nuevos
+totales deberán validarse en otra ejecución autorizada antes de iniciar R4; no sustituyen ni
+reescriben los resultados históricos de 117/117 y 8/8.
 
 ## Propuesta de commit
 

@@ -20,6 +20,7 @@ export const NEWSLETTER_SQL_TESTS = [
   "newsletter_permissions.test.sql",
   "newsletter_subscription.test.sql",
   "newsletter_confirmation.test.sql",
+  "newsletter_welcome_unsubscribe.test.sql",
   "newsletter_unsubscribe.test.sql",
   "newsletter_provider_events.test.sql",
   "newsletter_rollback.test.sql",

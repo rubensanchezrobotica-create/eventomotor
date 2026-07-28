@@ -8,14 +8,19 @@ import {
 import {
   NewsletterOperationError,
   type NewsletterConfirmRepositoryResult,
+  type NewsletterPrepareWelcomeRepositoryParams,
   type NewsletterProviderEventRepositoryParams,
   type NewsletterRepository,
   type NewsletterRequestRepositoryResult,
+  type NewsletterTokenUnsubscribeRepositoryParams,
   type NewsletterUnsubscribeRepositoryParams,
+  type NewsletterWelcomeDeliveryContext,
 } from "@/lib/newsletter/service-types";
+import { isValidEmail } from "@/lib/newsletter/schemas";
 import type {
   NewsletterConfirmationOutcome,
   NewsletterSubscriptionOutcome,
+  NewsletterTokenUnsubscribeOutcome,
   NewsletterTokenPurpose,
   NewsletterUnsubscribeOutcome,
 } from "@/lib/newsletter/types";
@@ -25,8 +30,12 @@ type RequestArgs = Functions["request_newsletter_subscription"]["Args"];
 type RequestRow = Functions["request_newsletter_subscription"]["Returns"][number];
 type ConfirmArgs = Functions["confirm_newsletter_subscription"]["Args"];
 type ConfirmRow = Functions["confirm_newsletter_subscription"]["Returns"][number];
+type PrepareWelcomeArgs = Functions["prepare_newsletter_welcome_delivery"]["Args"];
+type PrepareWelcomeRow = Functions["prepare_newsletter_welcome_delivery"]["Returns"][number];
 type UnsubscribeArgs = Functions["unsubscribe_newsletter_subscriber"]["Args"];
 type UnsubscribeRow = Functions["unsubscribe_newsletter_subscriber"]["Returns"][number];
+type UnsubscribeByTokenArgs = Functions["unsubscribe_newsletter_by_token"]["Args"];
+type UnsubscribeByTokenRow = Functions["unsubscribe_newsletter_by_token"]["Returns"][number];
 type ProviderEventArgs = Functions["record_newsletter_provider_event"]["Args"];
 type ProviderEventRow = Functions["record_newsletter_provider_event"]["Returns"][number];
 
@@ -36,7 +45,9 @@ type RpcResult<Row> = { data: Row[] | null; error: RpcError | null };
 export interface NewsletterRpcGateway {
   requestSubscription(args: RequestArgs): Promise<RpcResult<RequestRow>>;
   confirmSubscription(args: ConfirmArgs): Promise<RpcResult<ConfirmRow>>;
+  prepareWelcomeDelivery(args: PrepareWelcomeArgs): Promise<RpcResult<PrepareWelcomeRow>>;
   unsubscribeSubscriber(args: UnsubscribeArgs): Promise<RpcResult<UnsubscribeRow>>;
+  unsubscribeByToken(args: UnsubscribeByTokenArgs): Promise<RpcResult<UnsubscribeByTokenRow>>;
   recordProviderEvent(args: ProviderEventArgs): Promise<RpcResult<ProviderEventRow>>;
 }
 
@@ -60,8 +71,15 @@ const UNSUBSCRIBE_OUTCOMES: readonly NewsletterUnsubscribeOutcome[] = [
   "already_not_sendable",
   "not_found",
 ];
+const TOKEN_UNSUBSCRIBE_OUTCOMES: readonly NewsletterTokenUnsubscribeOutcome[] = [
+  "unsubscribed",
+  "already_unsubscribed",
+  "invalid_or_expired",
+];
 const TOKEN_PURPOSES: readonly NewsletterTokenPurpose[] = ["subscribe", "resubscribe"];
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 
 function persistenceFailure(code: "rpc_failed" | "rpc_contract_violation"): NewsletterOperationError {
   return new NewsletterOperationError("persistence_error", code);
@@ -89,8 +107,16 @@ export function createNewsletterRpcGateway(
       const { data, error } = await client.rpc("confirm_newsletter_subscription", args);
       return { data, error };
     },
+    async prepareWelcomeDelivery(args) {
+      const { data, error } = await client.rpc("prepare_newsletter_welcome_delivery", args);
+      return { data, error };
+    },
     async unsubscribeSubscriber(args) {
       const { data, error } = await client.rpc("unsubscribe_newsletter_subscriber", args);
+      return { data, error };
+    },
+    async unsubscribeByToken(args) {
+      const { data, error } = await client.rpc("unsubscribe_newsletter_by_token", args);
       return { data, error };
     },
     async recordProviderEvent(args) {
@@ -154,6 +180,35 @@ export function createNewsletterRepository(gateway: NewsletterRpcGateway): Newsl
       };
     },
 
+    async prepareWelcomeDelivery(
+      params: NewsletterPrepareWelcomeRepositoryParams,
+    ): Promise<NewsletterWelcomeDeliveryContext> {
+      const row = singleRow(
+        await gateway.prepareWelcomeDelivery({
+          p_subscriber_id: params.subscriberId,
+          p_token_hash: params.tokenHash,
+          p_expires_at: params.expiresAt,
+        }),
+      );
+      if (
+        !UUID_PATTERN.test(row.subscriber_id) ||
+        row.subscriber_id !== params.subscriberId ||
+        !isValidEmail(row.recipient_email) ||
+        (row.preferred_province !== null && !SLUG_PATTERN.test(row.preferred_province)) ||
+        (row.preferred_region !== null && !SLUG_PATTERN.test(row.preferred_region)) ||
+        !LOCALE_PATTERN.test(row.locale)
+      ) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      return {
+        subscriberId: row.subscriber_id,
+        recipientEmail: row.recipient_email,
+        provinceSlug: row.preferred_province,
+        regionSlug: row.preferred_region,
+        locale: row.locale,
+      };
+    },
+
     async unsubscribeSubscriber(params: NewsletterUnsubscribeRepositoryParams) {
       const row = singleRow(
         await gateway.unsubscribeSubscriber({
@@ -165,6 +220,22 @@ export function createNewsletterRepository(gateway: NewsletterRpcGateway): Newsl
         }),
       );
       if (!includesValue(UNSUBSCRIBE_OUTCOMES, row.outcome)) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      return row.outcome;
+    },
+
+    async unsubscribeByToken(params: NewsletterTokenUnsubscribeRepositoryParams) {
+      const row = singleRow(
+        await gateway.unsubscribeByToken({
+          p_token_hash: params.tokenHash,
+          p_consent_version: params.consentVersion,
+          p_source: params.source,
+          p_source_path: params.sourcePath,
+          p_ip_hash: params.ipHash,
+        }),
+      );
+      if (!includesValue(TOKEN_UNSUBSCRIBE_OUTCOMES, row.outcome)) {
         throw persistenceFailure("rpc_contract_violation");
       }
       return row.outcome;

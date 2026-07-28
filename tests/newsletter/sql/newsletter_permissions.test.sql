@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(22);
+select plan(28);
 
 set local role anon;
 select throws_ok(
@@ -29,6 +29,12 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_subscribers',
   'anon cannot delete subscribers'
+);
+select throws_ok(
+  $$select * from public.newsletter_unsubscribe_tokens$$,
+  '42501',
+  'permission denied for table newsletter_unsubscribe_tokens',
+  'anon cannot select unsubscribe tokens'
 );
 reset role;
 
@@ -56,6 +62,12 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_subscribers',
   'authenticated cannot delete subscribers'
+);
+select throws_ok(
+  $$select * from public.newsletter_unsubscribe_tokens$$,
+  '42501',
+  'permission denied for table newsletter_unsubscribe_tokens',
+  'authenticated cannot select unsubscribe tokens'
 );
 reset role;
 
@@ -91,6 +103,22 @@ select ok(
   ),
   'anon has no execute privilege on provider RPC'
 );
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.prepare_newsletter_welcome_delivery(uuid,text,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on welcome preparation RPC'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.unsubscribe_newsletter_by_token(text,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on token unsubscribe RPC'
+);
 
 select ok(
   not has_function_privilege(
@@ -124,6 +152,22 @@ select ok(
   ),
   'authenticated has no execute privilege on provider RPC'
 );
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.prepare_newsletter_welcome_delivery(uuid,text,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on welcome preparation RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.unsubscribe_newsletter_by_token(text,text,text,text,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on token unsubscribe RPC'
+);
 
 set local role service_role;
 select lives_ok(
@@ -131,6 +175,7 @@ select lives_ok(
     select count(*) from public.newsletter_subscribers
     union all select count(*) from public.newsletter_preferences
     union all select count(*) from public.newsletter_confirmation_tokens
+    union all select count(*) from public.newsletter_unsubscribe_tokens
     union all select count(*) from public.newsletter_consent_events
     union all select count(*) from public.newsletter_email_events
   $$,
@@ -145,26 +190,35 @@ reset role;
 select ok(
   has_function_privilege('service_role', 'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.confirm_newsletter_subscription(text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.prepare_newsletter_welcome_delivery(uuid,text,timestamptz)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.unsubscribe_newsletter_subscriber(uuid,text,text,text,text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.unsubscribe_newsletter_by_token(text,text,text,text,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.record_newsletter_provider_event(text,text,text,uuid,text,boolean,timestamptz)', 'EXECUTE'),
-  'service_role has execute privilege on all four RPCs'
+  'service_role has execute privilege on all six RPCs'
 );
 
 select ok(
   (
     select bool_and(
-      pg_get_function_result(oid) !~* 'email|token_hash|token_raw|subscriber_status|consent'
+      case
+        when proname = 'prepare_newsletter_welcome_delivery'
+          then pg_get_function_result(oid) =
+            'TABLE(subscriber_id uuid, recipient_email text, preferred_province text, preferred_region text, locale text)'
+        else pg_get_function_result(oid) !~* 'email|token_hash|token_raw|subscriber_status|consent'
+      end
     )
     from pg_proc
     where pronamespace = 'public'::regnamespace
       and proname in (
         'request_newsletter_subscription',
         'confirm_newsletter_subscription',
+        'prepare_newsletter_welcome_delivery',
         'unsubscribe_newsletter_subscriber',
+        'unsubscribe_newsletter_by_token',
         'record_newsletter_provider_event'
       )
   ),
-  'RPC returns expose no email, token raw, internal status or consent event'
+  'RPC returns expose only the approved minimal delivery context'
 );
 
 select is(
@@ -181,14 +235,14 @@ select is(
 
 select ok(
   (
-    select count(*) = 5
+    select count(*) = 6
     from information_schema.role_table_grants
     where table_schema = 'public'
       and table_name like 'newsletter_%'
       and grantee = 'service_role'
       and privilege_type = 'SELECT'
   ),
-  'service_role has exactly the intended table read grants'
+  'service_role has exactly the intended six table read grants'
 );
 
 select * from finish();

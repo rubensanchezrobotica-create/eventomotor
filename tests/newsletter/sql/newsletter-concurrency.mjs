@@ -195,9 +195,34 @@ try {
       select id from subscriber;
     `,
   );
+  const prepareWelcomeSql = (hashCharacter) => `
+    select subscriber_id from public.prepare_newsletter_welcome_delivery(
+      ${sqlLiteral(unsubscribeSubscriberId)}::uuid,
+      repeat(${sqlLiteral(hashCharacter)}, 64),
+      null
+    );
+  `;
+  const preparationResults = await Promise.allSettled([
+    query(container, prepareWelcomeSql("e")),
+    query(container, prepareWelcomeSql("f")),
+  ]);
+  fulfilledValues(preparationResults, "welcome preparation");
+  assertEqual(
+    await query(
+      container,
+      `select count(*) from public.newsletter_unsubscribe_tokens where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid and invalidated_at is null;`,
+    ),
+    "1",
+    "active unsubscribe token count",
+  );
+
+  const activeUnsubscribeHash = await query(
+    container,
+    `select token_hash from public.newsletter_unsubscribe_tokens where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid and invalidated_at is null;`,
+  );
   const unsubscribeSql = `
-    select outcome from public.unsubscribe_newsletter_subscriber(
-      ${sqlLiteral(unsubscribeSubscriberId)}::uuid, '2026-07', 'concurrency_test'
+    select outcome from public.unsubscribe_newsletter_by_token(
+      ${sqlLiteral(activeUnsubscribeHash)}, '2026-07', 'concurrency_test'
     );
   `;
   const unsubscribeResults = await Promise.allSettled([
@@ -217,6 +242,14 @@ try {
     "unsubscribed",
     "unsubscribe final state",
   );
+  assertEqual(
+    await query(
+      container,
+      `select count(*) from public.newsletter_consent_events where subscriber_id = ${sqlLiteral(unsubscribeSubscriberId)}::uuid and action = 'unsubscribed';`,
+    ),
+    "1",
+    "unsubscribe consent event count",
+  );
 
   process.stdout.write("Newsletter concurrency tests passed in isolated PostgreSQL.\n");
 } finally {
@@ -230,6 +263,10 @@ try {
           where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
         );
         delete from public.newsletter_confirmation_tokens where subscriber_id in (
+          select id from public.newsletter_subscribers
+          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
+        );
+        delete from public.newsletter_unsubscribe_tokens where subscriber_id in (
           select id from public.newsletter_subscribers
           where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
         );

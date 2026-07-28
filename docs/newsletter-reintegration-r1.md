@@ -16,7 +16,9 @@ Concepts reused with changes:
 - Subscriber states and confirmation purposes.
 - Email normalization using only `trim()` and lowercase.
 - 32-byte opaque tokens, SHA-256 token hashes and HMAC SHA-256 signatures.
-- Five-table separation between subscribers, preferences, tokens, consent and provider events.
+- The original five-table separation covered subscribers, preferences, confirmation tokens,
+  consent and provider events. R3B.4 extends the still-unapplied foundation with a sixth isolated
+  table for hashed, rotatable unsubscribe tokens.
 - RLS with server-role-only access.
 
 Rewritten:
@@ -163,7 +165,8 @@ explicitly from `public`, `anon` and `authenticated`, then granted only to `serv
 
 ## Supabase types
 
-This repository currently maintains manual types in `lib/supabase.ts`, so R1 adds the five tables
+This repository currently maintains manual types in `lib/supabase.ts`, so the foundation now types
+the six tables
 and four functions there. These types are temporary representations of the unapplied migration,
 not a claim that the remote schema already contains them.
 

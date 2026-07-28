@@ -64,7 +64,19 @@ function createRepository(
     async confirmSubscription() {
       return { outcome: "confirmed", subscriberId: SUBSCRIBER_ID };
     },
+    async prepareWelcomeDelivery() {
+      return {
+        subscriberId: SUBSCRIBER_ID,
+        recipientEmail: "person+motor@example.com",
+        provinceSlug: "madrid",
+        regionSlug: null,
+        locale: "es",
+      };
+    },
     async unsubscribeSubscriber() {
+      return "unsubscribed";
+    },
+    async unsubscribeByToken() {
       return "unsubscribed";
     },
     async recordProviderEvent() {
@@ -398,7 +410,14 @@ test("confirmación válida hashea el token y prepara bienvenida sin devolver id
   assert.equal(result.decision, "confirmed");
   assert.equal(result.mailStatus, "accepted");
   assert.doesNotMatch(JSON.stringify(result), new RegExp(SUBSCRIBER_ID));
-  assert.deepEqual(transport.commands, [{ kind: "welcome", subscriberId: SUBSCRIBER_ID }]);
+  assert.deepEqual(transport.commands, [{
+    kind: "welcome",
+    recipientEmail: "person+motor@example.com",
+    rawUnsubscribeToken: RAW_TOKEN,
+    provinceSlug: "madrid",
+    regionSlug: null,
+    locale: "es",
+  }]);
 });
 
 test("confirmación inválida no prepara correo", async () => {
@@ -498,7 +517,13 @@ test("errores de validación y persistencia no contienen PII, token ni SQL", asy
     async confirmSubscription() {
       return { data: null, error: null };
     },
+    async prepareWelcomeDelivery() {
+      return { data: null, error: null };
+    },
     async unsubscribeSubscriber() {
+      return { data: null, error: null };
+    },
+    async unsubscribeByToken() {
       return { data: null, error: null };
     },
     async recordProviderEvent() {
@@ -540,8 +565,25 @@ test("el repositorio ejecuta exactamente una RPC por operación y valida sus con
       calls.push("confirm");
       return { data: [{ outcome: "confirmed", subscriber_id: SUBSCRIBER_ID }], error: null };
     },
+    async prepareWelcomeDelivery() {
+      calls.push("prepare_welcome");
+      return {
+        data: [{
+          subscriber_id: SUBSCRIBER_ID,
+          recipient_email: "person+motor@example.com",
+          preferred_province: "madrid",
+          preferred_region: null,
+          locale: "es",
+        }],
+        error: null,
+      };
+    },
     async unsubscribeSubscriber() {
       calls.push("unsubscribe");
+      return { data: [{ outcome: "unsubscribed" }], error: null };
+    },
+    async unsubscribeByToken() {
+      calls.push("unsubscribe_token");
       return { data: [{ outcome: "unsubscribed" }], error: null };
     },
     async recordProviderEvent() {
@@ -566,8 +608,20 @@ test("el repositorio ejecuta exactamente una RPC por operación y valida sus con
     ipHash: null,
   });
   await repository.confirmSubscription(TOKEN_HASH);
+  await repository.prepareWelcomeDelivery({
+    subscriberId: SUBSCRIBER_ID,
+    tokenHash: TOKEN_HASH,
+    expiresAt: null,
+  });
   await repository.unsubscribeSubscriber({
     subscriberId: SUBSCRIBER_ID,
+    source: "test",
+    consentVersion: "test",
+    sourcePath: null,
+    ipHash: null,
+  });
+  await repository.unsubscribeByToken({
+    tokenHash: TOKEN_HASH,
     source: "test",
     consentVersion: "test",
     sourcePath: null,
@@ -582,7 +636,14 @@ test("el repositorio ejecuta exactamente una RPC por operación y valida sus con
     isPermanent: false,
     occurredAt: NOW.toISOString(),
   });
-  assert.deepEqual(calls, ["request", "confirm", "unsubscribe", "provider"]);
+  assert.deepEqual(calls, [
+    "request",
+    "confirm",
+    "prepare_welcome",
+    "unsubscribe",
+    "unsubscribe_token",
+    "provider",
+  ]);
 });
 
 test("la capa R3A no crea consultas multipaso, endpoints, acciones o adaptadores Resend", () => {
@@ -591,7 +652,7 @@ test("la capa R3A no crea consultas multipaso, endpoints, acciones o adaptadores
     "utf8",
   );
   const serviceSource = readFileSync(join(process.cwd(), "lib/newsletter/service.server.ts"), "utf8");
-  assert.equal((repositorySource.match(/client\.rpc\(/g) ?? []).length, 4);
+  assert.equal((repositorySource.match(/client\.rpc\(/g) ?? []).length, 6);
   assert.doesNotMatch(repositorySource, /\.from\s*\(|insert\s*\(|update\s*\(|delete\s*\(/i);
   assert.doesNotMatch(`${repositorySource}\n${serviceSource}`, /resend|localStorage|console\.|\bRequest\b|\bResponse\b|use server/i);
 });

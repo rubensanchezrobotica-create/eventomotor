@@ -8,7 +8,6 @@ import {
   unsubscribeNewsletterSubscription,
 } from "@/lib/newsletter/http-client";
 import {
-  isValidNewsletterActionTokenShape,
   isValidNewsletterOpaqueToken,
 } from "@/lib/newsletter/schemas";
 import styles from "./NewsletterPreview.module.css";
@@ -132,9 +131,7 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
       nextState = "token_missing";
     } else {
       const valid =
-        kind === "confirm"
-          ? isValidNewsletterOpaqueToken(token)
-          : isValidNewsletterActionTokenShape(token);
+        isValidNewsletterOpaqueToken(token);
       if (valid) {
         tokenRef.current = token;
         nextState = "ready";

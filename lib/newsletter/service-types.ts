@@ -2,6 +2,7 @@ import type {
   NewsletterConfirmationOutcome,
   NewsletterProviderEventType,
   NewsletterSubscriptionOutcome,
+  NewsletterTokenUnsubscribeOutcome,
   NewsletterTokenPurpose,
   NewsletterUnsubscribeOutcome,
 } from "@/lib/newsletter/types";
@@ -84,6 +85,13 @@ export type NewsletterUnsubscribeInput = {
   ipHash?: string | null;
 };
 
+export type NewsletterTokenUnsubscribeInput = Omit<
+  NewsletterUnsubscribeInput,
+  "subscriberId"
+> & {
+  token: string;
+};
+
 export type NewsletterProviderEventInput = {
   provider: string;
   providerEventId: string;
@@ -121,6 +129,29 @@ export type NewsletterConfirmRepositoryResult = {
   subscriberId: string | null;
 };
 
+export type NewsletterWelcomeDeliveryContext = {
+  subscriberId: string;
+  recipientEmail: string;
+  provinceSlug: string | null;
+  regionSlug: string | null;
+  locale: string;
+};
+
+export type NewsletterPrepareWelcomeRepositoryParams = {
+  subscriberId: string;
+  tokenHash: string;
+  expiresAt: string | null;
+};
+
+export type NewsletterTokenUnsubscribeRepositoryParams = Omit<
+  NewsletterTokenUnsubscribeInput,
+  "token" | "sourcePath" | "ipHash"
+> & {
+  tokenHash: string;
+  sourcePath: string | null;
+  ipHash: string | null;
+};
+
 export type NewsletterUnsubscribeRepositoryParams = Omit<
   NewsletterUnsubscribeInput,
   "sourcePath" | "ipHash"
@@ -142,9 +173,15 @@ export interface NewsletterRepository {
     params: NewsletterRequestRepositoryParams,
   ): Promise<NewsletterRequestRepositoryResult>;
   confirmSubscription(tokenHash: string): Promise<NewsletterConfirmRepositoryResult>;
+  prepareWelcomeDelivery(
+    params: NewsletterPrepareWelcomeRepositoryParams,
+  ): Promise<NewsletterWelcomeDeliveryContext>;
   unsubscribeSubscriber(
     params: NewsletterUnsubscribeRepositoryParams,
   ): Promise<NewsletterUnsubscribeOutcome>;
+  unsubscribeByToken(
+    params: NewsletterTokenUnsubscribeRepositoryParams,
+  ): Promise<NewsletterTokenUnsubscribeOutcome>;
   recordProviderEvent(params: NewsletterProviderEventRepositoryParams): Promise<"recorded" | "duplicate">;
 }
 
@@ -158,7 +195,11 @@ export type ConfirmationMailCommand = {
 
 export type WelcomeMailCommand = {
   kind: "welcome";
-  subscriberId: string;
+  recipientEmail: string;
+  rawUnsubscribeToken: string;
+  provinceSlug: string;
+  regionSlug: string | null;
+  locale: string;
 };
 
 export type NewsletterMailCommand = ConfirmationMailCommand | WelcomeMailCommand;
@@ -178,12 +219,12 @@ export type NewsletterConfirmServiceResult = {
   publicResponse: NewsletterPublicMutationResponse;
   decision: NewsletterConfirmationOutcome;
   mailStatus: NewsletterMailStatus;
-  internalErrorCategory?: "blocked_state" | "provider_error";
+  internalErrorCategory?: "blocked_state" | "persistence_error" | "provider_error";
 };
 
 export type NewsletterUnsubscribeServiceResult = {
   publicResponse: NewsletterPublicMutationResponse;
-  decision: NewsletterUnsubscribeOutcome;
+  decision: NewsletterUnsubscribeOutcome | NewsletterTokenUnsubscribeOutcome;
 };
 
 export type NewsletterProviderEventServiceResult = {
@@ -194,5 +235,8 @@ export interface NewsletterService {
   requestSubscription(input: NewsletterRequestInput): Promise<NewsletterRequestServiceResult>;
   confirmSubscription(input: NewsletterConfirmInput): Promise<NewsletterConfirmServiceResult>;
   unsubscribeSubscriber(input: NewsletterUnsubscribeInput): Promise<NewsletterUnsubscribeServiceResult>;
+  unsubscribeByToken(
+    input: NewsletterTokenUnsubscribeInput,
+  ): Promise<NewsletterUnsubscribeServiceResult>;
   recordProviderEvent(input: NewsletterProviderEventInput): Promise<NewsletterProviderEventServiceResult>;
 }

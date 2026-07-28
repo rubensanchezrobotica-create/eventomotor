@@ -121,7 +121,19 @@ function repositoryWithRequestOutcome(
     async confirmSubscription() {
       return { outcome: "confirmed", subscriberId: SUBSCRIBER_ID };
     },
+    async prepareWelcomeDelivery() {
+      return {
+        subscriberId: SUBSCRIBER_ID,
+        recipientEmail: "driver@example.invalid",
+        provinceSlug: "barcelona",
+        regionSlug: null,
+        locale: "es",
+      };
+    },
     async unsubscribeSubscriber() {
+      return "unsubscribed";
+    },
+    async unsubscribeByToken() {
       return "unsubscribed";
     },
     async recordProviderEvent() {
@@ -143,6 +155,12 @@ function createCaptureTransport(
       return {
         html: `<html><head></head><body><a href="${props.confirmationUrl}">Confirmar mi suscripción</a></body></html>`,
         text: `Confirmar mi suscripción: ${props.confirmationUrl}`,
+      };
+    },
+    async renderWelcome(props) {
+      return {
+        html: `<html><head></head><body><a href="${props.unsubscribeUrl}">Darme de baja</a></body></html>`,
+        text: `Darme de baja: ${props.unsubscribeUrl}`,
       };
     },
   });
@@ -226,7 +244,14 @@ test("el transporte rechaza payload inválido y bienvenida sin datos suficientes
     NewsletterMailCaptureTransportError,
   );
   await assert.rejects(
-    transport.send({ kind: "welcome", subscriberId: SUBSCRIBER_ID }),
+    transport.send({
+      kind: "welcome",
+      recipientEmail: "invalid",
+      rawUnsubscribeToken: RAW_TOKEN,
+      provinceSlug: "barcelona",
+      regionSlug: null,
+      locale: "es",
+    }),
     NewsletterMailCaptureTransportError,
   );
 });
@@ -490,7 +515,7 @@ test("fallo del store conserva provider_error, un intento y respuesta genérica"
   assert.doesNotMatch(JSON.stringify(result), /driver@example\.invalid|A{20}|subscriber/i);
 });
 
-test("bienvenida ya se solicita, pero capture falla cerrado por contrato insuficiente", async () => {
+test("bienvenida se captura cuando el repositorio prepara el contexto mínimo", async () => {
   const store = new InMemoryNewsletterMailCaptureStore();
   const service = createNewsletterService({
     mode: "test",
@@ -502,9 +527,10 @@ test("bienvenida ya se solicita, pero capture falla cerrado por contrato insufic
   const result = await service.confirmSubscription({ token: RAW_TOKEN });
 
   assert.equal(result.decision, "confirmed");
-  assert.equal(result.mailStatus, "failed");
-  assert.equal(result.internalErrorCategory, "provider_error");
-  assert.equal(store.captures.length, 0);
+  assert.equal(result.mailStatus, "accepted");
+  assert.equal(result.internalErrorCategory, undefined);
+  assert.equal(store.captures.length, 1);
+  assert.equal(store.captures[0]?.mailType, "welcome");
 });
 
 test("token ya usado no intenta capturar bienvenida", async () => {

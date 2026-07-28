@@ -127,7 +127,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 117);
+  assert.equal(plannedAssertions, 149);
 });
 
 test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumentos", async () => {
@@ -179,7 +179,7 @@ test("la baja pending materializa el outcome antes de leer el estado persistido"
   );
 });
 
-test("pgTAP conserva ocho rechazos reales de tabla y ocho comprobaciones RPC de catálogo", async () => {
+test("pgTAP conserva diez rechazos reales de tabla y doce comprobaciones RPC de catálogo", async () => {
   const permissions = await readFile(
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter_permissions.test.sql"),
     "utf8",
@@ -188,24 +188,24 @@ test("pgTAP conserva ocho rechazos reales de tabla y ocho comprobaciones RPC de 
     (match) => match[1],
   );
 
-  assert.equal(throwsBlocks.length, 8);
+  assert.equal(throwsBlocks.length, 10);
   for (const block of throwsBlocks) {
     assert.match(
       block,
-      /\$\$,\s*'42501',\s*'permission denied for table newsletter_subscribers',\s*'[^']+'\s*$/i,
+      /\$\$,\s*'42501',\s*'permission denied for table newsletter_(?:subscribers|unsubscribe_tokens)',\s*'[^']+'\s*$/i,
     );
   }
   const catalogChecks = [
     ...permissions.matchAll(/not\s+has_function_privilege\(([\s\S]*?)\n\s*\)/gi),
   ].map((match) => match[1]);
-  assert.equal(catalogChecks.length, 8);
-  assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 4);
-  assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 4);
+  assert.equal(catalogChecks.length, 12);
+  assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 6);
+  assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 6);
   for (const block of catalogChecks) {
     assert.match(block, /'public\.[^']+\([^']*\)'::regprocedure/i);
     assert.match(block, /'EXECUTE'/i);
   }
-  assert.match(permissions, /select\s+plan\(22\);/i);
+  assert.match(permissions, /select\s+plan\(28\);/i);
 });
 
 type ProcessResult = {
@@ -251,6 +251,7 @@ const LOCAL_STATUS = JSON.stringify({
 const ZERO_COUNTS = {
   newsletter_subscribers: 0,
   newsletter_confirmation_tokens: 0,
+  newsletter_unsubscribe_tokens: 0,
   newsletter_consent_events: 0,
   newsletter_email_events: 0,
 };
@@ -351,23 +352,27 @@ function createDataApiHarness({
   return { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations };
 }
 
-test("el validador Data API genera cuatro casos anon y cuatro authenticated con firmas exactas", async () => {
+test("el validador Data API genera seis casos anon y seis authenticated con firmas exactas", async () => {
   const cases = buildRpcPermissionCases();
-  assert.equal(cases.length, 8);
-  assert.equal(cases.filter(({ role }) => role === "anon").length, 4);
-  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 4);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 4);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 4);
+  assert.equal(cases.length, 12);
+  assert.equal(cases.filter(({ role }) => role === "anon").length, 6);
+  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 6);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 6);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 6);
   assert.deepEqual(
     cases.map(({ rpcName }) => rpcName),
     [
       "request_newsletter_subscription",
       "confirm_newsletter_subscription",
+      "prepare_newsletter_welcome_delivery",
       "unsubscribe_newsletter_subscriber",
+      "unsubscribe_newsletter_by_token",
       "record_newsletter_provider_event",
       "request_newsletter_subscription",
       "confirm_newsletter_subscription",
+      "prepare_newsletter_welcome_delivery",
       "unsubscribe_newsletter_subscriber",
+      "unsubscribe_newsletter_by_token",
       "record_newsletter_provider_event",
     ],
   );
@@ -389,12 +394,24 @@ test("el validador Data API genera cuatro casos anon y cuatro authenticated con 
   assert.deepEqual(Object.keys(cases[1].body), ["p_token_hash"]);
   assert.deepEqual(Object.keys(cases[2].body), [
     "p_subscriber_id",
+    "p_token_hash",
+    "p_expires_at",
+  ]);
+  assert.deepEqual(Object.keys(cases[3].body), [
+    "p_subscriber_id",
     "p_consent_version",
     "p_source",
     "p_source_path",
     "p_ip_hash",
   ]);
-  assert.deepEqual(Object.keys(cases[3].body), [
+  assert.deepEqual(Object.keys(cases[4].body), [
+    "p_token_hash",
+    "p_consent_version",
+    "p_source",
+    "p_source_path",
+    "p_ip_hash",
+  ]);
+  assert.deepEqual(Object.keys(cases[5].body), [
     "p_provider",
     "p_provider_event_id",
     "p_provider_message_id",
@@ -476,7 +493,7 @@ test("status JSON acepta aliases auditables y no exige material JWT", () => {
   );
 });
 
-test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async () => {
+test("ejecuta doce POST, exige 401/403 con 42501 y conserva recuentos", async () => {
   const { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations } =
     createDataApiHarness();
   const output: string[] = [];
@@ -489,22 +506,22 @@ test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async ()
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 8);
-  assert.equal(fetchInvocations.length, 10);
+  assert.equal(rpcInvocations.length, 12);
+  assert.equal(fetchInvocations.length, 14);
   assert.equal(
     output.filter((message) => /denied-http-(?:401|403)-sqlstate-42501/.test(message)).length,
-    8,
+    12,
   );
   assert.equal(masked.length, 3);
   assert.ok(masked.includes(LOCAL_PUBLIC_KEY));
   assert.ok(masked.includes(LOCAL_ACCESS_TOKEN));
-  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 4);
+  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 6);
   assert.equal(
     rpcInvocations.filter(
       ({ init }) => init.headers?.Authorization === `Bearer ${LOCAL_ACCESS_TOKEN}`,
     )
       .length,
-    4,
+    6,
   );
   for (const invocation of rpcInvocations) {
     assert.equal(invocation.init.method, "POST");
@@ -542,7 +559,7 @@ test("ejecuta ocho POST, exige 401/403 con 42501 y conserva recuentos", async ()
     .filter(({ args }) => args[0] === "exec")
     .map(({ args }) => args[args.indexOf("--command") + 1]);
   assert.equal(adminSql.filter((sql) => /json_build_object/i.test(sql)).length, 2);
-  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 9);
+  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 13);
   assert.equal(
     adminSql.filter((sql) => /request_newsletter_subscription|set role/i.test(sql)).length,
     0,
@@ -562,7 +579,7 @@ test("usa login local si signup crea usuario sin devolver sesión", async () => 
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 8);
+  assert.equal(rpcInvocations.length, 12);
   assert.equal(
     fetchInvocations.filter(({ url }) => url.endsWith("/auth/v1/signup")).length,
     1,
@@ -732,7 +749,7 @@ test("una desconexión se clasifica como runtime failure y no reintenta", async 
   assert.equal(errors.filter((message) => message.includes("data-api-runtime-failure")).length, 1);
 });
 
-test("detecta cualquier efecto lateral aunque las ocho denegaciones sean correctas", async () => {
+test("detecta cualquier efecto lateral aunque las doce denegaciones sean correctas", async () => {
   const { execute, fetchImpl } = createDataApiHarness({
     afterCounts: { ...ZERO_COUNTS, newsletter_subscribers: 1 },
   });

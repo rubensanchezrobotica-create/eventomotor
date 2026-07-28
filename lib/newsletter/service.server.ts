@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getNewsletterServerConfig } from "@/lib/newsletter/config.server";
+import { isNewsletterProvinceSlug } from "@/lib/newsletter/audience";
 import {
   createOpaqueNewsletterToken,
   hashNewsletterToken,
@@ -30,6 +31,7 @@ import {
   type NewsletterRequestInput,
   type NewsletterRequestServiceResult,
   type NewsletterService,
+  type NewsletterTokenUnsubscribeInput,
   type NewsletterUnsubscribeInput,
   type NewsletterUnsubscribeServiceResult,
 } from "@/lib/newsletter/service-types";
@@ -232,9 +234,46 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
         throw new NewsletterOperationError("persistence_error", "rpc_contract_violation");
       }
 
+      let rawUnsubscribeToken: string;
+      let welcomeContext: Awaited<ReturnType<NewsletterRepository["prepareWelcomeDelivery"]>>;
+      try {
+        rawUnsubscribeToken = tokenFactory();
+        if (!isValidNewsletterOpaqueToken(rawUnsubscribeToken)) {
+          throw new NewsletterOperationError("token_error", "invalid_token");
+        }
+        const unsubscribeTokenHash = tokenHasher(rawUnsubscribeToken);
+        if (!HASH_PATTERN.test(unsubscribeTokenHash)) {
+          throw new NewsletterOperationError("token_error", "invalid_token");
+        }
+        welcomeContext = await persistence.prepareWelcomeDelivery({
+          subscriberId: result.subscriberId,
+          tokenHash: unsubscribeTokenHash,
+          expiresAt: null,
+        });
+        if (
+          welcomeContext.subscriberId !== result.subscriberId ||
+          !isValidEmail(welcomeContext.recipientEmail) ||
+          !welcomeContext.provinceSlug ||
+          !isNewsletterProvinceSlug(welcomeContext.provinceSlug)
+        ) {
+          throw new NewsletterOperationError("persistence_error", "rpc_contract_violation");
+        }
+      } catch {
+        return {
+          publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+          decision: result.outcome,
+          mailStatus: "failed",
+          internalErrorCategory: "persistence_error",
+        };
+      }
+
       const mail = await dispatchMail(readyMailTransport, {
         kind: "welcome",
-        subscriberId: result.subscriberId,
+        recipientEmail: welcomeContext.recipientEmail,
+        rawUnsubscribeToken,
+        provinceSlug: welcomeContext.provinceSlug,
+        regionSlug: welcomeContext.regionSlug,
+        locale: welcomeContext.locale,
       });
       return {
         publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
@@ -252,6 +291,29 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
       assertLength(input.consentVersion, 1, 100);
       const decision = await persistence.unsubscribeSubscriber({
         subscriberId: validateUuid(input.subscriberId),
+        source: input.source,
+        consentVersion: input.consentVersion,
+        sourcePath: validateSourcePath(input.sourcePath),
+        ipHash: validateHash(input.ipHash),
+      });
+      return { publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE, decision };
+    },
+
+    async unsubscribeByToken(
+      input: NewsletterTokenUnsubscribeInput,
+    ): Promise<NewsletterUnsubscribeServiceResult> {
+      const persistence = requirePersistence();
+      if (!isValidNewsletterOpaqueToken(input.token)) {
+        throw new NewsletterOperationError("token_error", "invalid_token");
+      }
+      const tokenHash = tokenHasher(input.token);
+      if (!HASH_PATTERN.test(tokenHash)) {
+        throw new NewsletterOperationError("token_error", "invalid_token");
+      }
+      assertLength(input.source, 1, 100);
+      assertLength(input.consentVersion, 1, 100);
+      const decision = await persistence.unsubscribeByToken({
+        tokenHash,
         source: input.source,
         consentVersion: input.consentVersion,
         sourcePath: validateSourcePath(input.sourcePath),

@@ -101,6 +101,36 @@ create table public.newsletter_confirmation_tokens (
 comment on column public.newsletter_confirmation_tokens.token_hash is
   'SHA-256 hash only. Raw confirmation tokens must never be persisted or logged.';
 
+create table public.newsletter_unsubscribe_tokens (
+  id uuid primary key default gen_random_uuid(),
+  subscriber_id uuid not null references public.newsletter_subscribers(id) on delete cascade,
+  token_hash text not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz,
+  invalidated_at timestamptz,
+  first_used_at timestamptz,
+  updated_at timestamptz not null default now(),
+  constraint newsletter_unsubscribe_tokens_hash_key unique (token_hash),
+  constraint newsletter_unsubscribe_tokens_hash_check check (token_hash ~ '^[0-9a-f]{64}$'),
+  constraint newsletter_unsubscribe_tokens_expiry_check check (
+    expires_at is null or expires_at > created_at
+  ),
+  constraint newsletter_unsubscribe_tokens_invalidation_check check (
+    invalidated_at is null or invalidated_at >= created_at
+  ),
+  constraint newsletter_unsubscribe_tokens_first_use_check check (
+    first_used_at is null or first_used_at >= created_at
+  ),
+  constraint newsletter_unsubscribe_tokens_updated_check check (updated_at >= created_at)
+);
+
+comment on table public.newsletter_unsubscribe_tokens is
+  'Server-only, rotatable unsubscribe actions. One non-invalidated token is allowed per subscriber.';
+comment on column public.newsletter_unsubscribe_tokens.token_hash is
+  'SHA-256 hash only. Raw unsubscribe tokens must never be persisted or logged.';
+comment on column public.newsletter_unsubscribe_tokens.expires_at is
+  'Nullable by policy: unsubscribe links do not expire ordinarily while the subscription exists.';
+
 create table public.newsletter_consent_events (
   id uuid primary key default gen_random_uuid(),
   subscriber_id uuid not null references public.newsletter_subscribers(id) on delete restrict,
@@ -153,6 +183,11 @@ create index newsletter_confirmation_tokens_subscriber_idx
 create index newsletter_confirmation_tokens_expiry_idx
   on public.newsletter_confirmation_tokens (expires_at)
   where used_at is null and invalidated_at is null;
+create index newsletter_unsubscribe_tokens_subscriber_idx
+  on public.newsletter_unsubscribe_tokens (subscriber_id, created_at desc);
+create unique index newsletter_unsubscribe_tokens_active_key
+  on public.newsletter_unsubscribe_tokens (subscriber_id)
+  where invalidated_at is null;
 create index newsletter_consent_events_subscriber_idx
   on public.newsletter_consent_events (subscriber_id, occurred_at desc);
 create index newsletter_email_events_subscriber_idx
@@ -177,6 +212,10 @@ for each row execute function public.set_newsletter_updated_at();
 
 create trigger set_newsletter_preferences_updated_at
 before update on public.newsletter_preferences
+for each row execute function public.set_newsletter_updated_at();
+
+create trigger set_newsletter_unsubscribe_tokens_updated_at
+before update on public.newsletter_unsubscribe_tokens
 for each row execute function public.set_newsletter_updated_at();
 
 -- Server-only RPC. Atomically applies request policy and stores only a token hash.
@@ -433,6 +472,69 @@ begin
 end;
 $$;
 
+-- Server-only RPC. Subscriber lock precedes token locks so concurrent rotation is serialized.
+create or replace function public.prepare_newsletter_welcome_delivery(
+  p_subscriber_id uuid,
+  p_token_hash text,
+  p_expires_at timestamptz default null
+)
+returns table (
+  subscriber_id uuid,
+  recipient_email text,
+  preferred_province text,
+  preferred_region text,
+  locale text
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_subscriber public.newsletter_subscribers%rowtype;
+  v_now timestamptz := now();
+begin
+  if p_subscriber_id is null
+    or p_token_hash is null
+    or p_token_hash !~ '^[0-9a-f]{64}$'
+    or (p_expires_at is not null and p_expires_at <= v_now) then
+    raise exception 'invalid newsletter welcome context';
+  end if;
+
+  select * into v_subscriber
+  from public.newsletter_subscribers
+  where id = p_subscriber_id
+  for update;
+
+  if not found
+    or v_subscriber.status <> 'active'
+    or v_subscriber.email is null
+    or btrim(v_subscriber.email) = ''
+    or v_subscriber.language_code is null
+    or btrim(v_subscriber.language_code) = '' then
+    raise exception 'newsletter welcome delivery unavailable';
+  end if;
+
+  update public.newsletter_unsubscribe_tokens
+  set invalidated_at = v_now
+  where newsletter_unsubscribe_tokens.subscriber_id = v_subscriber.id
+    and newsletter_unsubscribe_tokens.invalidated_at is null;
+
+  insert into public.newsletter_unsubscribe_tokens (
+    subscriber_id, token_hash, expires_at
+  ) values (
+    v_subscriber.id, p_token_hash, p_expires_at
+  );
+
+  return query
+  select
+    v_subscriber.id,
+    v_subscriber.email,
+    v_subscriber.province_slug,
+    v_subscriber.region_slug,
+    v_subscriber.language_code;
+end;
+$$;
+
 -- Server-only RPC. Repeated requests do not create duplicate state transitions or consent events.
 create or replace function public.unsubscribe_newsletter_subscriber(
   p_subscriber_id uuid,
@@ -501,6 +603,95 @@ begin
   );
 
   return query select 'unsubscribed';
+end;
+$$;
+
+-- Server-only RPC. Subscriber lock precedes token lock, matching welcome token rotation.
+create or replace function public.unsubscribe_newsletter_by_token(
+  p_token_hash text,
+  p_consent_version text,
+  p_source text,
+  p_source_path text default null,
+  p_ip_hash text default null
+)
+returns table (outcome text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_subscriber_id uuid;
+  v_subscriber public.newsletter_subscribers%rowtype;
+  v_token public.newsletter_unsubscribe_tokens%rowtype;
+  v_unsubscribe_outcome text;
+  v_now timestamptz := now();
+begin
+  if p_token_hash is null or p_token_hash !~ '^[0-9a-f]{64}$' then
+    return query select 'invalid_or_expired';
+    return;
+  end if;
+  if p_consent_version is null or char_length(p_consent_version) not between 1 and 100
+    or p_source is null or char_length(p_source) not between 1 and 100 then
+    raise exception 'invalid newsletter unsubscribe context';
+  end if;
+  if p_source_path is not null
+      and (char_length(p_source_path) > 240 or left(p_source_path, 1) <> '/') then
+    raise exception 'invalid newsletter source path';
+  end if;
+  if p_ip_hash is not null and p_ip_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'invalid newsletter ip hash';
+  end if;
+
+  select unsubscribe_token.subscriber_id into v_subscriber_id
+  from public.newsletter_unsubscribe_tokens as unsubscribe_token
+  where unsubscribe_token.token_hash = p_token_hash;
+
+  if not found then
+    return query select 'invalid_or_expired';
+    return;
+  end if;
+
+  select * into v_subscriber
+  from public.newsletter_subscribers
+  where id = v_subscriber_id
+  for update;
+
+  if not found then
+    return query select 'invalid_or_expired';
+    return;
+  end if;
+
+  select * into v_token
+  from public.newsletter_unsubscribe_tokens
+  where token_hash = p_token_hash
+    and subscriber_id = v_subscriber.id
+  for update;
+
+  if not found
+    or v_token.invalidated_at is not null
+    or (v_token.expires_at is not null and v_token.expires_at <= v_now) then
+    return query select 'invalid_or_expired';
+    return;
+  end if;
+
+  select unsubscribe_result.outcome into strict v_unsubscribe_outcome
+  from public.unsubscribe_newsletter_subscriber(
+    v_subscriber.id,
+    p_consent_version,
+    p_source,
+    p_source_path,
+    p_ip_hash
+  ) as unsubscribe_result;
+
+  update public.newsletter_unsubscribe_tokens
+  set first_used_at = coalesce(first_used_at, v_now)
+  where id = v_token.id;
+
+  return query
+  select case
+    when v_unsubscribe_outcome = 'unsubscribed' then 'unsubscribed'
+    else 'already_unsubscribed'
+  end;
 end;
 $$;
 
@@ -632,6 +823,7 @@ $$;
 alter table public.newsletter_subscribers enable row level security;
 alter table public.newsletter_preferences enable row level security;
 alter table public.newsletter_confirmation_tokens enable row level security;
+alter table public.newsletter_unsubscribe_tokens enable row level security;
 alter table public.newsletter_consent_events enable row level security;
 alter table public.newsletter_email_events enable row level security;
 
@@ -639,6 +831,7 @@ revoke all on table
   public.newsletter_subscribers,
   public.newsletter_preferences,
   public.newsletter_confirmation_tokens,
+  public.newsletter_unsubscribe_tokens,
   public.newsletter_consent_events,
   public.newsletter_email_events
 from public, anon, authenticated;
@@ -647,6 +840,7 @@ grant select on table
   public.newsletter_subscribers,
   public.newsletter_preferences,
   public.newsletter_confirmation_tokens,
+  public.newsletter_unsubscribe_tokens,
   public.newsletter_consent_events,
   public.newsletter_email_events
 to service_role;
@@ -656,7 +850,11 @@ revoke all on function public.request_newsletter_subscription(
   text, text, text, timestamptz, text, text, text, text, text, text, text, text, text
 ) from public, anon, authenticated;
 revoke all on function public.confirm_newsletter_subscription(text) from public, anon, authenticated;
+revoke all on function public.prepare_newsletter_welcome_delivery(uuid, text, timestamptz)
+  from public, anon, authenticated;
 revoke all on function public.unsubscribe_newsletter_subscriber(uuid, text, text, text, text)
+  from public, anon, authenticated;
+revoke all on function public.unsubscribe_newsletter_by_token(text, text, text, text, text)
   from public, anon, authenticated;
 revoke all on function public.record_newsletter_provider_event(
   text, text, text, uuid, text, boolean, timestamptz
@@ -666,7 +864,11 @@ grant execute on function public.request_newsletter_subscription(
   text, text, text, timestamptz, text, text, text, text, text, text, text, text, text
 ) to service_role;
 grant execute on function public.confirm_newsletter_subscription(text) to service_role;
+grant execute on function public.prepare_newsletter_welcome_delivery(uuid, text, timestamptz)
+  to service_role;
 grant execute on function public.unsubscribe_newsletter_subscriber(uuid, text, text, text, text)
+  to service_role;
+grant execute on function public.unsubscribe_newsletter_by_token(text, text, text, text, text)
   to service_role;
 grant execute on function public.record_newsletter_provider_event(
   text, text, text, uuid, text, boolean, timestamptz

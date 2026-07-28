@@ -46,6 +46,12 @@ function createService(overrides: Partial<NewsletterService> = {}): NewsletterSe
         decision: "unsubscribed",
       };
     },
+    async unsubscribeByToken(): Promise<NewsletterUnsubscribeServiceResult> {
+      return {
+        publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+        decision: "unsubscribed",
+      };
+    },
     async recordProviderEvent() {
       return { decision: "recorded" };
     },
@@ -546,23 +552,33 @@ test("unsubscribe unifica token inválido o caducado sin invocar el servicio", a
   assert.equal(serviceCreated, 0);
 });
 
-test("unsubscribe configurado permanece fail-closed sin autoridad de token", async () => {
+test("unsubscribe usa la autoridad de token integrada cuando no se inyecta resolver", async () => {
   let serviceCreated = 0;
+  const receivedTokens: string[] = [];
   const { handler, logs } = createTestHandler("unsubscribe", {
     resolveUnsubscribeToken: undefined,
     createService: () => {
       serviceCreated += 1;
-      return createService();
+      return createService({
+        async unsubscribeByToken(input) {
+          receivedTokens.push(input.token);
+          return {
+            publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+            decision: "unsubscribed",
+          };
+        },
+      });
     },
   });
   const response = await handler(makeRequest("unsubscribe", { token: VALID_TOKEN }));
-  assert.equal(response.status, 503);
+  assert.equal(response.status, 200);
   assert.deepEqual(await responseJson(response), {
-    ok: false,
-    error: "temporarily_unavailable",
+    ok: true,
+    status: "unsubscribed",
   });
-  assert.equal(logs[0]?.category, "configuration_error");
-  assert.equal(serviceCreated, 0);
+  assert.deepEqual(receivedTokens, [VALID_TOKEN]);
+  assert.equal(logs.length, 0);
+  assert.equal(serviceCreated, 1);
 });
 
 test("unsubscribe no acepta email ni payloads que permitan bajas arbitrarias", async () => {

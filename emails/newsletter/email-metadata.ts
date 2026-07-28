@@ -12,7 +12,7 @@ export const NEWSLETTER_EMAIL_METADATA: Record<NewsletterEmailKind, NewsletterEm
     kind: "welcome",
     label: "Bienvenida",
     subject: "Ya estás dentro: tu Agenda Motor empieza aquí",
-    preheader: "Cada semana recibirás una selección de eventos del motor cerca de ti.",
+    preheader: "Tu suscripción está confirmada y te avisaremos cuando la primera edición esté preparada.",
     previewHeight: 920,
   },
   weekly: {

@@ -15,7 +15,6 @@ import type {
 } from "@/lib/newsletter/http-contracts";
 import {
   isValidEmail,
-  isValidNewsletterActionTokenShape,
   isValidNewsletterOpaqueToken,
 } from "@/lib/newsletter/schemas";
 import { createConfiguredNewsletterService } from "@/lib/newsletter/service.server";
@@ -29,6 +28,7 @@ import {
 import type {
   NewsletterConfirmationOutcome,
   NewsletterMode,
+  NewsletterTokenUnsubscribeOutcome,
   NewsletterUnsubscribeOutcome,
 } from "@/lib/newsletter/types";
 
@@ -293,7 +293,7 @@ export function parseUnsubscribeTokenInput(body: Record<string, unknown>): Parse
   if (
     !hasOnlyKeys(body, ["token"]) ||
     typeof body.token !== "string" ||
-    !isValidNewsletterActionTokenShape(body.token)
+    !isValidNewsletterOpaqueToken(body.token)
   ) {
     return { ok: false, error: "invalid_request", status: 400 };
   }
@@ -316,7 +316,7 @@ export function mapNewsletterConfirmationOutcome(
 }
 
 export function mapNewsletterUnsubscribeOutcome(
-  outcome: NewsletterUnsubscribeOutcome,
+  outcome: NewsletterUnsubscribeOutcome | NewsletterTokenUnsubscribeOutcome,
 ): UnsubscribeNewsletterResponse {
   if (outcome === "unsubscribed") return { ok: true, status: "unsubscribed" };
   if (outcome === "already_unsubscribed" || outcome === "already_not_sendable") {
@@ -424,6 +424,19 @@ async function executeUnsubscribe(
   });
 }
 
+async function executeUnsubscribeByToken(
+  service: NewsletterService,
+  input: TokenInput,
+  sourcePath: string,
+): Promise<NewsletterUnsubscribeServiceResult> {
+  return service.unsubscribeByToken({
+    token: input.token,
+    source: "internal_http",
+    consentVersion: NEWSLETTER_CONSENT_VERSION,
+    sourcePath,
+  });
+}
+
 export function createNewsletterHttpHandler(
   operation: NewsletterHttpOperation,
   dependencies: NewsletterHttpHandlerDependencies = {},
@@ -489,27 +502,29 @@ export function createNewsletterHttpHandler(
         return jsonResponse(mapNewsletterConfirmationOutcome(result.decision), 200);
       }
 
-      if (!dependencies.resolveUnsubscribeToken) {
-        logInternalFailure(
-          { logger, now },
-          { operation, category: "configuration_error", requestId, mode: guard.mode },
+      let result: NewsletterUnsubscribeServiceResult;
+      if (dependencies.resolveUnsubscribeToken) {
+        const resolution = await dependencies.resolveUnsubscribeToken(
+          (parsedInput.value as TokenInput).token,
         );
-        return publicError("temporarily_unavailable", 503);
-      }
-      const resolution = await dependencies.resolveUnsubscribeToken(
-        (parsedInput.value as TokenInput).token,
-      );
-      if (resolution.status === "invalid_or_expired") {
-        return jsonResponse<UnsubscribeNewsletterResponse>(
-          { ok: true, status: "invalid_or_expired" },
-          200,
+        if (resolution.status === "invalid_or_expired") {
+          return jsonResponse<UnsubscribeNewsletterResponse>(
+            { ok: true, status: "invalid_or_expired" },
+            200,
+          );
+        }
+        result = await executeUnsubscribe(
+          createService(),
+          resolution.subscriberId,
+          sourcePath,
+        );
+      } else {
+        result = await executeUnsubscribeByToken(
+          createService(),
+          parsedInput.value as TokenInput,
+          sourcePath,
         );
       }
-      const result = await executeUnsubscribe(
-        createService(),
-        resolution.subscriberId,
-        sourcePath,
-      );
       return jsonResponse(mapNewsletterUnsubscribeOutcome(result.decision), 200);
     } catch (error) {
       return mapThrownError(

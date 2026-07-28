@@ -129,6 +129,27 @@ export type NewsletterConfirmationTokenInsert = {
   created_at?: string;
 };
 
+export type NewsletterUnsubscribeTokenRow = {
+  id: string;
+  subscriber_id: string;
+  token_hash: string;
+  created_at: string;
+  expires_at: string | null;
+  invalidated_at: string | null;
+  first_used_at: string | null;
+  updated_at: string;
+};
+export type NewsletterUnsubscribeTokenInsert = {
+  id?: string;
+  subscriber_id: string;
+  token_hash: string;
+  created_at?: string;
+  expires_at?: string | null;
+  invalidated_at?: string | null;
+  first_used_at?: string | null;
+  updated_at?: string;
+};
+
 export type NewsletterConsentEventRow = {
   id: string;
   subscriber_id: string;
@@ -192,6 +213,11 @@ export type NewsletterUnsubscribeOutcome =
   | "already_unsubscribed"
   | "already_not_sendable"
   | "not_found";
+
+export type NewsletterTokenUnsubscribeOutcome =
+  | "unsubscribed"
+  | "already_unsubscribed"
+  | "invalid_or_expired";
 
 export type NewsletterSignedActionPayload = {
   version: "v1";

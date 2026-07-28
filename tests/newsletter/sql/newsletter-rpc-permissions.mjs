@@ -27,6 +27,7 @@ const PUBLIC_KEY_ALIASES = [
 const COUNT_TABLES = [
   "newsletter_subscribers",
   "newsletter_confirmation_tokens",
+  "newsletter_unsubscribe_tokens",
   "newsletter_consent_events",
   "newsletter_email_events",
 ];
@@ -57,10 +58,30 @@ const RPCS = [
     body: { p_token_hash: "b".repeat(64) },
   },
   {
+    name: "prepare-welcome",
+    rpcName: "prepare_newsletter_welcome_delivery",
+    body: {
+      p_subscriber_id: "00000000-0000-4000-8000-000000000001",
+      p_token_hash: "c".repeat(64),
+      p_expires_at: null,
+    },
+  },
+  {
     name: "unsubscribe-subscriber",
     rpcName: "unsubscribe_newsletter_subscriber",
     body: {
       p_subscriber_id: "00000000-0000-4000-8000-000000000001",
+      p_consent_version: "2026-07",
+      p_source: "permission_test",
+      p_source_path: "/ci/newsletter-permissions",
+      p_ip_hash: null,
+    },
+  },
+  {
+    name: "unsubscribe-by-token",
+    rpcName: "unsubscribe_newsletter_by_token",
+    body: {
+      p_token_hash: "d".repeat(64),
       p_consent_version: "2026-07",
       p_source: "permission_test",
       p_source_path: "/ci/newsletter-permissions",
@@ -284,6 +305,7 @@ async function readProtectedCounts(execute, container) {
     `select json_build_object(
       'newsletter_subscribers', (select count(*)::integer from public.newsletter_subscribers),
       'newsletter_confirmation_tokens', (select count(*)::integer from public.newsletter_confirmation_tokens),
+      'newsletter_unsubscribe_tokens', (select count(*)::integer from public.newsletter_unsubscribe_tokens),
       'newsletter_consent_events', (select count(*)::integer from public.newsletter_consent_events),
       'newsletter_email_events', (select count(*)::integer from public.newsletter_email_events)
     )::text;`,

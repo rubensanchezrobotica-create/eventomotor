@@ -13,13 +13,16 @@ const TABLES = [
   "newsletter_subscribers",
   "newsletter_preferences",
   "newsletter_confirmation_tokens",
+  "newsletter_unsubscribe_tokens",
   "newsletter_consent_events",
   "newsletter_email_events",
 ] as const;
 const RPCS = [
   "request_newsletter_subscription",
   "confirm_newsletter_subscription",
+  "prepare_newsletter_welcome_delivery",
   "unsubscribe_newsletter_subscriber",
+  "unsubscribe_newsletter_by_token",
   "record_newsletter_provider_event",
 ] as const;
 
@@ -45,7 +48,7 @@ function functionDefinition(functionName: (typeof RPCS)[number]): string {
   return match[0];
 }
 
-test("defines the five isolated newsletter tables and their indexes", () => {
+test("defines the six isolated newsletter tables and their indexes", () => {
   for (const table of TABLES) {
     assert.match(sql, new RegExp(`create table public\\.${table}\\s*\\(`, "i"));
   }
@@ -53,6 +56,7 @@ test("defines the five isolated newsletter tables and their indexes", () => {
   assert.match(sql, /unique \(token_hash\)/i);
   assert.match(sql, /unique \(provider, provider_event_id\)/i);
   assert.match(sql, /newsletter_confirmation_tokens_expiry_idx/i);
+  assert.match(sql, /newsletter_unsubscribe_tokens_active_key/i);
   assert.match(sql, /newsletter_consent_events_subscriber_idx/i);
 });
 
@@ -99,9 +103,14 @@ test("marks every mutation RPC as server-only security definer with an empty sea
 test("RPC return contracts expose only minimum server orchestration data", () => {
   assert.match(returnedColumns("request_newsletter_subscription"), /^outcome text,\s*subscriber_id uuid,\s*token_purpose text$/i);
   assert.match(returnedColumns("confirm_newsletter_subscription"), /^outcome text,\s*subscriber_id uuid$/i);
+  assert.match(
+    returnedColumns("prepare_newsletter_welcome_delivery"),
+    /^subscriber_id uuid,\s*recipient_email text,\s*preferred_province text,\s*preferred_region text,\s*locale text$/i,
+  );
   assert.match(returnedColumns("unsubscribe_newsletter_subscriber"), /^outcome text$/i);
+  assert.match(returnedColumns("unsubscribe_newsletter_by_token"), /^outcome text$/i);
   assert.match(returnedColumns("record_newsletter_provider_event"), /^outcome text$/i);
-  for (const fn of RPCS) {
+  for (const fn of RPCS.filter((name) => name !== "prepare_newsletter_welcome_delivery")) {
     assert.doesNotMatch(
       returnedColumns(fn),
       /email|email_normalized|subscriber_status|token_expires_at|event_inserted|provider_message_id/i,
