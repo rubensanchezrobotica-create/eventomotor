@@ -69,8 +69,8 @@ const RESULT_COPY: Partial<Record<NewsletterSignupState, { title: string; copy: 
     copy: "No hemos podido validar la solicitud. Revisa los campos e inténtalo de nuevo.",
   },
   unavailable: {
-    title: "Formulario no disponible",
-    copy: "Esta función interna no está disponible en este entorno.",
+    title: "Suscripción no disponible",
+    copy: "Ahora mismo no podemos completar la solicitud. Inténtalo de nuevo más tarde.",
   },
   rate_limited: {
     title: "Espera antes de intentarlo de nuevo",
@@ -174,10 +174,7 @@ function NewsletterProductSignupForm() {
           <label className={styles.field} htmlFor="newsletter-preview-email">
             <span>Email</span>
             <input
-              aria-describedby={[
-                "newsletter-email-help",
-                fieldErrors.email ? "newsletter-email-error" : "",
-              ].filter(Boolean).join(" ")}
+              aria-describedby={fieldErrors.email ? "newsletter-email-error" : undefined}
               aria-invalid={Boolean(fieldErrors.email)}
               autoComplete="email"
               id="newsletter-preview-email"
@@ -194,9 +191,6 @@ function NewsletterProductSignupForm() {
               type="email"
               value={email}
             />
-            <small id="newsletter-email-help">
-              Tu provincia nos ayuda a ordenar primero los planes más cercanos.
-            </small>
             {fieldErrors.email ? (
               <small className={styles.fieldError} id="newsletter-email-error">
                 {fieldErrors.email}
@@ -207,7 +201,10 @@ function NewsletterProductSignupForm() {
           <label className={styles.field} htmlFor="newsletter-preview-province">
             <span>Provincia</span>
             <select
-              aria-describedby={fieldErrors.province ? "newsletter-province-error" : undefined}
+              aria-describedby={[
+                "newsletter-province-help",
+                fieldErrors.province ? "newsletter-province-error" : "",
+              ].filter(Boolean).join(" ")}
               aria-invalid={Boolean(fieldErrors.province)}
               id="newsletter-preview-province"
               onChange={(event) => {
@@ -224,6 +221,9 @@ function NewsletterProductSignupForm() {
                 <option key={option.slug} value={option.slug}>{option.name}</option>
               ))}
             </select>
+            <small id="newsletter-province-help">
+              Tu provincia nos ayuda a ordenar primero los planes más cercanos.
+            </small>
             {fieldErrors.province ? (
               <small className={styles.fieldError} id="newsletter-province-error">
                 {fieldErrors.province}
@@ -266,13 +266,12 @@ function NewsletterProductSignupForm() {
               : "Recibir la agenda semanal"}
         </button>
 
-        <p className={styles.microcopy}>
-          Un correo a la semana. Sin ruido. Puedes darte de baja cuando quieras.
-        </p>
+        <p className={styles.microcopy}>Puedes darte de baja cuando quieras.</p>
 
         <div
           aria-live="polite"
           className={styles.formResult}
+          data-has-result={result ? "true" : "false"}
           ref={resultRef}
           role={state === "invalid" ? "alert" : "status"}
           tabIndex={result ? -1 : undefined}
