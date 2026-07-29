@@ -55,6 +55,33 @@ export function hasAnalyticsConsent() {
   return readCookieConsentPreferences()?.analytics === true;
 }
 
+export function applyAnalyticsConsent(
+  measurementId: string | undefined,
+  allowed: boolean,
+) {
+  if (typeof window === "undefined" || !measurementId) return;
+
+  const disableKey = `ga-disable-${measurementId}`;
+  (window as unknown as Record<string, unknown>)[disableKey] = !allowed;
+  if (allowed) return;
+
+  const cookieNames = document.cookie
+    .split(";")
+    .map((cookie) => cookie.split("=", 1)[0]?.trim())
+    .filter((name): name is string =>
+      Boolean(name && (name === "_ga" || name.startsWith("_ga_")))
+    );
+  const hostname = window.location.hostname;
+  const domains = new Set([hostname, `.${hostname}`]);
+  for (const name of cookieNames) {
+    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+    for (const domain of domains) {
+      document.cookie =
+        `${name}=; Max-Age=0; Path=/; Domain=${domain}; SameSite=Lax`;
+    }
+  }
+}
+
 export function openCookieSettings() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(COOKIE_SETTINGS_EVENT));

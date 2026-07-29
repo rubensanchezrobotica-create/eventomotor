@@ -17,14 +17,17 @@ export default function CookieConsent() {
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
-    const stored = readCookieConsentPreferences();
-    if (stored) {
-      setAnalytics(stored.analytics);
-      setMarketing(stored.marketing);
-      return;
-    }
+    const initialization = window.setTimeout(() => {
+      const stored = readCookieConsentPreferences();
+      if (stored) {
+        setAnalytics(stored.analytics);
+        setMarketing(stored.marketing);
+        return;
+      }
 
-    setView("banner");
+      setView("banner");
+    }, 0);
+    return () => window.clearTimeout(initialization);
   }, []);
 
   useEffect(() => {
@@ -99,14 +102,14 @@ export default function CookieConsent() {
             </div>
 
             <div className="em-cookie-actions">
-              <button type="button" onClick={() => saveConsent({ analytics: true, marketing: false })}>
-                Aceptar todas
+              <button type="button" onClick={() => saveConsent({ analytics: false, marketing: false })}>
+                Rechazar
               </button>
-              <button className="em-cookie-secondary" type="button" onClick={() => saveConsent({ analytics, marketing })}>
+              <button type="button" onClick={() => saveConsent({ analytics, marketing })}>
                 Guardar configuración
               </button>
-              <button className="em-cookie-ghost" type="button" onClick={() => saveConsent({ analytics: false, marketing: false })}>
-                Rechazar
+              <button type="button" onClick={() => saveConsent({ analytics: true, marketing: false })}>
+                Aceptar
               </button>
             </div>
           </>
@@ -116,18 +119,22 @@ export default function CookieConsent() {
               <span>Cookies</span>
               <h2>Tu privacidad en EventoMotor</h2>
               <p>
-                Usamos cookies necesarias y, si aceptas, analíticas de Google Analytics para mejorar el calendario.
+                Utilizamos cookies necesarias para que la web funcione y, solo con
+                tu permiso, cookies analíticas para conocer de forma agregada cómo
+                se utiliza EventoMotor. Puedes aceptar, rechazar o configurar su
+                uso. Rechazar las cookies analíticas no limita las funciones
+                esenciales de la web.
               </p>
             </div>
             <div className="em-cookie-actions">
-              <button type="button" onClick={() => saveConsent({ analytics: true, marketing: false })}>
-                Aceptar todas
+              <button type="button" onClick={() => saveConsent({ analytics: false, marketing: false })}>
+                Rechazar
               </button>
-              <button className="em-cookie-secondary" type="button" onClick={() => setView("settings")}>
+              <button type="button" onClick={() => setView("settings")}>
                 Configurar
               </button>
-              <button className="em-cookie-ghost" type="button" onClick={() => saveConsent({ analytics: false, marketing: false })}>
-                Rechazar
+              <button type="button" onClick={() => saveConsent({ analytics: true, marketing: false })}>
+                Aceptar
               </button>
             </div>
           </>

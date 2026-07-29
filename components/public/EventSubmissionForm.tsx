@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type SubmissionState =
@@ -215,6 +216,19 @@ export default function EventSubmissionForm() {
       </div>
 
       {state.message ? <p className={statusClass}>{state.message}</p> : null}
+
+      <aside className="emc-submission-privacy" aria-labelledby="event-submission-privacy-title">
+        <strong id="event-submission-privacy-title">Protección de datos:</strong>{" "}
+        Rubén Ginés Sánchez García, titular de EventoMotor, tratará los datos para
+        revisar y gestionar tu solicitud de publicación, contactar contigo cuando
+        sea necesario y gestionar posibles rectificaciones o retiradas. La base
+        jurídica es la gestión de la solicitud que realizas. Los proveedores
+        tecnológicos de EventoMotor podrán tratar los datos para prestar sus
+        servicios. Los datos de contacto se conservarán inicialmente hasta 2 años
+        después del evento y posteriormente se eliminarán cuando ya no sean
+        necesarios. Puedes ejercer tus derechos escribiendo a info@eventomotor.com.
+        Consulta la <Link href="/privacidad">Política de privacidad</Link>.
+      </aside>
 
       <div className="emc-submission-actions">
         <button className="emc-btn emc-btn-primary" disabled={isSubmitting} type="submit">
