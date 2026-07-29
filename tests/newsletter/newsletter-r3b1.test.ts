@@ -653,13 +653,16 @@ test("los Route Handlers exponen sólo POST y no mutan mediante otros métodos",
   }
 });
 
-test("la implementación sensible sigue server-only y no crea rutas productivas alternativas", () => {
+test("la implementación HTTP sigue server-only y no integra directamente proveedores o infraestructura remota", () => {
   const httpSource = readFileSync(
     join(process.cwd(), "lib", "newsletter", "http.server.ts"),
     "utf8",
   );
   assert.match(httpSource, /^import "server-only";/);
-  assert.doesNotMatch(httpSource, /resend|\.env\.local|--linked|supabase\s+link|supabase\s+db\s+push/i);
+  assert.doesNotMatch(
+    httpSource,
+    /FetchNewsletterResendClient|ResendNewsletterMailTransport|fetch\(|\.env\.local|--linked|supabase\s+link|supabase\s+db\s+push/i,
+  );
   assert.doesNotMatch(httpSource, /localStorage|use client|NEXT_PUBLIC_/i);
   assert.doesNotMatch(httpSource, /console\.(?:log|info|debug|warn)/);
   assert.match(httpSource, /createConfiguredNewsletterService/);

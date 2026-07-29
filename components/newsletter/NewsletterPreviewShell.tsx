@@ -8,6 +8,8 @@ import styles from "./NewsletterPreview.module.css";
 const TOKEN_ACTION_PATHS = new Set([
   "/preview/newsletter/confirm",
   "/preview/newsletter/unsubscribe",
+  "/newsletter/confirm",
+  "/newsletter/unsubscribe",
 ]);
 
 export default function NewsletterPreviewShell({

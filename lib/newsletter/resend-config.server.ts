@@ -10,9 +10,14 @@ import {
   NEWSLETTER_R4B_ARMED_VALUE,
   parseNewsletterR4BLocalOrigin,
 } from "@/lib/newsletter/r4b-guard";
+import {
+  NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE,
+  parseNewsletterProductionCanaryOrigin,
+} from "@/lib/newsletter/r5a-guard";
 import { ResendNewsletterMailTransport } from "@/lib/newsletter/resend-transport.server";
 
 const MAX_ALLOWLIST_ENTRIES = 20;
+const MAX_PRODUCTION_CANARY_ALLOWLIST_ENTRIES = 10;
 const MAX_ALLOWLIST_LENGTH = 4_096;
 const DISPLAY_NAME_PATTERN = /^[^<>\r\n]{1,80}$/;
 
@@ -32,6 +37,13 @@ export type NewsletterR4BResendEnvironment = NewsletterResendEnvironment & {
   armed?: string;
   localOrigin?: string;
 };
+
+export type NewsletterProductionCanaryResendEnvironment =
+  NewsletterResendEnvironment & {
+    armed?: string;
+    canaryOrigin?: string;
+    vercel?: string;
+  };
 
 export type NewsletterResendConfigurationReason =
   | "transport_not_selected"
@@ -65,9 +77,27 @@ export type NewsletterR4BResendConfiguration =
       localOrigin: string;
     });
 
+export type NewsletterProductionCanaryResendConfigurationReason =
+  | NewsletterResendConfigurationReason
+  | "mode_not_live"
+  | "canary_not_armed"
+  | "vercel_required"
+  | "production_environment_required"
+  | "canary_endpoint_invalid"
+  | "sender_domain_invalid";
+
+export type NewsletterProductionCanaryResendConfiguration =
+  | {
+      enabled: false;
+      reason: NewsletterProductionCanaryResendConfigurationReason;
+    }
+  | (Extract<NewsletterResendConfiguration, { enabled: true }> & {
+      canonicalEndpoint: string;
+    });
+
 export type ConfiguredNewsletterResendRuntime = {
   transport: NewsletterMailTransport;
-  serviceMode: "test";
+  serviceMode: "test" | "live";
 };
 
 function isValidSender(value: string): boolean {
@@ -88,10 +118,13 @@ function senderEmail(value: string): string | null {
   return match && isValidEmail(match[2] ?? "") ? normalizeEmail(match[2] ?? "") : null;
 }
 
-function parseAllowlist(value: string): readonly string[] | null {
+function parseAllowlist(
+  value: string,
+  maximumEntries = MAX_ALLOWLIST_ENTRIES,
+): readonly string[] | null {
   if (!value || value.length > MAX_ALLOWLIST_LENGTH || value.includes("*")) return null;
   const entries = value.split(",");
-  if (entries.length < 1 || entries.length > MAX_ALLOWLIST_ENTRIES) return null;
+  if (entries.length < 1 || entries.length > maximumEntries) return null;
   const normalized: string[] = [];
   for (const entry of entries) {
     const recipient = normalizeEmail(entry);
@@ -179,7 +212,70 @@ export function evaluateNewsletterR4BResendConfiguration(
   };
 }
 
-function currentResendEnvironment(): NewsletterR4BResendEnvironment {
+export function evaluateNewsletterProductionCanaryResendConfiguration(
+  environment: NewsletterProductionCanaryResendEnvironment,
+): NewsletterProductionCanaryResendConfiguration {
+  if (environment.mailTransport !== "resend") {
+    return { enabled: false, reason: "transport_not_selected" };
+  }
+  if (environment.newsletterMode !== "live") {
+    return { enabled: false, reason: "mode_not_live" };
+  }
+  if (environment.armed !== NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE) {
+    return { enabled: false, reason: "canary_not_armed" };
+  }
+  if (environment.vercel !== "1") {
+    return { enabled: false, reason: "vercel_required" };
+  }
+  if (
+    environment.vercelEnv !== "production" ||
+    environment.nodeEnv !== "production"
+  ) {
+    return { enabled: false, reason: "production_environment_required" };
+  }
+  const origin = parseNewsletterProductionCanaryOrigin(
+    environment.canaryOrigin,
+  );
+  if (!origin) {
+    return { enabled: false, reason: "canary_endpoint_invalid" };
+  }
+  if (!environment.apiKey || !isValidApiKey(environment.apiKey)) {
+    return { enabled: false, reason: "api_key_invalid" };
+  }
+  if (!environment.from || !isValidSender(environment.from)) {
+    return { enabled: false, reason: "from_invalid" };
+  }
+  const fromAddress = senderEmail(environment.from);
+  if (!fromAddress || fromAddress.split("@")[1] !== "news.eventomotor.com") {
+    return { enabled: false, reason: "sender_domain_invalid" };
+  }
+  if (
+    !environment.replyTo ||
+    environment.replyTo !== environment.replyTo.trim() ||
+    !isValidEmail(environment.replyTo)
+  ) {
+    return { enabled: false, reason: "reply_to_invalid" };
+  }
+  const allowedRecipients = environment.recipientAllowlist
+    ? parseAllowlist(
+        environment.recipientAllowlist,
+        MAX_PRODUCTION_CANARY_ALLOWLIST_ENTRIES,
+      )
+    : null;
+  if (!allowedRecipients) {
+    return { enabled: false, reason: "allowlist_invalid" };
+  }
+  return {
+    enabled: true,
+    apiKey: environment.apiKey,
+    from: environment.from,
+    replyTo: normalizeEmail(environment.replyTo),
+    allowedRecipients,
+    canonicalEndpoint: origin.origin,
+  };
+}
+
+function currentNewsletterR4BResendEnvironment(): NewsletterR4BResendEnvironment {
   return {
     newsletterMode: process.env.NEWSLETTER_MODE,
     mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
@@ -195,12 +291,56 @@ function currentResendEnvironment(): NewsletterR4BResendEnvironment {
   };
 }
 
+export function currentNewsletterProductionCanaryEnvironment(): NewsletterProductionCanaryResendEnvironment {
+  return {
+    newsletterMode: process.env.NEWSLETTER_MODE,
+    mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
+    apiKey: process.env.NEWSLETTER_RESEND_API_KEY,
+    from: process.env.NEWSLETTER_RESEND_FROM,
+    replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
+    recipientAllowlist: process.env.NEWSLETTER_PRODUCTION_CANARY_ALLOWLIST,
+    armed: process.env.NEWSLETTER_PRODUCTION_CANARY_ARMED,
+    canaryOrigin: process.env.NEWSLETTER_PRODUCTION_CANARY_ORIGIN,
+    nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
+  };
+}
+
+export function createNewsletterProductionCanaryResendRuntime(
+  environment: NewsletterProductionCanaryResendEnvironment,
+  clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
+    new FetchNewsletterResendClient({ apiKey }),
+): ConfiguredNewsletterResendRuntime | null {
+  const configuration =
+    evaluateNewsletterProductionCanaryResendConfiguration(environment);
+  if (!configuration.enabled) return null;
+
+  return {
+    serviceMode: "live",
+    transport: new ResendNewsletterMailTransport({
+      client: clientFactory(configuration.apiKey),
+      from: configuration.from,
+      replyTo: configuration.replyTo,
+      allowedRecipients: configuration.allowedRecipients,
+      linkOrigin: configuration.canonicalEndpoint,
+      linkProfile: "production-canary",
+    }),
+  };
+}
+
 export function createConfiguredNewsletterResendRuntime(
   clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
     new FetchNewsletterResendClient({ apiKey }),
 ): ConfiguredNewsletterResendRuntime | null {
+  const productionCanary = createNewsletterProductionCanaryResendRuntime(
+    currentNewsletterProductionCanaryEnvironment(),
+    clientFactory,
+  );
+  if (productionCanary) return productionCanary;
+
   const configuration = evaluateNewsletterR4BResendConfiguration(
-    currentResendEnvironment(),
+    currentNewsletterR4BResendEnvironment(),
   );
   if (!configuration.enabled) return null;
 
