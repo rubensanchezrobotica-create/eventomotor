@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
@@ -16,12 +17,23 @@ export default async function NewsletterPreviewLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   await connection();
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("host");
+  const requestOrigin = requestHost ? `http://${requestHost}` : null;
 
   if (
     !isNewsletterPreviewAvailable(
       process.env.NEWSLETTER_MODE,
       process.env.VERCEL_ENV,
       process.env.NODE_ENV,
+      {
+        armed: process.env.NEWSLETTER_R4B_ARMED,
+        localOrigin: process.env.NEWSLETTER_R4B_LOCAL_ORIGIN,
+        vercel: process.env.VERCEL,
+        requestUrl: requestOrigin ?? "invalid:",
+        requestOrigin,
+        requestHost,
+      },
     )
   ) {
     notFound();

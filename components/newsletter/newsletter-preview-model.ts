@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { isValidEmail } from "@/lib/newsletter/schemas";
 import { NEWSLETTER_PROVINCE_OPTIONS } from "@/lib/newsletter/audience";
 import { NEWSLETTER_EMAIL_KINDS, type NewsletterEmailKind } from "@/emails/newsletter/email-types";
+import {
+  evaluateNewsletterR4BLocalConfiguration,
+  isNewsletterR4BLocalRequestAllowed,
+} from "@/lib/newsletter/r4b-guard";
 
 export { NEWSLETTER_PROVINCE_OPTIONS } from "@/lib/newsletter/audience";
 
@@ -46,7 +50,30 @@ export function isNewsletterPreviewAvailable(
   mode: string | undefined,
   vercelEnvironment: string | undefined,
   nodeEnvironment: string | undefined,
+  r4b?: {
+    armed?: string;
+    localOrigin?: string;
+    vercel?: string;
+    requestUrl: string;
+    requestOrigin: string | null;
+    requestHost: string | null;
+  },
 ): boolean {
+  if (r4b) {
+    return isNewsletterR4BLocalRequestAllowed(
+      evaluateNewsletterR4BLocalConfiguration({
+        newsletterMode: mode,
+        armed: r4b.armed,
+        localOrigin: r4b.localOrigin,
+        nodeEnv: nodeEnvironment,
+        vercel: r4b.vercel,
+        vercelEnv: vercelEnvironment,
+      }),
+      r4b.requestUrl,
+      r4b.requestOrigin,
+      r4b.requestHost,
+    );
+  }
   if (mode !== "preview") return false;
   if (vercelEnvironment === "production") return false;
   if (!vercelEnvironment && nodeEnvironment === "production") return false;

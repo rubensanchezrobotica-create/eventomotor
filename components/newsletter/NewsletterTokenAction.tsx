@@ -10,6 +10,7 @@ import {
 import {
   isValidNewsletterOpaqueToken,
 } from "@/lib/newsletter/schemas";
+import { NEWSLETTER_R4B_CONTROLLED_STATUS } from "@/lib/newsletter/r4b-guard";
 import styles from "./NewsletterPreview.module.css";
 
 export type NewsletterTokenActionKind = "confirm" | "unsubscribe";
@@ -231,8 +232,8 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
             </div>
           </div>
           <aside className={styles.internalNotice}>
-            <strong>Entorno interno</strong>
-            <span>El envío real de correo todavía no está habilitado.</span>
+            <strong>Entorno R4B</strong>
+            <span>{NEWSLETTER_R4B_CONTROLLED_STATUS}</span>
           </aside>
         </div>
       </section>

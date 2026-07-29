@@ -6,6 +6,10 @@ import {
   FetchNewsletterResendClient,
   type NewsletterResendClient,
 } from "@/lib/newsletter/resend-client.server";
+import {
+  NEWSLETTER_R4B_ARMED_VALUE,
+  parseNewsletterR4BLocalOrigin,
+} from "@/lib/newsletter/r4b-guard";
 import { ResendNewsletterMailTransport } from "@/lib/newsletter/resend-transport.server";
 
 const MAX_ALLOWLIST_ENTRIES = 20;
@@ -20,7 +24,13 @@ export type NewsletterResendEnvironment = {
   replyTo?: string;
   recipientAllowlist?: string;
   nodeEnv?: string;
+  vercel?: string;
   vercelEnv?: string;
+};
+
+export type NewsletterR4BResendEnvironment = NewsletterResendEnvironment & {
+  armed?: string;
+  localOrigin?: string;
 };
 
 export type NewsletterResendConfigurationReason =
@@ -42,6 +52,19 @@ export type NewsletterResendConfiguration =
       allowedRecipients: readonly string[];
     };
 
+export type NewsletterR4BResendConfigurationReason =
+  | NewsletterResendConfigurationReason
+  | "r4b_not_armed"
+  | "sender_domain_invalid"
+  | "single_recipient_required"
+  | "local_endpoint_invalid";
+
+export type NewsletterR4BResendConfiguration =
+  | { enabled: false; reason: NewsletterR4BResendConfigurationReason }
+  | (Extract<NewsletterResendConfiguration, { enabled: true }> & {
+      localOrigin: string;
+    });
+
 export type ConfiguredNewsletterResendRuntime = {
   transport: NewsletterMailTransport;
   serviceMode: "test";
@@ -57,6 +80,12 @@ function isValidSender(value: string): boolean {
       isValidEmail(match[2] ?? "") &&
       normalizeEmail(match[2] ?? "") === (match[2] ?? "").trim().toLowerCase(),
   );
+}
+
+function senderEmail(value: string): string | null {
+  if (isValidEmail(value)) return normalizeEmail(value);
+  const match = value.match(/^(.+?)\s*<([^<>]+)>$/);
+  return match && isValidEmail(match[2] ?? "") ? normalizeEmail(match[2] ?? "") : null;
 }
 
 function parseAllowlist(value: string): readonly string[] | null {
@@ -121,7 +150,36 @@ export function evaluateNewsletterResendConfiguration(
   };
 }
 
-function currentResendEnvironment(): NewsletterResendEnvironment {
+export function evaluateNewsletterR4BResendConfiguration(
+  environment: NewsletterR4BResendEnvironment,
+): NewsletterR4BResendConfiguration {
+  if (environment.armed !== NEWSLETTER_R4B_ARMED_VALUE) {
+    return { enabled: false, reason: "r4b_not_armed" };
+  }
+  if (environment.vercel !== undefined) {
+    return { enabled: false, reason: "deployment_blocked" };
+  }
+  const base = evaluateNewsletterResendConfiguration(environment);
+  if (!base.enabled) return base;
+
+  const fromAddress = senderEmail(base.from);
+  if (!fromAddress || fromAddress.split("@")[1] !== "news.eventomotor.com") {
+    return { enabled: false, reason: "sender_domain_invalid" };
+  }
+  if (base.allowedRecipients.length !== 1) {
+    return { enabled: false, reason: "single_recipient_required" };
+  }
+  const localEndpoint = parseNewsletterR4BLocalOrigin(environment.localOrigin);
+  if (!localEndpoint) {
+    return { enabled: false, reason: "local_endpoint_invalid" };
+  }
+  return {
+    ...base,
+    localOrigin: localEndpoint.origin,
+  };
+}
+
+function currentResendEnvironment(): NewsletterR4BResendEnvironment {
   return {
     newsletterMode: process.env.NEWSLETTER_MODE,
     mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
@@ -129,7 +187,10 @@ function currentResendEnvironment(): NewsletterResendEnvironment {
     from: process.env.NEWSLETTER_RESEND_FROM,
     replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
     recipientAllowlist: process.env.NEWSLETTER_TEST_RECIPIENT_ALLOWLIST,
+    armed: process.env.NEWSLETTER_R4B_ARMED,
+    localOrigin: process.env.NEWSLETTER_R4B_LOCAL_ORIGIN,
     nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
     vercelEnv: process.env.VERCEL_ENV,
   };
 }
@@ -138,7 +199,7 @@ export function createConfiguredNewsletterResendRuntime(
   clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
     new FetchNewsletterResendClient({ apiKey }),
 ): ConfiguredNewsletterResendRuntime | null {
-  const configuration = evaluateNewsletterResendConfiguration(
+  const configuration = evaluateNewsletterR4BResendConfiguration(
     currentResendEnvironment(),
   );
   if (!configuration.enabled) return null;
@@ -150,6 +211,7 @@ export function createConfiguredNewsletterResendRuntime(
       from: configuration.from,
       replyTo: configuration.replyTo,
       allowedRecipients: configuration.allowedRecipients,
+      linkOrigin: configuration.localOrigin,
     }),
   };
 }

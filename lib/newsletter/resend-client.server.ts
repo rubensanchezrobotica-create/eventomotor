@@ -34,6 +34,20 @@ function isProviderMessageId(value: unknown): value is string {
   return typeof value === "string" && value.length >= 1 && value.length <= 200;
 }
 
+function isSafeSingleRecipientPayload(payload: NewsletterResendEmailPayload): boolean {
+  const candidate = payload as NewsletterResendEmailPayload & {
+    cc?: unknown;
+    bcc?: unknown;
+  };
+  return (
+    Array.isArray(candidate.to) &&
+    candidate.to.length === 1 &&
+    typeof candidate.to[0] === "string" &&
+    !Object.hasOwn(candidate, "cc") &&
+    !Object.hasOwn(candidate, "bcc")
+  );
+}
+
 async function readBoundedResponse(response: Response): Promise<string | null> {
   const contentLength = response.headers.get("content-length");
   if (contentLength && /^\d+$/.test(contentLength) && Number(contentLength) > RESEND_RESPONSE_MAX_BYTES) {
@@ -88,6 +102,9 @@ export class FetchNewsletterResendClient implements NewsletterResendClient {
   async sendEmail(
     payload: NewsletterResendEmailPayload,
   ): Promise<NewsletterResendClientResult> {
+    if (!isSafeSingleRecipientPayload(payload)) {
+      return { status: "provider_error", httpStatus: null };
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {

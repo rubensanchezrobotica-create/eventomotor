@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { RenderedNewsletterEmail } from "@/emails/newsletter/email-types";
+import { NEWSLETTER_R4B_CONTROLLED_STATUS } from "@/lib/newsletter/r4b-guard";
 import NewsletterCaptureVariants from "./NewsletterCaptureVariants";
 import NewsletterEmailShowcase from "./NewsletterEmailShowcase";
 import NewsletterSignupForm from "./NewsletterSignupForm";
@@ -52,7 +53,7 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
             </div>
             <NewsletterSignupForm />
             <p className={styles.internalFormNotice}>
-              Entorno interno: el envío real de correo todavía no está habilitado.
+              {NEWSLETTER_R4B_CONTROLLED_STATUS}
             </p>
           </div>
         </div>
