@@ -19,9 +19,18 @@ import type {
 import { isValidEmail, isValidNewsletterOpaqueToken, normalizeEmail } from "@/lib/newsletter/schemas";
 import type { NewsletterMailCommand } from "@/lib/newsletter/service-types";
 
-const NEWSLETTER_LINK_ORIGIN = "https://eventomotor.com";
-const CONFIRMATION_PATH = "/preview/newsletter/confirm";
-const UNSUBSCRIBE_PATH = "/preview/newsletter/unsubscribe";
+const NEWSLETTER_LINK_ORIGIN = "https://www.eventomotor.com";
+const NEWSLETTER_LINK_PATHS = {
+  preview: {
+    confirmation: "/preview/newsletter/confirm",
+    unsubscribe: "/preview/newsletter/unsubscribe",
+  },
+  "production-canary": {
+    confirmation: "/newsletter/confirm",
+    unsubscribe: "/newsletter/unsubscribe",
+  },
+} as const;
+const ALLOWED_TRANSACTIONAL_KINDS = new Set(["confirmation", "welcome"]);
 const REGION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 const DISPLAY_NAME_PATTERN = /^[^<>\r\n]{1,80}$/;
@@ -49,6 +58,7 @@ type ResendNewsletterMailTransportOptions = {
   replyTo: string;
   allowedRecipients: readonly string[];
   linkOrigin?: string;
+  linkProfile?: keyof typeof NEWSLETTER_LINK_PATHS;
   now?: () => Date;
   renderConfirmation?: (
     props: ConfirmSubscriptionEmailProps,
@@ -108,6 +118,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   private readonly replyTo: string;
   private readonly allowedRecipients: ReadonlySet<string>;
   private readonly origin: URL;
+  private readonly linkPaths: (typeof NEWSLETTER_LINK_PATHS)[keyof typeof NEWSLETTER_LINK_PATHS];
   private readonly now: () => Date;
   private readonly renderConfirmation: (
     props: ConfirmSubscriptionEmailProps,
@@ -118,9 +129,11 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
 
   constructor(options: ResendNewsletterMailTransportOptions) {
     const origin = parseTransportOrigin(options.linkOrigin ?? NEWSLETTER_LINK_ORIGIN);
+    const linkPaths = NEWSLETTER_LINK_PATHS[options.linkProfile ?? "preview"];
     const allowedRecipients = options.allowedRecipients.map(normalizeEmail);
     if (
       !origin ||
+      !linkPaths ||
       !isValidTransportSender(options.from) ||
       options.replyTo !== options.replyTo.trim() ||
       !isValidEmail(options.replyTo) ||
@@ -141,6 +154,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     this.replyTo = normalizeEmail(options.replyTo);
     this.allowedRecipients = new Set(allowedRecipients);
     this.origin = origin;
+    this.linkPaths = linkPaths;
     this.now = options.now ?? (() => new Date());
     this.renderConfirmation =
       options.renderConfirmation ??
@@ -151,6 +165,9 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   }
 
   async send(command: NewsletterMailCommand): Promise<{ status: "accepted" }> {
+    if (!ALLOWED_TRANSACTIONAL_KINDS.has(command.kind)) {
+      throw new NewsletterResendTransportError("resend_configuration_invalid");
+    }
     const recipient = normalizeEmail(command.recipientEmail);
     if (
       !isValidEmail(command.recipientEmail) ||
@@ -192,7 +209,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     ) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
-    const confirmationUrl = new URL(CONFIRMATION_PATH, this.origin);
+    const confirmationUrl = new URL(this.linkPaths.confirmation, this.origin);
     confirmationUrl.searchParams.set("token", command.rawConfirmationToken);
     const expiresAt = new Date(command.expiresAt);
     const rendered = await this.renderConfirmation({
@@ -226,7 +243,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     if (!province) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
-    const unsubscribeUrl = new URL(UNSUBSCRIBE_PATH, this.origin);
+    const unsubscribeUrl = new URL(this.linkPaths.unsubscribe, this.origin);
     unsubscribeUrl.searchParams.set("token", command.rawUnsubscribeToken);
     const rendered = await this.renderWelcome({
       logoUrl: NEWSLETTER_EMAIL_LOGO_URL,

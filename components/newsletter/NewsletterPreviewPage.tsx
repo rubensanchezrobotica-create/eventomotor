@@ -12,6 +12,7 @@ import styles from "./NewsletterPreview.module.css";
 type NewsletterPreviewPageProps = {
   emails: RenderedNewsletterEmail[];
   initialOptions: NewsletterPreviewOptions;
+  experience?: "preview" | "production-canary";
 };
 
 const benefits = [
@@ -28,8 +29,13 @@ const flow = [
   { step: "4", title: "Agenda semanal", copy: "Selección editorial" },
 ];
 
-export default function NewsletterPreviewPage({ emails, initialOptions }: NewsletterPreviewPageProps) {
+export default function NewsletterPreviewPage({
+  emails,
+  initialOptions,
+  experience = "preview",
+}: NewsletterPreviewPageProps) {
   const weeklyEmail = emails.find((email) => email.kind === "weekly");
+  const isInternalPreview = experience === "preview";
 
   return (
     <main className={styles.landingPage}>
@@ -47,10 +53,12 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
             <NewsletterSignupForm />
           </div>
         </div>
-        <div className={`emc-container ${styles.previewEnvironmentBar}`}>
-          <span>Entorno de revisión protegido</span>
-          <p>{NEWSLETTER_R4B_CONTROLLED_STATUS}</p>
-        </div>
+        {isInternalPreview ? (
+          <div className={`emc-container ${styles.previewEnvironmentBar}`}>
+            <span>Entorno de revisión protegido</span>
+            <p>{NEWSLETTER_R4B_CONTROLLED_STATUS}</p>
+          </div>
+        ) : null}
       </section>
 
       <div className={styles.desktopPreviewContent}>
@@ -80,7 +88,9 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
                 <span className={styles.eyebrow}>UNA EDICIÓN, DE UN VISTAZO</span>
                 <h2>Así llegará La Agenda Motor a tu bandeja.</h2>
                 <p>Una selección breve, contextual y fácil de recorrer para decidir el siguiente plan sin perder tiempo.</p>
-                <a href="#laboratorio-r2">Ver el laboratorio de la edición</a>
+                {isInternalPreview ? (
+                  <a href="#laboratorio-r2">Ver el laboratorio de la edición</a>
+                ) : null}
               </div>
               <div className={styles.agendaSampleFrame}>
                 <iframe
@@ -112,25 +122,26 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
           </div>
         </section>
 
-        <section className={styles.labSection} id="laboratorio-r2">
-          <div className="emc-container">
-            <details className={styles.labDisclosure}>
-              <summary>
-                <span>
-                  <small className={styles.internalBadge}>PREVIEW INTERNA · R2</small>
-                  <strong>Laboratorio de producto y email</strong>
-                </span>
-                <span className={styles.labDisclosureAction}>Abrir laboratorio</span>
-              </summary>
-              <div className={styles.labContent}>
-                <div className={styles.labIntro}>
-                  <div>
-                    <span className={styles.internalBadge}>PREVIEW INTERNA · R2</span>
-                    <h2>Laboratorio interno R2</h2>
-                    <p>Estados, variantes y render de la edición en un área separada de la experiencia de producto.</p>
+        {isInternalPreview ? (
+          <section className={styles.labSection} id="laboratorio-r2">
+            <div className="emc-container">
+              <details className={styles.labDisclosure}>
+                <summary>
+                  <span>
+                    <small className={styles.internalBadge}>PREVIEW INTERNA · R2</small>
+                    <strong>Laboratorio de producto y email</strong>
+                  </span>
+                  <span className={styles.labDisclosureAction}>Abrir laboratorio</span>
+                </summary>
+                <div className={styles.labContent}>
+                  <div className={styles.labIntro}>
+                    <div>
+                      <span className={styles.internalBadge}>PREVIEW INTERNA · R2</span>
+                      <h2>Laboratorio interno R2</h2>
+                      <p>Estados, variantes y render de la edición en un área separada de la experiencia de producto.</p>
+                    </div>
+                    <Link href="/preview-concept">← Volver a la preview principal</Link>
                   </div>
-                  <Link href="/preview-concept">← Volver a la preview principal</Link>
-                </div>
 
                 <div className={styles.labBlock}>
                   <div className={styles.labBlockHeading}>
@@ -174,10 +185,11 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
                     <article><strong>Revisión legal</strong><p>Consentimiento, preferencias, baja y textos definitivos deben aprobarse antes de una integración pública.</p></article>
                   </div>
                 </div>
-              </div>
-            </details>
-          </div>
-        </section>
+                </div>
+              </details>
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   );

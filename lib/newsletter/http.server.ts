@@ -20,7 +20,15 @@ import type {
 import {
   isValidEmail,
   isValidNewsletterOpaqueToken,
+  normalizeEmail,
 } from "@/lib/newsletter/schemas";
+import {
+  evaluateNewsletterProductionCanaryResendConfiguration,
+  type NewsletterProductionCanaryResendEnvironment,
+} from "@/lib/newsletter/resend-config.server";
+import {
+  isNewsletterProductionCanaryMutationRequestAllowed,
+} from "@/lib/newsletter/r5a-guard";
 import { createConfiguredNewsletterService } from "@/lib/newsletter/service.server";
 import {
   NewsletterOperationError,
@@ -45,6 +53,7 @@ export type NewsletterHttpGuardReason =
   | "production_blocked"
   | "preview_context_invalid"
   | "test_context_invalid"
+  | "production_canary_invalid"
   | "origin_required"
   | "origin_mismatch"
   | "host_mismatch"
@@ -57,10 +66,15 @@ export type NewsletterHttpGuardInput = NewsletterRuntimeEnvironment & {
   r4bArmed?: string;
   r4bLocalOrigin?: string;
   vercel?: string;
-};
+} & Omit<NewsletterProductionCanaryResendEnvironment, "newsletterMode">;
 
 export type NewsletterHttpGuardResult =
   | { allowed: true; mode: "preview" | "test" }
+  | {
+      allowed: true;
+      mode: "live";
+      allowedRecipients: readonly string[];
+    }
   | { allowed: false; mode: NewsletterMode; reason: NewsletterHttpGuardReason };
 
 export type NewsletterSafeLogEvent = {
@@ -93,7 +107,7 @@ export type NewsletterHttpRuntimeEnvironment = NewsletterRuntimeEnvironment & {
   r4bArmed?: string;
   r4bLocalOrigin?: string;
   vercel?: string;
-};
+} & Omit<NewsletterProductionCanaryResendEnvironment, "newsletterMode">;
 
 export type NewsletterHttpHandlerDependencies = {
   createService?: () => NewsletterService;
@@ -135,6 +149,13 @@ function currentEnvironment(): NewsletterHttpRuntimeEnvironment {
     nodeEnv: process.env.NODE_ENV,
     r4bArmed: process.env.NEWSLETTER_R4B_ARMED,
     r4bLocalOrigin: process.env.NEWSLETTER_R4B_LOCAL_ORIGIN,
+    mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
+    apiKey: process.env.NEWSLETTER_RESEND_API_KEY,
+    from: process.env.NEWSLETTER_RESEND_FROM,
+    replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
+    recipientAllowlist: process.env.NEWSLETTER_PRODUCTION_CANARY_ALLOWLIST,
+    armed: process.env.NEWSLETTER_PRODUCTION_CANARY_ARMED,
+    canaryOrigin: process.env.NEWSLETTER_PRODUCTION_CANARY_ORIGIN,
     vercel: process.env.VERCEL,
     vercelEnv: process.env.VERCEL_ENV,
   };
@@ -164,6 +185,43 @@ export function evaluateNewsletterHttpGuard(
     return { allowed: false, mode, reason: "host_mismatch" };
   }
 
+  if (mode === "live") {
+    const configuration =
+      evaluateNewsletterProductionCanaryResendConfiguration({
+        newsletterMode: input.mode,
+        mailTransport: input.mailTransport,
+        apiKey: input.apiKey,
+        from: input.from,
+        replyTo: input.replyTo,
+        recipientAllowlist: input.recipientAllowlist,
+        armed: input.armed,
+        canaryOrigin: input.canaryOrigin,
+        nodeEnv: input.nodeEnv,
+        vercel: input.vercel,
+        vercelEnv: input.vercelEnv,
+      });
+    if (
+      !configuration.enabled ||
+      !isNewsletterProductionCanaryMutationRequestAllowed(
+        configuration,
+        input.requestUrl,
+        input.origin,
+        input.host,
+      )
+    ) {
+      return {
+        allowed: false,
+        mode,
+        reason: "production_canary_invalid",
+      };
+    }
+    return {
+      allowed: true,
+      mode: "live",
+      allowedRecipients: configuration.allowedRecipients,
+    };
+  }
+
   const productionDeployment =
     input.vercel !== undefined ||
     input.vercelEnv === "production" ||
@@ -172,7 +230,7 @@ export function evaluateNewsletterHttpGuard(
     return { allowed: false, mode, reason: "production_blocked" };
   }
 
-  if (mode === "off" || mode === "live") {
+  if (mode === "off") {
     return { allowed: false, mode, reason: "mode_disabled" };
   }
 
@@ -518,10 +576,20 @@ export function createNewsletterHttpHandler(
     const sourcePath = parseUrl(request.url)?.pathname ?? `/api/newsletter/${operation}`;
     try {
       if (operation === "request") {
+        const requestInput = parsedInput.value as RequestNewsletterInput;
+        if (
+          guard.mode === "live" &&
+          !guard.allowedRecipients.includes(normalizeEmail(requestInput.email))
+        ) {
+          return jsonResponse<RequestNewsletterResponse>(
+            { ok: true, status: "accepted" },
+            202,
+          );
+        }
         const service = createService();
         const result = await executeRequest(
           service,
-          parsedInput.value as RequestNewsletterInput,
+          requestInput,
           sourcePath,
         );
         if (result.internalErrorCategory) {

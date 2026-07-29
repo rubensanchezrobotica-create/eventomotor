@@ -20,6 +20,7 @@ import styles from "./NewsletterPreview.module.css";
 
 type NewsletterTokenActionProps = {
   kind: NewsletterTokenActionKind;
+  experience?: "preview" | "production-canary";
 };
 
 const ACTION_LABELS: Record<
@@ -41,7 +42,10 @@ function cleanVisibleTokenUrl() {
   window.history.replaceState(window.history.state, "", cleanUrl);
 }
 
-export default function NewsletterTokenAction({ kind }: NewsletterTokenActionProps) {
+export default function NewsletterTokenAction({
+  kind,
+  experience = "preview",
+}: NewsletterTokenActionProps) {
   const labels = ACTION_LABELS[kind];
   const [state, setState] = useState<NewsletterTokenActionState>("checking");
   const tokenRef = useRef<string | null>(null);
@@ -125,7 +129,14 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
                   {busy ? labels.busy : labels.action}
                 </button>
                 {kind === "unsubscribe" && !busy ? (
-                  <Link className={styles.cancelAction} href="/preview/newsletter">
+                  <Link
+                    className={styles.cancelAction}
+                    href={
+                      experience === "production-canary"
+                        ? "/newsletter"
+                        : "/preview/newsletter"
+                    }
+                  >
                     Mantener mi suscripción
                   </Link>
                 ) : null}
@@ -167,10 +178,12 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
               </Link>
             ) : null}
           </div>
-          <aside className={styles.internalNotice}>
-            <strong>Entorno R4B</strong>
-            <span>{NEWSLETTER_R4B_CONTROLLED_STATUS}</span>
-          </aside>
+          {experience === "preview" ? (
+            <aside className={styles.internalNotice}>
+              <strong>Entorno R4B</strong>
+              <span>{NEWSLETTER_R4B_CONTROLLED_STATUS}</span>
+            </aside>
+          ) : null}
         </div>
       </section>
     </main>

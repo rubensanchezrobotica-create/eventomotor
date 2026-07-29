@@ -406,12 +406,11 @@ test("endpoint runtime hashea el token y no acepta email o UUID", async () => {
   assert.equal(rejected.status, 400);
 });
 
-test("R3B.4 no introduce proveedores, rutas públicas o datos sensibles en logs", () => {
+test("el núcleo R3B.4 no introduce proveedores, rutas públicas o datos sensibles en logs", () => {
   const files = [
     "lib/newsletter/service.server.ts",
     "lib/newsletter/repository.server.ts",
     "lib/newsletter/mail-capture-transport.server.tsx",
-    "lib/newsletter/http.server.ts",
     "database/migrations/20260721133000_newsletter_core_foundation.sql",
   ];
   const source = files.map((file) => readFileSync(join(process.cwd(), file), "utf8")).join("\n");
