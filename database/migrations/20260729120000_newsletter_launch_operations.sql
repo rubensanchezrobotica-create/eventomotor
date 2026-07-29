@@ -83,8 +83,8 @@ grant select on table
 to service_role;
 
 -- R5A.2 does not retain individual open/click behavior.
-delete from public.newsletter_email_events
-where event_type in ('opened', 'clicked');
+delete from public.newsletter_email_events as nee
+where nee.event_type in ('opened', 'clicked');
 
 alter table public.newsletter_subscribers
   drop column if exists last_opened_at,
@@ -155,14 +155,14 @@ begin
   end if;
 
   select * into strict v_subscriber
-  from public.newsletter_subscribers
-  where id = p_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = p_subscriber_id
   for update;
 
   select * into v_suppression
-  from public.newsletter_suppressions
-  where subscriber_id = v_subscriber.id
-    and lifted_at is null
+  from public.newsletter_suppressions as nsp
+  where nsp.subscriber_id = v_subscriber.id
+    and nsp.lifted_at is null
   for update;
 
   v_email_hash := case
@@ -221,40 +221,44 @@ begin
         public.newsletter_suppressions.updated_at
       );
 
-  delete from public.newsletter_preferences
-  where subscriber_id = v_subscriber.id;
+  delete from public.newsletter_preferences as np
+  where np.subscriber_id = v_subscriber.id;
 
-  update public.newsletter_consent_events
+  update public.newsletter_consent_events as nce
   set source_path = null,
       ip_hash = null
-  where subscriber_id = v_subscriber.id;
+  where nce.subscriber_id = v_subscriber.id;
 
-  delete from public.newsletter_confirmation_tokens
-  where subscriber_id = v_subscriber.id;
+  delete from public.newsletter_confirmation_tokens as nct
+  where nct.subscriber_id = v_subscriber.id;
 
-  delete from public.newsletter_unsubscribe_tokens
-  where subscriber_id = v_subscriber.id
+  delete from public.newsletter_unsubscribe_tokens as nut
+  where nut.subscriber_id = v_subscriber.id
     and (
       p_preserve_unsubscribe_token_id is null
-      or id <> p_preserve_unsubscribe_token_id
+      or nut.id <> p_preserve_unsubscribe_token_id
     );
 
   if p_preserve_unsubscribe_token_id is not null then
-    update public.newsletter_unsubscribe_tokens
+    update public.newsletter_unsubscribe_tokens as nut
     set first_used_at = coalesce(
-          first_used_at,
-          greatest(pg_catalog.clock_timestamp(), created_at)
+          nut.first_used_at,
+          greatest(pg_catalog.clock_timestamp(), nut.created_at)
         ),
-        updated_at = greatest(pg_catalog.clock_timestamp(), created_at, updated_at)
-    where id = p_preserve_unsubscribe_token_id
-      and subscriber_id = v_subscriber.id;
+        updated_at = greatest(
+          pg_catalog.clock_timestamp(),
+          nut.created_at,
+          nut.updated_at
+        )
+    where nut.id = p_preserve_unsubscribe_token_id
+      and nut.subscriber_id = v_subscriber.id;
   end if;
 
   v_anonymous_email :=
     'suppressed+' || pg_catalog.replace(v_subscriber.id::text, '-', '')
     || '@invalid.eventomotor.local';
 
-  update public.newsletter_subscribers
+  update public.newsletter_subscribers as ns
   set email = v_anonymous_email,
       email_normalized = v_anonymous_email,
       status = v_status,
@@ -271,25 +275,25 @@ begin
       last_delivered_at = null,
       unsubscribed_at = case
         when v_effective_reason = 'voluntary'
-          then greatest(coalesce(unsubscribed_at, p_occurred_at), p_occurred_at)
-        else unsubscribed_at
+          then greatest(coalesce(ns.unsubscribed_at, p_occurred_at), p_occurred_at)
+        else ns.unsubscribed_at
       end,
       bounced_at = case
         when v_effective_reason = 'permanent_bounce'
-          then greatest(coalesce(bounced_at, p_occurred_at), p_occurred_at)
-        else bounced_at
+          then greatest(coalesce(ns.bounced_at, p_occurred_at), p_occurred_at)
+        else ns.bounced_at
       end,
       complained_at = case
         when v_effective_reason = 'complaint'
-          then greatest(coalesce(complained_at, p_occurred_at), p_occurred_at)
-        else complained_at
+          then greatest(coalesce(ns.complained_at, p_occurred_at), p_occurred_at)
+        else ns.complained_at
       end,
       suppressed_at = case
         when v_effective_reason = 'provider_suppression'
-          then greatest(coalesce(suppressed_at, p_occurred_at), p_occurred_at)
-        else suppressed_at
+          then greatest(coalesce(ns.suppressed_at, p_occurred_at), p_occurred_at)
+        else ns.suppressed_at
       end
-  where id = v_subscriber.id;
+  where ns.id = v_subscriber.id;
 
   return v_effective_reason;
 end;
@@ -392,15 +396,15 @@ begin
 
   if v_suppressed_subscriber_id is not null then
     select * into strict v_subscriber
-    from public.newsletter_subscribers
-    where id = v_suppressed_subscriber_id
+    from public.newsletter_subscribers as ns
+    where ns.id = v_suppressed_subscriber_id
     for update;
 
     select * into strict v_suppression
-    from public.newsletter_suppressions
-    where subscriber_id = v_subscriber.id
-      and email_hash = v_email_hash
-      and lifted_at is null
+    from public.newsletter_suppressions as nsp
+    where nsp.subscriber_id = v_subscriber.id
+      and nsp.email_hash = v_email_hash
+      and nsp.lifted_at is null
     for update;
 
     if v_suppression.reason <> 'voluntary' then
@@ -415,7 +419,7 @@ begin
       p_source, p_source_path, p_ip_hash, v_now
     );
 
-    update public.newsletter_subscribers
+    update public.newsletter_subscribers as ns
     set email = p_email,
         email_normalized = p_email_normalized,
         status = 'unsubscribed',
@@ -427,7 +431,7 @@ begin
         source_detail = p_source_detail,
         source_path = p_source_path,
         consent_version = p_consent_version
-    where id = v_subscriber.id
+    where ns.id = v_subscriber.id
     returning * into v_subscriber;
   else
     insert into public.newsletter_subscribers (
@@ -441,8 +445,8 @@ begin
     returning true into v_created;
 
     select * into v_subscriber
-    from public.newsletter_subscribers
-    where email_normalized = p_email_normalized
+    from public.newsletter_subscribers as ns
+    where ns.email_normalized = p_email_normalized
     for update;
 
     -- The row can be minimized or purged between the conflict check and the
@@ -516,11 +520,11 @@ begin
     else 'resubscribe'
   end;
 
-  update public.newsletter_confirmation_tokens
+  update public.newsletter_confirmation_tokens as nct
   set invalidated_at = v_now
-  where subscriber_id = v_subscriber.id
-    and used_at is null
-    and invalidated_at is null;
+  where nct.subscriber_id = v_subscriber.id
+    and nct.used_at is null
+    and nct.invalidated_at is null;
 
   insert into public.newsletter_confirmation_tokens (
     subscriber_id, token_hash, purpose, expires_at
@@ -528,7 +532,7 @@ begin
     v_subscriber.id, p_token_hash, v_purpose, p_token_expires_at
   );
 
-  update public.newsletter_subscribers
+  update public.newsletter_subscribers as ns
   set email = p_email,
       language_code = p_language_code,
       country_code = p_country_code,
@@ -541,7 +545,7 @@ begin
       last_confirmation_requested_at = v_now,
       confirmation_request_window_started_at = v_window_start,
       confirmation_request_count = v_request_count
-  where id = v_subscriber.id
+  where ns.id = v_subscriber.id
   returning * into v_subscriber;
 
   insert into public.newsletter_consent_events (
@@ -586,14 +590,14 @@ begin
   end if;
 
   select * into strict v_subscriber
-  from public.newsletter_subscribers
-  where id = v_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = v_subscriber_id
   for update;
 
   select * into v_token
-  from public.newsletter_confirmation_tokens
-  where token_hash = p_token_hash
-    and subscriber_id = v_subscriber.id
+  from public.newsletter_confirmation_tokens as nct
+  where nct.token_hash = p_token_hash
+    and nct.subscriber_id = v_subscriber.id
   for update;
 
   if not found or v_token.invalidated_at is not null then
@@ -610,50 +614,50 @@ begin
   end if;
 
   select * into v_suppression
-  from public.newsletter_suppressions
-  where subscriber_id = v_subscriber.id
-    and lifted_at is null
+  from public.newsletter_suppressions as nsp
+  where nsp.subscriber_id = v_subscriber.id
+    and nsp.lifted_at is null
   for update;
 
   if v_token.purpose = 'resubscribe' then
     if not found or v_suppression.reason <> 'voluntary'
       or v_subscriber.status <> 'unsubscribed' then
-      update public.newsletter_confirmation_tokens
+      update public.newsletter_confirmation_tokens as nct
       set invalidated_at = v_now
-      where id = v_token.id;
+      where nct.id = v_token.id;
       return query select 'blocked', null::uuid;
       return;
     end if;
   elsif v_token.purpose <> 'subscribe'
     or v_subscriber.status <> 'pending'
     or found then
-    update public.newsletter_confirmation_tokens
+    update public.newsletter_confirmation_tokens as nct
     set invalidated_at = v_now
-    where id = v_token.id;
+    where nct.id = v_token.id;
     return query select 'invalid_token', null::uuid;
     return;
   end if;
 
   if v_token.purpose = 'resubscribe' then
-    update public.newsletter_suppressions
+    update public.newsletter_suppressions as nsp
     set lifted_at = v_now,
-        updated_at = greatest(v_now, updated_at)
-    where id = v_suppression.id;
+        updated_at = greatest(v_now, nsp.updated_at)
+    where nsp.id = v_suppression.id;
   end if;
 
-  update public.newsletter_subscribers
+  update public.newsletter_subscribers as ns
   set status = 'active',
       confirmed_at = v_now,
       unsubscribed_at = null,
       bounced_at = null,
       complained_at = null,
       suppressed_at = null
-  where id = v_subscriber.id
+  where ns.id = v_subscriber.id
   returning * into v_subscriber;
 
-  update public.newsletter_confirmation_tokens
+  update public.newsletter_confirmation_tokens as nct
   set used_at = v_now
-  where id = v_token.id;
+  where nct.id = v_token.id;
 
   insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
   values (v_subscriber.id, true)
@@ -701,8 +705,8 @@ begin
   end if;
 
   select * into v_subscriber
-  from public.newsletter_subscribers
-  where id = p_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = p_subscriber_id
   for update;
 
   if not found then
@@ -777,8 +781,8 @@ begin
   end if;
 
   select * into v_subscriber
-  from public.newsletter_subscribers
-  where id = v_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = v_subscriber_id
   for update;
 
   if not found then
@@ -787,9 +791,9 @@ begin
   end if;
 
   select * into v_token
-  from public.newsletter_unsubscribe_tokens
-  where token_hash = p_token_hash
-    and subscriber_id = v_subscriber.id
+  from public.newsletter_unsubscribe_tokens as nut
+  where nut.token_hash = p_token_hash
+    and nut.subscriber_id = v_subscriber.id
   for update;
 
   if not found then
@@ -806,10 +810,13 @@ begin
   end if;
 
   if v_subscriber.status = 'unsubscribed' then
-    update public.newsletter_unsubscribe_tokens
-    set first_used_at = coalesce(first_used_at, greatest(v_now, created_at)),
-        updated_at = greatest(v_now, created_at, updated_at)
-    where id = v_token.id;
+    update public.newsletter_unsubscribe_tokens as nut
+    set first_used_at = coalesce(
+          nut.first_used_at,
+          greatest(v_now, nut.created_at)
+        ),
+        updated_at = greatest(v_now, nut.created_at, nut.updated_at)
+    where nut.id = v_token.id;
     return query select 'already_unsubscribed';
     return;
   end if;
@@ -881,13 +888,13 @@ begin
     return;
   end if;
 
-  delete from public.newsletter_consent_events
-  where subscriber_id = any(v_ids);
+  delete from public.newsletter_consent_events as nce
+  where nce.subscriber_id = any(v_ids);
 
-  delete from public.newsletter_subscribers
-  where id = any(v_ids)
-    and status = 'pending'
-    and confirmed_at is null;
+  delete from public.newsletter_subscribers as ns
+  where ns.id = any(v_ids)
+    and ns.status = 'pending'
+    and ns.confirmed_at is null;
 
   get diagnostics v_count = row_count;
   return query select v_count;
@@ -911,6 +918,7 @@ as $$
 declare
   v_subscriber public.newsletter_subscribers%rowtype;
   v_suppression public.newsletter_suppressions%rowtype;
+  v_has_suppression boolean := false;
 begin
   if p_subscriber_id is null
     or p_delivery_kind not in ('confirmation', 'welcome') then
@@ -918,8 +926,8 @@ begin
   end if;
 
   select * into v_subscriber
-  from public.newsletter_subscribers
-  where id = p_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = p_subscriber_id
   for update;
 
   if not found then
@@ -928,38 +936,39 @@ begin
   end if;
 
   select * into v_suppression
-  from public.newsletter_suppressions
-  where subscriber_id = v_subscriber.id
-    and lifted_at is null
+  from public.newsletter_suppressions as nsp
+  where nsp.subscriber_id = v_subscriber.id
+    and nsp.lifted_at is null
   for update;
+  v_has_suppression := found;
 
   if p_delivery_kind = 'confirmation' then
-    if v_subscriber.status = 'pending' and not found then
+    if v_subscriber.status = 'pending' and not v_has_suppression then
       return query select 'allowed';
       return;
     end if;
     if v_subscriber.status = 'unsubscribed'
-      and found
+      and v_has_suppression
       and v_suppression.reason = 'voluntary'
       and exists (
         select 1
-        from public.newsletter_confirmation_tokens
-        where subscriber_id = v_subscriber.id
-          and purpose = 'resubscribe'
-          and used_at is null
-          and invalidated_at is null
-          and expires_at > clock_timestamp()
+        from public.newsletter_confirmation_tokens as nct
+        where nct.subscriber_id = v_subscriber.id
+          and nct.purpose = 'resubscribe'
+          and nct.used_at is null
+          and nct.invalidated_at is null
+          and nct.expires_at > clock_timestamp()
       ) then
       return query select 'allowed';
       return;
     end if;
   elsif v_subscriber.status = 'active'
-    and not found
+    and not v_has_suppression
     and exists (
       select 1
-      from public.newsletter_preferences
-      where subscriber_id = v_subscriber.id
-        and weekly_digest_enabled
+      from public.newsletter_preferences as np
+      where np.subscriber_id = v_subscriber.id
+        and np.weekly_digest_enabled
     ) then
     return query select 'allowed';
     return;
@@ -997,8 +1006,8 @@ begin
   end if;
 
   perform 1
-  from public.newsletter_subscribers
-  where id = p_subscriber_id
+  from public.newsletter_subscribers as ns
+  where ns.id = p_subscriber_id
   for update;
 
   if not found then
@@ -1071,9 +1080,9 @@ begin
   end if;
 
   if p_subscriber_id is not null then
-    select * into strict v_subscriber
-    from public.newsletter_subscribers
-    where id = p_subscriber_id
+    select * into v_subscriber
+    from public.newsletter_subscribers as ns
+    where ns.id = p_subscriber_id
     for update;
   end if;
 
@@ -1127,19 +1136,19 @@ begin
       null
     );
   else
-    update public.newsletter_subscribers
+    update public.newsletter_subscribers as ns
     set last_sent_at = case
           when p_event_type = 'sent'
-            then greatest(coalesce(last_sent_at, p_occurred_at), p_occurred_at)
-          else last_sent_at
+            then greatest(coalesce(ns.last_sent_at, p_occurred_at), p_occurred_at)
+          else ns.last_sent_at
         end,
         last_delivered_at = case
           when p_event_type = 'delivered'
-            then greatest(coalesce(last_delivered_at, p_occurred_at), p_occurred_at)
-          else last_delivered_at
+            then greatest(coalesce(ns.last_delivered_at, p_occurred_at), p_occurred_at)
+          else ns.last_delivered_at
         end
-    where id = v_subscriber.id
-      and status not in ('bounced', 'complained', 'suppressed');
+    where ns.id = v_subscriber.id
+      and ns.status not in ('bounced', 'complained', 'suppressed');
   end if;
 
   return query select 'recorded';
@@ -1228,8 +1237,8 @@ begin
 
   if v_subscriber_id is not null then
     perform 1
-    from public.newsletter_subscribers
-    where id = v_subscriber_id
+    from public.newsletter_subscribers as ns
+    where ns.id = v_subscriber_id
     for update;
     if not found then
       v_subscriber_id := null;

@@ -185,7 +185,7 @@ Required rollout order:
 9. Only after an explicit separate approval, arm the allowlisted canary.
 
 The repository CI is prepared to apply both newsletter migrations from zero,
-run 215 pgTAP assertions in nine suites, concurrency races, DB lint and twenty
+run 228 pgTAP assertions in nine suites, concurrency races, DB lint and twenty
 Data API permission denials. Local execution also requires the pinned Supabase
 CLI and Docker; neither should be installed merely to claim validation.
 
@@ -198,11 +198,20 @@ NEWSLETTER_MODE=off
 NEWSLETTER_MAIL_TRANSPORT=disabled
 ```
 
-Disable the webhook endpoint in Resend and unschedule the cron job if its
-behavior is suspect. Do not drop `newsletter_suppressions`, webhook receipts or
-consent evidence, and do not restore clear emails, preferences or active
-statuses. Rolling application code back is safe only while sends remain
-disabled, because older code does not enforce the new suppression guard.
+Disable the webhook endpoint in Resend. A reviewed forward rollback migration
+may unschedule only `newsletter-pending-retention-daily` and, after compatible
+application code is deployed, revoke and remove the standalone R5A.2 service
+entry points for purge, delivery eligibility, outbound registration and webhook
+processing. Do not drop `newsletter_suppressions`, webhook receipts or consent
+evidence, and do not restore clear emails, preferences or active statuses.
+
+The replaced subscription RPCs depend on the R5A.2 minimization and suppression
+helpers. Do not remove those helpers while the replaced RPC definitions still
+reference them. A full retirement must first forward-migrate the core RPCs to
+equally suppression-safe definitions, and may then remove only helper entry
+points that have become unused. Rolling application code back is safe only
+while sends remain disabled, because older code does not enforce the new
+suppression guard.
 
 Database rollback should be a reviewed forward migration that preserves
 suppression evidence and privileges. Never reverse the migration by dropping

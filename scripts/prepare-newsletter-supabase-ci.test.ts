@@ -146,7 +146,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 215);
+  assert.equal(plannedAssertions, 228);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -188,17 +188,48 @@ test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumento
   );
 
   const rollbackThrows = throwsBlocks(rollback);
-  assert.equal(rollbackThrows.length, 4);
+  assert.equal(rollbackThrows.length, 5);
   assert.equal(
     rollbackThrows.filter((block) =>
       /\$\$,\s*'P0001',\s*'forced newsletter consent failure',\s*'[^']+'\s*$/i.test(block),
     ).length,
-    3,
+    4,
   );
   assert.equal(
     rollbackThrows.filter((block) => /\$\$,\s*'23503',\s*null,\s*'[^']+'\s*$/i.test(block))
       .length,
     1,
+  );
+});
+
+test("la migración R5A.2 cualifica columnas sensibles sin ocultar conflictos", async () => {
+  const migration = await readFile(
+    join(
+      process.cwd(),
+      "database",
+      "migrations",
+      "20260729120000_newsletter_launch_operations.sql",
+    ),
+    "utf8",
+  );
+  const plpgsqlBodies = [
+    ...migration.matchAll(/language\s+plpgsql[\s\S]*?as\s+\$\$([\s\S]*?)\$\$;/gi),
+  ]
+    .map((match) => match[1])
+    .join("\n");
+
+  assert.doesNotMatch(migration, /#variable_conflict/i);
+  assert.doesNotMatch(
+    plpgsqlBodies,
+    /\b(?:from|update|delete\s+from)\s+public\.newsletter_[a-z_]+\s*(?:\r?\n|where\b)/i,
+  );
+  assert.doesNotMatch(
+    plpgsqlBodies,
+    /\b(?:where|and|or|order\s+by)\s+(?:not\s+)?(?:subscriber_id|status|reason|event_type|provider_message_id|suppression_kind|created_at|used_at|invalidated_at|token_hash)\b/i,
+  );
+  assert.doesNotMatch(
+    plpgsqlBodies,
+    /\b(?:coalesce|greatest)\(\s*(?:subscriber_id|status|reason|event_type|provider_message_id|suppression_kind|created_at|used_at|invalidated_at|token_hash)\b/i,
   );
 });
 
@@ -222,7 +253,7 @@ test("la baja pending materializa el outcome antes de leer el estado persistido"
   );
 });
 
-test("pgTAP conserva catorce rechazos reales de tabla y veinte comprobaciones RPC de catálogo", async () => {
+test("pgTAP conserva rechazos reales de tabla, RPCs y helpers sensibles", async () => {
   const permissions = await readFile(
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter_permissions.test.sql"),
     "utf8",
@@ -239,8 +270,10 @@ test("pgTAP conserva catorce rechazos reales de tabla y veinte comprobaciones RP
     );
   }
   const catalogChecks = [
-    ...permissions.matchAll(/not\s+has_function_privilege\(([\s\S]*?)\n\s*\)/gi),
-  ].map((match) => match[1]);
+    ...permissions.matchAll(
+      /not\s+has_function_privilege\(\s*'(?:anon|authenticated)'([\s\S]*?)\n\s*\)/gi,
+    ),
+  ].map((match) => match[0]);
   assert.equal(catalogChecks.length, 20);
   assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 10);
   assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 10);
@@ -248,7 +281,14 @@ test("pgTAP conserva catorce rechazos reales de tabla y veinte comprobaciones RP
     assert.match(block, /'public\.[^']+\([^']*\)'::regprocedure/i);
     assert.match(block, /'EXECUTE'/i);
   }
-  assert.match(permissions, /select\s+plan\(40\);/i);
+  assert.match(permissions, /public\.newsletter_email_hash\(text\)/i);
+  assert.match(
+    permissions,
+    /public\.minimize_newsletter_subscriber\(uuid,text,timestamptz,text,uuid\)/i,
+  );
+  assert.match(permissions, /'service_role'[\s\S]+newsletter_email_hash/i);
+  assert.match(permissions, /'service_role'[\s\S]+minimize_newsletter_subscriber/i);
+  assert.match(permissions, /select\s+plan\(44\);/i);
 });
 
 type ProcessResult = {

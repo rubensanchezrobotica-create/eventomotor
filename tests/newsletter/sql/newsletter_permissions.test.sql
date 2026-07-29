@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(40);
+select plan(44);
 
 set local role anon;
 select throws_ok(
@@ -337,6 +337,77 @@ select ok(
       and privilege_type = 'SELECT'
   ),
   'service_role has exactly the intended eight table read grants'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from pg_class
+    where relnamespace = 'public'::regnamespace
+      and relkind = 'S'
+      and relname like 'newsletter_%'
+  ),
+  0,
+  'newsletter persistence introduces no grant-bearing sequences'
+);
+
+select ok(
+  (
+    select bool_and(
+      not has_function_privilege(
+        helper_check.role_name,
+        helper_check.function_name,
+        'EXECUTE'
+      )
+    )
+    from (
+      values
+        ('anon', 'public.newsletter_email_hash(text)'),
+        ('authenticated', 'public.newsletter_email_hash(text)'),
+        ('service_role', 'public.newsletter_email_hash(text)'),
+        (
+          'anon',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        ),
+        (
+          'authenticated',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        ),
+        (
+          'service_role',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        )
+    ) as helper_check(role_name, function_name)
+  ),
+  'sensitive hash and minimization helpers are not directly executable'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from cron.job
+    where jobname = 'newsletter-pending-retention-daily'
+      and schedule = '17 3 * * *'
+      and command = 'select public.purge_stale_newsletter_pending(500);'
+  ),
+  1,
+  'retention uses one stable reviewed cron definition'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name in (
+        'newsletter_suppressions',
+        'newsletter_webhook_receipts'
+      )
+      and grantee = 'service_role'
+      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
+  ),
+  0,
+  'service_role has no direct write grant on suppression or replay tables'
 );
 
 select * from finish();
