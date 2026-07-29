@@ -120,6 +120,10 @@ body {
   box-shadow: 0 16px 36px rgba(255, 91, 31, 0.22);
 }
 
+.em-cookie-actions button {
+  flex: 1 1 150px;
+}
+
 .em-cookie-actions button:hover,
 .em-cookie-footer-button:hover {
   background: #ff7442;

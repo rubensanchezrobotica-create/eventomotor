@@ -197,7 +197,7 @@ export type WelcomeMailCommand = {
   kind: "welcome";
   recipientEmail: string;
   rawUnsubscribeToken: string;
-  provinceSlug: string;
+  provinceSlug: string | null;
   regionSlug: string | null;
   locale: string;
 };

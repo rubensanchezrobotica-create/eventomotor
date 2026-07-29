@@ -202,6 +202,39 @@
   padding: 20px 26px 7px;
 }
 
+.privacyLayer {
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #aeb4bf;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 10px;
+  line-height: 1.48;
+}
+
+.privacyLayer > strong {
+  display: block;
+  margin-bottom: 9px;
+  color: #f4f4f6;
+  font-size: 11px;
+}
+
+.privacyLayer p {
+  margin: 5px 0 0;
+}
+
+.privacyLayer b {
+  color: #d8dbe1;
+}
+
+.privacyLayer a,
+.ageNotice a {
+  color: #f0b293;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .formGrid {
   display: grid;
   gap: 13px;
@@ -288,6 +321,13 @@
   color: #f0b293;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.ageNotice {
+  margin: 12px 0 0;
+  color: #8f949f;
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .primaryButton {

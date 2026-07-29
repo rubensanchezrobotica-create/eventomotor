@@ -25,7 +25,9 @@ export default function WeeklyAgendaEmail({
   travelEvent,
   recentlyAdded,
   agendaUrl,
+  privacyUrl,
   unsubscribeUrl,
+  contactEmail,
 }: WeeklyAgendaEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.weekly;
 
@@ -73,7 +75,24 @@ export default function WeeklyAgendaEmail({
       <Section style={styles.feedback}>
         <Text style={styles.feedbackTitle}>¿Te ha resultado útil esta edición?</Text>
         <Text style={styles.feedbackLinks}>Sí, mucho · Podría mejorar</Text>
-        <Link href={unsubscribeUrl} style={styles.unsubscribe}>Darme de baja</Link>
+        <Text style={styles.legal}>
+          Recibes “La Agenda Motor” porque confirmaste tu suscripción en
+          EventoMotor.
+        </Text>
+        <Text style={styles.legal}>
+          Responsable: Rubén Ginés Sánchez García, titular del proyecto
+          EventoMotor. EventoMotor no comparte tus datos con organizadores,
+          patrocinadores ni terceros para sus propios fines.
+        </Text>
+        <Text style={styles.legalLinks}>
+          <Link href={privacyUrl} style={styles.unsubscribe}>Política de privacidad</Link>
+          {" · "}
+          <Link href={unsubscribeUrl} style={styles.unsubscribe}>Darme de baja</Link>
+        </Text>
+        <Text style={styles.legal}>
+          Contacto:{" "}
+          <Link href={`mailto:${contactEmail}`} style={styles.unsubscribe}>{contactEmail}</Link>
+        </Text>
       </Section>
     </NewsletterEmailShell>
   );
@@ -228,5 +247,7 @@ const styles = {
   feedback: { padding: "24px 34px 30px", textAlign: "center" as const },
   feedbackTitle: { margin: "0", color: "#c7d0dc", fontSize: "12px", lineHeight: "18px" },
   feedbackLinks: { margin: "10px 0 0", color: "#ff9b74", fontSize: "12px", fontWeight: "700" },
-  unsubscribe: { display: "inline-block", marginTop: "22px", color: "#aeb9c8", fontSize: "11px", textDecoration: "underline" },
+  legal: { margin: "13px 0 0", color: "#8f9aaa", fontSize: "11px", lineHeight: "18px" },
+  legalLinks: { margin: "13px 0 0", color: "#8f9aaa", fontSize: "11px", lineHeight: "18px" },
+  unsubscribe: { color: "#aeb9c8", fontSize: "11px", textDecoration: "underline" },
 };

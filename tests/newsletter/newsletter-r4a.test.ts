@@ -361,9 +361,10 @@ test(".env.example sólo contiene variables vacías y ningún secreto real", () 
     "NEWSLETTER_TEST_RECIPIENT_ALLOWLIST",
   ]) {
     assert.match(example, new RegExp(`^${name}=$`, "m"));
+    assert.doesNotMatch(example, new RegExp(`^${name}=.+$`, "m"));
   }
   assert.doesNotMatch(example, /NEWSLETTER_RESEND_ORIGIN/);
-  assert.doesNotMatch(example, /re_[A-Za-z0-9]{20,}|@eventomotor\.com/i);
+  assert.doesNotMatch(example, /re_[A-Za-z0-9]{20,}/i);
 });
 
 test("configuración runtime no lee ni expone NEWSLETTER_RESEND_ORIGIN", () => {

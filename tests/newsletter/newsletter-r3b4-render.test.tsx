@@ -11,12 +11,14 @@ test("WelcomeEmail comparte el enlace de baja en HTML y texto sin prometer autom
     provinceName: "Barcelona",
     eventsUrl: "http://localhost:3000/eventos-motor-barcelona",
     unsubscribeUrl,
+    privacyUrl: "http://localhost:3000/privacidad",
+    contactEmail: "info@eventomotor.com",
   });
 
   assert.match(rendered.html, new RegExp(unsubscribeUrl.replace(/[?]/g, "\\?")));
   assert.match(rendered.text, new RegExp(unsubscribeUrl.replace(/[?]/g, "\\?")));
-  assert.match(rendered.html, /Darme de baja/);
-  assert.match(rendered.text, /Darme de baja/);
+  assert.match(rendered.html, /darte de baja/i);
+  assert.match(rendered.text, /darte de baja/i);
   assert.doesNotMatch(rendered.html, /La primera edición llegará|envío automatizado/i);
   assert.doesNotMatch(rendered.text, /La primera edición llegará|envío automatizado/i);
 });

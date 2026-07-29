@@ -543,5 +543,8 @@ test("variables R4B permanecen server-only y .env.example no contiene secretos",
   const example = readFileSync(join(process.cwd(), ".env.example"), "utf8");
   assert.match(example, /^NEWSLETTER_R4B_ARMED=$/m);
   assert.match(example, /^NEWSLETTER_R4B_LOCAL_ORIGIN=$/m);
-  assert.doesNotMatch(example, /re_[A-Za-z0-9]{20,}|@eventomotor\.com/i);
+  assert.doesNotMatch(
+    example,
+    /re_[A-Za-z0-9]{20,}|^[A-Z0-9_]+=.*@eventomotor\.com.*$/im,
+  );
 });

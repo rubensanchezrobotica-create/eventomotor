@@ -31,7 +31,7 @@ export type NewsletterUnsubscribeClientResult =
 
 export type NewsletterRequestPayload = {
   email: string;
-  province: string;
+  province?: string;
   consentVersion: string;
 };
 
@@ -63,7 +63,7 @@ function isPublicJson(value: unknown): value is PublicJson {
 
 async function postNewsletterJson(
   path: string,
-  payload: Record<string, string>,
+  payload: Record<string, string | undefined>,
   options: NewsletterMutationOptions,
 ): Promise<NewsletterHttpResult> {
   const fetcher = options.fetcher ?? fetch;

@@ -5,7 +5,7 @@ export const NEWSLETTER_EMAIL_METADATA: Record<NewsletterEmailKind, NewsletterEm
     kind: "confirmation",
     label: "Confirmación",
     subject: "Confirma tu suscripción a La Agenda Motor",
-    preheader: "Solo falta un paso para recibir los mejores eventos del motor cerca de ti.",
+    preheader: "Solo falta un paso para recibir cada semana los próximos eventos de motor.",
     previewHeight: 760,
   },
   welcome: {

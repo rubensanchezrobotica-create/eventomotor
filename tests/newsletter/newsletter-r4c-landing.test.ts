@@ -33,10 +33,10 @@ test("la landing conserva el formulario completo y su orden de teclado natural",
   assert.ok(email > -1 && email < province);
   assert.ok(province < consent);
   assert.ok(consent < submit);
-  assert.match(form, />Email<\/span>/);
-  assert.match(form, />Provincia<\/span>/);
-  assert.match(form, /He leído la <Link href="\/privacidad">información de privacidad<\/Link>/);
-  assert.match(form, /Recibir la agenda semanal/);
+  assert.match(form, />Correo electrónico \*<\/span>/);
+  assert.match(form, />Provincia — opcional<\/span>/);
+  assert.match(form, /<Link href="\/privacidad">información sobre protección de datos<\/Link>/);
+  assert.match(form, /Quiero recibir La Agenda Motor/);
   assert.match(form, /Puedes darte de baja cuando quieras\./);
   assert.match(form, /aria-live="polite"/);
 });

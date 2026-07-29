@@ -252,8 +252,10 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
         if (
           welcomeContext.subscriberId !== result.subscriberId ||
           !isValidEmail(welcomeContext.recipientEmail) ||
-          !welcomeContext.provinceSlug ||
-          !isNewsletterProvinceSlug(welcomeContext.provinceSlug)
+          (
+            welcomeContext.provinceSlug !== null &&
+            !isNewsletterProvinceSlug(welcomeContext.provinceSlug)
+          )
         ) {
           throw new NewsletterOperationError("persistence_error", "rpc_contract_violation");
         }

@@ -1953,6 +1953,18 @@ export default function ConceptStyles() {
 .emc-contact-section { padding-top: 0; }
 .emc-contact-list-panel { padding: 34px; display: grid; grid-template-columns: 320px 1fr; gap: 28px; align-items: start; }
 .emc-contact-list-copy { margin-top: 16px; color: var(--emc-muted); line-height: 1.7; font-weight: 700; }
+.emc-legal-document { display: block; max-width: 980px; margin: 0 auto; }
+.emc-legal-document section + section { margin-top: 34px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,.1); }
+.emc-legal-document h2 { margin: 0 0 16px; color: #fff; font-size: clamp(24px, 2.6vw, 34px); line-height: 1.1; letter-spacing: -.8px; }
+.emc-legal-document h3 { margin: 24px 0 10px; color: #fff; font-size: 19px; line-height: 1.2; }
+.emc-legal-document p,
+.emc-legal-document li { color: #c4ccd8; font-size: 15px; line-height: 1.7; font-weight: 650; }
+.emc-legal-document p { margin: 10px 0 0; }
+.emc-legal-document ul { margin: 12px 0 0; padding-left: 22px; }
+.emc-legal-document li + li { margin-top: 7px; }
+.emc-legal-document a { color: #ffc0a8; text-decoration: underline; text-underline-offset: 3px; }
+.emc-legal-document code { overflow-wrap: anywhere; color: #fff; }
+.emc-legal-document aside { margin-top: 32px; padding: 18px; border: 1px solid rgba(255,91,31,.25); border-radius: 18px; background: rgba(255,91,31,.08); color: #d7deea; font-size: 14px; line-height: 1.65; }
 .emc-contact-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .emc-contact-list-item { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 14px; border: 1px solid rgba(255,255,255,.09); border-radius: 18px; background: rgba(8,12,20,.78); }
 .emc-contact-list-item span { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 999px; background: var(--emc-orange); box-shadow: 0 0 18px rgba(255,59,0,.42); }
@@ -2096,6 +2108,24 @@ export default function ConceptStyles() {
   border: 1px solid rgba(255,91,31,.30);
   background: rgba(255,91,31,.11);
   color: #ffd0bf;
+}
+.emc-submission-privacy {
+  display: block;
+  margin-top: 18px;
+  padding: 15px 16px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 18px;
+  background: rgba(255,255,255,.035);
+  color: #b9c3d1;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+.emc-submission-privacy strong { color: #fff; }
+.emc-submission-privacy a {
+  color: #ffc0a8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .emc-submission-actions {
   display: flex;

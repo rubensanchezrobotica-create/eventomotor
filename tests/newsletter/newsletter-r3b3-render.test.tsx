@@ -11,6 +11,8 @@ test("el renderer real genera HTML y texto de confirmación con el enlace intern
     logoUrl: "http://localhost:3000/brand/eventomotor-logo-horizontal-dark-header.png",
     confirmationUrl,
     expiresInHours: 24,
+    privacyUrl: "http://localhost:3000/privacidad",
+    contactEmail: "info@eventomotor.com",
   });
 
   assert.match(rendered.html, /<!DOCTYPE html/i);

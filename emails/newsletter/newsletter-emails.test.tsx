@@ -8,7 +8,7 @@ import { renderAllNewsletterEmailPreviews, renderNewsletterEmail, renderNewslett
 const expected = {
   confirmation: {
     subject: "Confirma tu suscripción a La Agenda Motor",
-    preheader: "Solo falta un paso para recibir los mejores eventos del motor cerca de ti.",
+    preheader: "Solo falta un paso para recibir cada semana los próximos eventos de motor.",
     cta: "Confirmar mi suscripción",
   },
   welcome: {
@@ -53,7 +53,10 @@ test("bienvenida y agenda incluyen baja; confirmación mantiene un único CTA", 
   assert.doesNotMatch(confirmation, /darte de baja/i);
   assert.match(welcome, /dar(?:me|te) de baja/i);
   assert.match(weekly, /dar(?:me|te) de baja/i);
-  assert.equal((confirmation.match(/Confirmar mi suscripción/g) ?? []).length, 1);
+  assert.equal(
+    (confirmation.match(/href="[^"]*#confirmacion-simulada"/g) ?? []).length,
+    1,
+  );
 });
 
 test("la preview consume los tres renderizados desde las plantillas React únicas", async () => {

@@ -3,12 +3,19 @@
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { COOKIE_CONSENT_EVENT, hasAnalyticsConsent } from "@/lib/cookie-consent";
+import {
+  COOKIE_CONSENT_EVENT,
+  applyAnalyticsConsent,
+  hasAnalyticsConsent,
+} from "@/lib/cookie-consent";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const NEWSLETTER_ANALYTICS_EXCLUDED_ROUTES = new Set([
   "/preview/newsletter/confirm",
   "/preview/newsletter/unsubscribe",
+  "/newsletter",
+  "/newsletter/confirm",
+  "/newsletter/unsubscribe",
 ]);
 
 export function isAnalyticsExcludedPath(pathname: string): boolean {
@@ -49,7 +56,9 @@ export default function GoogleAnalytics() {
 
   useEffect(() => {
     const handleConsentChange = () => {
-      setAnalyticsAllowed(hasAnalyticsConsent());
+      const allowed = hasAnalyticsConsent();
+      applyAnalyticsConsent(GA_ID, allowed);
+      setAnalyticsAllowed(allowed);
     };
 
     queueMicrotask(handleConsentChange);

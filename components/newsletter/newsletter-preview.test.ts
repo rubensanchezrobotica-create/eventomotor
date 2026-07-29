@@ -59,22 +59,24 @@ test("la preview no se publica en sitemap ni navegación", () => {
 
 test("la validación devuelve errores genéricos sin enumerar direcciones", () => {
   assert.equal(validateNewsletterPreviewForm("correo-invalido", "barcelona"), "invalid_email");
-  assert.equal(validateNewsletterPreviewForm("preview@example.test", ""), "missing_province");
+  assert.equal(validateNewsletterPreviewForm("preview@example.test", ""), null);
+  assert.equal(validateNewsletterPreviewForm("preview@example.test", "desconocida"), "missing_province");
   assert.equal(validateNewsletterPreviewForm("preview@example.test", "barcelona"), null);
 
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
   assert.match(form, /state === "submitting"/);
   assert.match(form, /accepted:/);
   assert.match(form, /generic_error/);
-  assert.match(form, /Solicitud recibida/);
-  assert.doesNotMatch(form, /Revisa tu correo|Te hemos enviado un enlace/);
+  assert.match(form, /Revisa tu correo/);
+  assert.match(form, /Si la solicitud puede completarse/);
+  assert.doesNotMatch(form, /Te hemos enviado un enlace/);
   assert.doesNotMatch(form, /ya (?:existe|está registrada|estaba registrada)/i);
 });
 
 test("el laboratorio visual conserva estados simulados sin persistencia cliente", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
   assert.doesNotMatch(form, /\bfetch\s*\(/);
-  assert.doesNotMatch(form, /localStorage|sessionStorage|console\.|analytics|supabase|resend/i);
+  assert.doesNotMatch(form, /localStorage|sessionStorage|console\.|analytics|@supabase|sendEmail/i);
   assert.match(form, /variant === "lab"/);
   assert.match(form, /NewsletterSignupLab/);
   assert.match(form, /NEWSLETTER_PREVIEW_FORM_STATES\.map/);
@@ -112,7 +114,7 @@ test("el alcance no contiene endpoints ni integraciones externas", () => {
     .filter((path) => /\.(?:ts|tsx)$/.test(path) && !path.endsWith(".test.ts"))
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
-  assert.doesNotMatch(scopedSource, /@supabase|createClient|resend|sendEmail|\.send\(/i);
+  assert.doesNotMatch(scopedSource, /@supabase|createClient|sendEmail|\.send\(/i);
   assert.equal(scopedFiles.some((path) => path.includes(`${join("app", "api")}\\`)), false);
 });
 

@@ -23,13 +23,17 @@ export type ConfirmSubscriptionEmailProps = {
   logoUrl: string;
   confirmationUrl: string;
   expiresInHours: number;
+  privacyUrl: string;
+  contactEmail: string;
 };
 
 export type WelcomeEmailProps = {
   logoUrl: string;
-  provinceName: string;
+  provinceName: string | null;
   eventsUrl: string;
   unsubscribeUrl: string;
+  privacyUrl: string;
+  contactEmail: string;
 };
 
 export type WeeklyAgendaEmailProps = {
@@ -42,7 +46,9 @@ export type WeeklyAgendaEmailProps = {
   travelEvent: NewsletterEmailEventFixture;
   recentlyAdded: NewsletterEmailEventFixture[];
   agendaUrl: string;
+  privacyUrl: string;
   unsubscribeUrl: string;
+  contactEmail: string;
 };
 
 export type NewsletterEmailPropsByKind = {

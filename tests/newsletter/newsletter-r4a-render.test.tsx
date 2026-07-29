@@ -12,12 +12,16 @@ test("la fuente React Email real conserva HTML y texto para confirmation y welco
     logoUrl: "https://newsletter.example.invalid/brand/logo.png",
     confirmationUrl,
     expiresInHours: 24,
+    privacyUrl: "https://newsletter.example.invalid/privacidad",
+    contactEmail: "info@eventomotor.com",
   });
   const welcome = await renderNewsletterEmailContent("welcome", {
     logoUrl: "https://newsletter.example.invalid/brand/logo.png",
     provinceName: "Barcelona",
     eventsUrl: "https://newsletter.example.invalid/eventos-motor-barcelona",
     unsubscribeUrl,
+    privacyUrl: "https://newsletter.example.invalid/privacidad",
+    contactEmail: "info@eventomotor.com",
   });
 
   assert.match(confirmation.html, new RegExp(confirmationUrl.replace("?", "\\?")));
