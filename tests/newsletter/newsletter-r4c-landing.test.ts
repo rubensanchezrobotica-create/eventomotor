@@ -41,6 +41,32 @@ test("la landing conserva el formulario completo y su orden de teclado natural",
   assert.match(form, /aria-live="polite"/);
 });
 
+test("el texto de ayuda de provincia sólo está asociado al selector correspondiente", () => {
+  const form = source("components/newsletter/NewsletterSignupForm.tsx");
+  const emailField = form.slice(
+    form.indexOf('<label className={styles.field} htmlFor="newsletter-preview-email">'),
+    form.indexOf("</label>", form.indexOf('id="newsletter-preview-email"')),
+  );
+  const provinceField = form.slice(
+    form.indexOf('<label className={styles.field} htmlFor="newsletter-preview-province">'),
+    form.indexOf("</label>", form.indexOf('id="newsletter-preview-province"')),
+  );
+  const selector = provinceField.indexOf('id="newsletter-preview-province"');
+  const selectorEnd = provinceField.indexOf("</select>");
+  const helper = provinceField.indexOf('id="newsletter-province-help"');
+
+  assert.doesNotMatch(emailField, /newsletter-province-help|newsletter-email-help/);
+  assert.match(
+    provinceField,
+    /aria-describedby=\{\[\s*"newsletter-province-help",[\s\S]*"newsletter-province-error"/,
+  );
+  assert.ok(selector > -1 && selector < selectorEnd && selectorEnd < helper);
+  assert.equal(
+    form.split('id="newsletter-province-help"').length - 1,
+    1,
+  );
+});
+
 test("la landing usa navegación simplificada sin modificar la cabecera global", () => {
   const shell = source("components/newsletter/NewsletterPreviewShell.tsx");
   const globalHeader = source("components/public/concept/ConceptStaticHeader.tsx");
