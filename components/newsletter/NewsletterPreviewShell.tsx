@@ -20,7 +20,7 @@ export default function NewsletterPreviewShell({
 
   if (isTokenAction) {
     return (
-      <>
+      <div className={styles.taskShell}>
         <header className={styles.taskHeader}>
           <div className={`emc-container ${styles.taskHeaderInner}`}>
             <Link
@@ -40,7 +40,7 @@ export default function NewsletterPreviewShell({
             <Link href="/privacidad">Privacidad</Link>
           </div>
         </footer>
-      </>
+      </div>
     );
   }
 

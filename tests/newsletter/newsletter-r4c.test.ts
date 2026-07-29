@@ -142,7 +142,30 @@ test("la cabecera de tarea no contiene navegación completa ni Publicar", () => 
   );
   assert.match(tokenBranch, /EventoMotor inicio/);
   assert.match(tokenBranch, /La Agenda Motor/);
+  assert.match(tokenBranch, /className=\{styles\.taskShell\}/);
   assert.doesNotMatch(tokenBranch, /PublicNavigationMenu|ConceptStaticHeader|Publicar/);
+});
+
+test("la landing adapta etiqueta y Publicar sin alterar el header global", () => {
+  const page = source("components/newsletter/NewsletterPreviewPage.tsx");
+  const shell = source("components/newsletter/NewsletterPreviewShell.tsx");
+  const css = source("components/newsletter/NewsletterPreview.module.css");
+  const mobile = css.slice(
+    css.indexOf("@media (max-width: 640px)"),
+    css.indexOf("@media (min-width: 901px)"),
+  );
+
+  assert.match(page, /heroEyebrowMobile[^]*LA AGENDA MOTOR/);
+  assert.match(page, /heroEyebrowDesktop[^]*LA AGENDA MOTOR · EVENTOMOTOR/);
+  assert.match(css, /\.heroEyebrowMobile\s*\{\s*display:\s*none/);
+  assert.match(mobile, /\.heroEyebrowMobile\s*\{\s*display:\s*inline/);
+  assert.match(mobile, /\.heroEyebrowDesktop\s*\{\s*display:\s*none/);
+  assert.match(
+    mobile,
+    /\.headerShell :global\(\.emc-nav-actions\)\s*\{\s*display:\s*none/,
+  );
+  assert.match(shell, /<ConceptStaticHeader compactActions \/>/);
+  assert.doesNotMatch(css, /\.heroEyebrow[^}]*content:/);
 });
 
 test("R4B sigue fail-closed fuera del carril local armado", () => {
@@ -190,6 +213,10 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
     css.indexOf("@media (max-width: 640px)"),
     css.indexOf("@media (min-width: 901px)"),
   );
+  const tokenPage = css.slice(
+    css.indexOf(".tokenPage {"),
+    css.indexOf(".tokenHero {"),
+  );
   const narrowMobile = css.slice(
     css.indexOf("@media (max-width: 360px)"),
     css.indexOf("@media (prefers-reduced-motion: reduce)"),
@@ -199,6 +226,12 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
   for (const width of [820, 640, 520, 430, 360]) {
     assert.match(css, new RegExp(`max-width: ${width}px`));
   }
+  assert.match(
+    css,
+    /\.taskShell\s*\{[\s\S]*?min-height:\s*100vh[\s\S]*?min-height:\s*100svh[\s\S]*?display:\s*flex[\s\S]*?flex-direction:\s*column/,
+  );
+  assert.match(tokenPage, /flex:\s*1 0 auto/);
+  assert.doesNotMatch(tokenPage, /align-items:\s*center|display:\s*grid/);
   assert.match(mobile, /\.headerShell\.headerShell\s*\{[\s\S]*?padding:\s*5px/);
   assert.match(
     mobile,
@@ -231,6 +264,10 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
   assert.match(
     mobile,
     /\.tokenAction \.primaryButton,[\s\S]*?min-height:\s*48px/,
+  );
+  assert.match(
+    mobile,
+    /\.page \.cancelAction\s*\{[\s\S]*?min-height:\s*44px[\s\S]*?font-weight:\s*650/,
   );
   assert.match(mobile, /\.taskFooter > div\s*\{[\s\S]*?min-height:\s*52px/);
   assert.match(

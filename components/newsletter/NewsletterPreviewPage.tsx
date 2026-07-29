@@ -36,7 +36,12 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
       <section className={styles.hero} id="producto-newsletter">
         <div className={`emc-container ${styles.heroGrid}`}>
           <div className={styles.heroCopy}>
-            <span className={styles.eyebrow}>LA AGENDA MOTOR · EVENTOMOTOR</span>
+            <span className={styles.eyebrow}>
+              <span className={styles.heroEyebrowMobile}>LA AGENDA MOTOR</span>
+              <span className={styles.heroEyebrowDesktop}>
+                LA AGENDA MOTOR · EVENTOMOTOR
+              </span>
+            </span>
             <h1>Tu próximo plan de motor, <em>cada semana</em> en tu correo.</h1>
             <p>Concentraciones, rallyes, clásicos, motos, circuitos y mucho más, seleccionados cerca de ti.</p>
             <div className={styles.heroProof} aria-label="Resumen del producto">
