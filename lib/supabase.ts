@@ -20,10 +20,14 @@ import type {
   NewsletterEmailEventRow,
   NewsletterPreferenceInsert,
   NewsletterPreferenceRow,
+  NewsletterSuppressionInsert,
+  NewsletterSuppressionRow,
   NewsletterSubscriberInsert,
   NewsletterSubscriberRow,
   NewsletterUnsubscribeTokenInsert,
   NewsletterUnsubscribeTokenRow,
+  NewsletterWebhookReceiptInsert,
+  NewsletterWebhookReceiptRow,
 } from "@/lib/newsletter/types";
 
 export type EventRow = {
@@ -226,6 +230,18 @@ export type Database = {
         Update: Partial<NewsletterEmailEventInsert>;
         Relationships: [];
       };
+      newsletter_suppressions: {
+        Row: NewsletterSuppressionRow;
+        Insert: NewsletterSuppressionInsert;
+        Update: Partial<NewsletterSuppressionInsert>;
+        Relationships: [];
+      };
+      newsletter_webhook_receipts: {
+        Row: NewsletterWebhookReceiptRow;
+        Insert: NewsletterWebhookReceiptInsert;
+        Update: Partial<NewsletterWebhookReceiptInsert>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -303,6 +319,40 @@ export type Database = {
           p_occurred_at: string;
         };
         Returns: Array<{ outcome: string }>;
+      };
+      check_newsletter_delivery_eligibility: {
+        Args: {
+          p_subscriber_id: string;
+          p_delivery_kind: string;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      register_newsletter_outbound_delivery: {
+        Args: {
+          p_subscriber_id: string;
+          p_provider_message_id: string;
+          p_delivery_kind: string;
+          p_occurred_at: string;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      process_newsletter_resend_webhook: {
+        Args: {
+          p_svix_id: string;
+          p_event_type: string;
+          p_provider_message_id: string | null;
+          p_occurred_at: string;
+          p_recipient_email_normalized?: string | null;
+          p_is_permanent?: boolean;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      purge_stale_newsletter_pending: {
+        Args: {
+          p_batch_size?: number;
+          p_cutoff?: string;
+        };
+        Returns: Array<{ purged_count: number }>;
       };
     };
     Enums: Record<string, never>;

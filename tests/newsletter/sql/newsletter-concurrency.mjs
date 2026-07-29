@@ -84,6 +84,9 @@ const runId = randomBytes(8).toString("hex");
 const requestEmail = `concurrent-request-${runId}@example.invalid`;
 const providerEmail = `concurrent-provider-${runId}@example.invalid`;
 const unsubscribeEmail = `concurrent-unsubscribe-${runId}@example.invalid`;
+const webhookEmail = `concurrent-webhook-${runId}@example.invalid`;
+const suppressionRaceEmail = `concurrent-suppression-${runId}@example.invalid`;
+const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
 const providerName = `ci-${runId}`;
 
 let container = "";
@@ -271,6 +274,196 @@ try {
     ),
     "1|0|0",
     "concurrent unsubscribe token timestamps",
+  );
+
+  const webhookSubscriberId = await query(
+    container,
+    `
+      with subscriber as (
+        insert into public.newsletter_subscribers (
+          email, email_normalized, status, source, consent_version, confirmed_at
+        ) values (
+          ${sqlLiteral(webhookEmail)}, ${sqlLiteral(webhookEmail)},
+          'active', 'concurrency_test', '2026-07', now()
+        ) returning id
+      ), preference as (
+        insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+        select id, true from subscriber
+      )
+      select id from subscriber;
+    `,
+  );
+  await query(
+    container,
+    `
+      select outcome from public.register_newsletter_outbound_delivery(
+        ${sqlLiteral(webhookSubscriberId)}::uuid,
+        ${sqlLiteral(`message-${runId}`)},
+        'welcome',
+        now()
+      );
+    `,
+  );
+  const webhookSql = `
+    select outcome from public.process_newsletter_resend_webhook(
+      ${sqlLiteral(`svix-${runId}`)},
+      'email.complained',
+      ${sqlLiteral(`message-${runId}`)},
+      now(),
+      null,
+      false
+    );
+  `;
+  const webhookOutputs = await Promise.all([
+    query(container, webhookSql),
+    query(container, webhookSql),
+  ]);
+  assertEqual(
+    sortedOutcomes(webhookOutputs),
+    "duplicate,processed",
+    "duplicate webhook outcomes",
+  );
+  assertEqual(
+    await query(
+      container,
+      `select concat(
+        (select count(*) from public.newsletter_webhook_receipts where svix_id = ${sqlLiteral(`svix-${runId}`)}),
+        '|',
+        (select count(*) from public.newsletter_suppressions where subscriber_id = ${sqlLiteral(webhookSubscriberId)}::uuid and reason = 'complaint' and lifted_at is null)
+      );`,
+    ),
+    "1|1",
+    "duplicate webhook persisted state",
+  );
+
+  const suppressionRaceSubscriberId = await query(
+    container,
+    `
+      with subscriber as (
+        insert into public.newsletter_subscribers (
+          email, email_normalized, status, source, consent_version, confirmed_at
+        ) values (
+          ${sqlLiteral(suppressionRaceEmail)}, ${sqlLiteral(suppressionRaceEmail)},
+          'active', 'concurrency_test', '2026-07', now()
+        ) returning id
+      ), preference as (
+        insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+        select id, true from subscriber
+      )
+      select id from subscriber;
+    `,
+  );
+  const [suppressionRequestOutput, suppressionOutput] = await Promise.all([
+    query(
+      container,
+      `
+        select outcome from public.request_newsletter_subscription(
+          ${sqlLiteral(suppressionRaceEmail)}, ${sqlLiteral(suppressionRaceEmail)},
+          repeat('7', 64), now() + interval '1 day',
+          'concurrency_test', '2026-07'
+        );
+      `,
+    ),
+    query(
+      container,
+      `
+        select outcome from public.unsubscribe_newsletter_subscriber(
+          ${sqlLiteral(suppressionRaceSubscriberId)}::uuid,
+          '2026-07',
+          'concurrency_test'
+        );
+      `,
+    ),
+  ]);
+  if (!["already_active", "confirmation_required"].includes(suppressionRequestOutput)) {
+    throw new Error("request versus suppression outcome assertion failed.");
+  }
+  assertEqual(suppressionOutput, "unsubscribed", "request versus suppression unsubscribe");
+  assertEqual(
+    await query(
+      container,
+      `select concat(status, '|', (
+        select count(*) from public.newsletter_suppressions
+        where subscriber_id = ${sqlLiteral(suppressionRaceSubscriberId)}::uuid
+          and reason = 'voluntary' and lifted_at is null
+      )) from public.newsletter_subscribers
+      where id = ${sqlLiteral(suppressionRaceSubscriberId)}::uuid;`,
+    ),
+    "unsubscribed|1",
+    "request versus suppression final state",
+  );
+
+  const purgeTokenHash = "8".repeat(64);
+  await query(
+    container,
+    `
+      select outcome from public.request_newsletter_subscription(
+        ${sqlLiteral(purgeRaceEmail)}, ${sqlLiteral(purgeRaceEmail)},
+        ${sqlLiteral(purgeTokenHash)}, now() + interval '1 day',
+        'concurrency_test', '2026-07'
+      );
+      update public.newsletter_subscribers
+      set created_at = now() - interval '9 days',
+          last_confirmation_requested_at = now() - interval '8 days'
+      where email_normalized = ${sqlLiteral(purgeRaceEmail)};
+    `,
+  );
+  const [purgeRaceOutput, confirmRaceOutput] = await Promise.all([
+    query(
+      container,
+      `select purged_count from public.purge_stale_newsletter_pending(10, now() - interval '7 days');`,
+    ),
+    query(
+      container,
+      `select outcome from public.confirm_newsletter_subscription(${sqlLiteral(purgeTokenHash)});`,
+    ),
+  ]);
+  const purgeConfirmPair = `${purgeRaceOutput}|${confirmRaceOutput}`;
+  if (!["1|invalid_token", "0|confirmed"].includes(purgeConfirmPair)) {
+    throw new Error("purge versus confirmation outcome assertion failed.");
+  }
+
+  const purgeEmails = Array.from(
+    { length: 3 },
+    (_, index) => `concurrent-purge-${runId}-${index}@example.invalid`,
+  );
+  for (const [index, email] of purgeEmails.entries()) {
+    await query(
+      container,
+      `
+        insert into public.newsletter_subscribers (
+          email, email_normalized, status, source, consent_version,
+          created_at, last_confirmation_requested_at
+        ) values (
+          ${sqlLiteral(email)}, ${sqlLiteral(email)}, 'pending',
+          'concurrency_test', '2026-07',
+          now() - interval '9 days', now() - interval '8 days'
+        );
+      `,
+    );
+  }
+  const purgeOutputs = await Promise.all([
+    query(
+      container,
+      `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
+    ),
+    query(
+      container,
+      `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
+    ),
+  ]);
+  assertEqual(
+    purgeOutputs.map(Number).sort((left, right) => left - right).join(","),
+    "1,2",
+    "concurrent purge counts",
+  );
+  assertEqual(
+    await query(
+      container,
+      `select count(*) from public.newsletter_subscribers where email_normalized in (${purgeEmails.map(sqlLiteral).join(", ")});`,
+    ),
+    "0",
+    "concurrent purge final count",
   );
 
   process.stdout.write("Newsletter concurrency tests passed in isolated PostgreSQL.\n");

@@ -13,8 +13,10 @@ import { fileURLToPath } from "node:url";
 
 export const NEWSLETTER_CI_PROJECT_ID = "eventomotor-newsletter-ci";
 export const NEWSLETTER_CI_WORKSPACE = ".tmp/newsletter-supabase-ci";
-export const NEWSLETTER_MIGRATION =
-  "database/migrations/20260721133000_newsletter_core_foundation.sql";
+export const NEWSLETTER_MIGRATIONS = [
+  "database/migrations/20260721133000_newsletter_core_foundation.sql",
+  "database/migrations/20260729120000_newsletter_launch_operations.sql",
+];
 export const NEWSLETTER_SQL_TESTS = [
   "newsletter_schema.test.sql",
   "newsletter_permissions.test.sql",
@@ -24,6 +26,7 @@ export const NEWSLETTER_SQL_TESTS = [
   "newsletter_unsubscribe.test.sql",
   "newsletter_provider_events.test.sql",
   "newsletter_rollback.test.sql",
+  "newsletter_launch_operations.test.sql",
 ];
 
 const CONFIG = `project_id = "${NEWSLETTER_CI_PROJECT_ID}"
@@ -107,9 +110,12 @@ export async function prepareNewsletterCiWorkspace({ rootDir = process.cwd() } =
   const workspacePath = resolve(resolvedRoot, NEWSLETTER_CI_WORKSPACE);
   assertInsideRoot(resolvedRoot, workspacePath, NEWSLETTER_CI_WORKSPACE);
 
-  const sourceMigration = resolve(resolvedRoot, NEWSLETTER_MIGRATION);
+  const sourceMigrations = NEWSLETTER_MIGRATIONS.map((migration) =>
+    resolve(resolvedRoot, migration));
   const sourceTests = resolve(resolvedRoot, "tests/newsletter/sql");
-  await assertRegularFile(sourceMigration, "newsletter migration");
+  for (const sourceMigration of sourceMigrations) {
+    await assertRegularFile(sourceMigration, "newsletter migration");
+  }
   for (const testFile of NEWSLETTER_SQL_TESTS) {
     await assertRegularFile(resolve(sourceTests, testFile), `SQL test ${testFile}`);
   }
@@ -123,29 +129,44 @@ export async function prepareNewsletterCiWorkspace({ rootDir = process.cwd() } =
   await mkdir(testsPath, { recursive: true });
   await writeFile(join(supabasePath, "config.toml"), CONFIG, "utf8");
 
-  const migrationName = NEWSLETTER_MIGRATION.split("/").at(-1);
-  if (!migrationName) throw new Error("Newsletter migration filename is invalid.");
-  const copiedMigration = join(migrationsPath, migrationName);
-  await copyFile(sourceMigration, copiedMigration);
+  const copiedMigrations = [];
+  const migrationHashes = [];
+  for (const [index, migration] of NEWSLETTER_MIGRATIONS.entries()) {
+    const migrationName = migration.split("/").at(-1);
+    if (!migrationName) throw new Error("Newsletter migration filename is invalid.");
+    const copiedMigration = join(migrationsPath, migrationName);
+    await copyFile(sourceMigrations[index], copiedMigration);
+    const sourceHash = await sha256(sourceMigrations[index]);
+    const copiedHash = await sha256(copiedMigration);
+    if (sourceHash !== copiedHash) throw new Error("Newsletter migration hash mismatch.");
+    copiedMigrations.push(copiedMigration);
+    migrationHashes.push({
+      sourceMigration: migration,
+      copiedMigration: relative(resolvedRoot, copiedMigration).split(sep).join("/"),
+      sha256: sourceHash,
+    });
+  }
 
   for (const testFile of NEWSLETTER_SQL_TESTS) {
     await copyFile(join(sourceTests, testFile), join(testsPath, testFile));
   }
 
-  const sourceHash = await sha256(sourceMigration);
-  const copiedHash = await sha256(copiedMigration);
-  if (sourceHash !== copiedHash) throw new Error("Newsletter migration hash mismatch.");
-
-  const copiedMigrations = await readdir(migrationsPath);
-  if (copiedMigrations.length !== 1 || copiedMigrations[0] !== migrationName) {
+  const copiedMigrationNames = await readdir(migrationsPath);
+  const expectedMigrationNames = NEWSLETTER_MIGRATIONS.map(
+    (migration) => migration.split("/").at(-1),
+  );
+  if (
+    copiedMigrationNames.length !== expectedMigrationNames.length ||
+    copiedMigrationNames.some(
+      (migrationName, index) => migrationName !== expectedMigrationNames[index],
+    )
+  ) {
     throw new Error("Newsletter CI workspace contains unexpected migrations.");
   }
 
   const manifest = {
     projectId: NEWSLETTER_CI_PROJECT_ID,
-    sourceMigration: NEWSLETTER_MIGRATION,
-    copiedMigration: relative(resolvedRoot, copiedMigration).split(sep).join("/"),
-    sha256: sourceHash,
+    migrations: migrationHashes,
     sqlTests: [...NEWSLETTER_SQL_TESTS],
   };
   await writeFile(
@@ -169,7 +190,7 @@ async function runCli() {
   }
   const { manifest } = await prepareNewsletterCiWorkspace();
   process.stdout.write(
-    `Newsletter CI workspace prepared; migration SHA-256 ${manifest.sha256}.\n`,
+    `Newsletter CI workspace prepared; ${manifest.migrations.length} migration hashes verified.\n`,
   );
 }
 

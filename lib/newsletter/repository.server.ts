@@ -38,6 +38,12 @@ type UnsubscribeByTokenArgs = Functions["unsubscribe_newsletter_by_token"]["Args
 type UnsubscribeByTokenRow = Functions["unsubscribe_newsletter_by_token"]["Returns"][number];
 type ProviderEventArgs = Functions["record_newsletter_provider_event"]["Args"];
 type ProviderEventRow = Functions["record_newsletter_provider_event"]["Returns"][number];
+type DeliveryEligibilityArgs = Functions["check_newsletter_delivery_eligibility"]["Args"];
+type DeliveryEligibilityRow = Functions["check_newsletter_delivery_eligibility"]["Returns"][number];
+type RegisterOutboundArgs = Functions["register_newsletter_outbound_delivery"]["Args"];
+type RegisterOutboundRow = Functions["register_newsletter_outbound_delivery"]["Returns"][number];
+type ProcessResendWebhookArgs = Functions["process_newsletter_resend_webhook"]["Args"];
+type ProcessResendWebhookRow = Functions["process_newsletter_resend_webhook"]["Returns"][number];
 
 type RpcError = { message: string; code?: string };
 type RpcResult<Row> = { data: Row[] | null; error: RpcError | null };
@@ -49,6 +55,15 @@ export interface NewsletterRpcGateway {
   unsubscribeSubscriber(args: UnsubscribeArgs): Promise<RpcResult<UnsubscribeRow>>;
   unsubscribeByToken(args: UnsubscribeByTokenArgs): Promise<RpcResult<UnsubscribeByTokenRow>>;
   recordProviderEvent(args: ProviderEventArgs): Promise<RpcResult<ProviderEventRow>>;
+  checkDeliveryEligibility?(
+    args: DeliveryEligibilityArgs,
+  ): Promise<RpcResult<DeliveryEligibilityRow>>;
+  registerOutboundDelivery?(
+    args: RegisterOutboundArgs,
+  ): Promise<RpcResult<RegisterOutboundRow>>;
+  processResendWebhook?(
+    args: ProcessResendWebhookArgs,
+  ): Promise<RpcResult<ProcessResendWebhookRow>>;
 }
 
 const SUBSCRIPTION_OUTCOMES: readonly NewsletterSubscriptionOutcome[] = [
@@ -121,6 +136,27 @@ export function createNewsletterRpcGateway(
     },
     async recordProviderEvent(args) {
       const { data, error } = await client.rpc("record_newsletter_provider_event", args);
+      return { data, error };
+    },
+    async checkDeliveryEligibility(args) {
+      const { data, error } = await client.rpc(
+        "check_newsletter_delivery_eligibility",
+        args,
+      );
+      return { data, error };
+    },
+    async registerOutboundDelivery(args) {
+      const { data, error } = await client.rpc(
+        "register_newsletter_outbound_delivery",
+        args,
+      );
+      return { data, error };
+    },
+    async processResendWebhook(args) {
+      const { data, error } = await client.rpc(
+        "process_newsletter_resend_webhook",
+        args,
+      );
       return { data, error };
     },
   };
@@ -257,6 +293,64 @@ export function createNewsletterRepository(gateway: NewsletterRpcGateway): Newsl
         throw persistenceFailure("rpc_contract_violation");
       }
       return row.outcome;
+    },
+
+    async checkDeliveryEligibility(subscriberId, deliveryKind) {
+      if (!gateway.checkDeliveryEligibility) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      const row = singleRow(
+        await gateway.checkDeliveryEligibility({
+          p_subscriber_id: subscriberId,
+          p_delivery_kind: deliveryKind,
+        }),
+      );
+      if (row.outcome !== "allowed" && row.outcome !== "blocked") {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      return row.outcome;
+    },
+
+    async registerOutboundDelivery(params) {
+      if (!gateway.registerOutboundDelivery) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      const row = singleRow(
+        await gateway.registerOutboundDelivery({
+          p_subscriber_id: params.subscriberId,
+          p_provider_message_id: params.providerMessageId,
+          p_delivery_kind: params.deliveryKind,
+          p_occurred_at: params.occurredAt,
+        }),
+      );
+      if (row.outcome !== "recorded" && row.outcome !== "duplicate") {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      return row.outcome;
+    },
+
+    async processResendWebhook(params) {
+      if (!gateway.processResendWebhook) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      const row = singleRow(
+        await gateway.processResendWebhook({
+          p_svix_id: params.svixId,
+          p_event_type: params.eventType,
+          p_provider_message_id: params.providerMessageId,
+          p_occurred_at: params.occurredAt,
+          p_recipient_email_normalized: params.recipientEmailNormalized,
+          p_is_permanent: params.isPermanent,
+        }),
+      );
+      if (
+        !["processed", "duplicate", "ignored", "unmatched"].includes(
+          row.outcome,
+        )
+      ) {
+        throw persistenceFailure("rpc_contract_violation");
+      }
+      return row.outcome as "processed" | "duplicate" | "ignored" | "unmatched";
     },
   };
 }
