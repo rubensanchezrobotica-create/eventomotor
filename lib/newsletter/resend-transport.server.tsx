@@ -71,8 +71,11 @@ function mapClientFailure(result: Exclude<NewsletterResendClientResult, { status
 function parseTransportOrigin(value: string): URL | null {
   try {
     const parsed = new URL(value);
+    const localLoopback =
+      parsed.protocol === "http:" &&
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
     if (
-      parsed.protocol !== "https:" ||
+      (parsed.protocol !== "https:" && !localLoopback) ||
       parsed.username ||
       parsed.password ||
       parsed.pathname !== "/" ||

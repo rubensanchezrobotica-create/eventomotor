@@ -7,6 +7,10 @@ import {
   type NewsletterProvinceSlug,
 } from "@/lib/newsletter/audience";
 import { resolveNewsletterMode, type NewsletterRuntimeEnvironment } from "@/lib/newsletter/config";
+import {
+  evaluateNewsletterR4BLocalConfiguration,
+  isNewsletterR4BLocalRequestAllowed,
+} from "@/lib/newsletter/r4b-guard";
 import type {
   ConfirmNewsletterResponse,
   PublicNewsletterErrorResponse,
@@ -50,6 +54,9 @@ export type NewsletterHttpGuardInput = NewsletterRuntimeEnvironment & {
   requestUrl: string;
   origin: string | null;
   host: string | null;
+  r4bArmed?: string;
+  r4bLocalOrigin?: string;
+  vercel?: string;
 };
 
 export type NewsletterHttpGuardResult =
@@ -82,9 +89,15 @@ export type NewsletterUnsubscribeTokenResolver = (
   token: string,
 ) => NewsletterUnsubscribeTokenResolution | Promise<NewsletterUnsubscribeTokenResolution>;
 
+export type NewsletterHttpRuntimeEnvironment = NewsletterRuntimeEnvironment & {
+  r4bArmed?: string;
+  r4bLocalOrigin?: string;
+  vercel?: string;
+};
+
 export type NewsletterHttpHandlerDependencies = {
   createService?: () => NewsletterService;
-  environment?: () => NewsletterRuntimeEnvironment;
+  environment?: () => NewsletterHttpRuntimeEnvironment;
   resolveUnsubscribeToken?: NewsletterUnsubscribeTokenResolver;
   checkAbuse?: NewsletterAbuseCheck;
   logger?: NewsletterSafeLogger;
@@ -116,10 +129,13 @@ const DEFAULT_LOGGER: NewsletterSafeLogger = {
   },
 };
 
-function currentEnvironment(): NewsletterRuntimeEnvironment {
+function currentEnvironment(): NewsletterHttpRuntimeEnvironment {
   return {
     mode: process.env.NEWSLETTER_MODE,
     nodeEnv: process.env.NODE_ENV,
+    r4bArmed: process.env.NEWSLETTER_R4B_ARMED,
+    r4bLocalOrigin: process.env.NEWSLETTER_R4B_LOCAL_ORIGIN,
+    vercel: process.env.VERCEL,
     vercelEnv: process.env.VERCEL_ENV,
   };
 }
@@ -149,6 +165,7 @@ export function evaluateNewsletterHttpGuard(
   }
 
   const productionDeployment =
+    input.vercel !== undefined ||
     input.vercelEnv === "production" ||
     (!input.vercelEnv && input.nodeEnv === "production");
   if (productionDeployment) {
@@ -174,7 +191,33 @@ export function evaluateNewsletterHttpGuard(
     return { allowed: true, mode };
   }
 
-  if (input.nodeEnv !== "test" || input.vercelEnv !== undefined) {
+  if (input.nodeEnv === "development") {
+    const r4bConfiguration = evaluateNewsletterR4BLocalConfiguration({
+      newsletterMode: input.mode,
+      armed: input.r4bArmed,
+      localOrigin: input.r4bLocalOrigin,
+      nodeEnv: input.nodeEnv,
+      vercel: input.vercel,
+      vercelEnv: input.vercelEnv,
+    });
+    if (
+      isNewsletterR4BLocalRequestAllowed(
+        r4bConfiguration,
+        input.requestUrl,
+        input.origin,
+        input.host,
+      )
+    ) {
+      return { allowed: true, mode: "test" };
+    }
+    return { allowed: false, mode, reason: "test_context_invalid" };
+  }
+
+  if (
+    input.nodeEnv !== "test" ||
+    input.vercel !== undefined ||
+    input.vercelEnv !== undefined
+  ) {
     return { allowed: false, mode, reason: "test_context_invalid" };
   }
   if (input.origin && !sameOrigin(requestUrl, input.origin)) {
@@ -367,7 +410,7 @@ function mapThrownError(
 
 function requestGuardInput(
   request: Request,
-  environment: NewsletterRuntimeEnvironment,
+  environment: NewsletterHttpRuntimeEnvironment,
 ): NewsletterHttpGuardInput {
   return {
     ...environment,

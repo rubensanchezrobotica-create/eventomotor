@@ -42,12 +42,15 @@ jobs:
       - name: R4A tests
         run: npm run test:newsletter-r4a
 
+      - name: R4B tests
+        run: npm run test:newsletter-r4b
+
       - name: Standard application tests
         shell: bash
         run: |
           mapfile -t standard_tests < <(
             git ls-files -- '*.test.ts' '*.test.tsx' |
-              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a)\.test\.ts)$'
+              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a|r4b)\.test\.ts)$'
           )
           test "${#standard_tests[@]}" -gt 0
           node --import tsx --test "${standard_tests[@]}"
@@ -62,6 +65,7 @@ jobs:
           tests/newsletter/newsletter-r3b3.test.ts
           tests/newsletter/newsletter-r3b4.test.ts
           tests/newsletter/newsletter-r4a.test.ts
+          tests/newsletter/newsletter-r4b.test.ts
 
       - name: Typecheck
         run: npm run typecheck
