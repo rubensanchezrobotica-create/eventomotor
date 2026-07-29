@@ -266,13 +266,12 @@ function NewsletterProductSignupForm() {
               : "Recibir la agenda semanal"}
         </button>
 
-        <p className={styles.microcopy}>
-          Un correo a la semana. Sin ruido. Puedes darte de baja cuando quieras.
-        </p>
+        <p className={styles.microcopy}>Puedes darte de baja cuando quieras.</p>
 
         <div
           aria-live="polite"
           className={styles.formResult}
+          data-has-result={result ? "true" : "false"}
           ref={resultRef}
           role={state === "invalid" ? "alert" : "status"}
           tabIndex={result ? -1 : undefined}

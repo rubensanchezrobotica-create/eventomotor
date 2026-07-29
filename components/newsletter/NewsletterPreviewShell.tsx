@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import styles from "./NewsletterPreview.module.css";
 
 const TOKEN_ACTION_PATHS = new Set([
@@ -45,15 +43,26 @@ export default function NewsletterPreviewShell({
   }
 
   return (
-    <>
-      <header className={`emc-header-shell ${styles.headerShell}`}>
-        <ConceptStaticHeader compactActions />
+    <div className={styles.taskShell}>
+      <header className={styles.taskHeader}>
+        <div className={`emc-container ${styles.taskHeaderInner}`}>
+          <Link
+            aria-label="EventoMotor inicio"
+            className={styles.taskBrand}
+            href="/"
+          >
+            <EventomotorLogo />
+          </Link>
+          <span>LA AGENDA MOTOR</span>
+        </div>
       </header>
       {children}
-      <ConceptFooter
-        contactTrackingLocation="newsletter_preview_footer"
-        variant="compact"
-      />
-    </>
+      <footer className={`${styles.taskFooter} ${styles.landingFooter}`}>
+        <div className="emc-container">
+          <span>EventoMotor</span>
+          <Link href="/privacidad">Privacidad</Link>
+        </div>
+      </footer>
+    </div>
   );
 }

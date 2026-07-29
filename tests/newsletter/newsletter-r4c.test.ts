@@ -146,26 +146,16 @@ test("la cabecera de tarea no contiene navegación completa ni Publicar", () => 
   assert.doesNotMatch(tokenBranch, /PublicNavigationMenu|ConceptStaticHeader|Publicar/);
 });
 
-test("la landing adapta etiqueta y Publicar sin alterar el header global", () => {
+test("la landing usa una cabecera propia y el header global conserva sus acciones", () => {
   const page = source("components/newsletter/NewsletterPreviewPage.tsx");
   const shell = source("components/newsletter/NewsletterPreviewShell.tsx");
-  const css = source("components/newsletter/NewsletterPreview.module.css");
-  const mobile = css.slice(
-    css.indexOf("@media (max-width: 640px)"),
-    css.indexOf("@media (min-width: 901px)"),
-  );
+  const globalHeader = source("components/public/concept/ConceptStaticHeader.tsx");
 
-  assert.match(page, /heroEyebrowMobile[^]*LA AGENDA MOTOR/);
-  assert.match(page, /heroEyebrowDesktop[^]*LA AGENDA MOTOR · EVENTOMOTOR/);
-  assert.match(css, /\.heroEyebrowMobile\s*\{\s*display:\s*none/);
-  assert.match(mobile, /\.heroEyebrowMobile\s*\{\s*display:\s*inline/);
-  assert.match(mobile, /\.heroEyebrowDesktop\s*\{\s*display:\s*none/);
-  assert.match(
-    mobile,
-    /\.headerShell :global\(\.emc-nav-actions\)\s*\{\s*display:\s*none/,
-  );
-  assert.match(shell, /<ConceptStaticHeader compactActions \/>/);
-  assert.doesNotMatch(css, /\.heroEyebrow[^}]*content:/);
+  assert.match(page, /<span className=\{styles\.eyebrow\}>LA AGENDA MOTOR<\/span>/);
+  assert.match(shell, /<span>LA AGENDA MOTOR<\/span>/);
+  assert.doesNotMatch(shell, /ConceptStaticHeader|PublicNavigationMenu|Publicar|Menú/);
+  assert.match(globalHeader, /<PublicNavigationMenu \/>/);
+  assert.match(globalHeader, />\s*Publicar\s*</);
 });
 
 test("R4B sigue fail-closed fuera del carril local armado", () => {
@@ -232,11 +222,6 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
   );
   assert.match(tokenPage, /flex:\s*1 0 auto/);
   assert.doesNotMatch(tokenPage, /align-items:\s*center|display:\s*grid/);
-  assert.match(mobile, /\.headerShell\.headerShell\s*\{[\s\S]*?padding:\s*5px/);
-  assert.match(
-    mobile,
-    /\.headerShell :global\(\.emc-nav\)\s*\{[\s\S]*?min-height:\s*48px/,
-  );
   assert.match(mobile, /\.taskHeaderInner\s*\{[\s\S]*?min-height:\s*58px/);
   assert.match(
     mobile,
@@ -246,8 +231,9 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
     mobile,
     /\.page \.heroCopy h1\s*\{[\s\S]*?font-size:\s*32px[\s\S]*?line-height:\s*1\.02/,
   );
-  assert.match(mobile, /\.heroProof\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2/);
-  assert.match(mobile, /\.heroProof strong\s*\{[\s\S]*?white-space:\s*nowrap/);
+  assert.match(mobile, /\.desktopPreviewContent\s*\{[\s\S]*?display:\s*none/);
+  assert.match(mobile, /\.consentField\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(mobile, /\.microcopy\s*\{[\s\S]*?font-size:\s*14px/);
   assert.match(
     mobile,
     /\.tokenPage\s*\{[\s\S]*?min-height:\s*0[\s\S]*?display:\s*block/,
@@ -278,7 +264,7 @@ test("la composición incluye escalas responsive, foco y prevención de overflow
     narrowMobile,
     /\.page \.tokenCard h1\s*\{[\s\S]*?font-size:\s*28px/,
   );
-  assert.doesNotMatch(narrowMobile, /\.heroProof,[\s\S]*?\.flowList/);
+  assert.doesNotMatch(narrowMobile, /\.desktopPreviewContent/);
   assert.match(css, /overflow-x:\s*clip/);
   assert.match(css, /focus-visible/);
   assert.match(css, /primaryButton:not\(:disabled\):hover/);

@@ -5,16 +5,16 @@
   color: #f7f7f8;
 }
 
-.headerShell {
-  position: relative;
-  z-index: 20;
-}
-
 .taskShell {
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+}
+
+.landingPage {
+  min-width: 0;
+  flex: 1 0 auto;
 }
 
 .taskHeader {
@@ -145,14 +145,6 @@
   padding-left: clamp(0px, 1.5vw, 18px);
 }
 
-.heroEyebrowMobile {
-  display: none;
-}
-
-.heroEyebrowDesktop {
-  display: inline;
-}
-
 .heroCopy::before {
   content: "";
   position: absolute;
@@ -184,34 +176,6 @@
   line-height: 1.65;
 }
 
-.heroProof {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 26px;
-  margin-top: 22px;
-  color: #b8bbc4;
-  font-size: 13px;
-}
-
-.heroProof span {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-}
-
-.heroProof strong {
-  color: #fff;
-  font-size: 20px;
-}
-
-.proofText {
-  min-height: 28px;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 123, 26, 0.34);
-  border-radius: 999px;
-  color: #f4c1a5;
-}
-
 .signupCard {
   min-width: 0;
   overflow: hidden;
@@ -227,25 +191,11 @@
   background: linear-gradient(135deg, rgba(255, 59, 0, 0.18), transparent 70%);
 }
 
-.signupCardHeader > span {
-  color: #ff7b1a;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-}
-
 .signupCardHeader strong {
   display: block;
-  margin-top: 9px;
+  margin: 0;
   font-size: 22px;
   letter-spacing: -0.025em;
-}
-
-.signupCardHeader p {
-  margin: 8px 0 0;
-  color: #aeb2bc;
-  font-size: 13px;
-  line-height: 1.55;
 }
 
 .signupForm {
@@ -336,6 +286,7 @@
 
 .consentField a {
   color: #f0b293;
+  text-decoration: underline;
   text-underline-offset: 3px;
 }
 
@@ -406,6 +357,11 @@
 
 .formResult:empty {
   min-height: 28px;
+}
+
+.formResult[data-has-result="false"] {
+  min-height: 0;
+  padding: 0;
 }
 
 .primaryButton:not(:disabled):hover {
@@ -1478,43 +1434,6 @@
 }
 
 @media (max-width: 640px) {
-  .headerShell.headerShell {
-    top: 6px;
-    padding: 5px;
-    border-radius: 18px;
-  }
-
-  .headerShell :global(.emc-nav) {
-    min-height: 48px;
-  }
-
-  .headerShell :global(.emc-brand-logo) {
-    width: min(42vw, 150px);
-    min-width: 112px;
-  }
-
-  .headerShell :global(.emc-brand-logo .em-logo-horizontal) {
-    height: 30px;
-  }
-
-  .headerShell :global(.emc-nav-actions .emc-btn-primary) {
-    min-height: 40px;
-    padding: 8px 11px;
-    font-size: 12px;
-  }
-
-  .headerShell :global(.emc-nav-actions) {
-    display: none;
-  }
-
-  .heroEyebrowMobile {
-    display: inline;
-  }
-
-  .heroEyebrowDesktop {
-    display: none;
-  }
-
   .hero {
     padding: 24px 0 18px;
   }
@@ -1550,25 +1469,8 @@
     line-height: 1.5;
   }
 
-  .heroProof {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 12px;
-    margin-top: 16px;
-    font-size: 12px;
-  }
-
-  .heroProof strong {
-    flex: 0 0 auto;
-    font-size: 18px;
-    white-space: nowrap;
-  }
-
-  .heroProof .proofText {
-    grid-column: 1 / -1;
-    justify-self: start;
-    min-height: 26px;
-    padding: 5px 9px;
+  .desktopPreviewContent {
+    display: none;
   }
 
   .signupCard {
@@ -1580,13 +1482,7 @@
   }
 
   .signupCardHeader strong {
-    margin-top: 7px;
     font-size: 20px;
-  }
-
-  .signupCardHeader p {
-    margin-top: 6px;
-    line-height: 1.45;
   }
 
   .signupForm {
@@ -1594,7 +1490,7 @@
   }
 
   .formGrid {
-    gap: 11px;
+    gap: 14px;
   }
 
   .field input,
@@ -1603,7 +1499,23 @@
   }
 
   .consentField {
+    min-height: 44px;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: center;
     margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .consentField input {
+    width: 22px;
+    height: 22px;
+    margin: 0;
+  }
+
+  .page .consentField a {
+    color: #ffc0a3;
+    text-decoration: underline;
   }
 
   .primaryButton {
@@ -1618,6 +1530,11 @@
 
   .formResult:empty {
     min-height: 18px;
+  }
+
+  .microcopy {
+    font-size: 14px;
+    line-height: 1.45;
   }
 
   .previewEnvironmentBar {
@@ -1880,6 +1797,15 @@
     width: calc(100% - 32px);
     min-height: 52px;
     gap: 16px;
+  }
+
+  .landingFooter {
+    color: #a7adb8;
+    font-size: 14px;
+  }
+
+  .landingFooter a {
+    color: #d4d7dd;
   }
 
   .previewEnvironmentBar {
