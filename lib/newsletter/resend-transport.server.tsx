@@ -20,6 +20,7 @@ import { isValidEmail, isValidNewsletterOpaqueToken, normalizeEmail } from "@/li
 import type { NewsletterMailCommand } from "@/lib/newsletter/service-types";
 
 const NEWSLETTER_LINK_ORIGIN = "https://www.eventomotor.com";
+const NEWSLETTER_CONTACT_EMAIL = "info@eventomotor.com";
 const NEWSLETTER_LINK_PATHS = {
   preview: {
     confirmation: "/preview/newsletter/confirm",
@@ -219,6 +220,8 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
         1,
         Math.ceil((expiresAt.getTime() - this.now().getTime()) / (60 * 60 * 1_000)),
       ),
+      privacyUrl: new URL("/privacidad", this.origin).toString(),
+      contactEmail: NEWSLETTER_CONTACT_EMAIL,
     });
     return {
       subject: NEWSLETTER_EMAIL_METADATA.confirmation.subject,
@@ -231,25 +234,37 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   ) {
     if (
       !isValidNewsletterOpaqueToken(command.rawUnsubscribeToken) ||
-      !isNewsletterProvinceSlug(command.provinceSlug) ||
+      (
+        command.provinceSlug !== null &&
+        !isNewsletterProvinceSlug(command.provinceSlug)
+      ) ||
       (command.regionSlug !== null && !REGION_SLUG_PATTERN.test(command.regionSlug)) ||
       !LOCALE_PATTERN.test(command.locale)
     ) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
-    const province = NEWSLETTER_PROVINCE_OPTIONS.find(
-      (option) => option.slug === command.provinceSlug,
-    );
-    if (!province) {
+    const province = command.provinceSlug === null
+      ? null
+      : NEWSLETTER_PROVINCE_OPTIONS.find(
+          (option) => option.slug === command.provinceSlug,
+        );
+    if (command.provinceSlug !== null && !province) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
     const unsubscribeUrl = new URL(this.linkPaths.unsubscribe, this.origin);
     unsubscribeUrl.searchParams.set("token", command.rawUnsubscribeToken);
     const rendered = await this.renderWelcome({
       logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
-      provinceName: province.name,
-      eventsUrl: new URL(`/eventos-motor-${command.provinceSlug}`, this.origin).toString(),
+      provinceName: province?.name ?? null,
+      eventsUrl: new URL(
+        command.provinceSlug
+          ? `/eventos-motor-${command.provinceSlug}`
+          : "/#calendario",
+        this.origin,
+      ).toString(),
       unsubscribeUrl: unsubscribeUrl.toString(),
+      privacyUrl: new URL("/privacidad", this.origin).toString(),
+      contactEmail: NEWSLETTER_CONTACT_EMAIL,
     });
     return {
       subject: NEWSLETTER_EMAIL_METADATA.welcome.subject,

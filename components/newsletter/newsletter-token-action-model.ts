@@ -77,9 +77,12 @@ const COMPLETE_VIEWS: Partial<
   },
   unsubscribed: {
     eyebrow: "BAJA COMPLETADA",
-    title: "Tu baja se ha procesado correctamente",
+    title: "Tu baja se ha completado",
     introduction:
-      "No recibirás nuevas ediciones de La Agenda Motor.",
+      "Ya no recibirás “La Agenda Motor” en esta dirección.",
+    resultTitle: "Baja confirmada",
+    resultCopy:
+      "Si en el futuro deseas volver, tendrás que realizar una nueva suscripción y confirmar de nuevo tu correo.",
     secondaryAction: {
       href: "/",
       label: "Volver a EventoMotor",
@@ -88,9 +91,12 @@ const COMPLETE_VIEWS: Partial<
   },
   already_unsubscribed: {
     eyebrow: "BAJA COMPLETADA",
-    title: "La baja ya estaba completada",
+    title: "Tu baja se ha completado",
     introduction:
-      "No necesitas realizar ninguna otra acción.",
+      "Ya no recibirás “La Agenda Motor” en esta dirección. No necesitas realizar ninguna otra acción.",
+    resultTitle: "La baja ya estaba completada",
+    resultCopy:
+      "Si en el futuro deseas volver, tendrás que realizar una nueva suscripción y confirmar de nuevo tu correo.",
     secondaryAction: {
       href: "/",
       label: "Volver a EventoMotor",
@@ -124,9 +130,9 @@ function unavailableView(
   if (invalid) {
     return {
       eyebrow: "ENLACE NO DISPONIBLE",
-      title: "Este enlace no es válido o ha caducado",
+      title: "La solicitud ya no está disponible",
       introduction:
-        "No se ha realizado ningún cambio. Puedes volver a EventoMotor con total tranquilidad.",
+        "Es posible que el enlace ya se haya utilizado o no sea válido. Si sigues recibiendo correos, escribe a info@eventomotor.com.",
       secondaryAction: {
         href: "/",
         label: "Volver a EventoMotor",

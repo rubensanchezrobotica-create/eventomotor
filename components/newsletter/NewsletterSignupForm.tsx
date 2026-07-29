@@ -43,7 +43,7 @@ const STATE_LABELS: Record<NewsletterPreviewFormState, string> = {
   idle: "Inicial",
   focused: "Foco",
   invalid_email: "Email inválido",
-  missing_province: "Sin provincia",
+  missing_province: "Provincia inválida",
   submitting: "Enviando",
   pending_confirmation: "Éxito",
   generic_error: "Error genérico",
@@ -53,7 +53,7 @@ const STATE_DESCRIPTIONS: Record<NewsletterPreviewFormState, string> = {
   idle: "Formulario preparado para comenzar.",
   focused: "Campo activo con foco visible.",
   invalid_email: "Validación de formato con error anunciado.",
-  missing_province: "Provincia requerida antes de continuar.",
+  missing_province: "El selector rechaza valores territoriales no permitidos.",
   submitting: "Espera breve con el CTA desactivado.",
   pending_confirmation: "Respuesta genérica que protege el estado de la dirección.",
   generic_error: "Error recuperable sin exponer información del suscriptor.",
@@ -61,8 +61,9 @@ const STATE_DESCRIPTIONS: Record<NewsletterPreviewFormState, string> = {
 
 const RESULT_COPY: Partial<Record<NewsletterSignupState, { title: string; copy: string }>> = {
   accepted: {
-    title: "Solicitud recibida",
-    copy: "Si la dirección puede suscribirse, recibirá un correo para confirmar la suscripción.",
+    title: "Revisa tu correo",
+    copy:
+      "Si la solicitud puede completarse, recibirás un mensaje para confirmar tu suscripción. El enlace será válido durante 24 horas.",
   },
   invalid: {
     title: "Revisa los datos",
@@ -133,7 +134,7 @@ function NewsletterProductSignupForm() {
     const validation = validateNewsletterPreviewForm(email, province);
     const errors: FieldErrors = {};
     if (validation === "invalid_email") errors.email = "Introduce un correo válido.";
-    if (validation === "missing_province") errors.province = "Selecciona una provincia.";
+    if (validation === "missing_province") errors.province = "Selecciona una provincia válida.";
     if (!consent) {
       errors.consent = "Debes aceptar la información de privacidad para suscribirte.";
     }
@@ -152,7 +153,7 @@ function NewsletterProductSignupForm() {
     const nextState = await runNewsletterMutationOnce(submissionLock, () =>
       requestNewsletterSubscription({
         email,
-        province,
+        province: province || undefined,
         consentVersion: NEWSLETTER_CONSENT_VERSION,
       }),
     );
@@ -170,9 +171,47 @@ function NewsletterProductSignupForm() {
   return (
     <div data-form-state={state}>
       <form className={styles.signupForm} noValidate onSubmit={submit}>
+        <aside
+          aria-labelledby="newsletter-privacy-summary-title"
+          className={styles.privacyLayer}
+        >
+          <strong id="newsletter-privacy-summary-title">
+            Información básica sobre protección de datos
+          </strong>
+          <p>
+            <b>Responsable:</b> Rubén Ginés Sánchez García, titular del proyecto
+            EventoMotor.
+          </p>
+          <p>
+            <b>Finalidad:</b> gestionar tu solicitud y enviarte semanalmente “La
+            Agenda Motor”. Si indicas una provincia, la utilizaremos para
+            recomendarte eventos cercanos.
+          </p>
+          <p><b>Legitimación:</b> tu consentimiento.</p>
+          <p>
+            <b>Proveedores:</b> Vercel, Supabase, Resend y Zoho prestan la
+            infraestructura necesaria. No facilitaremos tus datos a organizadores,
+            patrocinadores ni terceros para sus propios fines. Algunos proveedores
+            pueden tratar datos fuera del EEE con las garantías aplicables.
+          </p>
+          <p>
+            <b>Conservación:</b> mientras permanezcas suscrito. Tras la baja
+            mantendremos la evidencia necesaria para respetarla y evitar envíos
+            indebidos.
+          </p>
+          <p>
+            <b>Derechos:</b> puedes retirar el consentimiento, darte de baja o
+            ejercer tus derechos escribiendo a info@eventomotor.com.
+          </p>
+          <p>
+            <b>Más información:</b>{" "}
+            <Link href="/privacidad">Política de privacidad</Link>.
+          </p>
+        </aside>
+
         <div className={styles.formGrid}>
           <label className={styles.field} htmlFor="newsletter-preview-email">
-            <span>Email</span>
+            <span>Correo electrónico *</span>
             <input
               aria-describedby={fieldErrors.email ? "newsletter-email-error" : undefined}
               aria-invalid={Boolean(fieldErrors.email)}
@@ -199,7 +238,7 @@ function NewsletterProductSignupForm() {
           </label>
 
           <label className={styles.field} htmlFor="newsletter-preview-province">
-            <span>Provincia</span>
+            <span>Provincia — opcional</span>
             <select
               aria-describedby={[
                 "newsletter-province-help",
@@ -216,13 +255,14 @@ function NewsletterProductSignupForm() {
               ref={provinceRef}
               value={province}
             >
-              <option value="">Selecciona una provincia</option>
+              <option value="">Selección general de España</option>
               {NEWSLETTER_PROVINCE_OPTIONS.map((option) => (
                 <option key={option.slug} value={option.slug}>{option.name}</option>
               ))}
             </select>
             <small id="newsletter-province-help">
-              Tu provincia nos ayuda a ordenar primero los planes más cercanos.
+              La utilizaremos únicamente para recomendarte eventos cercanos. Si no
+              eliges ninguna, recibirás una selección general de España.
             </small>
             {fieldErrors.province ? (
               <small className={styles.fieldError} id="newsletter-province-error">
@@ -248,8 +288,8 @@ function NewsletterProductSignupForm() {
             type="checkbox"
           />
           <span>
-            He leído la <Link href="/privacidad">información de privacidad</Link> y acepto
-            recibir La Agenda Motor.
+            Quiero recibir cada semana “La Agenda Motor”, la newsletter de
+            EventoMotor, en la dirección de correo indicada.
           </span>
         </label>
         {fieldErrors.consent ? (
@@ -258,12 +298,17 @@ function NewsletterProductSignupForm() {
           </p>
         ) : null}
 
+        <p className={styles.ageNotice}>
+          Al suscribirte declaras tener al menos 14 años y haber leído la{" "}
+          <Link href="/privacidad">información sobre protección de datos</Link>.
+        </p>
+
         <button className={styles.primaryButton} disabled={busy} type="submit">
           {state === "validating"
             ? "Revisando datos…"
             : state === "submitting"
               ? "Enviando solicitud…"
-              : "Recibir la agenda semanal"}
+              : "Quiero recibir La Agenda Motor"}
         </button>
 
         <p className={styles.microcopy}>Puedes darte de baja cuando quieras.</p>

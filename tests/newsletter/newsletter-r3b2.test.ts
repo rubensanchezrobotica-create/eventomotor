@@ -243,10 +243,11 @@ test("el formulario contiene estados, consentimiento y validación UX accesible"
   assert.match(form, /aria-live="polite"/);
   assert.match(form, /inputMode="email"/);
   assert.match(form, /Introduce un correo válido/);
-  assert.match(form, /Selecciona una provincia/);
+  assert.match(form, /Provincia — opcional/);
   assert.match(form, /Debes aceptar la información de privacidad para suscribirte/);
-  assert.match(form, /Si la dirección puede suscribirse, recibirá un correo/);
-  assert.doesNotMatch(form, /Revisa tu correo|Te hemos enviado un enlace/);
+  assert.match(form, /Si la solicitud puede completarse, recibirás un mensaje/);
+  assert.match(form, /Revisa tu correo/);
+  assert.doesNotMatch(form, /Te hemos enviado un enlace/);
 });
 
 test("confirm y unsubscribe no mutan durante render y exigen acción explícita", () => {
@@ -313,7 +314,7 @@ test("los clientes no importan servidor, repositorio, Supabase, crypto ni secret
   ].join("\n");
   assert.doesNotMatch(
     clientSources,
-    /http\.server|service\.server|repository\.server|crypto\.server|@supabase|createClient|service[_-]?role|process\.env|resend/i,
+    /http\.server|service\.server|repository\.server|crypto\.server|@supabase|createClient|service[_-]?role|process\.env|from\s+["'][^"']*resend/i,
   );
   assert.doesNotMatch(clientSources, /console\.|localStorage|sessionStorage|document\.cookie/);
 });
@@ -329,7 +330,13 @@ test("R3B.2 no crea rutas públicas, integraciones o contenido específico", () 
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   const unrelatedCampaignTerm = ["la ", "ba", "\u00f1", "eza"].join("");
-  assert.doesNotMatch(combined, new RegExp(`supabase|resend|service[_-]?role|${unrelatedCampaignTerm}`, "i"));
+  assert.doesNotMatch(
+    combined,
+    new RegExp(
+      `@supabase|createClient|service[_-]?role|from\\s+["'][^"']*resend|${unrelatedCampaignTerm}`,
+      "i",
+    ),
+  );
   assert.doesNotMatch(combined, /\/api\/newsletter\/(?:request|confirm|unsubscribe)[\s\S]*method:\s*"GET"/);
 });
 

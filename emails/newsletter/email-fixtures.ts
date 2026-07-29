@@ -11,12 +11,16 @@ export const NEWSLETTER_EMAIL_FIXTURES: NewsletterEmailPropsByKind = {
     logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
     confirmationUrl: `${PREVIEW_BASE_URL}#confirmacion-simulada`,
     expiresInHours: 24,
+    privacyUrl: "https://www.eventomotor.com/privacidad",
+    contactEmail: "info@eventomotor.com",
   },
   welcome: {
     logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
     provinceName: "Barcelona",
     eventsUrl: `${PREVIEW_BASE_URL}#proximos-eventos`,
     unsubscribeUrl: `${PREVIEW_BASE_URL}#baja-simulada`,
+    privacyUrl: "https://www.eventomotor.com/privacidad",
+    contactEmail: "info@eventomotor.com",
   },
   weekly: {
     logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
@@ -95,6 +99,8 @@ export const NEWSLETTER_EMAIL_FIXTURES: NewsletterEmailPropsByKind = {
       },
     ],
     agendaUrl: `${PREVIEW_BASE_URL}#agenda-completa-simulada`,
+    privacyUrl: "https://www.eventomotor.com/privacidad",
     unsubscribeUrl: `${PREVIEW_BASE_URL}#baja-simulada`,
+    contactEmail: "info@eventomotor.com",
   },
 };

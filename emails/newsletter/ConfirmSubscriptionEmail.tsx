@@ -1,4 +1,4 @@
-import { Button, Heading, Section, Text } from "react-email";
+import { Button, Heading, Link, Section, Text } from "react-email";
 import { NEWSLETTER_EMAIL_METADATA } from "./email-metadata";
 import NewsletterEmailShell from "./NewsletterEmailShell";
 import type { ConfirmSubscriptionEmailProps } from "./email-types";
@@ -7,6 +7,8 @@ export default function ConfirmSubscriptionEmail({
   logoUrl,
   confirmationUrl,
   expiresInHours,
+  privacyUrl,
+  contactEmail,
 }: ConfirmSubscriptionEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.confirmation;
 
@@ -16,13 +18,25 @@ export default function ConfirmSubscriptionEmail({
         <Text style={styles.eyebrow}>SOLO FALTA UN PASO</Text>
         <Heading as="h1" style={styles.heading}>Confirma que quieres recibir La Agenda Motor</Heading>
         <Text style={styles.copy}>
-          Cada semana seleccionaremos los mejores eventos del motor cerca de ti para que puedas
-          decidir tu próximo plan sin buscar evento por evento.
+          Has recibido este correo porque se ha solicitado una suscripción a “La
+          Agenda Motor” utilizando esta dirección.
+        </Text>
+        <Text style={styles.copy}>
+          Pulsa el botón <strong>Confirmar mi suscripción</strong> para completar
+          el alta. El enlace caduca en {expiresInHours} horas y solo puede
+          utilizarse una vez.
         </Text>
         <Button href={confirmationUrl} style={styles.button}>Confirmar mi suscripción</Button>
         <Text style={styles.note}>
-          Este enlace caduca en {expiresInHours} horas. Si no solicitaste La Agenda Motor, puedes
-          ignorar este correo; no se activará ninguna suscripción.
+          Si no has realizado esta solicitud, ignora este mensaje. No te daremos
+          de alta.
+        </Text>
+        <Text style={styles.legal}>
+          Responsable: Rubén Ginés Sánchez García, titular del proyecto
+          EventoMotor. Puedes consultar la{" "}
+          <Link href={privacyUrl} style={styles.link}>Política de privacidad</Link>
+          {" "}o escribir a{" "}
+          <Link href={`mailto:${contactEmail}`} style={styles.link}>{contactEmail}</Link>.
         </Text>
       </Section>
     </NewsletterEmailShell>
@@ -71,4 +85,11 @@ const styles = {
     fontSize: "12px",
     lineHeight: "19px",
   },
+  legal: {
+    margin: "18px 0 0",
+    color: "#8f9aaa",
+    fontSize: "11px",
+    lineHeight: "18px",
+  },
+  link: { color: "#ff9a72", textDecoration: "underline" },
 };

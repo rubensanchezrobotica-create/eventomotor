@@ -85,14 +85,18 @@ test("baja completada y repetida sustituyen el copy pendiente", () => {
   );
 
   assert.equal(completed.eyebrow, "BAJA COMPLETADA");
-  assert.equal(completed.title, "Tu baja se ha procesado correctamente");
+  assert.equal(completed.title, "Tu baja se ha completado");
   assert.equal(
     completed.introduction,
-    "No recibirás nuevas ediciones de La Agenda Motor.",
+    "Ya no recibirás “La Agenda Motor” en esta dirección.",
   );
   assert.equal(completed.secondaryAction?.label, "Volver a EventoMotor");
-  assert.equal(repeated.title, "La baja ya estaba completada");
-  assert.equal(repeated.introduction, "No necesitas realizar ninguna otra acción.");
+  assert.equal(repeated.title, "Tu baja se ha completado");
+  assert.equal(
+    repeated.introduction,
+    "Ya no recibirás “La Agenda Motor” en esta dirección. No necesitas realizar ninguna otra acción.",
+  );
+  assert.equal(repeated.resultTitle, "La baja ya estaba completada");
 
   for (const view of [completed, repeated]) {
     assert.equal(view.support, undefined);

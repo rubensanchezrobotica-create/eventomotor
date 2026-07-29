@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import {
   NEWSLETTER_CONSENT_VERSION,
   isNewsletterProvinceSlug,
+  newsletterRegionForProvince,
   type NewsletterProvinceSlug,
 } from "@/lib/newsletter/audience";
 import { resolveNewsletterMode, type NewsletterRuntimeEnvironment } from "@/lib/newsletter/config";
@@ -121,7 +122,7 @@ export type NewsletterHttpHandlerDependencies = {
 
 type RequestNewsletterInput = {
   email: string;
-  provinceSlug: NewsletterProvinceSlug;
+  provinceSlug: NewsletterProvinceSlug | null;
   consentVersion: typeof NEWSLETTER_CONSENT_VERSION;
 };
 
@@ -361,7 +362,14 @@ async function readBoundedJson(request: Request): Promise<ParseResult<Record<str
 export function parseRequestNewsletterInput(
   body: Record<string, unknown>,
 ): ParseResult<RequestNewsletterInput> {
-  if (!hasOnlyKeys(body, ["email", "province", "consentVersion"])) {
+  const allowedKeys = ["email", "province", "consentVersion"] as const;
+  if (
+    !Object.keys(body).every((key) =>
+      allowedKeys.includes(key as (typeof allowedKeys)[number])
+    ) ||
+    !Object.hasOwn(body, "email") ||
+    !Object.hasOwn(body, "consentVersion")
+  ) {
     return { ok: false, error: "invalid_request", status: 400 };
   }
   const { email, province, consentVersion } = body;
@@ -370,13 +378,25 @@ export function parseRequestNewsletterInput(
     email.length === 0 ||
     email.length > 320 ||
     !isValidEmail(email) ||
-    typeof province !== "string" ||
-    !isNewsletterProvinceSlug(province) ||
+    !(
+      province === undefined ||
+      province === null ||
+      province === "" ||
+      (typeof province === "string" && isNewsletterProvinceSlug(province))
+    ) ||
     consentVersion !== NEWSLETTER_CONSENT_VERSION
   ) {
     return { ok: false, error: "invalid_request", status: 400 };
   }
-  return { ok: true, value: { email, provinceSlug: province, consentVersion } };
+  return {
+    ok: true,
+    value: {
+      email,
+      provinceSlug:
+        typeof province === "string" && province !== "" ? province : null,
+      consentVersion,
+    },
+  };
 }
 
 export function parseConfirmationTokenInput(body: Record<string, unknown>): ParseResult<TokenInput> {
@@ -497,6 +517,7 @@ async function executeRequest(
   return service.requestSubscription({
     email: input.email,
     provinceSlug: input.provinceSlug,
+    regionSlug: newsletterRegionForProvince(input.provinceSlug),
     consentVersion: input.consentVersion,
     source: "internal_http",
     sourcePath,

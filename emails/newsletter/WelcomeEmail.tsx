@@ -8,6 +8,8 @@ export default function WelcomeEmail({
   provinceName,
   eventsUrl,
   unsubscribeUrl,
+  privacyUrl,
+  contactEmail,
 }: WelcomeEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.welcome;
 
@@ -18,8 +20,15 @@ export default function WelcomeEmail({
         <Heading as="h1" style={styles.heading}>Ya estás dentro</Heading>
         <Text style={styles.copy}>
           Tu preferencia para La Agenda Motor ya está confirmada. Cuando se activen los envíos,
-          recibirás una selección breve de eventos del motor, con especial atención a{" "}
-          <strong style={styles.highlight}>{provinceName}</strong>.
+          recibirás una selección breve de eventos del motor
+          {provinceName ? (
+            <>
+              , con especial atención a{" "}
+              <strong style={styles.highlight}>{provinceName}</strong>
+            </>
+          ) : (
+            <> de toda España</>
+          )}.
         </Text>
         <Section style={styles.summary}>
           <Text style={styles.summaryTitle}>Qué recibirás</Text>
@@ -32,7 +41,18 @@ export default function WelcomeEmail({
           Te avisaremos cuando la primera edición esté preparada.
         </Text>
         <Text style={styles.links}>
-          <Link href={unsubscribeUrl} style={styles.link}>Darme de baja</Link>
+          Recibes este mensaje porque acabas de confirmar tu suscripción a “La
+          Agenda Motor”.
+        </Text>
+        <Text style={styles.links}>
+          Responsable: Rubén Ginés Sánchez García, titular del proyecto
+          EventoMotor. Puedes consultar la{" "}
+          <Link href={privacyUrl} style={styles.link}>Política de privacidad</Link>,
+          {" "}escribir a{" "}
+          <Link href={`mailto:${contactEmail}`} style={styles.link}>{contactEmail}</Link>
+          {" "}o{" "}
+          <Link href={unsubscribeUrl} style={styles.link}>darte de baja</Link> en
+          cualquier momento mediante el enlace incluido en este correo.
         </Text>
       </Section>
     </NewsletterEmailShell>

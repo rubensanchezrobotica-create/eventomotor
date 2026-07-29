@@ -85,6 +85,7 @@ export function validateNewsletterPreviewForm(
   provinceSlug: string,
 ): "invalid_email" | "missing_province" | null {
   if (!isValidEmail(email)) return "invalid_email";
+  if (provinceSlug === "") return null;
   if (!NEWSLETTER_PROVINCE_OPTIONS.some((province) => province.slug === provinceSlug)) {
     return "missing_province";
   }

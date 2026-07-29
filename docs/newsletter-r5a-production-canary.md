@@ -51,8 +51,10 @@ El transporte canario sólo queda preparado cuando se cumplen simultáneamente:
   válidos, únicos tras normalización y sin wildcards.
 - `NEWSLETTER_RESEND_API_KEY`, `NEWSLETTER_RESEND_FROM` y
   `NEWSLETTER_RESEND_REPLY_TO` son válidos.
-- La dirección efectiva de `NEWSLETTER_RESEND_FROM` pertenece exactamente a
-  `news.eventomotor.com`.
+- `NEWSLETTER_RESEND_FROM` coincide exactamente con
+  `La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>`.
+- `NEWSLETTER_RESEND_REPLY_TO` coincide exactamente con
+  `info@eventomotor.com`.
 - Cada entrega tiene un único destinatario incluido exactamente en la
   allowlist y no contiene CC ni BCC.
 - El comando es exclusivamente `confirmation` o `welcome`.

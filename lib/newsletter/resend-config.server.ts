@@ -20,6 +20,9 @@ const MAX_ALLOWLIST_ENTRIES = 20;
 const MAX_PRODUCTION_CANARY_ALLOWLIST_ENTRIES = 10;
 const MAX_ALLOWLIST_LENGTH = 4_096;
 const DISPLAY_NAME_PATTERN = /^[^<>\r\n]{1,80}$/;
+export const NEWSLETTER_PRODUCTION_SENDER =
+  "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
+export const NEWSLETTER_PRODUCTION_REPLY_TO = "info@eventomotor.com";
 
 export type NewsletterResendEnvironment = {
   newsletterMode?: string;
@@ -242,7 +245,11 @@ export function evaluateNewsletterProductionCanaryResendConfiguration(
   if (!environment.apiKey || !isValidApiKey(environment.apiKey)) {
     return { enabled: false, reason: "api_key_invalid" };
   }
-  if (!environment.from || !isValidSender(environment.from)) {
+  if (
+    !environment.from ||
+    environment.from !== NEWSLETTER_PRODUCTION_SENDER ||
+    !isValidSender(environment.from)
+  ) {
     return { enabled: false, reason: "from_invalid" };
   }
   const fromAddress = senderEmail(environment.from);
@@ -252,7 +259,8 @@ export function evaluateNewsletterProductionCanaryResendConfiguration(
   if (
     !environment.replyTo ||
     environment.replyTo !== environment.replyTo.trim() ||
-    !isValidEmail(environment.replyTo)
+    !isValidEmail(environment.replyTo) ||
+    normalizeEmail(environment.replyTo) !== NEWSLETTER_PRODUCTION_REPLY_TO
   ) {
     return { enabled: false, reason: "reply_to_invalid" };
   }

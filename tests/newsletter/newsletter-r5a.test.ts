@@ -38,7 +38,7 @@ import type {
 } from "../../lib/newsletter/service-types";
 
 const API_KEY = `re_canary_${"a".repeat(32)}`;
-const FROM = "EventoMotor <agenda@news.eventomotor.com>";
+const FROM = "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
 const REPLY_TO = "info@eventomotor.com";
 const RECIPIENT = "authorized@example.invalid";
 const SECOND_RECIPIENT = "second@example.invalid";
@@ -184,18 +184,23 @@ test("la allowlist canaria valida, normaliza y limita entre una y diez direccion
   assert.equal(tenRecipients.enabled, true);
 });
 
-test("API key, remitente de news.eventomotor.com y Reply-To son obligatorios", () => {
+test("API key, remitente y Reply-To legales exactos son obligatorios", () => {
   expectBlocked({ apiKey: undefined }, "api_key_invalid");
   expectBlocked({ from: undefined }, "from_invalid");
   expectBlocked(
     { from: "EventoMotor <agenda@eventomotor.com>" },
-    "sender_domain_invalid",
+    "from_invalid",
   );
   expectBlocked(
     { from: "EventoMotor <agenda@news.eventomotor.com.evil.invalid>" },
-    "sender_domain_invalid",
+    "from_invalid",
+  );
+  expectBlocked(
+    { from: "EventoMotor <agenda@news.eventomotor.com>" },
+    "from_invalid",
   );
   expectBlocked({ replyTo: undefined }, "reply_to_invalid");
+  expectBlocked({ replyTo: "newsletter@eventomotor.com" }, "reply_to_invalid");
 });
 
 test("la factoría R5A inyecta el cliente y configura el servicio en live sin red global", () => {
@@ -771,6 +776,6 @@ test("variables R5A son server-only y el ejemplo no contiene valores reales", ()
   }
   assert.doesNotMatch(
     source(".env.example"),
-    /production-double-opt-in-canary|re_[A-Za-z0-9]{20,}|agenda@news\.eventomotor\.com/,
+    /production-double-opt-in-canary|re_[A-Za-z0-9]{20,}|^NEWSLETTER_RESEND_FROM=.+$/m,
   );
 });

@@ -23,6 +23,7 @@ import type {
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 const CONFIRMATION_PATH = "/preview/newsletter/confirm";
 const UNSUBSCRIBE_PATH = "/preview/newsletter/unsubscribe";
+const NEWSLETTER_CONTACT_EMAIL = "info@eventomotor.com";
 const REGION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 
@@ -90,7 +91,10 @@ function assertWelcomeCommand(command: NewsletterMailCommand): asserts command i
     command.kind !== "welcome" ||
     !isValidEmail(command.recipientEmail) ||
     !isValidNewsletterOpaqueToken(command.rawUnsubscribeToken) ||
-    !isNewsletterProvinceSlug(command.provinceSlug) ||
+    (
+      command.provinceSlug !== null &&
+      !isNewsletterProvinceSlug(command.provinceSlug)
+    ) ||
     (command.regionSlug !== null && !REGION_SLUG_PATTERN.test(command.regionSlug)) ||
     !LOCALE_PATTERN.test(command.locale)
   ) {
@@ -148,6 +152,8 @@ export class CaptureNewsletterMailTransport implements NewsletterMailTransport {
         1,
         Math.ceil((expiresAt.getTime() - capturedAt.getTime()) / (60 * 60 * 1000)),
       ),
+      privacyUrl: new URL("/privacidad", this.origin).toString(),
+      contactEmail: NEWSLETTER_CONTACT_EMAIL,
     });
 
     const capture: NewsletterMailCapture = {
@@ -175,19 +181,30 @@ export class CaptureNewsletterMailTransport implements NewsletterMailTransport {
   ): Promise<{ status: "accepted" }> {
     assertWelcomeCommand(command);
 
-    const province = NEWSLETTER_PROVINCE_OPTIONS.find(
-      (option) => option.slug === command.provinceSlug,
-    );
-    if (!province) throw new NewsletterMailCaptureTransportError();
+    const province = command.provinceSlug === null
+      ? null
+      : NEWSLETTER_PROVINCE_OPTIONS.find(
+          (option) => option.slug === command.provinceSlug,
+        );
+    if (command.provinceSlug !== null && !province) {
+      throw new NewsletterMailCaptureTransportError();
+    }
 
     const unsubscribeUrl = new URL(UNSUBSCRIBE_PATH, this.origin);
     unsubscribeUrl.searchParams.set("token", command.rawUnsubscribeToken);
-    const eventsUrl = new URL(`/eventos-motor-${command.provinceSlug}`, this.origin);
+    const eventsUrl = new URL(
+      command.provinceSlug
+        ? `/eventos-motor-${command.provinceSlug}`
+        : "/#calendario",
+      this.origin,
+    );
     const rendered = await this.renderWelcome({
       logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
-      provinceName: province.name,
+      provinceName: province?.name ?? null,
       eventsUrl: eventsUrl.toString(),
       unsubscribeUrl: unsubscribeUrl.toString(),
+      privacyUrl: new URL("/privacidad", this.origin).toString(),
+      contactEmail: NEWSLETTER_CONTACT_EMAIL,
     });
 
     const capture: NewsletterMailCapture = {
@@ -202,7 +219,7 @@ export class CaptureNewsletterMailTransport implements NewsletterMailTransport {
       status: "captured",
       metadata: {
         locale: command.locale,
-        province: command.provinceSlug,
+        ...(command.provinceSlug ? { province: command.provinceSlug } : {}),
         ...(command.regionSlug ? { region: command.regionSlug } : {}),
       },
     };
