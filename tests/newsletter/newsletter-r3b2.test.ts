@@ -251,12 +251,13 @@ test("el formulario contiene estados, consentimiento y validación UX accesible"
 
 test("confirm y unsubscribe no mutan durante render y exigen acción explícita", () => {
   const component = source("components/newsletter/NewsletterTokenAction.tsx");
+  const model = source("components/newsletter/newsletter-token-action-model.ts");
   assert.match(component, /onClick=\{submitAction\}/);
   assert.match(component, /type="button"/);
   assert.match(component, /Confirmar suscripción/);
-  assert.match(component, /Confirmar baja/);
-  assert.match(component, /Abrir este enlace no realiza ninguna acción/);
-  assert.match(component, /Puedes cerrar esta página sin realizar cambios/);
+  assert.match(component, /Sí, darme de baja/);
+  assert.match(model, /Confirma tu dirección para activar tu suscripción/);
+  assert.match(model, /Puedes cerrar esta página si prefieres mantener tu suscripción/);
   const captureEffect = component.slice(
     component.indexOf("useEffect(() => {"),
     component.indexOf("}, [kind]);"),

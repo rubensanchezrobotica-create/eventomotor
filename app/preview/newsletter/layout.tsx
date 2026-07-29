@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
+import NewsletterPreviewShell from "@/components/newsletter/NewsletterPreviewShell";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import styles from "@/components/newsletter/NewsletterPreview.module.css";
 import {
@@ -42,11 +41,7 @@ export default async function NewsletterPreviewLayout({
   return (
     <div className={`emc-page ${styles.page}`}>
       <ConceptStyles />
-      <header className={`emc-header-shell ${styles.headerShell}`}>
-        <ConceptStaticHeader compactActions />
-      </header>
-      {children}
-      <ConceptFooter contactTrackingLocation="newsletter_preview_footer" variant="compact" />
+      <NewsletterPreviewShell>{children}</NewsletterPreviewShell>
     </div>
   );
 }

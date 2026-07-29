@@ -11,104 +11,30 @@ import {
   isValidNewsletterOpaqueToken,
 } from "@/lib/newsletter/schemas";
 import { NEWSLETTER_R4B_CONTROLLED_STATUS } from "@/lib/newsletter/r4b-guard";
+import {
+  getNewsletterTokenActionView,
+  type NewsletterTokenActionKind,
+  type NewsletterTokenActionState,
+} from "./newsletter-token-action-model";
 import styles from "./NewsletterPreview.module.css";
-
-export type NewsletterTokenActionKind = "confirm" | "unsubscribe";
-
-export type NewsletterTokenActionState =
-  | "checking"
-  | "token_missing"
-  | "token_invalid"
-  | "ready"
-  | "submitting"
-  | "confirmed"
-  | "already_confirmed"
-  | "unsubscribed"
-  | "already_unsubscribed"
-  | "invalid_or_expired"
-  | "unavailable"
-  | "temporarily_unavailable";
 
 type NewsletterTokenActionProps = {
   kind: NewsletterTokenActionKind;
 };
 
-type ActionCopy = {
-  eyebrow: string;
-  title: string;
-  introduction: string;
-  action: string;
-  busy: string;
-  completeTitle: string;
-  completeCopy: string;
-  repeatedTitle: string;
-  repeatedCopy: string;
-};
-
-const ACTION_COPY: Record<NewsletterTokenActionKind, ActionCopy> = {
+const ACTION_LABELS: Record<
+  NewsletterTokenActionKind,
+  { action: string; busy: string }
+> = {
   confirm: {
-    eyebrow: "CONFIRMACIÓN DE SUSCRIPCIÓN",
-    title: "Confirma que quieres recibir La Agenda Motor",
-    introduction:
-      "La suscripción sólo se confirmará cuando pulses el botón. Abrir este enlace no realiza ninguna acción.",
     action: "Confirmar suscripción",
     busy: "Confirmando…",
-    completeTitle: "Suscripción confirmada",
-    completeCopy: "Ya puedes recibir la selección semanal de planes de motor.",
-    repeatedTitle: "La suscripción ya estaba confirmada",
-    repeatedCopy: "No necesitas realizar ninguna otra acción.",
   },
   unsubscribe: {
-    eyebrow: "BAJA DE LA NEWSLETTER",
-    title: "¿Quieres dejar de recibir La Agenda Motor?",
-    introduction:
-      "La baja sólo se completará cuando pulses el botón. Puedes cerrar esta página sin realizar cambios.",
-    action: "Confirmar baja",
+    action: "Sí, darme de baja",
     busy: "Procesando baja…",
-    completeTitle: "Baja completada",
-    completeCopy: "La solicitud se ha procesado. No recibirás nuevas ediciones.",
-    repeatedTitle: "La baja ya estaba completada",
-    repeatedCopy: "No necesitas realizar ninguna otra acción.",
   },
 };
-
-function stateCopy(
-  kind: NewsletterTokenActionKind,
-  state: NewsletterTokenActionState,
-): { title: string; copy: string } | null {
-  const copy = ACTION_COPY[kind];
-  if (state === "token_missing") {
-    return {
-      title: "Falta el enlace completo",
-      copy: "Abre el enlace recibido originalmente para continuar.",
-    };
-  }
-  if (state === "token_invalid" || state === "invalid_or_expired") {
-    return {
-      title: "El enlace no es válido o ha caducado",
-      copy: "No se ha realizado ningún cambio.",
-    };
-  }
-  if (state === "confirmed" || state === "unsubscribed") {
-    return { title: copy.completeTitle, copy: copy.completeCopy };
-  }
-  if (state === "already_confirmed" || state === "already_unsubscribed") {
-    return { title: copy.repeatedTitle, copy: copy.repeatedCopy };
-  }
-  if (state === "unavailable") {
-    return {
-      title: "Servicio no disponible",
-      copy: "Esta función interna no está habilitada en este entorno.",
-    };
-  }
-  if (state === "temporarily_unavailable") {
-    return {
-      title: "No podemos completar la acción",
-      copy: "Ha ocurrido un problema temporal. Inténtalo de nuevo más tarde.",
-    };
-  }
-  return null;
-}
 
 function cleanVisibleTokenUrl() {
   const cleanUrl = `${window.location.pathname}${window.location.hash}`;
@@ -116,12 +42,13 @@ function cleanVisibleTokenUrl() {
 }
 
 export default function NewsletterTokenAction({ kind }: NewsletterTokenActionProps) {
-  const copy = ACTION_COPY[kind];
+  const labels = ACTION_LABELS[kind];
   const [state, setState] = useState<NewsletterTokenActionState>("checking");
   const tokenRef = useRef<string | null>(null);
   const mutationLock = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
-  const result = stateCopy(kind, state);
+  const view = getNewsletterTokenActionView(kind, state);
+  const hasResult = Boolean(view.resultTitle);
 
   useEffect(() => {
     const token = new URL(window.location.href).searchParams.get("token");
@@ -145,8 +72,8 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
   }, [kind]);
 
   useEffect(() => {
-    if (result) resultRef.current?.focus();
-  }, [result]);
+    if (hasResult) resultRef.current?.focus();
+  }, [hasResult]);
 
   async function submitAction() {
     if (!tokenRef.current || mutationLock.current) return;
@@ -174,9 +101,11 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
       <section className={styles.tokenHero}>
         <div className={`emc-container ${styles.tokenContainer}`}>
           <div className={styles.tokenCard} data-token-action={kind} data-token-state={state}>
-            <span className={styles.eyebrow}>{copy.eyebrow}</span>
-            <h1>{copy.title}</h1>
-            <p>{copy.introduction}</p>
+            <div className={styles.tokenCardHeading}>
+              <span className={styles.eyebrow}>{view.eyebrow}</span>
+              <h1>{view.title}</h1>
+              <p>{view.introduction}</p>
+            </div>
 
             {state === "checking" ? (
               <div className={styles.tokenStatus} role="status" aria-live="polite">
@@ -186,19 +115,20 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
 
             {ready || busy ? (
               <div className={styles.tokenAction}>
-                <p>
-                  {kind === "confirm"
-                    ? "Confirma para activar tu suscripción."
-                    : "Confirma para retirar tu consentimiento y completar la baja."}
-                </p>
+                <p>{view.support}</p>
                 <button
                   className={kind === "unsubscribe" ? styles.secondaryActionButton : styles.primaryButton}
                   disabled={busy}
                   onClick={submitAction}
                   type="button"
                 >
-                  {busy ? copy.busy : copy.action}
+                  {busy ? labels.busy : labels.action}
                 </button>
+                {kind === "unsubscribe" && !busy ? (
+                  <Link className={styles.cancelAction} href="/preview/newsletter">
+                    Mantener mi suscripción
+                  </Link>
+                ) : null}
               </div>
             ) : null}
 
@@ -207,12 +137,17 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
               className={styles.tokenResult}
               ref={resultRef}
               role="status"
-              tabIndex={result ? -1 : undefined}
+              tabIndex={hasResult ? -1 : undefined}
             >
-              {result ? (
+              {hasResult ? (
                 <>
-                  <strong>{result.title}</strong>
-                  <p>{result.copy}</p>
+                  <span className={styles.tokenResultIcon} aria-hidden="true">
+                    {view.completed ? "✓" : "!"}
+                  </span>
+                  <div>
+                    <strong>{view.resultTitle}</strong>
+                    <p>{view.resultCopy}</p>
+                  </div>
                   {state === "temporarily_unavailable" ? (
                     <button
                       className={styles.textButton}
@@ -226,10 +161,11 @@ export default function NewsletterTokenAction({ kind }: NewsletterTokenActionPro
               ) : null}
             </div>
 
-            <div className={styles.tokenFooter}>
-              <Link href="/preview/newsletter">Volver a La Agenda Motor</Link>
-              <span>El token se mantiene sólo en memoria y se retira de la URL visible.</span>
-            </div>
+            {view.secondaryAction ? (
+              <Link className={styles.tokenSecondaryLink} href={view.secondaryAction.href}>
+                {view.secondaryAction.label}
+              </Link>
+            ) : null}
           </div>
           <aside className={styles.internalNotice}>
             <strong>Entorno R4B</strong>

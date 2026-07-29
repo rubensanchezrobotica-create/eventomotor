@@ -10,6 +10,59 @@
   z-index: 20;
 }
 
+.taskHeader {
+  position: relative;
+  z-index: 20;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(7, 9, 13, 0.96);
+}
+
+.taskHeaderInner {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.taskHeaderInner > span {
+  color: #a9aeb8;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.taskBrand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.taskBrand :global(.em-logo) {
+  height: 34px;
+  max-width: 182px;
+}
+
+.taskFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #777d88;
+  background: #06070a;
+  font-size: 11px;
+}
+
+.taskFooter > div {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.taskFooter a {
+  color: #b8bcc5;
+  text-underline-offset: 3px;
+}
+
 .page :where(button, input, select, a, pre):focus-visible {
   outline: 3px solid #ff7a45;
   outline-offset: 3px;
@@ -52,7 +105,7 @@
 .hero {
   position: relative;
   isolation: isolate;
-  padding: clamp(36px, 4vw, 48px) 0;
+  padding: clamp(30px, 3.5vw, 44px) 0 24px;
   overflow: hidden;
   background:
     radial-gradient(circle at 12% 20%, rgba(255, 59, 0, 0.2), transparent 28%),
@@ -73,26 +126,41 @@
 
 .heroGrid {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(390px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.82fr);
   align-items: center;
-  gap: clamp(38px, 5vw, 72px);
+  gap: clamp(34px, 4.5vw, 66px);
 }
 
-.heroCopy h1 {
-  max-width: 850px;
-  margin: 19px 0 25px;
-  font-size: clamp(42px, 4.25vw, 62px);
-  line-height: 1;
+.heroCopy {
+  position: relative;
+  padding-left: clamp(0px, 1.5vw, 18px);
+}
+
+.heroCopy::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(#ff3b00, rgba(255, 59, 0, 0));
+}
+
+.page .heroCopy h1 {
+  max-width: 760px;
+  margin: 17px 0 20px;
+  font-size: clamp(40px, 3.8vw, 56px);
+  line-height: 1.02;
   letter-spacing: -0.055em;
 }
 
-.heroCopy h1 em {
+.page .heroCopy h1 em {
   color: #ff4d10;
   font-style: normal;
 }
 
 .heroCopy > p {
-  max-width: 650px;
+  max-width: 610px;
   margin: 0;
   color: #b4b8c2;
   font-size: clamp(16px, 1.35vw, 19px);
@@ -103,7 +171,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 14px 26px;
-  margin-top: 26px;
+  margin-top: 22px;
   color: #b8bbc4;
   font-size: 13px;
 }
@@ -131,13 +199,13 @@
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
+  border-radius: 22px;
   background: rgba(15, 17, 23, 0.94);
   box-shadow: 0 34px 90px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(255, 93, 27, 0.05) inset;
 }
 
 .signupCardHeader {
-  padding: 24px 28px 20px;
+  padding: 21px 26px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(135deg, rgba(255, 59, 0, 0.18), transparent 70%);
 }
@@ -164,7 +232,7 @@
 }
 
 .signupForm {
-  padding: 22px 28px 8px;
+  padding: 20px 26px 7px;
 }
 
 .formGrid {
@@ -195,7 +263,7 @@
   color: #f8f8fa;
   background: #090b10;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .field select {
@@ -264,7 +332,7 @@
   background: linear-gradient(110deg, #ff3b00, #ff6a00);
   box-shadow: 0 12px 34px rgba(255, 59, 0, 0.28);
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   cursor: pointer;
 }
@@ -311,7 +379,7 @@
 }
 
 .formResult {
-  min-height: 86px;
+  min-height: 72px;
   padding: 13px 0 17px;
   color: #c9ccd3;
   font-size: 12px;
@@ -320,7 +388,33 @@
 }
 
 .formResult:empty {
-  min-height: 42px;
+  min-height: 28px;
+}
+
+.primaryButton:not(:disabled):hover {
+  background: linear-gradient(110deg, #ff4b14, #ff7b18);
+  box-shadow: 0 15px 38px rgba(255, 59, 0, 0.34);
+}
+
+.previewEnvironmentBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  color: #777d88;
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.previewEnvironmentBar span {
+  color: #b4b8c1;
+  font-weight: 850;
+}
+
+.previewEnvironmentBar p {
+  margin: 0;
 }
 
 .formResult strong,
@@ -451,18 +545,18 @@
 .section,
 .flowSection,
 .notesSection {
-  padding: clamp(44px, 4.5vw, 62px) 0;
+  padding: clamp(38px, 4vw, 54px) 0;
 }
 
 .sectionHeading {
   max-width: 730px;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
-.sectionHeading h2,
-.notesCard h2 {
+.page .sectionHeading h2,
+.page .notesCard h2 {
   margin: 13px 0 12px;
-  font-size: clamp(31px, 3.35vw, 46px);
+  font-size: clamp(29px, 3vw, 42px);
   line-height: 1.02;
   letter-spacing: -0.045em;
 }
@@ -484,8 +578,8 @@
 
 .benefitGrid article {
   min-width: 0;
-  min-height: 172px;
-  padding: 22px;
+  min-height: 152px;
+  padding: 20px;
   border-right: 1px solid #222630;
   background: #0b0d12;
 }
@@ -501,7 +595,7 @@
 }
 
 .benefitGrid h3 {
-  margin: 34px 0 8px;
+  margin: 26px 0 8px;
   font-size: 18px;
   line-height: 1.15;
 }
@@ -638,7 +732,7 @@
   position: relative;
   border-block: 1px solid #252a33;
   background: linear-gradient(120deg, #10131a, #080a0f);
-  padding-block: clamp(42px, 4vw, 56px);
+  padding-block: clamp(36px, 3.5vw, 48px);
 }
 
 .flowSection .eyebrow,
@@ -867,7 +961,7 @@
 }
 
 .agendaSampleSection {
-  padding: clamp(44px, 4.5vw, 64px) 0;
+  padding: clamp(38px, 4vw, 54px) 0;
   border-top: 1px solid #1d212a;
   background: linear-gradient(145deg, #0b0e13, #07090d);
 }
@@ -879,7 +973,7 @@
   gap: clamp(38px, 6vw, 84px);
 }
 
-.agendaSampleCopy h2 {
+.page .agendaSampleCopy h2 {
   max-width: 520px;
   margin: 13px 0 14px;
   font-size: clamp(32px, 3.3vw, 48px);
@@ -904,7 +998,7 @@
 
 .agendaSampleFrame {
   position: relative;
-  height: 420px;
+  height: 390px;
   min-width: 0;
   overflow: hidden;
   border: 1px solid #2a2f39;
@@ -930,9 +1024,56 @@
 }
 
 .labSection {
-  padding: clamp(50px, 5vw, 68px) 0;
+  padding: clamp(32px, 4vw, 48px) 0;
   border-top: 1px solid #252a34;
   background: #080a0e;
+}
+
+.labDisclosure {
+  overflow: hidden;
+  border: 1px solid #292d36;
+  border-radius: 18px;
+  background: #0b0e13;
+}
+
+.labDisclosure > summary {
+  min-height: 94px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 22px 26px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.labDisclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.labDisclosure > summary > span:first-child {
+  display: grid;
+  gap: 7px;
+}
+
+.labDisclosure > summary strong {
+  color: #f7f7f8;
+  font-size: clamp(18px, 2vw, 23px);
+}
+
+.labDisclosureAction {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff956d;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.labContent {
+  padding: 0 26px 28px;
+  border-top: 1px solid #292d36;
 }
 
 .labIntro {
@@ -940,11 +1081,11 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 28px;
-  padding: 0 0 34px;
+  padding: 28px 0 30px;
   border-bottom: 1px solid #2a2e38;
 }
 
-.labIntro h2 {
+.page .labIntro h2 {
   margin: 9px 0 8px;
   font-size: clamp(34px, 4vw, 54px);
   line-height: 1;
@@ -982,7 +1123,7 @@
   letter-spacing: 0.15em;
 }
 
-.labBlockHeading h3 {
+.page .labBlockHeading h3 {
   margin: 7px 0 7px;
   font-size: clamp(24px, 2.4vw, 33px);
   letter-spacing: -0.03em;
@@ -1027,50 +1168,67 @@
 }
 
 .tokenPage {
-  min-height: 62vh;
+  min-height: calc(100vh - 144px);
+  display: grid;
+  align-items: center;
   background:
-    radial-gradient(circle at 16% 20%, rgba(255, 59, 0, 0.16), transparent 30%),
+    radial-gradient(circle at 50% 8%, rgba(255, 59, 0, 0.13), transparent 34%),
     linear-gradient(145deg, #090b10, #050609 72%);
 }
 
 .tokenHero {
-  padding: clamp(48px, 8vw, 104px) 0;
+  width: 100%;
+  padding: clamp(42px, 6vw, 72px) 0;
 }
 
 .tokenContainer {
-  width: min(100%, 850px);
+  width: min(100%, 780px);
 }
 
 .tokenCard {
   min-width: 0;
-  padding: clamp(28px, 5vw, 54px);
+  padding: clamp(28px, 4.5vw, 48px);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
+  border-radius: 22px;
   background: rgba(14, 17, 23, 0.96);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
 }
 
-.tokenCard h1 {
+.tokenCardHeading {
+  position: relative;
+}
+
+.tokenCardHeading::before {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 3px;
+  margin-bottom: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff3b00, #ff8a58);
+}
+
+.page .tokenCard h1 {
   max-width: 690px;
   margin: 14px 0 16px;
-  font-size: clamp(34px, 5vw, 56px);
-  line-height: 1.02;
+  font-size: clamp(32px, 4.2vw, 48px);
+  line-height: 1.04;
   letter-spacing: -0.045em;
 }
 
-.tokenCard > p {
+.tokenCardHeading > p {
   max-width: 650px;
   margin: 0;
   color: #adb2bc;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.65;
 }
 
 .tokenStatus,
 .tokenAction,
 .tokenResult {
-  margin-top: 28px;
-  padding: 20px;
+  margin-top: 26px;
+  padding: 18px;
   border: 1px solid #2c313b;
   border-radius: 14px;
   background: #0a0c11;
@@ -1083,7 +1241,18 @@
 .tokenAction p {
   margin: 0;
   color: #c5c8cf;
-  font-size: 14px;
+  font-size: 16px;
+}
+
+.tokenAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+
+.tokenAction p {
+  width: 100%;
 }
 
 .tokenAction .primaryButton,
@@ -1091,6 +1260,11 @@
   width: auto;
   min-width: 210px;
   padding-inline: 24px;
+}
+
+.tokenAction .primaryButton,
+.tokenAction .secondaryActionButton {
+  margin-top: 0;
 }
 
 .secondaryActionButton {
@@ -1101,7 +1275,7 @@
   color: #f7f7f8;
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -1111,7 +1285,24 @@
   cursor: wait;
 }
 
+.secondaryActionButton:not(:disabled):hover {
+  border-color: #ff875c;
+  color: #fff;
+  background: rgba(255, 92, 36, 0.08);
+}
+
+.cancelAction {
+  color: #c8cbd2;
+  font-size: 16px;
+  font-weight: 750;
+  text-underline-offset: 4px;
+}
+
 .tokenResult {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
   color: #b8bdc6;
   line-height: 1.6;
 }
@@ -1126,33 +1317,50 @@
   font-size: 20px;
 }
 
+.tokenResultIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 122, 69, 0.55);
+  border-radius: 50%;
+  color: #ff9a75;
+  background: rgba(255, 59, 0, 0.1);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.tokenCard[data-token-state="confirmed"] .tokenResult,
+.tokenCard[data-token-state="unsubscribed"] .tokenResult {
+  border-color: rgba(91, 213, 133, 0.3);
+  background: rgba(20, 83, 45, 0.16);
+}
+
+.tokenCard[data-token-state="confirmed"] .tokenResultIcon,
+.tokenCard[data-token-state="unsubscribed"] .tokenResultIcon {
+  border-color: rgba(91, 213, 133, 0.6);
+  color: #7ee2a0;
+  background: rgba(20, 83, 45, 0.24);
+}
+
 .tokenResult p {
   margin: 7px 0 0;
 }
 
-.tokenFooter {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #292d36;
-  color: #767c87;
-  font-size: 10px;
-  line-height: 1.5;
+.tokenResult .textButton {
+  grid-column: 2;
+  justify-self: start;
 }
 
-.tokenFooter a {
-  flex: none;
-  color: #ff9168;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.tokenFooter span {
-  max-width: 390px;
-  text-align: right;
+.tokenSecondaryLink {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 24px;
+  color: #ff956d;
+  font-size: 16px;
+  font-weight: 850;
+  text-underline-offset: 4px;
 }
 
 .internalNotice {
@@ -1225,6 +1433,11 @@
 
   .heroGrid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
+  }
+
+  .heroCopy {
+    max-width: 680px;
   }
 
   .signupCard {
@@ -1250,7 +1463,7 @@
 
 @media (max-width: 640px) {
   .hero {
-    padding-top: 48px;
+    padding-top: 38px;
   }
 
   .agendaSampleGrid,
@@ -1267,8 +1480,8 @@
     max-width: 620px;
   }
 
-  .heroCopy h1 {
-    font-size: clamp(39px, 12vw, 54px);
+  .page .heroCopy h1 {
+    font-size: clamp(36px, 11vw, 48px);
   }
 
   .heroProof {
@@ -1403,7 +1616,7 @@
   }
 
   .labSection {
-    padding-block: 42px;
+    padding-block: 30px;
   }
 
   .labBlock {
@@ -1424,7 +1637,7 @@
   }
 
   .tokenHero {
-    padding-block: 36px;
+    padding-block: 30px;
   }
 
   .tokenCard {
@@ -1438,14 +1651,40 @@
     min-width: 0;
   }
 
-  .tokenFooter,
   .internalNotice {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .tokenFooter span {
+  .taskHeaderInner {
+    min-height: 68px;
+  }
+
+  .taskHeaderInner > span {
+    font-size: 10px;
+  }
+
+  .taskBrand :global(.em-logo) {
+    height: 29px;
+    max-width: 155px;
+  }
+
+  .previewEnvironmentBar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
     text-align: left;
+  }
+
+  .labDisclosure > summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+  }
+
+  .labContent {
+    padding: 0 20px 22px;
   }
 }
 
@@ -1485,8 +1724,8 @@
     font-size: 12px;
   }
 
-  .heroCopy h1 {
-    font-size: 39px;
+  .page .heroCopy h1 {
+    font-size: 36px;
   }
 
   .signupCardHeader strong {
@@ -1498,13 +1737,13 @@
     min-height: 38px;
   }
 
-  .sectionHeading h2,
-  .notesCard h2 {
+  .page .sectionHeading h2,
+  .page .notesCard h2 {
     font-size: 32px;
   }
 
-  .agendaSampleCopy h2,
-  .labIntro h2 {
+  .page .agendaSampleCopy h2,
+  .page .labIntro h2 {
     font-size: 34px;
   }
 
@@ -1518,6 +1757,67 @@
 
   .segmentedControl button {
     flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .benefitGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .benefitGrid article,
+  .benefitGrid article:nth-child(2),
+  .benefitGrid article:nth-child(-n + 2),
+  .benefitGrid article:nth-child(odd),
+  .benefitGrid article:nth-child(n + 3) {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid #222630;
+  }
+
+  .benefitGrid article:last-child {
+    border-bottom: 0;
+  }
+
+  .benefitGrid h3 {
+    margin-top: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .heroCopy {
+    padding-left: 13px;
+  }
+
+  .page .heroCopy h1 {
+    font-size: 29px;
+    line-height: 1;
+  }
+
+  .heroProof,
+  .flowList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroProof .proofText {
+    grid-column: auto;
+  }
+
+  .taskHeaderInner > span {
+    max-width: 92px;
+    text-align: right;
+  }
+
+  .page .tokenCard h1 {
+    font-size: 29px;
+  }
+
+  .tokenResult {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tokenResult .textButton {
+    grid-column: auto;
   }
 }
 

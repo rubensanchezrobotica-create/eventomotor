@@ -69,8 +69,8 @@ const RESULT_COPY: Partial<Record<NewsletterSignupState, { title: string; copy: 
     copy: "No hemos podido validar la solicitud. Revisa los campos e inténtalo de nuevo.",
   },
   unavailable: {
-    title: "Formulario no disponible",
-    copy: "Esta función interna no está disponible en este entorno.",
+    title: "Suscripción no disponible",
+    copy: "Ahora mismo no podemos completar la solicitud. Inténtalo de nuevo más tarde.",
   },
   rate_limited: {
     title: "Espera antes de intentarlo de nuevo",

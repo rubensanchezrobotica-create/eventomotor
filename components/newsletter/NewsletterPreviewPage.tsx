@@ -52,10 +52,11 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
               <p>Elige tu provincia y recibe una selección semanal pensada para ti.</p>
             </div>
             <NewsletterSignupForm />
-            <p className={styles.internalFormNotice}>
-              {NEWSLETTER_R4B_CONTROLLED_STATUS}
-            </p>
           </div>
+        </div>
+        <div className={`emc-container ${styles.previewEnvironmentBar}`}>
+          <span>Entorno de revisión protegido</span>
+          <p>{NEWSLETTER_R4B_CONTROLLED_STATUS}</p>
         </div>
       </section>
 
@@ -85,7 +86,7 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
               <span className={styles.eyebrow}>UNA EDICIÓN, DE UN VISTAZO</span>
               <h2>Así llegará La Agenda Motor a tu bandeja.</h2>
               <p>Una selección breve, contextual y fácil de recorrer para decidir el siguiente plan sin perder tiempo.</p>
-              <a href="#laboratorio-r2">Explorar la preview completa</a>
+              <a href="#laboratorio-r2">Ver el laboratorio de la edición</a>
             </div>
             <div className={styles.agendaSampleFrame}>
               <iframe
@@ -119,57 +120,68 @@ export default function NewsletterPreviewPage({ emails, initialOptions }: Newsle
 
       <section className={styles.labSection} id="laboratorio-r2">
         <div className="emc-container">
-          <div className={styles.labIntro}>
-            <div>
-              <span className={styles.internalBadge}>PREVIEW INTERNA · R2</span>
-              <h2>Laboratorio interno R2</h2>
-              <p>Estados, integraciones futuras y render técnico. Sin envíos, persistencia ni servicios externos.</p>
-            </div>
-            <Link href="/preview-concept">← Volver a la preview principal</Link>
-          </div>
+          <details className={styles.labDisclosure}>
+            <summary>
+              <span>
+                <small className={styles.internalBadge}>PREVIEW INTERNA · R2</small>
+                <strong>Laboratorio de producto y email</strong>
+              </span>
+              <span className={styles.labDisclosureAction}>Abrir laboratorio</span>
+            </summary>
+            <div className={styles.labContent}>
+              <div className={styles.labIntro}>
+                <div>
+                  <span className={styles.internalBadge}>PREVIEW INTERNA · R2</span>
+                  <h2>Laboratorio interno R2</h2>
+                  <p>Estados, variantes y render de la edición en un área separada de la experiencia de producto.</p>
+                </div>
+                <Link href="/preview-concept">← Volver a la preview principal</Link>
+              </div>
 
-          <div className={styles.labBlock}>
-            <div className={styles.labBlockHeading}>
-              <span>ESTADOS DEL FORMULARIO</span>
-              <h3>Comportamientos previstos</h3>
-            </div>
-            <NewsletterSignupForm initialState={initialOptions.formState} variant="lab" />
-          </div>
+              <div className={styles.labBlock}>
+                <div className={styles.labBlockHeading}>
+                  <span>ESTADOS DEL FORMULARIO</span>
+                  <h3>Comportamientos previstos</h3>
+                </div>
+                <NewsletterSignupForm initialState={initialOptions.formState} variant="lab" />
+              </div>
 
-          <div className={styles.labBlock} id="variantes">
-            <div className={styles.labBlockHeading}>
-              <span>CAPTACIÓN FUTURA</span>
-              <h3>Cuatro contextos, un mismo producto</h3>
-              <p>Ninguna variante está integrada en páginas públicas.</p>
-            </div>
-            <NewsletterCaptureVariants />
-          </div>
+              <div className={styles.labBlock} id="variantes">
+                <div className={styles.labBlockHeading}>
+                  <span>CAPTACIÓN FUTURA</span>
+                  <h3>Cuatro contextos, un mismo producto</h3>
+                  <p>Ninguna variante está integrada en páginas públicas.</p>
+                </div>
+                <NewsletterCaptureVariants />
+              </div>
 
-          <div className={styles.labBlock} id="emails">
-            <div className={styles.labBlockHeading}>
-              <span>RENDER TÉCNICO</span>
-              <h3>Tres emails, una única fuente real</h3>
-              <p>El visor muestra exactamente el HTML generado por cada componente React Email.</p>
-            </div>
-            <NewsletterEmailShowcase
-              emails={emails}
-              initialKind={initialOptions.emailKind}
-              initialViewport={initialOptions.emailViewport}
-            />
-          </div>
+              <div className={styles.labBlock} id="emails">
+                <div className={styles.labBlockHeading}>
+                  <span>RENDER DE EMAIL</span>
+                  <h3>Tres emails, una única fuente</h3>
+                  <p>El visor muestra el HTML generado por cada componente React Email.</p>
+                </div>
+                <NewsletterEmailShowcase
+                  emails={emails}
+                  initialKind={initialOptions.emailKind}
+                  initialViewport={initialOptions.emailViewport}
+                />
+              </div>
 
-          <div className={styles.notesCard}>
-            <div>
-              <span className={styles.eyebrow}>NOTAS Y LÍMITES DEL MVP</span>
-              <h2>Qué estamos evaluando en R2</h2>
+              <div className={styles.notesCard}>
+                <div>
+                  <span className={styles.eyebrow}>NOTAS Y LÍMITES DEL MVP</span>
+                  <h2>Qué estamos evaluando en R2</h2>
+                </div>
+                <div className={styles.notesGrid}>
+                  <article><strong>Implementado</strong><p>Preview conectada a los contratos HTTP internos, estados, plantillas, HTML y texto plano.</p></article>
+                  <article><strong>Simulado</strong><p>Contenido editorial, variantes futuras y estados visuales del laboratorio.</p></article>
+                  <article><strong>R3B.2</strong><p>Solicitud, confirmación y baja mediante POST, con producción y correo real bloqueados.</p></article>
+                  <article><strong>Revisión legal</strong><p>Consentimiento, preferencias, baja y textos definitivos deben aprobarse antes de una integración pública.</p></article>
+                </div>
+              </div>
             </div>
-            <div className={styles.notesGrid}>
-              <article><strong>Implementado</strong><p>Preview conectada a los contratos HTTP internos, estados, plantillas, HTML y texto plano.</p></article>
-              <article><strong>Simulado</strong><p>Contenido editorial, variantes futuras y estados visuales del laboratorio.</p></article>
-              <article><strong>R3B.2</strong><p>Solicitud, confirmación y baja mediante POST, con producción y correo real bloqueados.</p></article>
-              <article><strong>Revisión legal</strong><p>Consentimiento, preferencias, baja y textos definitivos deben aprobarse antes de una integración pública.</p></article>
-            </div>
-          </div>
+          </details>
         </div>
       </section>
     </main>
