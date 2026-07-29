@@ -98,17 +98,26 @@ function validateDate(value: string): string {
 async function dispatchMail(
   transport: NewsletterMailTransport,
   command: NewsletterMailCommand,
-): Promise<{ status: NewsletterMailStatus; failed: boolean }> {
+): Promise<{
+  status: NewsletterMailStatus;
+  failed: boolean;
+  providerMessageId: string | null;
+}> {
   let result: Awaited<ReturnType<NewsletterMailTransport["send"]>>;
   try {
     result = await transport.send(command);
   } catch {
-    return { status: "failed", failed: true };
+    return { status: "failed", failed: true, providerMessageId: null };
   }
   if (result.status === "skipped") {
     throw new NewsletterOperationError("configuration_error", "mail_transport_unavailable");
   }
-  return { status: "accepted", failed: false };
+  return {
+    status: "accepted",
+    failed: false,
+    providerMessageId:
+      "providerMessageId" in result ? result.providerMessageId ?? null : null,
+  };
 }
 
 export function createNewsletterService(dependencies: NewsletterServiceDependencies): NewsletterService {
@@ -195,6 +204,23 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
       if (!result.subscriberId || !result.tokenPurpose) {
         throw new NewsletterOperationError("persistence_error", "rpc_contract_violation");
       }
+      if (
+        dependencies.mode === "live" &&
+        (
+          !persistence.checkDeliveryEligibility ||
+          await persistence.checkDeliveryEligibility(
+            result.subscriberId,
+            "confirmation",
+          ) !== "allowed"
+        )
+      ) {
+        return {
+          publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+          decision: result.outcome,
+          mailStatus: "failed",
+          internalErrorCategory: "blocked_state",
+        };
+      }
       const mail = await dispatchMail(readyMailTransport, {
         kind: "confirmation",
         recipientEmail: emailNormalized,
@@ -202,6 +228,35 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
         purpose: result.tokenPurpose,
         expiresAt,
       });
+      if (
+        !mail.failed &&
+        mail.providerMessageId &&
+        dependencies.mode === "live"
+      ) {
+        if (!persistence.registerOutboundDelivery) {
+          return {
+            publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+            decision: result.outcome,
+            mailStatus: "failed",
+            internalErrorCategory: "provider_error",
+          };
+        }
+        try {
+          await persistence.registerOutboundDelivery({
+            subscriberId: result.subscriberId,
+            providerMessageId: mail.providerMessageId,
+            deliveryKind: "confirmation",
+            occurredAt: now().toISOString(),
+          });
+        } catch {
+          return {
+            publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+            decision: result.outcome,
+            mailStatus: "failed",
+            internalErrorCategory: "provider_error",
+          };
+        }
+      }
       return {
         publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
         decision: result.outcome,
@@ -268,6 +323,24 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
         };
       }
 
+      if (
+        dependencies.mode === "live" &&
+        (
+          !persistence.checkDeliveryEligibility ||
+          await persistence.checkDeliveryEligibility(
+            result.subscriberId,
+            "welcome",
+          ) !== "allowed"
+        )
+      ) {
+        return {
+          publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+          decision: result.outcome,
+          mailStatus: "failed",
+          internalErrorCategory: "blocked_state",
+        };
+      }
+
       const mail = await dispatchMail(readyMailTransport, {
         kind: "welcome",
         recipientEmail: welcomeContext.recipientEmail,
@@ -276,6 +349,35 @@ export function createNewsletterService(dependencies: NewsletterServiceDependenc
         regionSlug: welcomeContext.regionSlug,
         locale: welcomeContext.locale,
       });
+      if (
+        !mail.failed &&
+        mail.providerMessageId &&
+        dependencies.mode === "live"
+      ) {
+        if (!persistence.registerOutboundDelivery) {
+          return {
+            publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+            decision: result.outcome,
+            mailStatus: "failed",
+            internalErrorCategory: "provider_error",
+          };
+        }
+        try {
+          await persistence.registerOutboundDelivery({
+            subscriberId: result.subscriberId,
+            providerMessageId: mail.providerMessageId,
+            deliveryKind: "welcome",
+            occurredAt: now().toISOString(),
+          });
+        } catch {
+          return {
+            publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
+            decision: result.outcome,
+            mailStatus: "failed",
+            internalErrorCategory: "provider_error",
+          };
+        }
+      }
       return {
         publicResponse: NEWSLETTER_PUBLIC_MUTATION_RESPONSE,
         decision: result.outcome,

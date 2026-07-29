@@ -415,6 +415,14 @@ class CanaryFlowRepository implements NewsletterRepository {
   async recordProviderEvent() {
     return "recorded" as const;
   }
+
+  async checkDeliveryEligibility() {
+    return "allowed" as const;
+  }
+
+  async registerOutboundDelivery() {
+    return "recorded" as const;
+  }
 }
 
 test("cooldown, confirmación repetida y baja repetida no duplican entregas", async () => {

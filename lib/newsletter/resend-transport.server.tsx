@@ -165,7 +165,9 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
       ((props) => renderNewsletterEmailContent("welcome", props));
   }
 
-  async send(command: NewsletterMailCommand): Promise<{ status: "accepted" }> {
+  async send(
+    command: NewsletterMailCommand,
+  ): Promise<{ status: "accepted"; providerMessageId: string }> {
     if (!ALLOWED_TRANSACTIONAL_KINDS.has(command.kind)) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
@@ -197,7 +199,10 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
       throw new NewsletterResendTransportError("resend_provider_error");
     }
     if (result.status !== "accepted") mapClientFailure(result);
-    return { status: "accepted" };
+    return {
+      status: "accepted",
+      providerMessageId: result.providerMessageId,
+    };
   }
 
   private async renderConfirmationContent(

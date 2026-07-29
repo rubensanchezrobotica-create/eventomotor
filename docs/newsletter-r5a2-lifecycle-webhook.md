@@ -97,6 +97,13 @@ The future route is:
 POST /api/newsletter/webhooks/resend
 ```
 
+The application integration is isolated in a POST-only Next.js Route Handler.
+It injects the verifier and repository in tests, while production composition
+uses the official `svix` package and the existing server-only Supabase
+repository. No same-origin guard is used because the authenticated caller is
+the external provider; signature verification is the sole request
+authentication mechanism.
+
 It is unavailable unless all existing production-canary guards are satisfied
 and `NEWSLETTER_RESEND_WEBHOOK_SECRET` is a valid server-only `whsec_` value.
 Preview, development, non-production Vercel, disabled mode and missing
