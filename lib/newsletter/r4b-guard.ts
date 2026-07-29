@@ -1,4 +1,6 @@
 export const NEWSLETTER_R4B_ARMED_VALUE = "local-one-recipient";
+export const NEWSLETTER_R4B_CONTROLLED_STATUS =
+  "Entorno de prueba controlado · envío real limitado a un destinatario autorizado.";
 
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
 

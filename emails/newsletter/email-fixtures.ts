@@ -1,4 +1,5 @@
 import type { NewsletterEmailPropsByKind } from "./email-types";
+import { NEWSLETTER_EMAIL_LOGO_URL } from "./email-brand";
 
 const PREVIEW_BASE_URL = "http://localhost:3000/preview/newsletter";
 
@@ -7,18 +8,18 @@ export const NEWSLETTER_FIXTURES_ARE_PREVIEW_ONLY =
 
 export const NEWSLETTER_EMAIL_FIXTURES: NewsletterEmailPropsByKind = {
   confirmation: {
-    logoUrl: "http://localhost:3000/brand/eventomotor-logo-horizontal-dark-header.png",
+    logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
     confirmationUrl: `${PREVIEW_BASE_URL}#confirmacion-simulada`,
     expiresInHours: 24,
   },
   welcome: {
-    logoUrl: "http://localhost:3000/brand/eventomotor-logo-horizontal-dark-header.png",
+    logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
     provinceName: "Barcelona",
     eventsUrl: `${PREVIEW_BASE_URL}#proximos-eventos`,
     unsubscribeUrl: `${PREVIEW_BASE_URL}#baja-simulada`,
   },
   weekly: {
-    logoUrl: "http://localhost:3000/brand/eventomotor-logo-horizontal-dark-header.png",
+    logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
     editionDate: "Viernes, 24 de julio de 2026",
     provinceName: "Barcelona",
     introduction:

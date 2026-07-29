@@ -1,5 +1,6 @@
 import "server-only";
 
+import { NEWSLETTER_EMAIL_LOGO_URL } from "@/emails/newsletter/email-brand";
 import { NEWSLETTER_EMAIL_METADATA } from "@/emails/newsletter/email-metadata";
 import { renderNewsletterEmailContent } from "@/emails/newsletter/email-renderer";
 import type {
@@ -18,7 +19,6 @@ import type {
 import { isValidEmail, isValidNewsletterOpaqueToken, normalizeEmail } from "@/lib/newsletter/schemas";
 import type { NewsletterMailCommand } from "@/lib/newsletter/service-types";
 
-const LOGO_PATH = "/brand/eventomotor-logo-horizontal-dark-header.png";
 const NEWSLETTER_LINK_ORIGIN = "https://eventomotor.com";
 const CONFIRMATION_PATH = "/preview/newsletter/confirm";
 const UNSUBSCRIBE_PATH = "/preview/newsletter/unsubscribe";
@@ -196,7 +196,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     confirmationUrl.searchParams.set("token", command.rawConfirmationToken);
     const expiresAt = new Date(command.expiresAt);
     const rendered = await this.renderConfirmation({
-      logoUrl: new URL(LOGO_PATH, this.origin).toString(),
+      logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
       confirmationUrl: confirmationUrl.toString(),
       expiresInHours: Math.max(
         1,
@@ -229,7 +229,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     const unsubscribeUrl = new URL(UNSUBSCRIBE_PATH, this.origin);
     unsubscribeUrl.searchParams.set("token", command.rawUnsubscribeToken);
     const rendered = await this.renderWelcome({
-      logoUrl: new URL(LOGO_PATH, this.origin).toString(),
+      logoUrl: NEWSLETTER_EMAIL_LOGO_URL,
       provinceName: province.name,
       eventsUrl: new URL(`/eventos-motor-${command.provinceSlug}`, this.origin).toString(),
       unsubscribeUrl: unsubscribeUrl.toString(),

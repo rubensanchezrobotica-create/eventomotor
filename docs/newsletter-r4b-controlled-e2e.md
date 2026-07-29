@@ -94,6 +94,21 @@ Confirma que no queda ningún proceso local activo. En Vercel, Production,
 Preview y Development deben conservar `NEWSLETTER_MODE=off` y
 `NEWSLETTER_MAIL_TRANSPORT=disabled`; no añadas las variables R4B.
 
+## Validación manual del 29/07/2026
+
+El ensayo controlado confirmó la entrega del mensaje de confirmación y de una
+única bienvenida. Abrir el enlace mediante GET no produjo mutaciones; la
+confirmación y la baja se completaron únicamente mediante POST, y repetir la
+baja devolvió el resultado idempotente esperado. Gmail clasificó inicialmente
+la bienvenida en Promociones.
+
+Durante la comprobación se detectaron dos defectos de presentación: el logotipo
+no era accesible desde Gmail porque usaba el origen loopback y el aviso de
+entorno afirmaba incorrectamente que el envío real no estaba habilitado. Este
+parche utiliza para la marca un PNG público canónico independiente de los
+enlaces locales y actualiza el aviso del carril controlado. No se conservan en
+este registro direcciones, tokens, IDs ni secretos.
+
 ## Confirmación de ausencia de despliegue
 
 Esta preparación no requiere `vercel deploy`, `vercel env pull`, GitHub Actions,

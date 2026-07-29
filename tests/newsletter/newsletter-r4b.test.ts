@@ -4,6 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { isNewsletterPreviewAvailable } from "../../components/newsletter/newsletter-preview-model";
+import { NEWSLETTER_EMAIL_LOGO_URL } from "../../emails/newsletter/email-brand";
 import { hashNewsletterToken } from "../../lib/newsletter/crypto.server";
 import { evaluateNewsletterHttpGuard } from "../../lib/newsletter/http.server";
 import {
@@ -186,10 +187,12 @@ test("el transporte acepta sólo el destinatario exacto y genera enlaces loopbac
     linkOrigin: ORIGIN,
     now: () => new Date("2026-07-29T00:00:00.000Z"),
     async renderConfirmation(props) {
+      assert.equal(props.logoUrl, NEWSLETTER_EMAIL_LOGO_URL);
       rendered.push(props.confirmationUrl);
       return { html: props.confirmationUrl, text: props.confirmationUrl };
     },
     async renderWelcome(props) {
+      assert.equal(props.logoUrl, NEWSLETTER_EMAIL_LOGO_URL);
       rendered.push(props.unsubscribeUrl);
       return { html: props.unsubscribeUrl, text: props.unsubscribeUrl };
     },
