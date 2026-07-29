@@ -1462,8 +1462,38 @@
 }
 
 @media (max-width: 640px) {
+  .headerShell.headerShell {
+    top: 6px;
+    padding: 5px;
+    border-radius: 18px;
+  }
+
+  .headerShell :global(.emc-nav) {
+    min-height: 48px;
+  }
+
+  .headerShell :global(.emc-brand-logo) {
+    width: min(42vw, 150px);
+    min-width: 112px;
+  }
+
+  .headerShell :global(.emc-brand-logo .em-logo-horizontal) {
+    height: 30px;
+  }
+
+  .headerShell :global(.emc-nav-actions .emc-btn-primary) {
+    min-height: 40px;
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+
   .hero {
-    padding-top: 38px;
+    padding: 24px 0 18px;
+  }
+
+  .page .heroGrid {
+    width: calc(100% - 32px);
+    gap: 20px;
   }
 
   .agendaSampleGrid,
@@ -1481,23 +1511,89 @@
   }
 
   .page .heroCopy h1 {
-    font-size: clamp(36px, 11vw, 48px);
+    margin: 10px 0 14px;
+    font-size: 32px;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .heroCopy > p {
+    font-size: 16px;
+    line-height: 1.5;
   }
 
   .heroProof {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 8px 12px;
+    margin-top: 16px;
+    font-size: 12px;
+  }
+
+  .heroProof strong {
+    flex: 0 0 auto;
+    font-size: 18px;
+    white-space: nowrap;
   }
 
   .heroProof .proofText {
     grid-column: 1 / -1;
     justify-self: start;
+    min-height: 26px;
+    padding: 5px 9px;
   }
 
-  .signupCardHeader,
+  .signupCard {
+    border-radius: 18px;
+  }
+
+  .signupCardHeader {
+    padding: 18px 16px 16px;
+  }
+
+  .signupCardHeader strong {
+    margin-top: 7px;
+    font-size: 20px;
+  }
+
+  .signupCardHeader p {
+    margin-top: 6px;
+    line-height: 1.45;
+  }
+
   .signupForm {
-    padding-inline: 20px;
+    padding: 16px 16px 4px;
+  }
+
+  .formGrid {
+    gap: 11px;
+  }
+
+  .field input,
+  .field select {
+    height: 48px;
+  }
+
+  .consentField {
+    margin-top: 14px;
+  }
+
+  .primaryButton {
+    min-height: 48px;
+    margin-top: 14px;
+  }
+
+  .formResult {
+    min-height: 58px;
+    padding: 10px 0 12px;
+  }
+
+  .formResult:empty {
+    min-height: 18px;
+  }
+
+  .previewEnvironmentBar {
+    margin-top: 12px;
   }
 
   .benefitGrid,
@@ -1636,37 +1732,122 @@
     margin-top: 22px;
   }
 
+  .tokenPage {
+    min-height: 0;
+    display: block;
+  }
+
   .tokenHero {
-    padding-block: 30px;
+    padding: 24px 0 0;
+  }
+
+  .page .tokenContainer {
+    width: calc(100% - 32px);
   }
 
   .tokenCard {
-    padding: 26px 20px;
+    padding: 20px 18px;
     border-radius: 18px;
+  }
+
+  .tokenCardHeading::before {
+    width: 44px;
+    height: 2px;
+    margin-bottom: 16px;
+  }
+
+  .page .tokenCard h1 {
+    margin: 10px 0 12px;
+    font-size: 30px;
+    line-height: 1.07;
+    letter-spacing: -0.035em;
+  }
+
+  .tokenCardHeading > p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .tokenStatus,
+  .tokenAction,
+  .tokenResult {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .tokenAction {
+    gap: 12px;
   }
 
   .tokenAction .primaryButton,
   .secondaryActionButton {
     width: 100%;
     min-width: 0;
+    min-height: 48px;
+  }
+
+  .tokenAction .primaryButton {
+    margin-top: 0;
+  }
+
+  .cancelAction {
+    font-size: 14px;
+  }
+
+  .tokenResult {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 12px;
+    line-height: 1.5;
+  }
+
+  .tokenResultIcon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .tokenResult strong {
+    font-size: 18px;
+  }
+
+  .tokenSecondaryLink {
+    min-height: 40px;
+    margin-top: 16px;
+    font-size: 14px;
   }
 
   .internalNotice {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    font-size: 10px;
+    text-align: left;
   }
 
   .taskHeaderInner {
-    min-height: 68px;
+    width: calc(100% - 32px);
+    min-height: 58px;
+    gap: 16px;
   }
 
   .taskHeaderInner > span {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .taskBrand :global(.em-logo) {
-    height: 29px;
-    max-width: 155px;
+    height: 26px;
+    max-width: 140px;
+  }
+
+  .taskFooter {
+    margin-top: 20px;
+  }
+
+  .taskFooter > div {
+    width: calc(100% - 32px);
+    min-height: 52px;
+    gap: 16px;
   }
 
   .previewEnvironmentBar {
@@ -1725,7 +1906,7 @@
   }
 
   .page .heroCopy h1 {
-    font-size: 36px;
+    font-size: 31px;
   }
 
   .signupCardHeader strong {
@@ -1790,17 +1971,12 @@
   }
 
   .page .heroCopy h1 {
-    font-size: 29px;
-    line-height: 1;
+    font-size: 30px;
+    line-height: 1.03;
   }
 
-  .heroProof,
   .flowList {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .heroProof .proofText {
-    grid-column: auto;
   }
 
   .taskHeaderInner > span {
@@ -1809,7 +1985,8 @@
   }
 
   .page .tokenCard h1 {
-    font-size: 29px;
+    font-size: 28px;
+    line-height: 1.08;
   }
 
   .tokenResult {

@@ -186,11 +186,62 @@ test("las acciones conservan POST y el cliente no ejecuta red durante render", (
 
 test("la composición incluye escalas responsive, foco y prevención de overflow", () => {
   const css = source("components/newsletter/NewsletterPreview.module.css");
+  const mobile = css.slice(
+    css.indexOf("@media (max-width: 640px)"),
+    css.indexOf("@media (min-width: 901px)"),
+  );
+  const narrowMobile = css.slice(
+    css.indexOf("@media (max-width: 360px)"),
+    css.indexOf("@media (prefers-reduced-motion: reduce)"),
+  );
   assert.match(css, /\.page \.tokenCard h1[\s\S]*clamp\(32px,\s*4\.2vw,\s*48px\)/);
   assert.match(css, /\.page \.heroCopy h1[\s\S]*clamp\(40px,\s*3\.8vw,\s*56px\)/);
   for (const width of [820, 640, 520, 430, 360]) {
     assert.match(css, new RegExp(`max-width: ${width}px`));
   }
+  assert.match(mobile, /\.headerShell\.headerShell\s*\{[\s\S]*?padding:\s*5px/);
+  assert.match(
+    mobile,
+    /\.headerShell :global\(\.emc-nav\)\s*\{[\s\S]*?min-height:\s*48px/,
+  );
+  assert.match(mobile, /\.taskHeaderInner\s*\{[\s\S]*?min-height:\s*58px/);
+  assert.match(
+    mobile,
+    /\.page \.heroGrid\s*\{[\s\S]*?width:\s*calc\(100% - 32px\)[\s\S]*?gap:\s*20px/,
+  );
+  assert.match(
+    mobile,
+    /\.page \.heroCopy h1\s*\{[\s\S]*?font-size:\s*32px[\s\S]*?line-height:\s*1\.02/,
+  );
+  assert.match(mobile, /\.heroProof\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2/);
+  assert.match(mobile, /\.heroProof strong\s*\{[\s\S]*?white-space:\s*nowrap/);
+  assert.match(
+    mobile,
+    /\.tokenPage\s*\{[\s\S]*?min-height:\s*0[\s\S]*?display:\s*block/,
+  );
+  assert.match(mobile, /\.tokenCard\s*\{[\s\S]*?padding:\s*20px 18px/);
+  assert.match(
+    mobile,
+    /\.page \.tokenCard h1\s*\{[\s\S]*?font-size:\s*30px[\s\S]*?line-height:\s*1\.07/,
+  );
+  assert.match(
+    mobile,
+    /\.tokenStatus,[\s\S]*?margin-top:\s*18px[\s\S]*?padding:\s*16px/,
+  );
+  assert.match(
+    mobile,
+    /\.tokenAction \.primaryButton,[\s\S]*?min-height:\s*48px/,
+  );
+  assert.match(mobile, /\.taskFooter > div\s*\{[\s\S]*?min-height:\s*52px/);
+  assert.match(
+    narrowMobile,
+    /\.page \.heroCopy h1\s*\{[\s\S]*?font-size:\s*30px/,
+  );
+  assert.match(
+    narrowMobile,
+    /\.page \.tokenCard h1\s*\{[\s\S]*?font-size:\s*28px/,
+  );
+  assert.doesNotMatch(narrowMobile, /\.heroProof,[\s\S]*?\.flowList/);
   assert.match(css, /overflow-x:\s*clip/);
   assert.match(css, /focus-visible/);
   assert.match(css, /primaryButton:not\(:disabled\):hover/);
