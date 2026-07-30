@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(17);
+select plan(25);
 
 select results_eq(
   $$
@@ -164,23 +164,40 @@ select results_eq(
   'a suppressed subscriber is blocked'
 );
 
-update public.newsletter_subscribers
-set status = 'pending',
-    last_confirmation_requested_at = null,
-    confirmation_request_window_started_at = null,
-    confirmation_request_count = 0
-where email_normalized = 'new.reader@example.invalid';
-
-select * from public.request_newsletter_subscription(
-  'new.reader@example.invalid', 'new.reader@example.invalid', repeat('1', 64),
-  now() + interval '1 day', 'sql_test', '2026-07'
+select results_eq(
+  $$
+    select outcome, subscriber_id is not null, token_purpose
+    from public.request_newsletter_subscription(
+      'rotation.reader@example.invalid',
+      'rotation.reader@example.invalid',
+      repeat('1', 64),
+      now() + interval '1 day',
+      'sql_test',
+      '2026-07'
+    )
+  $$,
+  $$values ('confirmation_required'::text, true, 'subscribe'::text)$$,
+  'a clean rotation fixture creates its first token'
 );
+
 update public.newsletter_subscribers
 set last_confirmation_requested_at = now() - interval '16 minutes'
-where email_normalized = 'new.reader@example.invalid';
-select * from public.request_newsletter_subscription(
-  'new.reader@example.invalid', 'new.reader@example.invalid', repeat('2', 64),
-  now() + interval '1 day', 'sql_test', '2026-07'
+where email_normalized = 'rotation.reader@example.invalid';
+
+select results_eq(
+  $$
+    select outcome, subscriber_id is not null, token_purpose
+    from public.request_newsletter_subscription(
+      'rotation.reader@example.invalid',
+      'rotation.reader@example.invalid',
+      repeat('2', 64),
+      now() + interval '1 day',
+      'sql_test',
+      '2026-07'
+    )
+  $$,
+  $$values ('confirmation_required'::text, true, 'subscribe'::text)$$,
+  'the clean rotation fixture passes cooldown and creates a replacement'
 );
 
 select ok(
@@ -192,16 +209,115 @@ select ok(
   'a newer equivalent token invalidates the previous token'
 );
 
-update public.newsletter_subscribers
-set confirmation_request_window_started_at = now(),
-    confirmation_request_count = 3,
-    last_confirmation_requested_at = now() - interval '16 minutes'
-where email_normalized = 'new.reader@example.invalid';
+select ok(
+  (
+    select used_at is null
+      and invalidated_at is null
+      and expires_at > now()
+    from public.newsletter_confirmation_tokens
+    where token_hash = repeat('2', 64)
+  ),
+  'the replacement token remains active'
+);
+select results_eq(
+  $$
+    select ns.status,
+           ns.bounced_at is null,
+           ns.complained_at is null,
+           ns.suppressed_at is null,
+           count(nsp.id)::integer
+    from public.newsletter_subscribers as ns
+    left join public.newsletter_suppressions as nsp
+      on nsp.subscriber_id = ns.id
+      and nsp.lifted_at is null
+    where ns.email_normalized = 'rotation.reader@example.invalid'
+    group by ns.id
+  $$,
+  $$values ('pending'::text, true, true, true, 0)$$,
+  'the rotation fixture has no hard state or active suppression'
+);
 
 select results_eq(
-  $$select outcome, subscriber_id, token_purpose from public.request_newsletter_subscription('new.reader@example.invalid', 'new.reader@example.invalid', repeat('3', 64), now() + interval '1 day', 'sql_test', '2026-07')$$,
+  $$
+    select outcome, subscriber_id is not null, token_purpose
+    from public.request_newsletter_subscription(
+      'limit.reader@example.invalid',
+      'limit.reader@example.invalid',
+      repeat('3', 64),
+      now() + interval '1 day',
+      'sql_test',
+      '2026-07'
+    )
+  $$,
+  $$values ('confirmation_required'::text, true, 'subscribe'::text)$$,
+  'a clean daily-limit fixture accepts request one'
+);
+
+update public.newsletter_subscribers
+set last_confirmation_requested_at = now() - interval '16 minutes'
+where email_normalized = 'limit.reader@example.invalid';
+select results_eq(
+  $$
+    select outcome, subscriber_id is not null, token_purpose
+    from public.request_newsletter_subscription(
+      'limit.reader@example.invalid',
+      'limit.reader@example.invalid',
+      repeat('4', 64),
+      now() + interval '1 day',
+      'sql_test',
+      '2026-07'
+    )
+  $$,
+  $$values ('confirmation_required'::text, true, 'subscribe'::text)$$,
+  'a clean daily-limit fixture accepts request two'
+);
+
+update public.newsletter_subscribers
+set last_confirmation_requested_at = now() - interval '16 minutes'
+where email_normalized = 'limit.reader@example.invalid';
+select results_eq(
+  $$
+    select outcome, subscriber_id is not null, token_purpose
+    from public.request_newsletter_subscription(
+      'limit.reader@example.invalid',
+      'limit.reader@example.invalid',
+      repeat('5', 64),
+      now() + interval '1 day',
+      'sql_test',
+      '2026-07'
+    )
+  $$,
+  $$values ('confirmation_required'::text, true, 'subscribe'::text)$$,
+  'a clean daily-limit fixture accepts request three'
+);
+
+update public.newsletter_subscribers
+set last_confirmation_requested_at = now() - interval '16 minutes'
+where email_normalized = 'limit.reader@example.invalid';
+
+select results_eq(
+  $$select outcome, subscriber_id, token_purpose from public.request_newsletter_subscription('limit.reader@example.invalid', 'limit.reader@example.invalid', repeat('6', 64), now() + interval '1 day', 'sql_test', '2026-07')$$,
   $$values ('daily_limit'::text, null::uuid, null::text)$$,
   'the daily request window is enforced'
+);
+
+select results_eq(
+  $$
+    select ns.status,
+           ns.confirmation_request_count,
+           ns.bounced_at is null,
+           ns.complained_at is null,
+           ns.suppressed_at is null,
+           count(nsp.id)::integer
+    from public.newsletter_subscribers as ns
+    left join public.newsletter_suppressions as nsp
+      on nsp.subscriber_id = ns.id
+      and nsp.lifted_at is null
+    where ns.email_normalized = 'limit.reader@example.invalid'
+    group by ns.id
+  $$,
+  $$values ('pending'::text, 3, true, true, true, 0)$$,
+  'the daily limit is independent of hard evidence and prior fixtures'
 );
 
 select is(

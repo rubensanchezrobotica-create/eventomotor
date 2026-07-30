@@ -724,24 +724,26 @@ select ok(
 );
 select results_eq(
   $$
-    select parameter_name::text, data_type::text
+    select parameter_name::text collate "C",
+           data_type::text collate "C"
     from information_schema.parameters
-    where specific_schema = 'public'
-      and specific_name = (
-        select p.proname || '_' || p.oid::text
+    where specific_schema::text collate "C" = 'public'::text collate "C"
+      and specific_name::text collate "C" = (
+        select (p.proname || '_' || p.oid::text)::text collate "C"
         from pg_proc as p
         join pg_namespace as n on n.oid = p.pronamespace
-        where n.nspname = 'public'
-          and p.proname = 'request_newsletter_subscription'
+        where n.nspname::text collate "C" = 'public'::text collate "C"
+          and p.proname::text collate "C"
+            = 'request_newsletter_subscription'::text collate "C"
       )
-      and parameter_mode = 'OUT'
+      and parameter_mode::text collate "C" = 'OUT'::text collate "C"
     order by ordinal_position
   $$,
   $$
     values
-      ('outcome'::text, 'text'::text),
-      ('subscriber_id'::text, 'uuid'::text),
-      ('token_purpose'::text, 'text'::text)
+      ('outcome'::text collate "C", 'text'::text collate "C"),
+      ('subscriber_id'::text collate "C", 'uuid'::text collate "C"),
+      ('token_purpose'::text collate "C", 'text'::text collate "C")
   $$,
   'the public request RPC preserves historical output names, order and types'
 );
