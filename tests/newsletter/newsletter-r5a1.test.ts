@@ -163,8 +163,11 @@ test("el servicio completa confirmación y bienvenida sin provincia", async () =
 
 test("el formulario integra la primera capa, edad y consentimiento literal desmarcado", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
-  assert.match(form, /Rubén Ginés Sánchez García/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.doesNotMatch(form, /Vercel, Supabase, Resend y Zoho/);
+  assert.match(form, /Finalidad:/);
+  assert.match(form, /Legitimación:/);
+  assert.match(form, /Consulta la/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /selección general de España/);
   assert.match(
@@ -184,16 +187,23 @@ test("el formulario integra la primera capa, edad y consentimiento literal desma
 test("privacidad y aviso legal identifican al responsable sin sociedad inventada", () => {
   const privacy = source("app/privacidad/page.tsx");
   const legalNotice = source("app/aviso-legal/page.tsx");
+  const visualStyles = source("app/legal-document.module.css");
 
   for (const page of [privacy, legalNotice]) {
     assert.match(page, /Rubén Ginés Sánchez García/);
     assert.match(page, /info@eventomotor\.com/);
     assert.doesNotMatch(page, /S\.L\.|EventoMotor es una sociedad mercantil/);
+    assert.equal((page.match(/<h1/g) ?? []).length, 1);
+    assert.match(page, /legalStyles\.document/);
   }
   assert.match(privacy, /Política de privacidad de EventoMotor/);
   assert.match(privacy, /<h2>13\. Cambios en la política<\/h2>/);
   assert.match(legalNotice, /<h2>Titularidad<\/h2>/);
   assert.match(legalNotice, /Revisión obligatoria:/);
+  assert.match(visualStyles, /\.legalPage \.document h2/);
+  assert.match(visualStyles, /\.legalPage \.document h3/);
+  assert.match(visualStyles, /a:focus-visible/);
+  assert.match(visualStyles, /@media \(max-width: 768px\)/);
 });
 
 test("los tres emails integran el bloque legal sin prometer la purga inexistente", () => {
@@ -239,6 +249,7 @@ test("la baja usa el copy legal sin exponer dirección ni simular minimización"
 test("el formulario de eventos muestra primera capa y nunca acopla la newsletter", () => {
   const form = source("components/public/EventSubmissionForm.tsx");
   assert.match(form, /Protección de datos:/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.match(form, /hasta 2 años\s+después del evento/);
   assert.match(form, /href="\/privacidad"/);
   assert.doesNotMatch(form, /newsletter|La Agenda Motor|\/api\/newsletter/i);

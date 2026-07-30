@@ -1,5 +1,4 @@
 import Link from "next/link";
-import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import styles from "./NewsletterCaptureCard.module.css";
 
 type NewsletterCaptureCardProps = {
@@ -18,24 +17,19 @@ export default function NewsletterCaptureCard({
       data-newsletter-capture={placement}
     >
       <div className={`emc-container ${styles.card}`}>
-        <div className={styles.identity} aria-hidden="true">
-          <EventomotorLogo iconOnly />
-          <span>LA AGENDA MOTOR</span>
-        </div>
+        <span className={styles.eyebrow}>LA AGENDA MOTOR</span>
         <div className={styles.copy}>
-          <h2 id={headingId}>
-            Tu próximo plan de motor, cada semana en tu correo.
-          </h2>
+          <h2 id={headingId}>Recibe La Agenda Motor cada semana</h2>
           <p>
-            Una selección de eventos, rutas y citas para que no se te escape el
-            próximo fin de semana.
+            Una selección de eventos y planes de motor para que no se te escape
+            el próximo fin de semana.
           </p>
         </div>
         <div className={styles.action}>
           <Link className={styles.button} href="/newsletter">
             Quiero recibirla
           </Link>
-          <small>Gratis. Sin ruido. Puedes darte de baja cuando quieras.</small>
+          <small>Gratis · Sin ruido · Baja en cualquier momento</small>
         </div>
       </div>
     </section>

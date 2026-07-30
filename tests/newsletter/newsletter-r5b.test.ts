@@ -448,17 +448,56 @@ test("landing, captación y primera capa legal conservan sus contratos públicos
 
   assert.match(card, /href="\/newsletter"/);
   assert.match(card, /data-newsletter-capture=\{placement\}/);
-  assert.doesNotMatch(card, /<form|<input|checkbox/i);
-  assert.equal(form.match(/Rubén Ginés Sánchez García/g)?.length, 1);
+  assert.match(card, />LA AGENDA MOTOR</);
+  assert.match(card, /Recibe La Agenda Motor cada semana/);
+  assert.match(
+    card,
+    /Una selección de eventos y planes de motor para que no se te escape\s+el próximo fin de semana/,
+  );
+  assert.match(card, /Gratis · Sin ruido · Baja en cualquier momento/);
+  assert.doesNotMatch(
+    card,
+    /<form|<input|checkbox|<img|EventomotorLogo|iconOnly/i,
+  );
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /if \(!consent\)/);
   assert.match(form, /href="\/privacidad"/);
   assert.match(form, /href="\/aviso-legal"/);
 
-  for (const surface of [home, event, footer, card, emails]) {
-    assert.doesNotMatch(surface, /Rubén Ginés Sánchez García/);
+  for (const surface of [home, event, footer, card, form, emails]) {
+    assert.doesNotMatch(surface, /Rubén(?: Ginés)? Sánchez/);
   }
   assert.match(footer, /La Agenda Motor/);
+});
+
+test("la captación compacta conserva responsive, foco y jerarquía sin segunda hero", () => {
+  const card = source("components/newsletter/NewsletterCaptureCard.tsx");
+  const styles = source(
+    "components/newsletter/NewsletterCaptureCard.module.css",
+  );
+  const privacy = source("app/privacidad/page.tsx");
+  const legalNotice = source("app/aviso-legal/page.tsx");
+
+  assert.equal((card.match(/<h2/g) ?? []).length, 1);
+  assert.match(styles, /grid-template-columns:/);
+  assert.match(styles, /overflow: hidden/);
+  assert.match(styles, /\.button:focus-visible/);
+  assert.match(styles, /@media \(max-width: 640px\)/);
+  assert.match(
+    styles.slice(styles.indexOf("@media (max-width: 640px)")),
+    /grid-template-columns: minmax\(0, 1fr\)/,
+  );
+  assert.match(
+    styles.slice(styles.indexOf("@media (max-width: 640px)")),
+    /\.button\s*\{[\s\S]*?width: 100%/,
+  );
+
+  assert.equal((privacy.match(/Rubén Ginés Sánchez García/g) ?? []).length, 1);
+  assert.equal(
+    (legalNotice.match(/Rubén Ginés Sánchez García/g) ?? []).length,
+    1,
+  );
 });
 
 test("webhook acepta un único gate de producción completo y falla cerrado", () => {

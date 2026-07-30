@@ -203,13 +203,13 @@
 }
 
 .privacyLayer {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding: 0;
   border: 0;
-  color: #aeb4bf;
+  color: #969da8;
   background: transparent;
-  font-size: 10px;
-  line-height: 1.48;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .privacyLayer p {
@@ -217,12 +217,12 @@
 }
 
 .privacyLayer b {
-  color: #d8dbe1;
+  color: #b8bec8;
 }
 
 .privacyLayer a,
 .ageNotice a {
-  color: #f0b293;
+  color: #d9a58b;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
