@@ -7,28 +7,56 @@ import styles from "@/components/newsletter/NewsletterPreview.module.css";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import {
   currentNewsletterProductionCanaryEnvironment,
+  currentNewsletterPublicLaunchEnvironment,
   evaluateNewsletterProductionCanaryResendConfiguration,
+  evaluateNewsletterPublicLaunchResendConfiguration,
 } from "@/lib/newsletter/resend-config.server";
 import { isNewsletterProductionCanaryPageRequestAllowed } from "@/lib/newsletter/r5a-guard";
+import { isNewsletterPublicLaunchPageRequestAllowed } from "@/lib/newsletter/r5b-guard";
+import { SITE_URL } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: "La Agenda Motor | EventoMotor",
-  },
-  description:
-    "Recibe una selección semanal de planes y eventos del motor cerca de ti.",
-  referrer: "no-referrer",
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    googleBot: {
-      index: false,
-      follow: false,
-      noarchive: true,
+const NEWSLETTER_TITLE = "La Agenda Motor | EventoMotor";
+const NEWSLETTER_DESCRIPTION =
+  "Recibe cada semana una selección de eventos, rutas y planes de motor cerca de ti.";
+
+export function generateMetadata(): Metadata {
+  const publicConfiguration =
+    evaluateNewsletterPublicLaunchResendConfiguration(
+      currentNewsletterPublicLaunchEnvironment(),
+    );
+  const canaryConfiguration =
+    evaluateNewsletterProductionCanaryResendConfiguration(
+      currentNewsletterProductionCanaryEnvironment(),
+    );
+  const publicLaunchEnabled =
+    publicConfiguration.enabled && !canaryConfiguration.enabled;
+
+  return {
+    title: {
+      absolute: NEWSLETTER_TITLE,
     },
-  },
-};
+    description: NEWSLETTER_DESCRIPTION,
+    alternates: publicLaunchEnabled
+      ? { canonical: `${SITE_URL}/newsletter` }
+      : undefined,
+    referrer: "no-referrer",
+    robots: publicLaunchEnabled
+      ? {
+          index: true,
+          follow: true,
+        }
+      : {
+          index: false,
+          follow: false,
+          noarchive: true,
+          googleBot: {
+            index: false,
+            follow: false,
+            noarchive: true,
+          },
+        },
+  };
+}
 
 export default async function NewsletterProductionCanaryLayout({
   children,
@@ -39,14 +67,29 @@ export default async function NewsletterProductionCanaryLayout({
     evaluateNewsletterProductionCanaryResendConfiguration(
       currentNewsletterProductionCanaryEnvironment(),
     );
+  const publicConfiguration =
+    evaluateNewsletterPublicLaunchResendConfiguration(
+      currentNewsletterPublicLaunchEnvironment(),
+    );
 
-  if (
-    !isNewsletterProductionCanaryPageRequestAllowed(
+  const canaryAllowed =
+    configuration.enabled &&
+    !publicConfiguration.enabled &&
+    isNewsletterProductionCanaryPageRequestAllowed(
       configuration,
       requestHeaders.get("host"),
       requestHeaders.get("x-forwarded-proto"),
-    )
-  ) {
+    );
+  const publicLaunchAllowed =
+    publicConfiguration.enabled &&
+    !configuration.enabled &&
+    isNewsletterPublicLaunchPageRequestAllowed(
+      publicConfiguration,
+      requestHeaders.get("host"),
+      requestHeaders.get("x-forwarded-proto"),
+    );
+
+  if (!canaryAllowed && !publicLaunchAllowed) {
     notFound();
   }
 

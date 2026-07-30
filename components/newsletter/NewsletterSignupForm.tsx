@@ -194,27 +194,6 @@ function NewsletterProductSignupForm() {
         noValidate
         onSubmit={submit}
       >
-        <aside
-          aria-labelledby="newsletter-privacy-summary-title"
-          className={styles.privacyLayer}
-        >
-          <strong id="newsletter-privacy-summary-title">
-            Información básica sobre protección de datos
-          </strong>
-          <p>
-            <b>Responsable:</b> Rubén Ginés Sánchez García, titular del proyecto
-            EventoMotor. <b>Finalidad:</b> gestionar la suscripción y enviar “La
-            Agenda Motor”. <b>Legitimación:</b> tu consentimiento.
-          </p>
-          <p>
-            <b>Derechos:</b> puedes ejercerlos en{" "}
-            <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>.{" "}
-            <Link href="/privacidad">Política de privacidad</Link>
-            {" · "}
-            <Link href="/aviso-legal">Aviso legal</Link>.
-          </p>
-        </aside>
-
         <div className={styles.formGrid}>
           <label className={styles.field} htmlFor="newsletter-preview-email">
             <span>Correo electrónico *</span>
@@ -303,6 +282,23 @@ function NewsletterProductSignupForm() {
             {fieldErrors.consent}
           </p>
         ) : null}
+
+        <aside
+          aria-label="Información básica sobre protección de datos"
+          className={styles.privacyLayer}
+        >
+          <p>
+            <b>Responsable:</b> Rubén Ginés Sánchez García, titular de
+            EventoMotor. <b>Finalidad:</b> gestionar la suscripción y enviar La
+            Agenda Motor. <b>Legitimación:</b> consentimiento.{" "}
+            <b>Derechos:</b> puedes ejercerlos en{" "}
+            <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>.{" "}
+            Más información en la{" "}
+            <Link href="/privacidad">Política de privacidad</Link>
+            {" · "}
+            <Link href="/aviso-legal">Aviso legal</Link>.
+          </p>
+        </aside>
 
         <p className={styles.ageNotice}>
           Al suscribirte declaras tener al menos 14 años y haber leído la{" "}

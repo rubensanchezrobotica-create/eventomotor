@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import EventDetailView from "@/components/events/detail/EventDetailView";
 import { getEventImage } from "@/lib/event-images";
@@ -16,6 +17,13 @@ import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supaba
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
 import { eventSlugRedirectHref } from "@/lib/event-slug-redirects";
+import {
+  currentNewsletterProductionCanaryEnvironment,
+  currentNewsletterPublicLaunchEnvironment,
+  evaluateNewsletterProductionCanaryResendConfiguration,
+  evaluateNewsletterPublicLaunchResendConfiguration,
+} from "@/lib/newsletter/resend-config.server";
+import { isNewsletterPublicLaunchPageRequestAllowed } from "@/lib/newsletter/r5b-guard";
 
 type EventPageProps = {
   params: Promise<{ slug: string }>;
@@ -268,6 +276,23 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const jsonLd = buildEventJsonLd(event, url, imageUrl, buildMetadataDescription(event));
   const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event, url, siteUrl);
   const faqItems = getEventSeoOverride(event.slug)?.faqItems;
+  const requestHeaders = await headers();
+  const publicConfiguration =
+    evaluateNewsletterPublicLaunchResendConfiguration(
+      currentNewsletterPublicLaunchEnvironment(),
+    );
+  const canaryConfiguration =
+    evaluateNewsletterProductionCanaryResendConfiguration(
+      currentNewsletterProductionCanaryEnvironment(),
+    );
+  const newsletterPublicLaunchEnabled =
+    publicConfiguration.enabled &&
+    !canaryConfiguration.enabled &&
+    isNewsletterPublicLaunchPageRequestAllowed(
+      publicConfiguration,
+      requestHeaders.get("host"),
+      requestHeaders.get("x-forwarded-proto"),
+    );
 
   return (
     <>
@@ -284,6 +309,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
         event={event}
         events={events}
         footerContactTrackingLocation="event_detail_footer"
+        newsletterPublicLaunchEnabled={newsletterPublicLaunchEnabled}
         retentionSource="event_detail"
         siteUrl={siteUrl}
       />

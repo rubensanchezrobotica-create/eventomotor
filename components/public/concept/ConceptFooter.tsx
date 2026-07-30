@@ -21,6 +21,7 @@ type FooterColumn = {
 
 type ConceptFooterProps = {
   contactTrackingLocation?: string;
+  newsletterPublicLaunchEnabled?: boolean;
   variant?: FooterVariant;
 };
 
@@ -98,7 +99,11 @@ function renderFooterLink(link: FooterLink) {
   );
 }
 
-export default function ConceptFooter({ contactTrackingLocation = "footer", variant = "default" }: ConceptFooterProps) {
+export default function ConceptFooter({
+  contactTrackingLocation = "footer",
+  newsletterPublicLaunchEnabled = false,
+  variant = "default",
+}: ConceptFooterProps) {
   return (
     <footer className={variant === "compact" ? "emc-footer emc-footer-compact" : "emc-footer"}>
       <div className="emc-container emc-footer-grid">
@@ -119,6 +124,9 @@ export default function ConceptFooter({ contactTrackingLocation = "footer", vari
             >
               <strong>{column.title}</strong>
               {column.links.map(renderFooterLink)}
+              {newsletterPublicLaunchEnabled && column.id === "organizers" ? (
+                <Link href="/newsletter">La Agenda Motor</Link>
+              ) : null}
             </div>
           ))}
         </nav>

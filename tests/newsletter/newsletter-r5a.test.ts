@@ -671,7 +671,10 @@ test("las rutas R5A reutilizan R4C, son noindex/no-store y GET no muta", () => {
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /follow:\s*false/);
   assert.match(page, /NewsletterPreviewPage/);
-  assert.match(page, /experience="production-canary"/);
+  assert.match(
+    page,
+    /experience=\{publicConfiguration\.enabled \? "public" : "production-canary"\}/,
+  );
   assert.match(confirmation, /kind="confirm"/);
   assert.match(unsubscribe, /kind="unsubscribe"/);
   assert.match(tokenAction, /cleanVisibleTokenUrl\(\)/);

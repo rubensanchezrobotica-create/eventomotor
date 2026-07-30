@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
@@ -156,6 +156,8 @@ export type ConceptHomeSearchPanelProps = {
 
 type ConceptHomePageProps = {
   hasHeroImage?: boolean;
+  newsletterCapture?: ReactNode;
+  newsletterPublicLaunchEnabled?: boolean;
   className?: string;
   searchPanel?: ComponentType<ConceptHomeSearchPanelProps>;
   explorerSummaryVariant?: ExplorerSummaryVariant;
@@ -170,6 +172,8 @@ export default function ConceptHomePage({
   explorerSummaryVariant = "default",
   footerVariant = "default",
   hasHeroImage = false,
+  newsletterCapture,
+  newsletterPublicLaunchEnabled = false,
   popularSearchesVariant = "default",
   searchPanel: SearchPanel,
   useCalendarCountGrammar = false,
@@ -501,6 +505,7 @@ export default function ConceptHomePage({
           onZone={selectHeroZone}
           summaryVariant={explorerSummaryVariant}
         />
+        {newsletterCapture}
         <ConceptDisciplineExplorer
           activeCategory={disciplineCategory}
           events={upcoming}
@@ -572,7 +577,10 @@ export default function ConceptHomePage({
         </section>
         <ConceptResults />
       </main>
-      <ConceptFooter variant={footerVariant} />
+      <ConceptFooter
+        newsletterPublicLaunchEnabled={newsletterPublicLaunchEnabled}
+        variant={footerVariant}
+      />
     </div>
   );
 }
