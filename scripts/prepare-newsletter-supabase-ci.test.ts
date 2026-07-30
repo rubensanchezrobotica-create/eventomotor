@@ -186,6 +186,24 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /runConcurrentScenario[\s\S]+?request-versus-suppression-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?purge-versus-confirmation-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?parallel-retention-purge/);
+  assert.match(source, /createHash\("sha256"\)/);
+  assert.match(source, /const tokenHashes = Object\.freeze\(\{/);
+  assert.match(
+    source,
+    /new Set\(Object\.values\(tokenHashes\)\)\.size !== Object\.keys\(tokenHashes\)\.length/,
+  );
+  assert.doesNotMatch(
+    source,
+    /repeat\(\s*['"][0-9a-f]['"]\s*,\s*64\s*\)|['"][0-9a-f]['"]\.repeat\(64\)/i,
+  );
+  assert.match(
+    source,
+    /assertTokenHashesUnused\([\s\S]+?request versus suppression token hash precondition[\s\S]+?request-versus-suppression-race/,
+  );
+  assert.match(
+    source,
+    /finally \{[\s\S]+?suppressionRaceEmail[\s\S]+?purgeRaceEmail[\s\S]+?concurrency-fixture-cleanup/,
+  );
   assert.match(source, /create unlogged table public\.\$\{barrierTable\}/);
   assert.match(source, /drop table public\.\$\{barrierTable\}/);
   assert.match(harness, /insert into public\.\$\{barrierTable\}/);
