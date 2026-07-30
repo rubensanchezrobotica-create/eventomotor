@@ -28,7 +28,12 @@ begin
   where ns.id = p_subscriber_id
   for update;
 
-  if not found or v_subscriber.status <> 'unsubscribed' then
+  if not found
+    or v_subscriber.status <> 'unsubscribed'
+    or v_subscriber.unsubscribed_at is null
+    or v_subscriber.bounced_at is not null
+    or v_subscriber.complained_at is not null
+    or v_subscriber.suppressed_at is not null then
     return false;
   end if;
 
@@ -145,6 +150,10 @@ begin
     select ns.id
     from public.newsletter_subscribers as ns
     where ns.status = 'unsubscribed'
+      and ns.unsubscribed_at is not null
+      and ns.bounced_at is null
+      and ns.complained_at is null
+      and ns.suppressed_at is null
       and not exists (
         select 1
         from public.newsletter_suppressions as nsp
@@ -166,17 +175,17 @@ $newsletter_legacy_backfill$;
 do $newsletter_preserve_r5a2_request$
 begin
   if to_regprocedure(
-    'public.request_newsletter_subscription_r5a2(text,text,text,timestamp with time zone,text,text,text,text,text,text,text,text,text)'
+    'public.newsletter_request_subscription_r5a2_internal(text,text,text,timestamp with time zone,text,text,text,text,text,text,text,text,text)'
   ) is null then
     alter function public.request_newsletter_subscription(
       text, text, text, timestamptz, text, text, text, text,
       text, text, text, text, text
-    ) rename to request_newsletter_subscription_r5a2;
+    ) rename to newsletter_request_subscription_r5a2_internal;
   end if;
 end;
 $newsletter_preserve_r5a2_request$;
 
-revoke all on function public.request_newsletter_subscription_r5a2(
+revoke all on function public.newsletter_request_subscription_r5a2_internal(
   text, text, text, timestamptz, text, text, text, text,
   text, text, text, text, text
 ) from public, anon, authenticated, service_role;
@@ -206,7 +215,10 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_subscriber public.newsletter_subscribers%rowtype;
   v_subscriber_id uuid;
+  v_active_suppression_reason text;
+  v_email_hash text;
   v_now timestamptz := now();
 begin
   -- Validate before any repair, keeping malformed calls side-effect free and
@@ -258,23 +270,63 @@ begin
     raise exception 'invalid newsletter ip hash';
   end if;
 
-  select ns.id into v_subscriber_id
-  from public.newsletter_subscribers as ns
-  where ns.email_normalized = p_email_normalized
-  for update;
+  v_email_hash := public.newsletter_email_hash(p_email_normalized);
 
-  if found then
-    perform public.repair_legacy_newsletter_unsubscribe(
-      v_subscriber_id,
-      v_now
-    );
+  -- A minimized subscriber is located through the active suppression hash;
+  -- an ordinary subscriber is located through the normalized address.
+  select nsp.subscriber_id into v_subscriber_id
+  from public.newsletter_suppressions as nsp
+  where nsp.email_hash = v_email_hash
+    and nsp.lifted_at is null;
+
+  if v_subscriber_id is null then
+    select ns.id into v_subscriber_id
+    from public.newsletter_subscribers as ns
+    where ns.email_normalized = p_email_normalized;
+  end if;
+
+  if v_subscriber_id is not null then
+    select * into strict v_subscriber
+    from public.newsletter_subscribers as ns
+    where ns.id = v_subscriber_id
+    for update;
+
+    select nsp.reason into v_active_suppression_reason
+    from public.newsletter_suppressions as nsp
+    where nsp.subscriber_id = v_subscriber.id
+      and nsp.lifted_at is null
+    for update;
+
+    -- Hard evidence is authoritative and must win before legacy repair,
+    -- cooldown, daily limits, consent events or token creation.
+    if v_subscriber.status in ('bounced', 'complained', 'suppressed')
+      or v_subscriber.bounced_at is not null
+      or v_subscriber.complained_at is not null
+      or v_subscriber.suppressed_at is not null
+      or v_active_suppression_reason in (
+        'permanent_bounce',
+        'complaint',
+        'provider_suppression'
+      ) then
+      return query select 'blocked', null::uuid, null::text;
+      return;
+    end if;
+
+    if v_subscriber.status = 'unsubscribed'
+      and v_subscriber.unsubscribed_at is not null
+      and v_active_suppression_reason is null then
+      perform public.repair_legacy_newsletter_unsubscribe(
+        v_subscriber.id,
+        v_now
+      );
+    end if;
   end if;
 
   return query
   select request_result.outcome,
          request_result.subscriber_id,
          request_result.token_purpose
-  from public.request_newsletter_subscription_r5a2(
+  from public.newsletter_request_subscription_r5a2_internal(
     p_email,
     p_email_normalized,
     p_token_hash,

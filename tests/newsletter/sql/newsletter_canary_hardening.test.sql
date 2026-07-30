@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(46);
+select plan(62);
 
 select ok(
   to_regprocedure(
@@ -106,6 +106,14 @@ insert into public.newsletter_subscribers (
     'unsubscribed', 'r5a3_sql', '2026-07',
     null, 0, null, now() - interval '2 days', now() - interval '1 day',
     null, null, null
+  ),
+  (
+    '5a300000-0000-4000-8000-000000000009',
+    'hard-evidence-r5a3@example.invalid',
+    'hard-evidence-r5a3@example.invalid',
+    'unsubscribed', 'r5a3_sql', '2026-07',
+    null, 0, null, now() - interval '2 days', now() - interval '1 day',
+    now() - interval '3 days', null, null
   );
 
 insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
@@ -387,6 +395,175 @@ select is(
   'all three hard suppressions remain active'
 );
 
+select is(
+  public.repair_legacy_newsletter_unsubscribe(
+    '5a300000-0000-4000-8000-000000000009',
+    now()
+  ),
+  false,
+  'an unsubscribed row with canonical hard evidence is not repaired'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_suppressions
+    where subscriber_id = '5a300000-0000-4000-8000-000000000009'
+  ),
+  0,
+  'hard evidence without a suppression is never converted to voluntary'
+);
+
+select results_eq(
+  $$
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      'bounce-r5a3@example.invalid',
+      'bounce-r5a3@example.invalid',
+      repeat('1', 64),
+      now() + interval '1 day',
+      'r5a3_hard_guard',
+      '2026-07'
+    )
+  $$,
+  $$values ('blocked'::text, null::uuid, null::text)$$,
+  'permanent bounce is blocked before cooldown'
+);
+select results_eq(
+  $$
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      'complaint-r5a3@example.invalid',
+      'complaint-r5a3@example.invalid',
+      repeat('2', 64),
+      now() + interval '1 day',
+      'r5a3_hard_guard',
+      '2026-07'
+    )
+  $$,
+  $$values ('blocked'::text, null::uuid, null::text)$$,
+  'complaint is blocked before cooldown'
+);
+select results_eq(
+  $$
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      'provider-r5a3@example.invalid',
+      'provider-r5a3@example.invalid',
+      repeat('3', 64),
+      now() + interval '1 day',
+      'r5a3_hard_guard',
+      '2026-07'
+    )
+  $$,
+  $$values ('blocked'::text, null::uuid, null::text)$$,
+  'provider suppression is blocked before cooldown'
+);
+select results_eq(
+  $$
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      'hard-evidence-r5a3@example.invalid',
+      'hard-evidence-r5a3@example.invalid',
+      repeat('4', 64),
+      now() + interval '1 day',
+      'r5a3_hard_guard',
+      '2026-07'
+    )
+  $$,
+  $$values ('blocked'::text, null::uuid, null::text)$$,
+  'canonical hard timestamp evidence is blocked before legacy repair'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_confirmation_tokens
+    where subscriber_id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+  ),
+  0,
+  'hard blocks create no confirmation token'
+);
+select ok(
+  (
+    select bool_and(confirmation_request_count = 0)
+    from public.newsletter_subscribers
+    where id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+  ),
+  'hard blocks do not increment the request counter'
+);
+select ok(
+  (
+    select bool_and(last_confirmation_requested_at is null)
+    from public.newsletter_subscribers
+    where id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+  ),
+  'hard blocks do not update the cooldown timestamp'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_suppressions
+    where subscriber_id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+      and reason = 'voluntary'
+  ),
+  0,
+  'hard blocks never create a voluntary suppression'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_consent_events
+    where subscriber_id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+  ),
+  0,
+  'hard blocks create no consent event'
+);
+select results_eq(
+  $$
+    select id, status
+    from public.newsletter_subscribers
+    where id in (
+      '5a300000-0000-4000-8000-000000000004',
+      '5a300000-0000-4000-8000-000000000005',
+      '5a300000-0000-4000-8000-000000000006',
+      '5a300000-0000-4000-8000-000000000009'
+    )
+    order by id
+  $$,
+  $$
+    values
+      ('5a300000-0000-4000-8000-000000000004'::uuid, 'bounced'::text),
+      ('5a300000-0000-4000-8000-000000000005'::uuid, 'complained'::text),
+      ('5a300000-0000-4000-8000-000000000006'::uuid, 'suppressed'::text),
+      ('5a300000-0000-4000-8000-000000000009'::uuid, 'unsubscribed'::text)
+  $$,
+  'hard blocks preserve every subscriber status'
+);
+
 select results_eq(
   $$
     select outcome, token_purpose
@@ -540,10 +717,73 @@ select is(
 select ok(
   not has_function_privilege(
     'service_role',
-    'public.request_newsletter_subscription_r5a2(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)',
+    'public.newsletter_request_subscription_r5a2_internal(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)',
     'EXECUTE'
   ),
   'the preserved R5A.2 request implementation is owner-only'
+);
+select results_eq(
+  $$
+    select parameter_name::text, data_type::text
+    from information_schema.parameters
+    where specific_schema = 'public'
+      and specific_name = (
+        select p.proname || '_' || p.oid::text
+        from pg_proc as p
+        join pg_namespace as n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'request_newsletter_subscription'
+      )
+      and parameter_mode = 'OUT'
+    order by ordinal_position
+  $$,
+  $$
+    values
+      ('outcome'::text, 'text'::text),
+      ('subscriber_id'::text, 'uuid'::text),
+      ('token_purpose'::text, 'text'::text)
+  $$,
+  'the public request RPC preserves historical output names, order and types'
+);
+select is(
+  (
+    select count(*)::integer
+    from pg_proc as p
+    join pg_namespace as n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'request_newsletter_subscription'
+  ),
+  1,
+  'the public request RPC has no additional overload'
+);
+select is(
+  (
+    select count(*)::integer
+    from pg_proc as p
+    join pg_namespace as n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname like 'request_newsletter_subscription_%'
+  ),
+  0,
+  'no internal helper can be mistaken for a public request RPC result'
+);
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.request_newsletter_subscription(text,text,text,timestamptz,text,text,text,text,text,text,text,text,text)',
+    'EXECUTE'
+  ),
+  'the three-column public request RPC remains service-role-only'
 );
 
 insert into public.newsletter_subscribers (

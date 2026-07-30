@@ -155,7 +155,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 274);
+  assert.equal(plannedAssertions, 290);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -446,7 +446,19 @@ test("R5A.3 repara sólo la baja heredada y conserva helpers fuera de Data API",
   );
   assert.match(
     migration,
-    /revoke all on function public\.request_newsletter_subscription_r5a2\([\s\S]+?\) from public, anon, authenticated, service_role;/,
+    /revoke all on function public\.newsletter_request_subscription_r5a2_internal\([\s\S]+?\) from public, anon, authenticated, service_role;/,
+  );
+  assert.match(
+    migration,
+    /status in \('bounced', 'complained', 'suppressed'\)[\s\S]+?return query select 'blocked', null::uuid, null::text;[\s\S]+?repair_legacy_newsletter_unsubscribe/i,
+  );
+  assert.match(
+    migration,
+    /status = 'unsubscribed'[\s\S]+?unsubscribed_at is not null[\s\S]+?bounced_at is null[\s\S]+?complained_at is null[\s\S]+?suppressed_at is null/i,
+  );
+  assert.doesNotMatch(
+    migration,
+    /request_newsletter_subscription_r5a2\s*\(/,
   );
   assert.match(migration, /security definer\s+set search_path = ''/i);
   assert.doesNotMatch(migration, /https?:\/\/|supabase (?:link|db push)|resend/i);

@@ -136,7 +136,7 @@ test("la autorreparación precede a la RPC R5A.2 y mantiene doble opt-in", () =>
     "perform public.repair_legacy_newsletter_unsubscribe(",
   );
   const request = migration.lastIndexOf(
-    "from public.request_newsletter_subscription_r5a2(",
+    "from public.newsletter_request_subscription_r5a2_internal(",
   );
   assert.ok(repair >= 0);
   assert.ok(request > repair);
