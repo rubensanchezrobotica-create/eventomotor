@@ -23,6 +23,14 @@ import {
   runRpcPermissionValidation,
   validateDataApiResponse,
 } from "../tests/newsletter/sql/newsletter-rpc-permissions.mjs";
+import {
+  buildConcurrencyBarrierSql,
+  formatConcurrencyAssertionFailure,
+  formatConcurrencyFailure,
+  redactConcurrencyDiagnostics,
+  runConcurrencyProcess,
+  waitForConcurrencyWorkers,
+} from "../tests/newsletter/sql/newsletter-concurrency-harness.mjs";
 
 async function createFixture() {
   const rootDir = await mkdtemp(join(tmpdir(), "newsletter-ci-preparer-"));
@@ -154,13 +162,34 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter-concurrency.mjs"),
     "utf8",
   );
+  const harness = await readFile(
+    join(
+      process.cwd(),
+      "tests",
+      "newsletter",
+      "sql",
+      "newsletter-concurrency-harness.mjs",
+    ),
+    "utf8",
+  );
 
-  assert.doesNotMatch(source, /Promise\.allSettled/);
-  assert.match(source, /const requestOutputs = await Promise\.all/);
-  assert.match(source, /const confirmationOutputs = await Promise\.all/);
-  assert.match(source, /const providerOutputs = await Promise\.all/);
-  assert.match(source, /const preparationOutputs = await Promise\.all/);
-  assert.match(source, /const unsubscribeOutputs = await Promise\.all/);
+  assert.doesNotMatch(source, /Promise\.all(?:Settled)?/);
+  assert.match(harness, /Promise\.allSettled/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?subscription-request-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?confirmation-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?provider-event-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?welcome-preparation-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?token-unsubscribe-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?webhook-replay-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?request-versus-suppression-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?purge-versus-confirmation-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?parallel-retention-purge/);
+  assert.match(source, /create unlogged table public\.\$\{barrierTable\}/);
+  assert.match(source, /drop table public\.\$\{barrierTable\}/);
+  assert.match(harness, /insert into public\.\$\{barrierTable\}/);
+  assert.match(harness, /select count\(\*\)[\s\S]+?from public\.\$\{barrierTable\}/);
+  assert.match(harness, /statement_timeout = '15s'/);
+  assert.match(harness, /Concurrency barrier \$\{applicationPrefix\} timed out/);
   assert.match(source, /confirmation_required,cooldown/);
   assert.match(source, /confirmed,used_token/);
   assert.match(source, /duplicate,recorded/);
@@ -171,6 +200,120 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /updated_at < created_at/);
   assert.match(source, /"1\|1\|0\|0"/);
   assert.match(source, /"1\|0\|0"/);
+});
+
+test("el harness conserva stdout, stderr, exit code, worker y comando seguros", async () => {
+  await assert.rejects(
+    runConcurrencyProcess({
+      command: process.execPath,
+      args: [
+        "-e",
+        "process.stdout.write('diagnostic stdout'); process.stderr.write('diagnostic stderr'); process.exit(7)",
+      ],
+      name: "unit-worker-failure",
+      phase: "unit-diagnostics",
+      workerIndex: 3,
+      timeoutMs: 5_000,
+    }),
+    (error: Error) => {
+      assert.match(error.message, /Concurrency query unit-worker-failure failed/);
+      assert.match(error.message, /phase: unit-diagnostics/);
+      assert.match(error.message, /worker: 3/);
+      assert.match(error.message, /exit code: 7/);
+      assert.match(error.message, /signal: null/);
+      assert.match(error.message, /command: [^\n]*node/i);
+      assert.match(error.message, /stdout:\ndiagnostic stdout/);
+      assert.match(error.message, /stderr:\ndiagnostic stderr/);
+      return true;
+    },
+  );
+});
+
+test("el harness captura ambos canales en éxito para una aserción posterior", async () => {
+  const execution = await runConcurrencyProcess({
+    command: process.execPath,
+    args: [
+      "-e",
+      "process.stdout.write('successful stdout'); process.stderr.write('successful stderr')",
+    ],
+    name: "unit-success",
+    phase: "unit-assertion",
+    workerIndex: 1,
+    timeoutMs: 5_000,
+  });
+  const message = formatConcurrencyAssertionFailure({
+    label: "unit assertion",
+    actual: "unexpected",
+    expected: "expected",
+    executions: [execution],
+  });
+
+  assert.match(message, /stdout:\nsuccessful stdout/);
+  assert.match(message, /stderr:\nsuccessful stderr/);
+  assert.match(message, /exit code: 0/);
+  assert.match(message, /worker: 1/);
+});
+
+test("el harness redacta credenciales sin perder la causa diagnóstica", () => {
+  const execution = {
+    name: "redaction",
+    phase: "unit-security",
+    workerIndex: 0,
+    command: "psql postgresql://postgres:super-secret@localhost/postgres",
+    durationMs: 4,
+    code: 1,
+    signal: null,
+    timedOut: false,
+    stdout: "service_role_key=secret-value",
+    stderr: "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+  };
+  const message = formatConcurrencyFailure(execution);
+
+  assert.doesNotMatch(message, /super-secret|secret-value|eyJhbGciOiJIUzI1NiJ9/);
+  assert.match(message, /\[REDACTED\]/);
+  assert.match(message, /Concurrency query redaction failed/);
+  assert.equal(
+    redactConcurrencyDiagnostics("password=hidden-value"),
+    "password=[REDACTED]",
+  );
+});
+
+test("el harness espera a todos los workers antes de propagar un rechazo", async () => {
+  let secondWorkerCompleted = false;
+  await assert.rejects(
+    waitForConcurrencyWorkers([
+      async () => {
+        throw new Error("first worker failed");
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        secondWorkerCompleted = true;
+        return "completed";
+      },
+    ]),
+    /first worker failed/,
+  );
+  assert.equal(secondWorkerCompleted, true);
+});
+
+test("la barrera usa estado PostgreSQL observable y timeouts controlados", () => {
+  const sql = buildConcurrencyBarrierSql({
+    barrierTable: "newsletter_ci_barrier_unit_1",
+    applicationPrefix: "newsletter-concurrency-unit-1",
+    workerIndex: 0,
+    workerCount: 2,
+  });
+
+  assert.match(sql, /set statement_timeout = '15s'/);
+  assert.match(sql, /set lock_timeout = '10s'/);
+  assert.match(
+    sql,
+    /insert into public\.newsletter_ci_barrier_unit_1 \(worker_index\) values \(0\)/,
+  );
+  assert.match(sql, /select count\(\*\)/);
+  assert.match(sql, /from public\.newsletter_ci_barrier_unit_1/);
+  assert.match(sql, /interval '5 seconds'/);
+  assert.doesNotMatch(sql, /pg_advisory/);
 });
 
 test("provider y rollback exigen SQLSTATE mediante throws_ok de cuatro argumentos", async () => {

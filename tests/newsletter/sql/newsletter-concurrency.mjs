@@ -1,11 +1,20 @@
 import { randomBytes } from "node:crypto";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import {
+  buildConcurrencyBarrierSql,
+  formatConcurrencyAssertionFailure,
+  runConcurrencyProcess,
+  waitForConcurrencyWorkers,
+} from "./newsletter-concurrency-harness.mjs";
 
 const execFileAsync = promisify(execFile);
 const PROJECT_ID = "eventomotor-newsletter-ci";
 const EXPECTED_CONTAINER = `supabase_db_${PROJECT_ID}`;
 const QUERY_TIMEOUT_MS = 20_000;
+const assertionExecutions = [];
+let querySequence = 0;
+let scenarioSequence = 0;
 
 function sqlLiteral(value) {
   return `'${value.replaceAll("'", "''")}'`;
@@ -24,60 +33,152 @@ async function resolveDatabaseContainer() {
   return names[0];
 }
 
-function query(container, sql) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      "docker",
-      [
-        "exec",
-        "-i",
-        container,
-        "psql",
-        "-X",
-        "--no-psqlrc",
-        "--set=ON_ERROR_STOP=1",
-        "--tuples-only",
-        "--no-align",
-        "--quiet",
-        "--username=postgres",
-        "--dbname=postgres",
-      ],
-      { stdio: ["pipe", "pipe", "pipe"], windowsHide: true },
-    );
-    let stdout = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    child.stderr.resume();
-
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(new Error("An isolated concurrency query timed out."));
-    }, QUERY_TIMEOUT_MS);
-
-    child.on("error", () => {
-      clearTimeout(timeout);
-      reject(new Error("Unable to start an isolated concurrency query."));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code !== 0) {
-        reject(new Error("An isolated concurrency query failed."));
-        return;
-      }
-      resolve(stdout.trim());
-    });
-    child.stdin.end(`${sql.trim()}\n`);
+async function query(
+  container,
+  sql,
+  {
+    name = `query-${++querySequence}`,
+    phase = "sequential-validation",
+    workerIndex = 0,
+    captureForAssertion = true,
+  } = {},
+) {
+  const execution = await runConcurrencyProcess({
+    command: "docker",
+    args: [
+      "exec",
+      "-i",
+      container,
+      "psql",
+      "-X",
+      "--no-psqlrc",
+      "--set=ON_ERROR_STOP=1",
+      "--tuples-only",
+      "--no-align",
+      "--quiet",
+      "--username=postgres",
+      "--dbname=postgres",
+    ],
+    input: `${sql.trim()}\n`,
+    name,
+    phase,
+    workerIndex,
+    timeoutMs: QUERY_TIMEOUT_MS,
   });
+  if (captureForAssertion) assertionExecutions.push(execution);
+  return execution.stdout.trim();
 }
 
 function assertEqual(actual, expected, label) {
-  if (actual !== expected) throw new Error(`${label} assertion failed.`);
+  const executions = assertionExecutions.slice(-12);
+  if (actual !== expected) {
+    throw new Error(
+      formatConcurrencyAssertionFailure({
+        label,
+        actual,
+        expected,
+        executions,
+      }),
+    );
+  }
 }
 
 function sortedOutcomes(outputs) {
   return outputs.map((output) => output.split("|")[0]).sort().join(",");
+}
+
+function assertIncluded(actual, expectedValues, label) {
+  const executions = assertionExecutions.slice(-12);
+  if (!expectedValues.includes(actual)) {
+    throw new Error(
+      formatConcurrencyAssertionFailure({
+        label,
+        actual,
+        expected: expectedValues.join(" or "),
+        executions,
+      }),
+    );
+  }
+}
+
+async function runConcurrentScenario(container, runId, phase, queries) {
+  const scenarioIndex = ++scenarioSequence;
+  const applicationPrefix = `newsletter-concurrency-${runId}-${scenarioIndex}`;
+  const barrierTable = `newsletter_ci_barrier_${runId}_${scenarioIndex}`;
+  await query(
+    container,
+    `
+      create unlogged table public.${barrierTable} (
+        worker_index integer primary key
+      );
+    `,
+    {
+      name: `${phase}-barrier-setup`,
+      phase: `${phase}-setup`,
+      workerIndex: 0,
+    },
+  );
+  let executions;
+  let scenarioError;
+  let barrierCleanupError;
+  try {
+    executions = await waitForConcurrencyWorkers(
+      queries.map(({ name, sql }, workerIndex) => async () => {
+        const barrierSql = buildConcurrencyBarrierSql({
+          barrierTable,
+          applicationPrefix,
+          workerIndex,
+          workerCount: queries.length,
+        });
+        return runConcurrencyProcess({
+          command: "docker",
+          args: [
+            "exec",
+            "-i",
+            container,
+            "psql",
+            "-X",
+            "--no-psqlrc",
+            "--set=ON_ERROR_STOP=1",
+            "--tuples-only",
+            "--no-align",
+            "--quiet",
+            "--username=postgres",
+            "--dbname=postgres",
+          ],
+          input: `${barrierSql}\n${sql.trim()}\n`,
+          name,
+          phase,
+          workerIndex,
+          timeoutMs: QUERY_TIMEOUT_MS,
+        });
+      }),
+    );
+  } catch (error) {
+    scenarioError = error;
+  } finally {
+    try {
+      await query(container, `drop table public.${barrierTable};`, {
+        name: `${phase}-barrier-cleanup`,
+        phase: `${phase}-cleanup`,
+        workerIndex: 0,
+        captureForAssertion: false,
+      });
+    } catch (error) {
+      barrierCleanupError = error;
+    }
+  }
+
+  if (scenarioError && barrierCleanupError) {
+    process.stderr.write(
+      `Concurrency barrier cleanup also failed; preserving the scenario failure.\n${barrierCleanupError.stack ?? barrierCleanupError}\n`,
+    );
+  }
+  if (scenarioError) throw scenarioError;
+  if (barrierCleanupError) throw barrierCleanupError;
+
+  assertionExecutions.push(...executions);
+  return executions.map((execution) => execution.stdout.trim());
 }
 
 const runId = randomBytes(8).toString("hex");
@@ -90,6 +191,8 @@ const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
 const providerName = `ci-${runId}`;
 
 let container = "";
+let primaryError;
+let cleanupError;
 try {
   container = await resolveDatabaseContainer();
 
@@ -100,10 +203,15 @@ try {
       now() + interval '1 day', 'concurrency_test', '2026-07'
     );
   `;
-  const requestOutputs = await Promise.all([
-    query(container, requestSql("a")),
-    query(container, requestSql("b")),
-  ]);
+  const requestOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "subscription-request-race",
+    [
+      { name: "subscription-request-a", sql: requestSql("a") },
+      { name: "subscription-request-b", sql: requestSql("b") },
+    ],
+  );
   assertEqual(
     sortedOutcomes(requestOutputs),
     "confirmation_required,cooldown",
@@ -131,10 +239,15 @@ try {
     `select t.token_hash from public.newsletter_confirmation_tokens t join public.newsletter_subscribers s on s.id = t.subscriber_id where s.email_normalized = ${sqlLiteral(requestEmail)};`,
   );
   const confirmSql = `select outcome from public.confirm_newsletter_subscription(${sqlLiteral(confirmationHash)});`;
-  const confirmationOutputs = await Promise.all([
-    query(container, confirmSql),
-    query(container, confirmSql),
-  ]);
+  const confirmationOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "confirmation-race",
+    [
+      { name: "confirmation-a", sql: confirmSql },
+      { name: "confirmation-b", sql: confirmSql },
+    ],
+  );
   assertEqual(
     sortedOutcomes(confirmationOutputs),
     "confirmed,used_token",
@@ -157,10 +270,15 @@ try {
       'delivered', false, now()
     );
   `;
-  const providerOutputs = await Promise.all([
-    query(container, providerSql),
-    query(container, providerSql),
-  ]);
+  const providerOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "provider-event-race",
+    [
+      { name: "provider-event-a", sql: providerSql },
+      { name: "provider-event-b", sql: providerSql },
+    ],
+  );
   assertEqual(
     sortedOutcomes(providerOutputs),
     "duplicate,recorded",
@@ -198,10 +316,15 @@ try {
       null
     );
   `;
-  const preparationOutputs = await Promise.all([
-    query(container, prepareWelcomeSql("e")),
-    query(container, prepareWelcomeSql("f")),
-  ]);
+  const preparationOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "welcome-preparation-race",
+    [
+      { name: "welcome-preparation-e", sql: prepareWelcomeSql("e") },
+      { name: "welcome-preparation-f", sql: prepareWelcomeSql("f") },
+    ],
+  );
   assertEqual(preparationOutputs.length, 2, "welcome preparation result count");
   for (const output of preparationOutputs) {
     assertEqual(output, unsubscribeSubscriberId, "welcome preparation context");
@@ -233,10 +356,15 @@ try {
       ${sqlLiteral(activeUnsubscribeHash)}, '2026-07', 'concurrency_test'
     );
   `;
-  const unsubscribeOutputs = await Promise.all([
-    query(container, unsubscribeSql),
-    query(container, unsubscribeSql),
-  ]);
+  const unsubscribeOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "token-unsubscribe-race",
+    [
+      { name: "token-unsubscribe-a", sql: unsubscribeSql },
+      { name: "token-unsubscribe-b", sql: unsubscribeSql },
+    ],
+  );
   assertEqual(unsubscribeOutputs.length, 2, "unsubscribe result count");
   assertEqual(
     sortedOutcomes(unsubscribeOutputs),
@@ -314,10 +442,15 @@ try {
       false
     );
   `;
-  const webhookOutputs = await Promise.all([
-    query(container, webhookSql),
-    query(container, webhookSql),
-  ]);
+  const webhookOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "webhook-replay-race",
+    [
+      { name: "webhook-replay-a", sql: webhookSql },
+      { name: "webhook-replay-b", sql: webhookSql },
+    ],
+  );
   assertEqual(
     sortedOutcomes(webhookOutputs),
     "duplicate,processed",
@@ -353,31 +486,38 @@ try {
       select id from subscriber;
     `,
   );
-  const [suppressionRequestOutput, suppressionOutput] = await Promise.all([
-    query(
-      container,
-      `
+  const [suppressionRequestOutput, suppressionOutput] = await runConcurrentScenario(
+    container,
+    runId,
+    "request-versus-suppression-race",
+    [
+      {
+        name: "request-during-suppression",
+        sql: `
         select outcome from public.request_newsletter_subscription(
           ${sqlLiteral(suppressionRaceEmail)}, ${sqlLiteral(suppressionRaceEmail)},
           repeat('7', 64), now() + interval '1 day',
           'concurrency_test', '2026-07'
         );
       `,
-    ),
-    query(
-      container,
-      `
+      },
+      {
+        name: "voluntary-suppression",
+        sql: `
         select outcome from public.unsubscribe_newsletter_subscriber(
           ${sqlLiteral(suppressionRaceSubscriberId)}::uuid,
           '2026-07',
           'concurrency_test'
         );
       `,
-    ),
-  ]);
-  if (!["already_active", "confirmation_required"].includes(suppressionRequestOutput)) {
-    throw new Error("request versus suppression outcome assertion failed.");
-  }
+      },
+    ],
+  );
+  assertIncluded(
+    suppressionRequestOutput,
+    ["already_active", "confirmation_required"],
+    "request versus suppression outcome",
+  );
   assertEqual(suppressionOutput, "unsubscribed", "request versus suppression unsubscribe");
   assertEqual(
     await query(
@@ -408,26 +548,33 @@ try {
       where email_normalized = ${sqlLiteral(purgeRaceEmail)};
     `,
   );
-  const [purgeRaceOutput, confirmRaceOutput] = await Promise.all([
-    query(
-      container,
-      `select purged_count from public.purge_stale_newsletter_pending(10, now() - interval '7 days');`,
-    ),
-    query(
-      container,
-      `select outcome from public.confirm_newsletter_subscription(${sqlLiteral(purgeTokenHash)});`,
-    ),
-  ]);
+  const [purgeRaceOutput, confirmRaceOutput] = await runConcurrentScenario(
+    container,
+    runId,
+    "purge-versus-confirmation-race",
+    [
+      {
+        name: "pending-retention-purge",
+        sql: `select purged_count from public.purge_stale_newsletter_pending(10, now() - interval '7 days');`,
+      },
+      {
+        name: "pending-confirmation",
+        sql: `select outcome from public.confirm_newsletter_subscription(${sqlLiteral(purgeTokenHash)});`,
+      },
+    ],
+  );
   const purgeConfirmPair = `${purgeRaceOutput}|${confirmRaceOutput}`;
-  if (!["1|invalid_token", "0|confirmed"].includes(purgeConfirmPair)) {
-    throw new Error("purge versus confirmation outcome assertion failed.");
-  }
+  assertIncluded(
+    purgeConfirmPair,
+    ["1|invalid_token", "0|confirmed"],
+    "purge versus confirmation outcome",
+  );
 
   const purgeEmails = Array.from(
     { length: 3 },
     (_, index) => `concurrent-purge-${runId}-${index}@example.invalid`,
   );
-  for (const [index, email] of purgeEmails.entries()) {
+  for (const email of purgeEmails) {
     await query(
       container,
       `
@@ -442,16 +589,21 @@ try {
       `,
     );
   }
-  const purgeOutputs = await Promise.all([
-    query(
-      container,
-      `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
-    ),
-    query(
-      container,
-      `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
-    ),
-  ]);
+  const purgeOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "parallel-retention-purge",
+    [
+      {
+        name: "parallel-purge-a",
+        sql: `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
+      },
+      {
+        name: "parallel-purge-b",
+        sql: `select purged_count from public.purge_stale_newsletter_pending(2, now() - interval '7 days');`,
+      },
+    ],
+  );
   assertEqual(
     purgeOutputs.map(Number).sort((left, right) => left - right).join(","),
     "1,2",
@@ -466,32 +618,59 @@ try {
     "concurrent purge final count",
   );
 
-  process.stdout.write("Newsletter concurrency tests passed in isolated PostgreSQL.\n");
+} catch (error) {
+  primaryError = error;
 } finally {
   if (container) {
-    await query(
-      container,
-      `
-        delete from public.newsletter_email_events where provider = ${sqlLiteral(providerName)};
-        delete from public.newsletter_consent_events where subscriber_id in (
-          select id from public.newsletter_subscribers
-          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-        );
-        delete from public.newsletter_confirmation_tokens where subscriber_id in (
-          select id from public.newsletter_subscribers
-          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-        );
-        delete from public.newsletter_unsubscribe_tokens where subscriber_id in (
-          select id from public.newsletter_subscribers
-          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-        );
-        delete from public.newsletter_preferences where subscriber_id in (
-          select id from public.newsletter_subscribers
-          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-        );
-        delete from public.newsletter_subscribers
-        where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)});
-      `,
-    ).catch(() => undefined);
+    try {
+      await query(
+        container,
+        `
+          delete from public.newsletter_email_events where provider = ${sqlLiteral(providerName)};
+          delete from public.newsletter_consent_events where subscriber_id in (
+            select id from public.newsletter_subscribers
+            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
+          );
+          delete from public.newsletter_confirmation_tokens where subscriber_id in (
+            select id from public.newsletter_subscribers
+            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
+          );
+          delete from public.newsletter_unsubscribe_tokens where subscriber_id in (
+            select id from public.newsletter_subscribers
+            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
+          );
+          delete from public.newsletter_preferences where subscriber_id in (
+            select id from public.newsletter_subscribers
+            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
+          );
+          delete from public.newsletter_subscribers
+          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)});
+        `,
+        {
+          name: "concurrency-fixture-cleanup",
+          phase: "cleanup",
+          workerIndex: 0,
+          captureForAssertion: false,
+        },
+      );
+    } catch (error) {
+      cleanupError = error;
+    }
   }
 }
+
+if (primaryError && cleanupError) {
+  process.stderr.write(
+    `Concurrency cleanup also failed; preserving the primary failure.\n${cleanupError.stack ?? cleanupError}\n`,
+  );
+}
+
+if (primaryError) {
+  throw primaryError;
+}
+
+if (cleanupError) {
+  throw cleanupError;
+}
+
+process.stdout.write("Newsletter concurrency tests passed in isolated PostgreSQL.\n");
