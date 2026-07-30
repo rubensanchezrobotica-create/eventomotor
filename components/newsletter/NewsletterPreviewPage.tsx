@@ -12,7 +12,7 @@ import styles from "./NewsletterPreview.module.css";
 type NewsletterPreviewPageProps = {
   emails: RenderedNewsletterEmail[];
   initialOptions: NewsletterPreviewOptions;
-  experience?: "preview" | "production-canary";
+  experience?: "preview" | "production-canary" | "public";
 };
 
 const benefits = [

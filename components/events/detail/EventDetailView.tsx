@@ -5,6 +5,7 @@ import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import EventFaq from "@/components/events/detail/EventFaq";
+import NewsletterCaptureCard from "@/components/newsletter/NewsletterCaptureCard";
 import ShareEventButton from "@/components/ShareEventButton";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
@@ -47,6 +48,7 @@ export type EventDetailViewProps = {
   event: EventItem;
   events: EventItem[];
   footerContactTrackingLocation: string;
+  newsletterPublicLaunchEnabled?: boolean;
   retentionSource: string;
   siteUrl: string;
 };
@@ -138,6 +140,7 @@ export default function EventDetailView({
   event,
   events,
   footerContactTrackingLocation,
+  newsletterPublicLaunchEnabled = false,
   retentionSource,
   siteUrl,
 }: EventDetailViewProps) {
@@ -391,6 +394,10 @@ export default function EventDetailView({
             </section>
           ) : null}
 
+          {newsletterPublicLaunchEnabled ? (
+            <NewsletterCaptureCard placement="event" />
+          ) : null}
+
           {relatedEvents.length ? (
             <section className={styles.relatedSection}>
               <div className="emc-container">
@@ -464,7 +471,11 @@ export default function EventDetailView({
         </article>
       </main>
 
-      <ConceptFooter contactTrackingLocation={footerContactTrackingLocation} variant="compact" />
+      <ConceptFooter
+        contactTrackingLocation={footerContactTrackingLocation}
+        newsletterPublicLaunchEnabled={newsletterPublicLaunchEnabled}
+        variant="compact"
+      />
     </div>
   );
 }

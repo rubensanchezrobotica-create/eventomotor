@@ -30,8 +30,15 @@ const NEWSLETTER_LINK_PATHS = {
     confirmation: "/newsletter/confirm",
     unsubscribe: "/newsletter/unsubscribe",
   },
+  "production-public": {
+    confirmation: "/newsletter/confirm",
+    unsubscribe: "/newsletter/unsubscribe",
+  },
 } as const;
 const ALLOWED_TRANSACTIONAL_KINDS = new Set(["confirmation", "welcome"]);
+const NEWSLETTER_PUBLIC_SENDER =
+  "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
+const NEWSLETTER_PUBLIC_REPLY_TO = "info@eventomotor.com";
 const REGION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 const DISPLAY_NAME_PATTERN = /^[^<>\r\n]{1,80}$/;
@@ -57,7 +64,8 @@ type ResendNewsletterMailTransportOptions = {
   client: NewsletterResendClient;
   from: string;
   replyTo: string;
-  allowedRecipients: readonly string[];
+  allowedRecipients?: readonly string[];
+  recipientPolicy?: "allowlist" | "public";
   linkOrigin?: string;
   linkProfile?: keyof typeof NEWSLETTER_LINK_PATHS;
   now?: () => Date;
@@ -118,6 +126,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   private readonly from: string;
   private readonly replyTo: string;
   private readonly allowedRecipients: ReadonlySet<string>;
+  private readonly recipientPolicy: "allowlist" | "public";
   private readonly origin: URL;
   private readonly linkPaths: (typeof NEWSLETTER_LINK_PATHS)[keyof typeof NEWSLETTER_LINK_PATHS];
   private readonly now: () => Date;
@@ -131,22 +140,34 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
   constructor(options: ResendNewsletterMailTransportOptions) {
     const origin = parseTransportOrigin(options.linkOrigin ?? NEWSLETTER_LINK_ORIGIN);
     const linkPaths = NEWSLETTER_LINK_PATHS[options.linkProfile ?? "preview"];
-    const allowedRecipients = options.allowedRecipients.map(normalizeEmail);
+    const recipientPolicy = options.recipientPolicy ?? "allowlist";
+    const configuredRecipients = options.allowedRecipients ?? [];
+    const allowedRecipients = configuredRecipients.map(normalizeEmail);
+    const publicPolicyValid =
+      recipientPolicy === "public" &&
+      configuredRecipients.length === 0 &&
+      options.linkProfile === "production-public" &&
+      origin?.origin === NEWSLETTER_LINK_ORIGIN &&
+      options.from === NEWSLETTER_PUBLIC_SENDER &&
+      options.replyTo === NEWSLETTER_PUBLIC_REPLY_TO;
+    const allowlistPolicyValid =
+      recipientPolicy === "allowlist" &&
+      allowedRecipients.length >= 1 &&
+      configuredRecipients.every(
+        (recipient, index) =>
+          recipient === allowedRecipients[index] &&
+          !recipient.includes("*") &&
+          !/[<>;,]/.test(recipient) &&
+          isValidEmail(recipient),
+      ) &&
+      new Set(allowedRecipients).size === allowedRecipients.length;
     if (
       !origin ||
       !linkPaths ||
       !isValidTransportSender(options.from) ||
       options.replyTo !== options.replyTo.trim() ||
       !isValidEmail(options.replyTo) ||
-      allowedRecipients.length < 1 ||
-      options.allowedRecipients.some(
-        (recipient, index) =>
-          recipient !== allowedRecipients[index] ||
-          recipient.includes("*") ||
-          /[<>;,]/.test(recipient) ||
-          !isValidEmail(recipient),
-      ) ||
-      new Set(allowedRecipients).size !== allowedRecipients.length
+      (!publicPolicyValid && !allowlistPolicyValid)
     ) {
       throw new NewsletterResendTransportError("resend_configuration_invalid");
     }
@@ -154,6 +175,7 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
     this.from = options.from;
     this.replyTo = normalizeEmail(options.replyTo);
     this.allowedRecipients = new Set(allowedRecipients);
+    this.recipientPolicy = recipientPolicy;
     this.origin = origin;
     this.linkPaths = linkPaths;
     this.now = options.now ?? (() => new Date());
@@ -176,7 +198,10 @@ export class ResendNewsletterMailTransport implements NewsletterMailTransport {
       !isValidEmail(command.recipientEmail) ||
       command.recipientEmail.includes(",") ||
       command.recipientEmail.includes(";") ||
-      !this.allowedRecipients.has(recipient)
+      (
+        this.recipientPolicy === "allowlist" &&
+        !this.allowedRecipients.has(recipient)
+      )
     ) {
       throw new NewsletterResendTransportError("resend_recipient_not_allowed");
     }

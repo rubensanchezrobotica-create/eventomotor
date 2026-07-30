@@ -387,6 +387,6 @@ test("R4A no crea rutas, SQL, migraciones, SDK, SMTP ni dependencias nuevas", ()
     "lib/newsletter/resend-transport.server.tsx",
     "lib/newsletter/mail-transport-config.server.ts",
   ].map((path) => readFileSync(join(process.cwd(), path), "utf8")).join("\n");
-  assert.doesNotMatch(source, /supabase|smtp|nodemailer|webhook|campaign|RESEND_BASE_URL/i);
+  assert.doesNotMatch(source, /supabase|smtp|nodemailer|campaign|RESEND_BASE_URL/i);
   assert.doesNotMatch(source, /app[\\/](api|newsletter)/i);
 });

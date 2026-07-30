@@ -25,11 +25,15 @@ import {
 } from "@/lib/newsletter/schemas";
 import {
   evaluateNewsletterProductionCanaryResendConfiguration,
+  evaluateNewsletterPublicLaunchResendConfiguration,
   type NewsletterProductionCanaryResendEnvironment,
 } from "@/lib/newsletter/resend-config.server";
 import {
   isNewsletterProductionCanaryMutationRequestAllowed,
 } from "@/lib/newsletter/r5a-guard";
+import {
+  isNewsletterPublicLaunchMutationRequestAllowed,
+} from "@/lib/newsletter/r5b-guard";
 import { createConfiguredNewsletterService } from "@/lib/newsletter/service.server";
 import {
   NewsletterOperationError,
@@ -55,6 +59,8 @@ export type NewsletterHttpGuardReason =
   | "preview_context_invalid"
   | "test_context_invalid"
   | "production_canary_invalid"
+  | "production_public_invalid"
+  | "production_configuration_ambiguous"
   | "origin_required"
   | "origin_mismatch"
   | "host_mismatch"
@@ -67,6 +73,9 @@ export type NewsletterHttpGuardInput = NewsletterRuntimeEnvironment & {
   r4bArmed?: string;
   r4bLocalOrigin?: string;
   vercel?: string;
+  publicLaunchEnabled?: string;
+  publicLaunchOrigin?: string;
+  webhookSecret?: string;
 } & Omit<NewsletterProductionCanaryResendEnvironment, "newsletterMode">;
 
 export type NewsletterHttpGuardResult =
@@ -74,7 +83,13 @@ export type NewsletterHttpGuardResult =
   | {
       allowed: true;
       mode: "live";
+      launch: "canary";
       allowedRecipients: readonly string[];
+    }
+  | {
+      allowed: true;
+      mode: "live";
+      launch: "public";
     }
   | { allowed: false; mode: NewsletterMode; reason: NewsletterHttpGuardReason };
 
@@ -108,6 +123,9 @@ export type NewsletterHttpRuntimeEnvironment = NewsletterRuntimeEnvironment & {
   r4bArmed?: string;
   r4bLocalOrigin?: string;
   vercel?: string;
+  publicLaunchEnabled?: string;
+  publicLaunchOrigin?: string;
+  webhookSecret?: string;
 } & Omit<NewsletterProductionCanaryResendEnvironment, "newsletterMode">;
 
 export type NewsletterHttpHandlerDependencies = {
@@ -157,6 +175,9 @@ function currentEnvironment(): NewsletterHttpRuntimeEnvironment {
     recipientAllowlist: process.env.NEWSLETTER_PRODUCTION_CANARY_ALLOWLIST,
     armed: process.env.NEWSLETTER_PRODUCTION_CANARY_ARMED,
     canaryOrigin: process.env.NEWSLETTER_PRODUCTION_CANARY_ORIGIN,
+    publicLaunchEnabled: process.env.NEWSLETTER_PUBLIC_LAUNCH_ENABLED,
+    publicLaunchOrigin: process.env.NEWSLETTER_PUBLIC_LAUNCH_ORIGIN,
+    webhookSecret: process.env.NEWSLETTER_RESEND_WEBHOOK_SECRET,
     vercel: process.env.VERCEL,
     vercelEnv: process.env.VERCEL_ENV,
   };
@@ -187,7 +208,7 @@ export function evaluateNewsletterHttpGuard(
   }
 
   if (mode === "live") {
-    const configuration =
+    const canaryConfiguration =
       evaluateNewsletterProductionCanaryResendConfiguration({
         newsletterMode: input.mode,
         mailTransport: input.mailTransport,
@@ -201,10 +222,47 @@ export function evaluateNewsletterHttpGuard(
         vercel: input.vercel,
         vercelEnv: input.vercelEnv,
       });
+    const publicConfiguration =
+      evaluateNewsletterPublicLaunchResendConfiguration({
+        newsletterMode: input.mode,
+        mailTransport: input.mailTransport,
+        apiKey: input.apiKey,
+        from: input.from,
+        replyTo: input.replyTo,
+        publicLaunchEnabled: input.publicLaunchEnabled,
+        publicLaunchOrigin: input.publicLaunchOrigin,
+        webhookSecret: input.webhookSecret,
+        nodeEnv: input.nodeEnv,
+        vercel: input.vercel,
+        vercelEnv: input.vercelEnv,
+      });
+
+    if (canaryConfiguration.enabled && publicConfiguration.enabled) {
+      return {
+        allowed: false,
+        mode,
+        reason: "production_configuration_ambiguous",
+      };
+    }
     if (
-      !configuration.enabled ||
+      publicConfiguration.enabled &&
+      isNewsletterPublicLaunchMutationRequestAllowed(
+        publicConfiguration,
+        input.requestUrl,
+        input.origin,
+        input.host,
+      )
+    ) {
+      return {
+        allowed: true,
+        mode: "live",
+        launch: "public",
+      };
+    }
+    if (
+      !canaryConfiguration.enabled ||
       !isNewsletterProductionCanaryMutationRequestAllowed(
-        configuration,
+        canaryConfiguration,
         input.requestUrl,
         input.origin,
         input.host,
@@ -213,13 +271,16 @@ export function evaluateNewsletterHttpGuard(
       return {
         allowed: false,
         mode,
-        reason: "production_canary_invalid",
+        reason: publicConfiguration.enabled
+          ? "production_public_invalid"
+          : "production_canary_invalid",
       };
     }
     return {
       allowed: true,
       mode: "live",
-      allowedRecipients: configuration.allowedRecipients,
+      launch: "canary",
+      allowedRecipients: canaryConfiguration.allowedRecipients,
     };
   }
 
@@ -600,6 +661,7 @@ export function createNewsletterHttpHandler(
         const requestInput = parsedInput.value as RequestNewsletterInput;
         if (
           guard.mode === "live" &&
+          guard.launch === "canary" &&
           !guard.allowedRecipients.includes(normalizeEmail(requestInput.email))
         ) {
           return jsonResponse<RequestNewsletterResponse>(

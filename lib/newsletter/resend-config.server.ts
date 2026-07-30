@@ -14,6 +14,11 @@ import {
   NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE,
   parseNewsletterProductionCanaryOrigin,
 } from "@/lib/newsletter/r5a-guard";
+import {
+  NEWSLETTER_PUBLIC_LAUNCH_ARMED_VALUE,
+  isValidNewsletterWebhookSecret,
+  parseNewsletterPublicLaunchOrigin,
+} from "@/lib/newsletter/r5b-guard";
 import { ResendNewsletterMailTransport } from "@/lib/newsletter/resend-transport.server";
 
 const MAX_ALLOWLIST_ENTRIES = 20;
@@ -45,6 +50,14 @@ export type NewsletterProductionCanaryResendEnvironment =
   NewsletterResendEnvironment & {
     armed?: string;
     canaryOrigin?: string;
+    vercel?: string;
+  };
+
+export type NewsletterPublicLaunchResendEnvironment =
+  NewsletterResendEnvironment & {
+    publicLaunchEnabled?: string;
+    publicLaunchOrigin?: string;
+    webhookSecret?: string;
     vercel?: string;
   };
 
@@ -97,6 +110,33 @@ export type NewsletterProductionCanaryResendConfiguration =
   | (Extract<NewsletterResendConfiguration, { enabled: true }> & {
       canonicalEndpoint: string;
     });
+
+export type NewsletterPublicLaunchResendConfigurationReason =
+  | Exclude<
+      NewsletterResendConfigurationReason,
+      "mode_not_test" | "allowlist_invalid"
+    >
+  | "mode_not_live"
+  | "public_launch_not_armed"
+  | "vercel_required"
+  | "production_environment_required"
+  | "public_endpoint_invalid"
+  | "sender_domain_invalid"
+  | "webhook_secret_invalid";
+
+export type NewsletterPublicLaunchResendConfiguration =
+  | {
+      enabled: false;
+      reason: NewsletterPublicLaunchResendConfigurationReason;
+    }
+  | {
+      enabled: true;
+      apiKey: string;
+      from: string;
+      replyTo: string;
+      canonicalEndpoint: string;
+      recipientPolicy: "public";
+    };
 
 export type ConfiguredNewsletterResendRuntime = {
   transport: NewsletterMailTransport;
@@ -283,6 +323,71 @@ export function evaluateNewsletterProductionCanaryResendConfiguration(
   };
 }
 
+export function evaluateNewsletterPublicLaunchResendConfiguration(
+  environment: NewsletterPublicLaunchResendEnvironment,
+): NewsletterPublicLaunchResendConfiguration {
+  if (environment.mailTransport !== "resend") {
+    return { enabled: false, reason: "transport_not_selected" };
+  }
+  if (environment.newsletterMode !== "live") {
+    return { enabled: false, reason: "mode_not_live" };
+  }
+  if (
+    environment.publicLaunchEnabled !==
+    NEWSLETTER_PUBLIC_LAUNCH_ARMED_VALUE
+  ) {
+    return { enabled: false, reason: "public_launch_not_armed" };
+  }
+  if (environment.vercel !== "1") {
+    return { enabled: false, reason: "vercel_required" };
+  }
+  if (
+    environment.vercelEnv !== "production" ||
+    environment.nodeEnv !== "production"
+  ) {
+    return { enabled: false, reason: "production_environment_required" };
+  }
+  const origin = parseNewsletterPublicLaunchOrigin(
+    environment.publicLaunchOrigin,
+  );
+  if (!origin) {
+    return { enabled: false, reason: "public_endpoint_invalid" };
+  }
+  if (!environment.apiKey || !isValidApiKey(environment.apiKey)) {
+    return { enabled: false, reason: "api_key_invalid" };
+  }
+  if (
+    !environment.from ||
+    environment.from !== NEWSLETTER_PRODUCTION_SENDER ||
+    !isValidSender(environment.from)
+  ) {
+    return { enabled: false, reason: "from_invalid" };
+  }
+  const fromAddress = senderEmail(environment.from);
+  if (!fromAddress || fromAddress.split("@")[1] !== "news.eventomotor.com") {
+    return { enabled: false, reason: "sender_domain_invalid" };
+  }
+  if (
+    !environment.replyTo ||
+    environment.replyTo !== environment.replyTo.trim() ||
+    !isValidEmail(environment.replyTo) ||
+    normalizeEmail(environment.replyTo) !== NEWSLETTER_PRODUCTION_REPLY_TO
+  ) {
+    return { enabled: false, reason: "reply_to_invalid" };
+  }
+  if (!isValidNewsletterWebhookSecret(environment.webhookSecret)) {
+    return { enabled: false, reason: "webhook_secret_invalid" };
+  }
+  return {
+    enabled: true,
+    apiKey: environment.apiKey,
+    from: environment.from,
+    replyTo: normalizeEmail(environment.replyTo),
+    canonicalEndpoint: origin.origin,
+    recipientPolicy: "public",
+  };
+}
+
 function currentNewsletterR4BResendEnvironment(): NewsletterR4BResendEnvironment {
   return {
     newsletterMode: process.env.NEWSLETTER_MODE,
@@ -315,6 +420,22 @@ export function currentNewsletterProductionCanaryEnvironment(): NewsletterProduc
   };
 }
 
+export function currentNewsletterPublicLaunchEnvironment(): NewsletterPublicLaunchResendEnvironment {
+  return {
+    newsletterMode: process.env.NEWSLETTER_MODE,
+    mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
+    apiKey: process.env.NEWSLETTER_RESEND_API_KEY,
+    from: process.env.NEWSLETTER_RESEND_FROM,
+    replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
+    publicLaunchEnabled: process.env.NEWSLETTER_PUBLIC_LAUNCH_ENABLED,
+    publicLaunchOrigin: process.env.NEWSLETTER_PUBLIC_LAUNCH_ORIGIN,
+    webhookSecret: process.env.NEWSLETTER_RESEND_WEBHOOK_SECRET,
+    nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
+  };
+}
+
 export function createNewsletterProductionCanaryResendRuntime(
   environment: NewsletterProductionCanaryResendEnvironment,
   clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
@@ -337,15 +458,54 @@ export function createNewsletterProductionCanaryResendRuntime(
   };
 }
 
+export function createNewsletterPublicLaunchResendRuntime(
+  environment: NewsletterPublicLaunchResendEnvironment,
+  clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
+    new FetchNewsletterResendClient({ apiKey }),
+): ConfiguredNewsletterResendRuntime | null {
+  const configuration =
+    evaluateNewsletterPublicLaunchResendConfiguration(environment);
+  if (!configuration.enabled) return null;
+
+  return {
+    serviceMode: "live",
+    transport: new ResendNewsletterMailTransport({
+      client: clientFactory(configuration.apiKey),
+      from: configuration.from,
+      replyTo: configuration.replyTo,
+      recipientPolicy: configuration.recipientPolicy,
+      linkOrigin: configuration.canonicalEndpoint,
+      linkProfile: "production-public",
+    }),
+  };
+}
+
 export function createConfiguredNewsletterResendRuntime(
   clientFactory: (apiKey: string) => NewsletterResendClient = (apiKey) =>
     new FetchNewsletterResendClient({ apiKey }),
 ): ConfiguredNewsletterResendRuntime | null {
-  const productionCanary = createNewsletterProductionCanaryResendRuntime(
-    currentNewsletterProductionCanaryEnvironment(),
-    clientFactory,
-  );
-  if (productionCanary) return productionCanary;
+  const publicEnvironment = currentNewsletterPublicLaunchEnvironment();
+  const canaryEnvironment = currentNewsletterProductionCanaryEnvironment();
+  const publicConfiguration =
+    evaluateNewsletterPublicLaunchResendConfiguration(publicEnvironment);
+  const canaryConfiguration =
+    evaluateNewsletterProductionCanaryResendConfiguration(canaryEnvironment);
+
+  if (publicConfiguration.enabled && canaryConfiguration.enabled) {
+    return null;
+  }
+  if (publicConfiguration.enabled) {
+    return createNewsletterPublicLaunchResendRuntime(
+      publicEnvironment,
+      clientFactory,
+    );
+  }
+  if (canaryConfiguration.enabled) {
+    return createNewsletterProductionCanaryResendRuntime(
+      canaryEnvironment,
+      clientFactory,
+    );
+  }
 
   const configuration = evaluateNewsletterR4BResendConfiguration(
     currentNewsletterR4BResendEnvironment(),

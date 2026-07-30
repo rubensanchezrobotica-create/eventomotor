@@ -7,6 +7,12 @@ import {
 import {
   NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE,
 } from "@/lib/newsletter/r5a-guard";
+import {
+  evaluateNewsletterPublicLaunchResendConfiguration,
+} from "@/lib/newsletter/resend-config.server";
+import {
+  isValidNewsletterWebhookSecret,
+} from "@/lib/newsletter/r5b-guard";
 import { isValidEmail, normalizeEmail } from "@/lib/newsletter/schemas";
 import type {
   NewsletterRepository,
@@ -34,6 +40,11 @@ export type NewsletterResendWebhookEnvironment = {
   newsletterMode?: string;
   mailTransport?: string;
   canaryArmed?: string;
+  publicLaunchEnabled?: string;
+  publicLaunchOrigin?: string;
+  apiKey?: string;
+  from?: string;
+  replyTo?: string;
   webhookSecret?: string;
   nodeEnv?: string;
   vercel?: string;
@@ -70,34 +81,46 @@ export class SvixNewsletterWebhookVerifier
   }
 }
 
-function isValidWebhookSecret(value: string): boolean {
-  return (
-    value.startsWith("whsec_") &&
-    value.length >= 20 &&
-    value.length <= 500 &&
-    value === value.trim() &&
-    !/[\s\u0000-\u001f\u007f]/.test(value)
-  );
-}
-
 export function evaluateNewsletterResendWebhookConfiguration(
   environment: NewsletterResendWebhookEnvironment,
 ): NewsletterResendWebhookConfiguration {
-  if (
+  const productionEnvironmentInvalid =
     environment.newsletterMode !== "live" ||
     environment.mailTransport !== "resend" ||
-    environment.canaryArmed !== NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE ||
     environment.nodeEnv !== "production" ||
     environment.vercel !== "1" ||
-    environment.vercelEnv !== "production" ||
-    !environment.webhookSecret ||
-    !isValidWebhookSecret(environment.webhookSecret)
-  ) {
+    environment.vercelEnv !== "production";
+  if (productionEnvironmentInvalid) {
+    return { enabled: false };
+  }
+  const webhookSecret = environment.webhookSecret;
+  if (!isValidNewsletterWebhookSecret(webhookSecret)) {
+    return { enabled: false };
+  }
+
+  const canaryEnabled =
+    environment.canaryArmed === NEWSLETTER_PRODUCTION_CANARY_ARMED_VALUE;
+  const publicLaunchEnabled =
+    evaluateNewsletterPublicLaunchResendConfiguration({
+      newsletterMode: environment.newsletterMode,
+      mailTransport: environment.mailTransport,
+      publicLaunchEnabled: environment.publicLaunchEnabled,
+      publicLaunchOrigin: environment.publicLaunchOrigin,
+      apiKey: environment.apiKey,
+      from: environment.from,
+      replyTo: environment.replyTo,
+      webhookSecret,
+      nodeEnv: environment.nodeEnv,
+      vercel: environment.vercel,
+      vercelEnv: environment.vercelEnv,
+    }).enabled;
+
+  if (canaryEnabled === publicLaunchEnabled) {
     return { enabled: false };
   }
   return {
     enabled: true,
-    webhookSecret: environment.webhookSecret,
+    webhookSecret,
   };
 }
 
@@ -107,6 +130,11 @@ export function currentNewsletterResendWebhookEnvironment():
     newsletterMode: process.env.NEWSLETTER_MODE,
     mailTransport: process.env.NEWSLETTER_MAIL_TRANSPORT,
     canaryArmed: process.env.NEWSLETTER_PRODUCTION_CANARY_ARMED,
+    publicLaunchEnabled: process.env.NEWSLETTER_PUBLIC_LAUNCH_ENABLED,
+    publicLaunchOrigin: process.env.NEWSLETTER_PUBLIC_LAUNCH_ORIGIN,
+    apiKey: process.env.NEWSLETTER_RESEND_API_KEY,
+    from: process.env.NEWSLETTER_RESEND_FROM,
+    replyTo: process.env.NEWSLETTER_RESEND_REPLY_TO,
     webhookSecret: process.env.NEWSLETTER_RESEND_WEBHOOK_SECRET,
     nodeEnv: process.env.NODE_ENV,
     vercel: process.env.VERCEL,

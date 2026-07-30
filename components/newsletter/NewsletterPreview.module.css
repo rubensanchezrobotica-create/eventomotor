@@ -203,25 +203,17 @@
 }
 
 .privacyLayer {
-  margin: 0 0 14px;
-  padding: 0 0 12px;
+  margin: 10px 0 0;
+  padding: 0;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   color: #aeb4bf;
   background: transparent;
   font-size: 10px;
   line-height: 1.48;
 }
 
-.privacyLayer > strong {
-  display: block;
-  margin-bottom: 6px;
-  color: #f4f4f6;
-  font-size: 11px;
-}
-
 .privacyLayer p {
-  margin: 4px 0 0;
+  margin: 0;
 }
 
 .privacyLayer b {
