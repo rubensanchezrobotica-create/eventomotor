@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(28);
+select plan(44);
 
 set local role anon;
 select throws_ok(
@@ -35,6 +35,18 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_unsubscribe_tokens',
   'anon cannot select unsubscribe tokens'
+);
+select throws_ok(
+  $$select * from public.newsletter_suppressions$$,
+  '42501',
+  'permission denied for table newsletter_suppressions',
+  'anon cannot select suppressions'
+);
+select throws_ok(
+  $$select * from public.newsletter_webhook_receipts$$,
+  '42501',
+  'permission denied for table newsletter_webhook_receipts',
+  'anon cannot select webhook receipts'
 );
 reset role;
 
@@ -68,6 +80,18 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_unsubscribe_tokens',
   'authenticated cannot select unsubscribe tokens'
+);
+select throws_ok(
+  $$select * from public.newsletter_suppressions$$,
+  '42501',
+  'permission denied for table newsletter_suppressions',
+  'authenticated cannot select suppressions'
+);
+select throws_ok(
+  $$select * from public.newsletter_webhook_receipts$$,
+  '42501',
+  'permission denied for table newsletter_webhook_receipts',
+  'authenticated cannot select webhook receipts'
 );
 reset role;
 
@@ -119,6 +143,38 @@ select ok(
   ),
   'anon has no execute privilege on token unsubscribe RPC'
 );
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.purge_stale_newsletter_pending(integer,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on retention RPC'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.check_newsletter_delivery_eligibility(uuid,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on delivery guard RPC'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.register_newsletter_outbound_delivery(uuid,text,text,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on outbound registration RPC'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.process_newsletter_resend_webhook(text,text,text,timestamptz,text,boolean)'::regprocedure,
+    'EXECUTE'
+  ),
+  'anon has no execute privilege on webhook RPC'
+);
 
 select ok(
   not has_function_privilege(
@@ -168,6 +224,38 @@ select ok(
   ),
   'authenticated has no execute privilege on token unsubscribe RPC'
 );
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.purge_stale_newsletter_pending(integer,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on retention RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.check_newsletter_delivery_eligibility(uuid,text)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on delivery guard RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.register_newsletter_outbound_delivery(uuid,text,text,timestamptz)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on outbound registration RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.process_newsletter_resend_webhook(text,text,text,timestamptz,text,boolean)'::regprocedure,
+    'EXECUTE'
+  ),
+  'authenticated has no execute privilege on webhook RPC'
+);
 
 set local role service_role;
 select lives_ok(
@@ -178,6 +266,8 @@ select lives_ok(
     union all select count(*) from public.newsletter_unsubscribe_tokens
     union all select count(*) from public.newsletter_consent_events
     union all select count(*) from public.newsletter_email_events
+    union all select count(*) from public.newsletter_suppressions
+    union all select count(*) from public.newsletter_webhook_receipts
   $$,
   'service_role can read every newsletter table'
 );
@@ -193,8 +283,12 @@ select ok(
   and has_function_privilege('service_role', 'public.prepare_newsletter_welcome_delivery(uuid,text,timestamptz)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.unsubscribe_newsletter_subscriber(uuid,text,text,text,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.unsubscribe_newsletter_by_token(text,text,text,text,text)', 'EXECUTE')
-  and has_function_privilege('service_role', 'public.record_newsletter_provider_event(text,text,text,uuid,text,boolean,timestamptz)', 'EXECUTE'),
-  'service_role has execute privilege on all six RPCs'
+  and has_function_privilege('service_role', 'public.record_newsletter_provider_event(text,text,text,uuid,text,boolean,timestamptz)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.purge_stale_newsletter_pending(integer,timestamptz)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.check_newsletter_delivery_eligibility(uuid,text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.register_newsletter_outbound_delivery(uuid,text,text,timestamptz)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.process_newsletter_resend_webhook(text,text,text,timestamptz,text,boolean)', 'EXECUTE'),
+  'service_role has execute privilege on all ten RPCs'
 );
 
 select ok(
@@ -235,14 +329,85 @@ select is(
 
 select ok(
   (
-    select count(*) = 6
+    select count(*) = 8
     from information_schema.role_table_grants
     where table_schema = 'public'
       and table_name like 'newsletter_%'
       and grantee = 'service_role'
       and privilege_type = 'SELECT'
   ),
-  'service_role has exactly the intended six table read grants'
+  'service_role has exactly the intended eight table read grants'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from pg_class
+    where relnamespace = 'public'::regnamespace
+      and relkind = 'S'
+      and relname like 'newsletter_%'
+  ),
+  0,
+  'newsletter persistence introduces no grant-bearing sequences'
+);
+
+select ok(
+  (
+    select bool_and(
+      not has_function_privilege(
+        helper_check.role_name,
+        helper_check.function_name,
+        'EXECUTE'
+      )
+    )
+    from (
+      values
+        ('anon', 'public.newsletter_email_hash(text)'),
+        ('authenticated', 'public.newsletter_email_hash(text)'),
+        ('service_role', 'public.newsletter_email_hash(text)'),
+        (
+          'anon',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        ),
+        (
+          'authenticated',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        ),
+        (
+          'service_role',
+          'public.minimize_newsletter_subscriber(uuid,text,timestamptz,text,uuid)'
+        )
+    ) as helper_check(role_name, function_name)
+  ),
+  'sensitive hash and minimization helpers are not directly executable'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from cron.job
+    where jobname = 'newsletter-pending-retention-daily'
+      and schedule = '17 3 * * *'
+      and command = 'select public.purge_stale_newsletter_pending(500);'
+  ),
+  1,
+  'retention uses one stable reviewed cron definition'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name in (
+        'newsletter_suppressions',
+        'newsletter_webhook_receipts'
+      )
+      and grantee = 'service_role'
+      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
+  ),
+  0,
+  'service_role has no direct write grant on suppression or replay tables'
 );
 
 select * from finish();

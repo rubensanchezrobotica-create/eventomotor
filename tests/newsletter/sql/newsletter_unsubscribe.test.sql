@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(12);
+select plan(14);
 
 insert into public.newsletter_subscribers (
   id, email, email_normalized, status, source, consent_version, confirmed_at
@@ -29,9 +29,13 @@ select is(
   'unsubscribe changes active to unsubscribed'
 );
 select is(
-  (select weekly_digest_enabled from public.newsletter_preferences where subscriber_id = '20000000-0000-4000-8000-000000000001'),
-  false,
-  'unsubscribe disables the weekly digest'
+  (
+    select count(*)::integer
+    from public.newsletter_preferences
+    where subscriber_id = '20000000-0000-4000-8000-000000000001'
+  ),
+  0,
+  'unsubscribe removes newsletter preferences during minimization'
 );
 select ok(
   exists(
@@ -40,9 +44,35 @@ select ok(
   ),
   'unsubscribe records a consent event'
 );
-select ok(
-  (select invalidated_at is not null from public.newsletter_confirmation_tokens where token_hash = repeat('a', 64)),
-  'unsubscribe invalidates outstanding tokens'
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_confirmation_tokens
+    where subscriber_id = '20000000-0000-4000-8000-000000000001'
+  ),
+  0,
+  'unsubscribe removes unnecessary confirmation tokens during minimization'
+);
+select results_eq(
+  $$
+    select reason
+    from public.newsletter_suppressions
+    where subscriber_id = '20000000-0000-4000-8000-000000000001'
+      and lifted_at is null
+  $$,
+  $$values ('voluntary'::text)$$,
+  'unsubscribe preserves only an active minimized voluntary suppression'
+);
+select results_eq(
+  $$
+    select outcome
+    from public.check_newsletter_delivery_eligibility(
+      '20000000-0000-4000-8000-000000000001',
+      'welcome'
+    )
+  $$,
+  $$values ('blocked'::text)$$,
+  'a minimized unsubscribe cannot receive welcome delivery'
 );
 
 select results_eq(

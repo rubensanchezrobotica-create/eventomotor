@@ -46,6 +46,7 @@
     "test:newsletter-r4b": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r4b.test.ts && node --import tsx --test tests/newsletter/newsletter-r4b-branding.test.tsx",
     "test:newsletter-r5a": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a.test.ts",
     "test:newsletter-r5a1": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a1.test.ts",
+    "test:newsletter-r5a2": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a2.test.ts",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",
@@ -59,7 +60,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-email": "6.9.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "svix": "^1.99.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

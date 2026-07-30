@@ -160,7 +160,10 @@ test("test explícito con configuración completa habilita Resend", () => {
 test("coincidencia exacta llama una vez y conserva el payload sin CC, BCC ni tracking", async () => {
   const { client, transport } = createTransport();
   const result = await transport.send(CONFIRMATION_COMMAND);
-  assert.deepEqual(result, { status: "accepted" });
+  assert.deepEqual(result, {
+    status: "accepted",
+    providerMessageId: "fake-provider-message-id",
+  });
   assert.equal(client.calls.length, 1);
   assert.deepEqual(client.calls[0], {
     from: FROM,

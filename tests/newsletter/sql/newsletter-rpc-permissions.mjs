@@ -26,10 +26,13 @@ const PUBLIC_KEY_ALIASES = [
 ];
 const COUNT_TABLES = [
   "newsletter_subscribers",
+  "newsletter_preferences",
   "newsletter_confirmation_tokens",
   "newsletter_unsubscribe_tokens",
   "newsletter_consent_events",
   "newsletter_email_events",
+  "newsletter_suppressions",
+  "newsletter_webhook_receipts",
 ];
 
 const RPCS = [
@@ -99,6 +102,44 @@ const RPCS = [
       p_event_type: "delivered",
       p_is_permanent: false,
       p_occurred_at: "2099-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    name: "purge-pending",
+    rpcName: "purge_stale_newsletter_pending",
+    body: {
+      p_batch_size: 1,
+      p_cutoff: "2000-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    name: "check-delivery",
+    rpcName: "check_newsletter_delivery_eligibility",
+    body: {
+      p_subscriber_id: "00000000-0000-4000-8000-000000000001",
+      p_delivery_kind: "welcome",
+    },
+  },
+  {
+    name: "register-outbound",
+    rpcName: "register_newsletter_outbound_delivery",
+    body: {
+      p_subscriber_id: "00000000-0000-4000-8000-000000000001",
+      p_provider_message_id: "rpc-permission-message",
+      p_delivery_kind: "welcome",
+      p_occurred_at: "2099-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    name: "process-resend-webhook",
+    rpcName: "process_newsletter_resend_webhook",
+    body: {
+      p_svix_id: "rpc-permission-svix",
+      p_event_type: "email.delivered",
+      p_provider_message_id: "rpc-permission-message",
+      p_occurred_at: "2099-01-01T00:00:00.000Z",
+      p_recipient_email_normalized: null,
+      p_is_permanent: false,
     },
   },
 ];
@@ -304,10 +345,13 @@ async function readProtectedCounts(execute, container) {
     container,
     `select json_build_object(
       'newsletter_subscribers', (select count(*)::integer from public.newsletter_subscribers),
+      'newsletter_preferences', (select count(*)::integer from public.newsletter_preferences),
       'newsletter_confirmation_tokens', (select count(*)::integer from public.newsletter_confirmation_tokens),
       'newsletter_unsubscribe_tokens', (select count(*)::integer from public.newsletter_unsubscribe_tokens),
       'newsletter_consent_events', (select count(*)::integer from public.newsletter_consent_events),
-      'newsletter_email_events', (select count(*)::integer from public.newsletter_email_events)
+      'newsletter_email_events', (select count(*)::integer from public.newsletter_email_events),
+      'newsletter_suppressions', (select count(*)::integer from public.newsletter_suppressions),
+      'newsletter_webhook_receipts', (select count(*)::integer from public.newsletter_webhook_receipts)
     )::text;`,
   );
   let counts;

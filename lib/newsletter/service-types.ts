@@ -168,6 +168,24 @@ export type NewsletterProviderEventRepositoryParams = Omit<
   subscriberId: string | null;
 };
 
+export type NewsletterDeliveryKind = "confirmation" | "welcome";
+
+export type NewsletterOutboundDeliveryRepositoryParams = {
+  subscriberId: string;
+  providerMessageId: string;
+  deliveryKind: NewsletterDeliveryKind;
+  occurredAt: string;
+};
+
+export type NewsletterResendWebhookRepositoryParams = {
+  svixId: string;
+  eventType: string;
+  providerMessageId: string | null;
+  occurredAt: string;
+  recipientEmailNormalized: string | null;
+  isPermanent: boolean;
+};
+
 export interface NewsletterRepository {
   requestSubscription(
     params: NewsletterRequestRepositoryParams,
@@ -183,6 +201,16 @@ export interface NewsletterRepository {
     params: NewsletterTokenUnsubscribeRepositoryParams,
   ): Promise<NewsletterTokenUnsubscribeOutcome>;
   recordProviderEvent(params: NewsletterProviderEventRepositoryParams): Promise<"recorded" | "duplicate">;
+  checkDeliveryEligibility?(
+    subscriberId: string,
+    deliveryKind: NewsletterDeliveryKind,
+  ): Promise<"allowed" | "blocked">;
+  registerOutboundDelivery?(
+    params: NewsletterOutboundDeliveryRepositoryParams,
+  ): Promise<"recorded" | "duplicate">;
+  processResendWebhook?(
+    params: NewsletterResendWebhookRepositoryParams,
+  ): Promise<"processed" | "duplicate" | "ignored" | "unmatched">;
 }
 
 export type ConfirmationMailCommand = {
@@ -203,7 +231,9 @@ export type WelcomeMailCommand = {
 };
 
 export type NewsletterMailCommand = ConfirmationMailCommand | WelcomeMailCommand;
-export type MailTransportResult = { status: "accepted" | "skipped" };
+export type MailTransportResult =
+  | { status: "accepted"; providerMessageId?: string }
+  | { status: "skipped" };
 export type NewsletterMailStatus = "not_required" | "accepted" | "failed";
 
 export type NewsletterPublicMutationResponse = typeof NEWSLETTER_PUBLIC_MUTATION_RESPONSE;

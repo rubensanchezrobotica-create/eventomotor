@@ -406,7 +406,7 @@ test("endpoint runtime hashea el token y no acepta email o UUID", async () => {
   assert.equal(rejected.status, 400);
 });
 
-test("el núcleo R3B.4 no introduce proveedores, rutas públicas o datos sensibles en logs", () => {
+test("el núcleo compartido no introduce SMTP, red directa o datos sensibles en logs", () => {
   const files = [
     "lib/newsletter/service.server.ts",
     "lib/newsletter/repository.server.ts",
@@ -415,7 +415,7 @@ test("el núcleo R3B.4 no introduce proveedores, rutas públicas o datos sensibl
   ];
   const source = files.map((file) => readFileSync(join(process.cwd(), file), "utf8")).join("\n");
   const prohibitedCampaign = ["ba", "ñe", "za"].join("");
-  assert.doesNotMatch(source, new RegExp(`resend|smtp|fetch\\(|\\.env\\.local|${prohibitedCampaign}`, "i"));
+  assert.doesNotMatch(source, new RegExp(`smtp|fetch\\(|\\.env\\.local|${prohibitedCampaign}`, "i"));
   assert.doesNotMatch(source, /app[\\/]newsletter/);
   assert.match(source, /server-only/);
   assert.deepEqual(NEWSLETTER_PUBLIC_MUTATION_RESPONSE, {

@@ -119,6 +119,9 @@ test("el servicio completa confirmación y bienvenida sin provincia", async () =
     async recordProviderEvent() {
       return "recorded";
     },
+    async checkDeliveryEligibility() {
+      return "allowed";
+    },
   };
   const service = createNewsletterService({
     mode: "live",

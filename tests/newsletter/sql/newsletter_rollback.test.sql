@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(16);
+select plan(21);
 
 create function pg_temp.fail_newsletter_consent_for_test()
 returns trigger
@@ -54,15 +54,23 @@ select is(
 );
 
 insert into public.newsletter_subscribers (
-  id, email, email_normalized, status, source, consent_version
+  id, email, email_normalized, status, source, consent_version, unsubscribed_at
 ) values (
   '40000000-0000-4000-8000-000000000001',
   'rollback-confirm@example.invalid',
   'rollback-confirm@example.invalid',
-  'pending', 'sql_test', '2026-07'
+  'unsubscribed', 'sql_test', '2026-07', now()
 );
 insert into public.newsletter_confirmation_tokens (subscriber_id, token_hash, purpose, expires_at)
-values ('40000000-0000-4000-8000-000000000001', repeat('b', 64), 'subscribe', now() + interval '1 day');
+values ('40000000-0000-4000-8000-000000000001', repeat('b', 64), 'resubscribe', now() + interval '1 day');
+insert into public.newsletter_suppressions (
+  subscriber_id, email_hash, reason, suppressed_at
+) values (
+  '40000000-0000-4000-8000-000000000001',
+  public.newsletter_email_hash('rollback-confirm@example.invalid'),
+  'voluntary',
+  now()
+);
 
 select set_config('newsletter_test.fail_action', 'confirmed', true);
 select throws_ok(
@@ -73,17 +81,20 @@ select throws_ok(
 );
 select is(
   (select status from public.newsletter_subscribers where id = '40000000-0000-4000-8000-000000000001'),
-  'pending',
-  'failed confirmation does not activate the subscriber'
+  'unsubscribed',
+  'failed resubscription does not activate the subscriber'
 );
 select ok(
   (select used_at is null from public.newsletter_confirmation_tokens where token_hash = repeat('b', 64)),
   'failed confirmation does not consume the token'
 );
-select is(
-  (select count(*)::integer from public.newsletter_preferences where subscriber_id = '40000000-0000-4000-8000-000000000001'),
-  0,
-  'failed confirmation does not enable preferences'
+select ok(
+  (
+    select lifted_at is null
+    from public.newsletter_suppressions
+    where subscriber_id = '40000000-0000-4000-8000-000000000001'
+  ),
+  'failed resubscription does not lift voluntary suppression'
 );
 select is(
   (
@@ -147,6 +158,81 @@ select is(
   ),
   0,
   'failed unsubscribe leaves no partial consent event'
+);
+
+insert into public.newsletter_subscribers (
+  id, email, email_normalized, status, source, consent_version, confirmed_at
+) values (
+  '40000000-0000-4000-8000-000000000003',
+  'rollback-webhook@example.invalid',
+  'rollback-webhook@example.invalid',
+  'active', 'sql_test', '2026-07', now()
+);
+insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+values ('40000000-0000-4000-8000-000000000003', true);
+select *
+from public.register_newsletter_outbound_delivery(
+  '40000000-0000-4000-8000-000000000003',
+  'rollback-message',
+  'welcome',
+  now()
+);
+
+select set_config('newsletter_test.fail_action', 'complained', true);
+select throws_ok(
+  $$
+    select *
+    from public.process_newsletter_resend_webhook(
+      'rollback-svix',
+      'email.complained',
+      'rollback-message',
+      now(),
+      'rollback-webhook@example.invalid',
+      false
+    )
+  $$,
+  'P0001',
+  'forced newsletter consent failure',
+  'a forced webhook suppression failure aborts the whole operation'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_webhook_receipts
+    where svix_id = 'rollback-svix'
+  ),
+  0,
+  'failed webhook processing leaves no replay receipt'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_email_events
+    where provider = 'resend'
+      and provider_event_id = 'rollback-svix'
+  ),
+  0,
+  'failed webhook processing leaves no provider event'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.newsletter_suppressions
+    where subscriber_id = '40000000-0000-4000-8000-000000000003'
+  ),
+  0,
+  'failed webhook processing leaves no partial suppression'
+);
+select results_eq(
+  $$
+    select subscriber.status, preference.weekly_digest_enabled
+    from public.newsletter_subscribers as subscriber
+    join public.newsletter_preferences as preference
+      on preference.subscriber_id = subscriber.id
+    where subscriber.id = '40000000-0000-4000-8000-000000000003'
+  $$,
+  $$values ('active'::text, true)$$,
+  'failed webhook processing preserves the active sendable aggregate'
 );
 
 select * from finish();

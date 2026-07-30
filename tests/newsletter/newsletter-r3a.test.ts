@@ -646,13 +646,13 @@ test("el repositorio ejecuta exactamente una RPC por operación y valida sus con
   ]);
 });
 
-test("la capa R3A no crea consultas multipaso, endpoints, acciones o adaptadores Resend", () => {
+test("la capa de persistencia no crea consultas multipaso, endpoints ni acciones", () => {
   const repositorySource = readFileSync(
     join(process.cwd(), "lib/newsletter/repository.server.ts"),
     "utf8",
   );
   const serviceSource = readFileSync(join(process.cwd(), "lib/newsletter/service.server.ts"), "utf8");
-  assert.equal((repositorySource.match(/client\.rpc\(/g) ?? []).length, 6);
+  assert.equal((repositorySource.match(/client\.rpc\(/g) ?? []).length, 9);
   assert.doesNotMatch(repositorySource, /\.from\s*\(|insert\s*\(|update\s*\(|delete\s*\(/i);
-  assert.doesNotMatch(`${repositorySource}\n${serviceSource}`, /resend|localStorage|console\.|\bRequest\b|\bResponse\b|use server/i);
+  assert.doesNotMatch(`${repositorySource}\n${serviceSource}`, /localStorage|console\.|\bRequest\b|\bResponse\b|use server/i);
 });

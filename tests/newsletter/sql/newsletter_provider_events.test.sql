@@ -81,9 +81,9 @@ select is(
   'a permanent bounce blocks the subscriber'
 );
 select is(
-  (select weekly_digest_enabled from public.newsletter_preferences where subscriber_id = '30000000-0000-4000-8000-000000000001'),
-  false,
-  'a permanent bounce disables the weekly digest'
+  (select count(*)::integer from public.newsletter_preferences where subscriber_id = '30000000-0000-4000-8000-000000000001'),
+  0,
+  'a permanent bounce deletes delivery preferences'
 );
 
 select * from public.record_newsletter_provider_event(

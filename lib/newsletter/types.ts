@@ -22,10 +22,9 @@ export const NEWSLETTER_PROVIDER_EVENT_TYPES = [
   "sent",
   "delivered",
   "delivery_delayed",
+  "failed",
   "bounced",
   "complained",
-  "opened",
-  "clicked",
   "suppressed",
 ] as const;
 
@@ -59,8 +58,6 @@ export type NewsletterSubscriberRow = {
   provider_contact_id: string | null;
   last_sent_at: string | null;
   last_delivered_at: string | null;
-  last_opened_at: string | null;
-  last_clicked_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -89,8 +86,6 @@ export type NewsletterSubscriberInsert = {
   provider_contact_id?: string | null;
   last_sent_at?: string | null;
   last_delivered_at?: string | null;
-  last_opened_at?: string | null;
-  last_clicked_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -192,6 +187,56 @@ export type NewsletterEmailEventInsert = {
   is_permanent?: boolean;
   occurred_at: string;
   received_at?: string;
+};
+
+export type NewsletterSuppressionReason =
+  | "voluntary"
+  | "permanent_bounce"
+  | "complaint"
+  | "provider_suppression";
+
+export type NewsletterSuppressionRow = {
+  id: string;
+  subscriber_id: string;
+  email_hash: string;
+  reason: NewsletterSuppressionReason;
+  suppressed_at: string;
+  lifted_at: string | null;
+  provider_message_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NewsletterSuppressionInsert = {
+  id?: string;
+  subscriber_id: string;
+  email_hash: string;
+  reason: NewsletterSuppressionReason;
+  suppressed_at: string;
+  lifted_at?: string | null;
+  provider_message_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type NewsletterWebhookReceiptRow = {
+  svix_id: string;
+  event_type: string;
+  provider_message_id: string | null;
+  subscriber_id: string | null;
+  provider_created_at: string;
+  received_at: string;
+  outcome: "processed" | "ignored" | "unmatched";
+};
+
+export type NewsletterWebhookReceiptInsert = {
+  svix_id: string;
+  event_type: string;
+  provider_message_id?: string | null;
+  subscriber_id?: string | null;
+  provider_created_at: string;
+  received_at?: string;
+  outcome: NewsletterWebhookReceiptRow["outcome"];
 };
 
 export type NewsletterSubscriptionOutcome =
