@@ -47,6 +47,7 @@
     "test:newsletter-r5a": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a.test.ts",
     "test:newsletter-r5a1": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a1.test.ts",
     "test:newsletter-r5a2": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a2.test.ts",
+    "test:newsletter-r5a3": "node --conditions=react-server --import tsx --test tests/newsletter/newsletter-r5a3.test.ts",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",

@@ -16,6 +16,7 @@ export const NEWSLETTER_CI_WORKSPACE = ".tmp/newsletter-supabase-ci";
 export const NEWSLETTER_MIGRATIONS = [
   "database/migrations/20260721133000_newsletter_core_foundation.sql",
   "database/migrations/20260729120000_newsletter_launch_operations.sql",
+  "database/migrations/20260730100000_newsletter_canary_hardening.sql",
 ];
 export const NEWSLETTER_SQL_TESTS = [
   "newsletter_schema.test.sql",
@@ -27,6 +28,7 @@ export const NEWSLETTER_SQL_TESTS = [
   "newsletter_provider_events.test.sql",
   "newsletter_rollback.test.sql",
   "newsletter_launch_operations.test.sql",
+  "newsletter_canary_hardening.test.sql",
 ];
 
 const CONFIG = `project_id = "${NEWSLETTER_CI_PROJECT_ID}"

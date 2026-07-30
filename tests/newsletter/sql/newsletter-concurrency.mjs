@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
@@ -188,6 +188,8 @@ const unsubscribeEmail = `concurrent-unsubscribe-${runId}@example.invalid`;
 const webhookEmail = `concurrent-webhook-${runId}@example.invalid`;
 const suppressionRaceEmail = `concurrent-suppression-${runId}@example.invalid`;
 const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
+const legacyRepairEmail = `concurrent-legacy-repair-${runId}@example.invalid`;
+const legacyRepairSubscriberId = randomUUID();
 const providerName = `ci-${runId}`;
 
 let container = "";
@@ -232,6 +234,96 @@ try {
     ),
     "1",
     "request token count",
+  );
+
+  await query(
+    container,
+    `
+      insert into public.newsletter_subscribers (
+        id, email, email_normalized, status, source, consent_version,
+        confirmation_request_window_started_at, confirmation_request_count,
+        last_confirmation_requested_at, confirmed_at, unsubscribed_at
+      ) values (
+        ${sqlLiteral(legacyRepairSubscriberId)}::uuid,
+        ${sqlLiteral(legacyRepairEmail)},
+        ${sqlLiteral(legacyRepairEmail)},
+        'unsubscribed',
+        'concurrency_test',
+        '2026-07',
+        now() - interval '1 hour',
+        2,
+        now() - interval '5 minutes',
+        now() - interval '30 days',
+        now() - interval '2 days'
+      );
+      insert into public.newsletter_confirmation_tokens (
+        subscriber_id, token_hash, purpose, expires_at
+      ) values (
+        ${sqlLiteral(legacyRepairSubscriberId)}::uuid,
+        repeat('9', 64),
+        'resubscribe',
+        now() + interval '1 day'
+      );
+    `,
+  );
+  const legacyRequestSql = (hashCharacter) => `
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      ${sqlLiteral(legacyRepairEmail)},
+      ${sqlLiteral(legacyRepairEmail)},
+      repeat(${sqlLiteral(hashCharacter)}, 64),
+      now() + interval '1 day',
+      'concurrency_test',
+      '2026-07'
+    );
+  `;
+  const legacyRepairOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "legacy-resubscription-repair-race",
+    [
+      {
+        name: "legacy-resubscription-repair-a",
+        sql: legacyRequestSql("7"),
+      },
+      {
+        name: "legacy-resubscription-repair-b",
+        sql: legacyRequestSql("8"),
+      },
+    ],
+  );
+  assertEqual(
+    sortedOutcomes(legacyRepairOutputs),
+    "confirmation_required,cooldown",
+    "legacy repair request outcomes",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          subscriber.status, '|',
+          count(distinct suppression.id) filter (
+            where suppression.lifted_at is null
+              and suppression.reason = 'voluntary'
+          ), '|',
+          count(distinct token.id) filter (
+            where token.used_at is null
+              and token.invalidated_at is null
+              and token.purpose = 'resubscribe'
+          )
+        )
+        from public.newsletter_subscribers as subscriber
+        left join public.newsletter_suppressions as suppression
+          on suppression.subscriber_id = subscriber.id
+        left join public.newsletter_confirmation_tokens as token
+          on token.subscriber_id = subscriber.id
+        where subscriber.id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid
+        group by subscriber.status;
+      `,
+    ),
+    "unsubscribed|1|1",
+    "legacy repair final aggregate",
   );
 
   const confirmationHash = await query(
@@ -627,6 +719,14 @@ try {
         container,
         `
           delete from public.newsletter_email_events where provider = ${sqlLiteral(providerName)};
+          delete from public.newsletter_consent_events
+          where subscriber_id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid;
+          delete from public.newsletter_confirmation_tokens
+          where subscriber_id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid;
+          delete from public.newsletter_preferences
+          where subscriber_id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid;
+          delete from public.newsletter_subscribers
+          where id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid;
           delete from public.newsletter_consent_events where subscriber_id in (
             select id from public.newsletter_subscribers
             where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})

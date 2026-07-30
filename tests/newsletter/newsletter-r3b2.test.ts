@@ -245,8 +245,8 @@ test("el formulario contiene estados, consentimiento y validación UX accesible"
   assert.match(form, /Introduce un correo válido/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /Debes aceptar la información de privacidad para suscribirte/);
-  assert.match(form, /Si la solicitud puede completarse, recibirás un mensaje/);
-  assert.match(form, /Revisa tu correo/);
+  assert.match(form, /Si la dirección indicada puede completar la suscripción/);
+  assert.match(form, /Solicitud recibida/);
   assert.doesNotMatch(form, /Te hemos enviado un enlace/);
 });
 
