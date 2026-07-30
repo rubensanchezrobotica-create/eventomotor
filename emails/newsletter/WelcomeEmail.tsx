@@ -12,6 +12,7 @@ export default function WelcomeEmail({
   contactEmail,
 }: WelcomeEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.welcome;
+  const legalNoticeUrl = new URL("/aviso-legal", privacyUrl).toString();
 
   return (
     <NewsletterEmailShell logoUrl={logoUrl} preheader={metadata.preheader}>
@@ -41,18 +42,18 @@ export default function WelcomeEmail({
           Te avisaremos cuando la primera edición esté preparada.
         </Text>
         <Text style={styles.links}>
-          Recibes este mensaje porque acabas de confirmar tu suscripción a “La
-          Agenda Motor”.
+          Recibes este correo porque confirmaste tu suscripción a La Agenda
+          Motor de EventoMotor.
         </Text>
         <Text style={styles.links}>
-          Responsable: Rubén Ginés Sánchez García, titular del proyecto
-          EventoMotor. Puedes consultar la{" "}
-          <Link href={privacyUrl} style={styles.link}>Política de privacidad</Link>,
-          {" "}escribir a{" "}
+          EventoMotor ·{" "}
+          <Link href={privacyUrl} style={styles.link}>Política de privacidad</Link>
+          {" · "}
+          <Link href={legalNoticeUrl} style={styles.link}>Aviso legal</Link>
+          {" · Contacto: "}
           <Link href={`mailto:${contactEmail}`} style={styles.link}>{contactEmail}</Link>
-          {" "}o{" "}
-          <Link href={unsubscribeUrl} style={styles.link}>darte de baja</Link> en
-          cualquier momento mediante el enlace incluido en este correo.
+          {" · "}
+          <Link href={unsubscribeUrl} style={styles.link}>Darte de baja</Link>.
         </Text>
       </Section>
     </NewsletterEmailShell>

@@ -30,6 +30,7 @@ export default function WeeklyAgendaEmail({
   contactEmail,
 }: WeeklyAgendaEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.weekly;
+  const legalNoticeUrl = new URL("/aviso-legal", privacyUrl).toString();
 
   return (
     <NewsletterEmailShell logoUrl={logoUrl} preheader={metadata.preheader}>
@@ -76,8 +77,8 @@ export default function WeeklyAgendaEmail({
         <Text style={styles.feedbackTitle}>¿Te ha resultado útil esta edición?</Text>
         <Text style={styles.feedbackLinks}>Sí, mucho · Podría mejorar</Text>
         <Text style={styles.legal}>
-          Recibes “La Agenda Motor” porque confirmaste tu suscripción en
-          EventoMotor.
+          Recibes este correo porque confirmaste tu suscripción a La Agenda
+          Motor de EventoMotor.
         </Text>
         <Text style={styles.legal}>
           EventoMotor no comparte tus datos con organizadores, patrocinadores ni
@@ -85,6 +86,8 @@ export default function WeeklyAgendaEmail({
         </Text>
         <Text style={styles.legalLinks}>
           <Link href={privacyUrl} style={styles.unsubscribe}>Política de privacidad</Link>
+          {" · "}
+          <Link href={legalNoticeUrl} style={styles.unsubscribe}>Aviso legal</Link>
           {" · "}
           <Link href={unsubscribeUrl} style={styles.unsubscribe}>Darme de baja</Link>
         </Text>

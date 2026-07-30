@@ -206,17 +206,23 @@ test("los tres emails integran el bloque legal sin prometer la purga inexistente
   assert.match(metadata, /Solo falta un paso para recibir cada semana/);
   assert.match(confirmation, /solo puede\s+utilizarse una vez/);
   assert.match(confirmation, /Si no has realizado esta solicitud/);
-  assert.match(confirmation, /Rubén Ginés Sánchez García/);
+  assert.doesNotMatch(confirmation, /Rubén Ginés Sánchez García/);
+  assert.match(confirmation, /solicitaste tu suscripción/);
+  assert.match(confirmation, /Aviso legal/);
   assert.doesNotMatch(confirmation, /7 días/);
 
-  assert.match(welcome, /acabas de confirmar tu suscripción/);
+  assert.doesNotMatch(welcome, /Rubén Ginés Sánchez García/);
+  assert.match(welcome, /confirmaste tu suscripción/);
   assert.match(welcome, /Política de privacidad/);
-  assert.match(welcome, /darte de baja/);
+  assert.match(welcome, /Aviso legal/);
+  assert.match(welcome, /Darte de baja/);
 
+  assert.doesNotMatch(weekly, /Rubén Ginés Sánchez García/);
   assert.match(weekly, /porque confirmaste tu suscripción/);
   assert.match(weekly, /no comparte tus datos/);
   assert.doesNotMatch(weekly, /Gestionar preferencias|preferencesUrl/);
   assert.match(weekly, /Política de privacidad/);
+  assert.match(weekly, /Aviso legal/);
   assert.match(weekly, /Darme de baja/);
   assert.match(weekly, /Contacto:/);
 });
