@@ -54,15 +54,23 @@ select is(
 );
 
 insert into public.newsletter_subscribers (
-  id, email, email_normalized, status, source, consent_version
+  id, email, email_normalized, status, source, consent_version, unsubscribed_at
 ) values (
   '40000000-0000-4000-8000-000000000001',
   'rollback-confirm@example.invalid',
   'rollback-confirm@example.invalid',
-  'pending', 'sql_test', '2026-07'
+  'unsubscribed', 'sql_test', '2026-07', now()
 );
 insert into public.newsletter_confirmation_tokens (subscriber_id, token_hash, purpose, expires_at)
-values ('40000000-0000-4000-8000-000000000001', repeat('b', 64), 'subscribe', now() + interval '1 day');
+values ('40000000-0000-4000-8000-000000000001', repeat('b', 64), 'resubscribe', now() + interval '1 day');
+insert into public.newsletter_suppressions (
+  subscriber_id, email_hash, reason, suppressed_at
+) values (
+  '40000000-0000-4000-8000-000000000001',
+  public.newsletter_email_hash('rollback-confirm@example.invalid'),
+  'voluntary',
+  now()
+);
 
 select set_config('newsletter_test.fail_action', 'confirmed', true);
 select throws_ok(
@@ -73,17 +81,20 @@ select throws_ok(
 );
 select is(
   (select status from public.newsletter_subscribers where id = '40000000-0000-4000-8000-000000000001'),
-  'pending',
-  'failed confirmation does not activate the subscriber'
+  'unsubscribed',
+  'failed resubscription does not activate the subscriber'
 );
 select ok(
   (select used_at is null from public.newsletter_confirmation_tokens where token_hash = repeat('b', 64)),
   'failed confirmation does not consume the token'
 );
-select is(
-  (select count(*)::integer from public.newsletter_preferences where subscriber_id = '40000000-0000-4000-8000-000000000001'),
-  0,
-  'failed confirmation does not enable preferences'
+select ok(
+  (
+    select lifted_at is null
+    from public.newsletter_suppressions
+    where subscriber_id = '40000000-0000-4000-8000-000000000001'
+  ),
+  'failed resubscription does not lift voluntary suppression'
 );
 select is(
   (

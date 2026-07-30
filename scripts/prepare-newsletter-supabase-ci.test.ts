@@ -217,8 +217,16 @@ test("la migración R5A.2 cualifica columnas sensibles sin ocultar conflictos", 
   ]
     .map((match) => match[1])
     .join("\n");
+  const confirmation = migration.match(
+    /create or replace function public\.confirm_newsletter_subscription[\s\S]*?\$\$;/i,
+  )?.[0];
 
+  assert.ok(confirmation);
   assert.doesNotMatch(migration, /#variable_conflict/i);
+  assert.match(
+    migration,
+    /revoke all on table\s+public\.newsletter_suppressions,\s+public\.newsletter_webhook_receipts\s+from public, anon, authenticated, service_role;\s+[\s\S]*?grant select on table\s+public\.newsletter_suppressions,\s+public\.newsletter_webhook_receipts\s+to service_role;/i,
+  );
   assert.doesNotMatch(
     plpgsqlBodies,
     /\b(?:from|update|delete\s+from)\s+public\.newsletter_[a-z_]+\s*(?:\r?\n|where\b)/i,
@@ -231,6 +239,31 @@ test("la migración R5A.2 cualifica columnas sensibles sin ocultar conflictos", 
     plpgsqlBodies,
     /\b(?:coalesce|greatest)\(\s*(?:subscriber_id|status|reason|event_type|provider_message_id|suppression_kind|created_at|used_at|invalidated_at|token_hash)\b/i,
   );
+  const purposeValidationIndex = confirmation.indexOf(
+    "v_token.purpose <> 'subscribe'",
+  );
+  const suppressionLockIndex = confirmation.indexOf(
+    "from public.newsletter_suppressions as nsp",
+  );
+  const hardSuppressionIndex = confirmation.indexOf(
+    "v_suppression.reason in (",
+  );
+  const voluntaryLiftIndex = confirmation.indexOf(
+    "update public.newsletter_suppressions as nsp",
+  );
+  const activationIndex = confirmation.indexOf("set status = 'active'");
+  const tokenConsumptionIndex = confirmation.indexOf("set used_at = v_now");
+  const confirmedConsentIndex = confirmation.indexOf(
+    "v_subscriber.id, 'confirmed'",
+  );
+
+  assert.ok(purposeValidationIndex >= 0);
+  assert.ok(suppressionLockIndex > purposeValidationIndex);
+  assert.ok(hardSuppressionIndex > suppressionLockIndex);
+  assert.ok(voluntaryLiftIndex > hardSuppressionIndex);
+  assert.ok(activationIndex > voluntaryLiftIndex);
+  assert.ok(tokenConsumptionIndex > activationIndex);
+  assert.ok(confirmedConsentIndex > tokenConsumptionIndex);
 });
 
 test("la baja pending materializa el outcome antes de leer el estado persistido", async () => {

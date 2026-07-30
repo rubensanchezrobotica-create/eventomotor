@@ -58,6 +58,14 @@ insert into public.newsletter_confirmation_tokens (
 ) values (
   '10000000-0000-4000-8000-000000000002', repeat('b', 64), 'resubscribe', now() + interval '1 day'
 );
+insert into public.newsletter_suppressions (
+  subscriber_id, email_hash, reason, suppressed_at
+) values (
+  '10000000-0000-4000-8000-000000000002',
+  public.newsletter_email_hash('confirm-resubscribe@example.invalid'),
+  'voluntary',
+  now()
+);
 select results_eq(
   $$select outcome, subscriber_id from public.confirm_newsletter_subscription(repeat('b', 64))$$,
   $$values ('confirmed'::text, '10000000-0000-4000-8000-000000000002'::uuid)$$,
@@ -118,23 +126,84 @@ insert into public.newsletter_subscribers (
   ('10000000-0000-4000-8000-000000000008', 'blocked-complaint@example.invalid', 'blocked-complaint@example.invalid', 'complained', 'sql_test', '2026-07', null, now(), null),
   ('10000000-0000-4000-8000-000000000009', 'blocked-suppressed@example.invalid', 'blocked-suppressed@example.invalid', 'suppressed', 'sql_test', '2026-07', null, null, now());
 insert into public.newsletter_confirmation_tokens (subscriber_id, token_hash, purpose, expires_at) values
-  ('10000000-0000-4000-8000-000000000007', repeat('1', 64), 'subscribe', now() + interval '1 day'),
-  ('10000000-0000-4000-8000-000000000008', repeat('2', 64), 'subscribe', now() + interval '1 day'),
-  ('10000000-0000-4000-8000-000000000009', repeat('3', 64), 'subscribe', now() + interval '1 day');
+  ('10000000-0000-4000-8000-000000000007', repeat('1', 64), 'resubscribe', now() + interval '1 day'),
+  ('10000000-0000-4000-8000-000000000008', repeat('2', 64), 'resubscribe', now() + interval '1 day'),
+  ('10000000-0000-4000-8000-000000000009', repeat('3', 64), 'resubscribe', now() + interval '1 day');
+
+-- A public request cannot issue tokens for hard-suppressed subscribers. These
+-- explicit, formally valid token fixtures isolate the confirmation barrier and
+-- prove that even a stale/racing token cannot lift hard suppression evidence.
+insert into public.newsletter_suppressions (
+  subscriber_id, email_hash, reason, suppressed_at
+) values
+  (
+    '10000000-0000-4000-8000-000000000007',
+    public.newsletter_email_hash('blocked-bounce@example.invalid'),
+    'permanent_bounce',
+    now()
+  ),
+  (
+    '10000000-0000-4000-8000-000000000008',
+    public.newsletter_email_hash('blocked-complaint@example.invalid'),
+    'complaint',
+    now()
+  ),
+  (
+    '10000000-0000-4000-8000-000000000009',
+    public.newsletter_email_hash('blocked-suppressed@example.invalid'),
+    'provider_suppression',
+    now()
+  );
 
 select results_eq(
-  $$select outcome, subscriber_id from public.confirm_newsletter_subscription(repeat('1', 64))$$,
-  $$values ('blocked'::text, null::uuid)$$,
+  $$
+    with result as (
+      select outcome, subscriber_id
+      from public.confirm_newsletter_subscription(repeat('1', 64))
+    )
+    select result.outcome, result.subscriber_id, subscriber.status,
+      suppression.lifted_at is null
+    from result
+    join public.newsletter_subscribers as subscriber
+      on subscriber.id = '10000000-0000-4000-8000-000000000007'
+    join public.newsletter_suppressions as suppression
+      on suppression.subscriber_id = subscriber.id
+  $$,
+  $$values ('blocked'::text, null::uuid, 'bounced'::text, true)$$,
   'a bounced subscriber cannot be reactivated'
 );
 select results_eq(
-  $$select outcome, subscriber_id from public.confirm_newsletter_subscription(repeat('2', 64))$$,
-  $$values ('blocked'::text, null::uuid)$$,
+  $$
+    with result as (
+      select outcome, subscriber_id
+      from public.confirm_newsletter_subscription(repeat('2', 64))
+    )
+    select result.outcome, result.subscriber_id, subscriber.status,
+      suppression.lifted_at is null
+    from result
+    join public.newsletter_subscribers as subscriber
+      on subscriber.id = '10000000-0000-4000-8000-000000000008'
+    join public.newsletter_suppressions as suppression
+      on suppression.subscriber_id = subscriber.id
+  $$,
+  $$values ('blocked'::text, null::uuid, 'complained'::text, true)$$,
   'a complained subscriber cannot be reactivated'
 );
 select results_eq(
-  $$select outcome, subscriber_id from public.confirm_newsletter_subscription(repeat('3', 64))$$,
-  $$values ('blocked'::text, null::uuid)$$,
+  $$
+    with result as (
+      select outcome, subscriber_id
+      from public.confirm_newsletter_subscription(repeat('3', 64))
+    )
+    select result.outcome, result.subscriber_id, subscriber.status,
+      suppression.lifted_at is null
+    from result
+    join public.newsletter_subscribers as subscriber
+      on subscriber.id = '10000000-0000-4000-8000-000000000009'
+    join public.newsletter_suppressions as suppression
+      on suppression.subscriber_id = subscriber.id
+  $$,
+  $$values ('blocked'::text, null::uuid, 'suppressed'::text, true)$$,
   'a suppressed subscriber cannot be reactivated'
 );
 
@@ -147,6 +216,15 @@ select ok(
       and (t.used_at is null or s.status <> 'active' or not exists (
         select 1 from public.newsletter_consent_events c
         where c.subscriber_id = s.id and c.action = 'confirmed'
+      ) or (
+        t.token_hash = repeat('b', 64)
+        and not exists (
+          select 1
+          from public.newsletter_suppressions as suppression
+          where suppression.subscriber_id = s.id
+            and suppression.reason = 'voluntary'
+            and suppression.lifted_at is not null
+        )
       ))
   ),
   'successful activation, token consumption and confirmed consent are atomic'

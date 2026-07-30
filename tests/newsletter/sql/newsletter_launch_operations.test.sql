@@ -123,7 +123,7 @@ select is(
 
 insert into public.newsletter_subscribers (
   id, email, email_normalized, status, source, consent_version,
-  created_at, last_confirmation_requested_at
+  created_at, last_confirmation_requested_at, confirmed_at
 ) values
   (
     '51000000-0000-4000-8000-000000000001',
@@ -133,7 +133,8 @@ insert into public.newsletter_subscribers (
     'r5a2_sql',
     '2026-07',
     now() - interval '9 days',
-    now() - interval '8 days'
+    now() - interval '8 days',
+    null
   ),
   (
     '51000000-0000-4000-8000-000000000002',
@@ -143,7 +144,8 @@ insert into public.newsletter_subscribers (
     'r5a2_sql',
     '2026-07',
     now() - interval '9 days',
-    now() - interval '6 days'
+    now() - interval '6 days',
+    null
   ),
   (
     '51000000-0000-4000-8000-000000000003',
@@ -153,12 +155,9 @@ insert into public.newsletter_subscribers (
     'r5a2_sql',
     '2026-07',
     now() - interval '20 days',
+    now() - interval '10 days',
     now() - interval '10 days'
   );
-
-update public.newsletter_subscribers
-set confirmed_at = now() - interval '10 days'
-where id = '51000000-0000-4000-8000-000000000003';
 
 insert into public.newsletter_consent_events (
   subscriber_id, action, consent_version, source, occurred_at

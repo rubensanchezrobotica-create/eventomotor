@@ -75,8 +75,12 @@ alter table public.newsletter_webhook_receipts enable row level security;
 revoke all on table
   public.newsletter_suppressions,
   public.newsletter_webhook_receipts
-from public, anon, authenticated;
+from public, anon, authenticated, service_role;
 
+-- Supabase default privileges may grant service_role direct writes on newly
+-- created public tables. Reset them explicitly, then restore only the read
+-- capability required for server-side diagnosis. SECURITY DEFINER functions
+-- continue to mutate through their owner, not through caller table grants.
 grant select on table
   public.newsletter_suppressions,
   public.newsletter_webhook_receipts
@@ -573,6 +577,7 @@ declare
   v_token public.newsletter_confirmation_tokens%rowtype;
   v_subscriber public.newsletter_subscribers%rowtype;
   v_suppression public.newsletter_suppressions%rowtype;
+  v_has_suppression boolean := false;
   v_now timestamptz := now();
 begin
   if p_token_hash is null or p_token_hash !~ '^[0-9a-f]{64}$' then
@@ -613,24 +618,57 @@ begin
     return;
   end if;
 
+  -- Purpose compatibility is a token property and must be decided before
+  -- suppression state. Hard-suppression fixtures use a formally valid
+  -- resubscribe token to exercise the independent confirmation barrier.
+  if (
+    v_subscriber.status = 'pending'
+    and v_token.purpose <> 'subscribe'
+  ) or (
+    v_subscriber.status in (
+      'unsubscribed', 'bounced', 'complained', 'suppressed'
+    )
+    and v_token.purpose <> 'resubscribe'
+  ) or v_subscriber.status = 'active' then
+    update public.newsletter_confirmation_tokens as nct
+    set invalidated_at = v_now
+    where nct.id = v_token.id;
+    return query select 'invalid_token', null::uuid;
+    return;
+  end if;
+
   select * into v_suppression
   from public.newsletter_suppressions as nsp
   where nsp.subscriber_id = v_subscriber.id
     and nsp.lifted_at is null
   for update;
+  v_has_suppression := found;
 
-  if v_token.purpose = 'resubscribe' then
-    if not found or v_suppression.reason <> 'voluntary'
-      or v_subscriber.status <> 'unsubscribed' then
-      update public.newsletter_confirmation_tokens as nct
-      set invalidated_at = v_now
-      where nct.id = v_token.id;
-      return query select 'blocked', null::uuid;
-      return;
-    end if;
-  elsif v_token.purpose <> 'subscribe'
-    or v_subscriber.status <> 'pending'
-    or found then
+  if v_subscriber.status in ('bounced', 'complained', 'suppressed')
+    or (
+      v_has_suppression
+      and v_suppression.reason in (
+        'permanent_bounce', 'complaint', 'provider_suppression'
+      )
+    ) then
+    update public.newsletter_confirmation_tokens as nct
+    set invalidated_at = v_now
+    where nct.id = v_token.id;
+    return query select 'blocked', null::uuid;
+    return;
+  end if;
+
+  if v_token.purpose = 'resubscribe'
+    and (
+      not v_has_suppression
+      or v_suppression.reason <> 'voluntary'
+    ) then
+    update public.newsletter_confirmation_tokens as nct
+    set invalidated_at = v_now
+    where nct.id = v_token.id;
+    return query select 'blocked', null::uuid;
+    return;
+  elsif v_token.purpose = 'subscribe' and v_has_suppression then
     update public.newsletter_confirmation_tokens as nct
     set invalidated_at = v_now
     where nct.id = v_token.id;
