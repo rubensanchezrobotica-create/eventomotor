@@ -164,7 +164,7 @@ test("el servicio completa confirmación y bienvenida sin provincia", async () =
 test("el formulario integra la primera capa, edad y consentimiento literal desmarcado", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
   assert.match(form, /Rubén Ginés Sánchez García/);
-  assert.match(form, /Vercel, Supabase, Resend y Zoho/);
+  assert.doesNotMatch(form, /Vercel, Supabase, Resend y Zoho/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /selección general de España/);
   assert.match(
@@ -177,6 +177,7 @@ test("el formulario integra la primera capa, edad y consentimiento literal desma
   assert.match(form, /if \(!consent\)/);
   assert.doesNotMatch(form, /defaultChecked|checked=\{true\}/);
   assert.match(form, /href="\/privacidad"/);
+  assert.match(form, /href="\/aviso-legal"/);
   assert.doesNotMatch(form, /se eliminarán automáticamente a los 7 días/);
 });
 

@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
@@ -18,6 +18,18 @@ let scenarioSequence = 0;
 
 function sqlLiteral(value) {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function deterministicTokenHash(runId, fixtureName) {
+  if (
+    !/^[0-9a-f]{16}$/.test(runId) ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fixtureName)
+  ) {
+    throw new Error("Invalid deterministic token fixture identity.");
+  }
+  return createHash("sha256")
+    .update(`newsletter-concurrency:${runId}:${fixtureName}`, "utf8")
+    .digest("hex");
 }
 
 async function resolveDatabaseContainer() {
@@ -99,6 +111,28 @@ function assertIncluded(actual, expectedValues, label) {
       }),
     );
   }
+}
+
+async function assertTokenHashesUnused(container, tableName, hashes, label) {
+  if (
+    !["newsletter_confirmation_tokens", "newsletter_unsubscribe_tokens"].includes(
+      tableName,
+    ) ||
+    hashes.length === 0 ||
+    hashes.some((hash) => !/^[0-9a-f]{64}$/.test(hash))
+  ) {
+    throw new Error("Invalid token hash precondition.");
+  }
+  assertEqual(
+    await query(
+      container,
+      `select count(*) from public.${tableName} where token_hash in (${hashes
+        .map(sqlLiteral)
+        .join(", ")});`,
+    ),
+    "0",
+    label,
+  );
 }
 
 async function runConcurrentScenario(container, runId, phase, queries) {
@@ -188,18 +222,48 @@ const unsubscribeEmail = `concurrent-unsubscribe-${runId}@example.invalid`;
 const webhookEmail = `concurrent-webhook-${runId}@example.invalid`;
 const suppressionRaceEmail = `concurrent-suppression-${runId}@example.invalid`;
 const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
+const legacyRepairEmail = `concurrent-legacy-repair-${runId}@example.invalid`;
+const legacyRepairSubscriberId = randomUUID();
 const providerName = `ci-${runId}`;
+const purgeEmails = Array.from(
+  { length: 3 },
+  (_, index) => `concurrent-purge-${runId}-${index}@example.invalid`,
+);
+const tokenHashes = Object.freeze({
+  subscriptionRequestA: deterministicTokenHash(runId, "subscription-request-a"),
+  subscriptionRequestB: deterministicTokenHash(runId, "subscription-request-b"),
+  legacyOrphan: deterministicTokenHash(runId, "legacy-orphan"),
+  legacyRequestA: deterministicTokenHash(runId, "legacy-request-a"),
+  legacyRequestB: deterministicTokenHash(runId, "legacy-request-b"),
+  welcomePreparationA: deterministicTokenHash(runId, "welcome-preparation-a"),
+  welcomePreparationB: deterministicTokenHash(runId, "welcome-preparation-b"),
+  suppressionRequest: deterministicTokenHash(runId, "suppression-request"),
+  purgeConfirmation: deterministicTokenHash(runId, "purge-confirmation"),
+});
+if (new Set(Object.values(tokenHashes)).size !== Object.keys(tokenHashes).length) {
+  throw new Error("Deterministic token fixtures must be unique.");
+}
 
 let container = "";
+let providerSubscriberId = "";
+let unsubscribeSubscriberId = "";
+let webhookSubscriberId = "";
+let suppressionRaceSubscriberId = "";
 let primaryError;
 let cleanupError;
 try {
   container = await resolveDatabaseContainer();
 
-  const requestSql = (hashCharacter) => `
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_confirmation_tokens",
+    [tokenHashes.subscriptionRequestA, tokenHashes.subscriptionRequestB],
+    "subscription request token hash precondition",
+  );
+  const requestSql = (tokenHash) => `
     select outcome, subscriber_id, token_purpose
     from public.request_newsletter_subscription(
-      ${sqlLiteral(requestEmail)}, ${sqlLiteral(requestEmail)}, repeat(${sqlLiteral(hashCharacter)}, 64),
+      ${sqlLiteral(requestEmail)}, ${sqlLiteral(requestEmail)}, ${sqlLiteral(tokenHash)},
       now() + interval '1 day', 'concurrency_test', '2026-07'
     );
   `;
@@ -208,8 +272,14 @@ try {
     runId,
     "subscription-request-race",
     [
-      { name: "subscription-request-a", sql: requestSql("a") },
-      { name: "subscription-request-b", sql: requestSql("b") },
+      {
+        name: "subscription-request-a",
+        sql: requestSql(tokenHashes.subscriptionRequestA),
+      },
+      {
+        name: "subscription-request-b",
+        sql: requestSql(tokenHashes.subscriptionRequestB),
+      },
     ],
   );
   assertEqual(
@@ -234,6 +304,106 @@ try {
     "request token count",
   );
 
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_confirmation_tokens",
+    [
+      tokenHashes.legacyOrphan,
+      tokenHashes.legacyRequestA,
+      tokenHashes.legacyRequestB,
+    ],
+    "legacy repair token hash precondition",
+  );
+  await query(
+    container,
+    `
+      insert into public.newsletter_subscribers (
+        id, email, email_normalized, status, source, consent_version,
+        confirmation_request_window_started_at, confirmation_request_count,
+        last_confirmation_requested_at, confirmed_at, unsubscribed_at
+      ) values (
+        ${sqlLiteral(legacyRepairSubscriberId)}::uuid,
+        ${sqlLiteral(legacyRepairEmail)},
+        ${sqlLiteral(legacyRepairEmail)},
+        'unsubscribed',
+        'concurrency_test',
+        '2026-07',
+        now() - interval '1 hour',
+        2,
+        now() - interval '5 minutes',
+        now() - interval '30 days',
+        now() - interval '2 days'
+      );
+      insert into public.newsletter_confirmation_tokens (
+        subscriber_id, token_hash, purpose, expires_at
+      ) values (
+        ${sqlLiteral(legacyRepairSubscriberId)}::uuid,
+        ${sqlLiteral(tokenHashes.legacyOrphan)},
+        'resubscribe',
+        now() + interval '1 day'
+      );
+    `,
+  );
+  const legacyRequestSql = (tokenHash) => `
+    select outcome, subscriber_id, token_purpose
+    from public.request_newsletter_subscription(
+      ${sqlLiteral(legacyRepairEmail)},
+      ${sqlLiteral(legacyRepairEmail)},
+      ${sqlLiteral(tokenHash)},
+      now() + interval '1 day',
+      'concurrency_test',
+      '2026-07'
+    );
+  `;
+  const legacyRepairOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "legacy-resubscription-repair-race",
+    [
+      {
+        name: "legacy-resubscription-repair-a",
+        sql: legacyRequestSql(tokenHashes.legacyRequestA),
+      },
+      {
+        name: "legacy-resubscription-repair-b",
+        sql: legacyRequestSql(tokenHashes.legacyRequestB),
+      },
+    ],
+  );
+  assertEqual(
+    sortedOutcomes(legacyRepairOutputs),
+    "confirmation_required,cooldown",
+    "legacy repair request outcomes",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          subscriber.status, '|',
+          count(distinct suppression.id) filter (
+            where suppression.lifted_at is null
+              and suppression.reason = 'voluntary'
+          ), '|',
+          count(distinct token.id) filter (
+            where token.used_at is null
+              and token.invalidated_at is null
+              and token.purpose = 'resubscribe'
+          )
+        )
+        from public.newsletter_subscribers as subscriber
+        left join public.newsletter_suppressions as suppression
+          on suppression.subscriber_id = subscriber.id
+        left join public.newsletter_confirmation_tokens as token
+          on token.subscriber_id = subscriber.id
+        where subscriber.id = ${sqlLiteral(legacyRepairSubscriberId)}::uuid
+        group by subscriber.status;
+      `,
+    ),
+    "unsubscribed|1|1",
+    "legacy repair final aggregate",
+  );
+
   const confirmationHash = await query(
     container,
     `select t.token_hash from public.newsletter_confirmation_tokens t join public.newsletter_subscribers s on s.id = t.subscriber_id where s.email_normalized = ${sqlLiteral(requestEmail)};`,
@@ -254,7 +424,7 @@ try {
     "confirmation outcomes",
   );
 
-  const providerSubscriberId = await query(
+  providerSubscriberId = await query(
     container,
     `
       insert into public.newsletter_subscribers (
@@ -293,7 +463,7 @@ try {
     "provider event count",
   );
 
-  const unsubscribeSubscriberId = await query(
+  unsubscribeSubscriberId = await query(
     container,
     `
       with subscriber as (
@@ -309,10 +479,16 @@ try {
       select id from subscriber;
     `,
   );
-  const prepareWelcomeSql = (hashCharacter) => `
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_unsubscribe_tokens",
+    [tokenHashes.welcomePreparationA, tokenHashes.welcomePreparationB],
+    "welcome preparation token hash precondition",
+  );
+  const prepareWelcomeSql = (tokenHash) => `
     select subscriber_id from public.prepare_newsletter_welcome_delivery(
       ${sqlLiteral(unsubscribeSubscriberId)}::uuid,
-      repeat(${sqlLiteral(hashCharacter)}, 64),
+      ${sqlLiteral(tokenHash)},
       null
     );
   `;
@@ -321,8 +497,14 @@ try {
     runId,
     "welcome-preparation-race",
     [
-      { name: "welcome-preparation-e", sql: prepareWelcomeSql("e") },
-      { name: "welcome-preparation-f", sql: prepareWelcomeSql("f") },
+      {
+        name: "welcome-preparation-e",
+        sql: prepareWelcomeSql(tokenHashes.welcomePreparationA),
+      },
+      {
+        name: "welcome-preparation-f",
+        sql: prepareWelcomeSql(tokenHashes.welcomePreparationB),
+      },
     ],
   );
   assertEqual(preparationOutputs.length, 2, "welcome preparation result count");
@@ -404,7 +586,7 @@ try {
     "concurrent unsubscribe token timestamps",
   );
 
-  const webhookSubscriberId = await query(
+  webhookSubscriberId = await query(
     container,
     `
       with subscriber as (
@@ -469,7 +651,7 @@ try {
     "duplicate webhook persisted state",
   );
 
-  const suppressionRaceSubscriberId = await query(
+  suppressionRaceSubscriberId = await query(
     container,
     `
       with subscriber as (
@@ -486,6 +668,12 @@ try {
       select id from subscriber;
     `,
   );
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_confirmation_tokens",
+    [tokenHashes.suppressionRequest],
+    "request versus suppression token hash precondition",
+  );
   const [suppressionRequestOutput, suppressionOutput] = await runConcurrentScenario(
     container,
     runId,
@@ -496,7 +684,7 @@ try {
         sql: `
         select outcome from public.request_newsletter_subscription(
           ${sqlLiteral(suppressionRaceEmail)}, ${sqlLiteral(suppressionRaceEmail)},
-          repeat('7', 64), now() + interval '1 day',
+          ${sqlLiteral(tokenHashes.suppressionRequest)}, now() + interval '1 day',
           'concurrency_test', '2026-07'
         );
       `,
@@ -533,7 +721,13 @@ try {
     "request versus suppression final state",
   );
 
-  const purgeTokenHash = "8".repeat(64);
+  const purgeTokenHash = tokenHashes.purgeConfirmation;
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_confirmation_tokens",
+    [purgeTokenHash],
+    "purge confirmation token hash precondition",
+  );
   await query(
     container,
     `
@@ -570,10 +764,6 @@ try {
     "purge versus confirmation outcome",
   );
 
-  const purgeEmails = Array.from(
-    { length: 3 },
-    (_, index) => `concurrent-purge-${runId}-${index}@example.invalid`,
-  );
   for (const email of purgeEmails) {
     await query(
       container,
@@ -623,28 +813,54 @@ try {
 } finally {
   if (container) {
     try {
+      const fixtureEmails = [
+        requestEmail,
+        providerEmail,
+        unsubscribeEmail,
+        webhookEmail,
+        suppressionRaceEmail,
+        purgeRaceEmail,
+        ...purgeEmails,
+      ];
+      const fixtureSubscriberIds = [
+        legacyRepairSubscriberId,
+        providerSubscriberId,
+        unsubscribeSubscriberId,
+        webhookSubscriberId,
+        suppressionRaceSubscriberId,
+      ].filter(Boolean);
+      const fixtureSubscriberPredicate = `
+        subscriber_id in (${fixtureSubscriberIds
+          .map((id) => `${sqlLiteral(id)}::uuid`)
+          .join(", ")})
+        or subscriber_id in (
+          select id from public.newsletter_subscribers
+          where email_normalized in (${fixtureEmails.map(sqlLiteral).join(", ")})
+        )
+      `;
       await query(
         container,
         `
-          delete from public.newsletter_email_events where provider = ${sqlLiteral(providerName)};
-          delete from public.newsletter_consent_events where subscriber_id in (
-            select id from public.newsletter_subscribers
-            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-          );
-          delete from public.newsletter_confirmation_tokens where subscriber_id in (
-            select id from public.newsletter_subscribers
-            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-          );
-          delete from public.newsletter_unsubscribe_tokens where subscriber_id in (
-            select id from public.newsletter_subscribers
-            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-          );
-          delete from public.newsletter_preferences where subscriber_id in (
-            select id from public.newsletter_subscribers
-            where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)})
-          );
+          delete from public.newsletter_webhook_receipts
+          where svix_id = ${sqlLiteral(`svix-${runId}`)};
+          delete from public.newsletter_email_events
+          where provider = ${sqlLiteral(providerName)}
+            or ${fixtureSubscriberPredicate};
+          delete from public.newsletter_consent_events
+          where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_confirmation_tokens
+          where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_unsubscribe_tokens
+          where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_preferences
+          where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_suppressions
+          where ${fixtureSubscriberPredicate};
           delete from public.newsletter_subscribers
-          where email_normalized in (${sqlLiteral(requestEmail)}, ${sqlLiteral(providerEmail)}, ${sqlLiteral(unsubscribeEmail)});
+          where id in (${fixtureSubscriberIds
+            .map((id) => `${sqlLiteral(id)}::uuid`)
+            .join(", ")})
+            or email_normalized in (${fixtureEmails.map(sqlLiteral).join(", ")});
         `,
         {
           name: "concurrency-fixture-cleanup",

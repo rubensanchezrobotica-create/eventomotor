@@ -67,8 +67,8 @@ test("la validación devuelve errores genéricos sin enumerar direcciones", () =
   assert.match(form, /state === "submitting"/);
   assert.match(form, /accepted:/);
   assert.match(form, /generic_error/);
-  assert.match(form, /Revisa tu correo/);
-  assert.match(form, /Si la solicitud puede completarse/);
+  assert.match(form, /Solicitud recibida/);
+  assert.match(form, /Si la dirección indicada puede completar la suscripción/);
   assert.doesNotMatch(form, /Te hemos enviado un enlace/);
   assert.doesNotMatch(form, /ya (?:existe|está registrada|estaba registrada)/i);
 });

@@ -74,8 +74,9 @@ test("prepara sólo la migración newsletter y verifica una copia byte a byte", 
   assert.deepEqual(copiedFiles, [
     "20260721133000_newsletter_core_foundation.sql",
     "20260729120000_newsletter_launch_operations.sql",
+    "20260730100000_newsletter_canary_hardening.sql",
   ]);
-  assert.equal(result.manifest.migrations.length, 2);
+  assert.equal(result.manifest.migrations.length, 3);
   for (const [index, copiedFile] of copiedFiles.entries()) {
     assert.equal(
       result.manifest.migrations[index].sha256,
@@ -154,7 +155,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 228);
+  assert.equal(plannedAssertions, 298);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -176,6 +177,7 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.doesNotMatch(source, /Promise\.all(?:Settled)?/);
   assert.match(harness, /Promise\.allSettled/);
   assert.match(source, /runConcurrentScenario[\s\S]+?subscription-request-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?legacy-resubscription-repair-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?confirmation-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?provider-event-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?welcome-preparation-race/);
@@ -184,6 +186,24 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /runConcurrentScenario[\s\S]+?request-versus-suppression-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?purge-versus-confirmation-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?parallel-retention-purge/);
+  assert.match(source, /createHash\("sha256"\)/);
+  assert.match(source, /const tokenHashes = Object\.freeze\(\{/);
+  assert.match(
+    source,
+    /new Set\(Object\.values\(tokenHashes\)\)\.size !== Object\.keys\(tokenHashes\)\.length/,
+  );
+  assert.doesNotMatch(
+    source,
+    /repeat\(\s*['"][0-9a-f]['"]\s*,\s*64\s*\)|['"][0-9a-f]['"]\.repeat\(64\)/i,
+  );
+  assert.match(
+    source,
+    /assertTokenHashesUnused\([\s\S]+?request versus suppression token hash precondition[\s\S]+?request-versus-suppression-race/,
+  );
+  assert.match(
+    source,
+    /finally \{[\s\S]+?suppressionRaceEmail[\s\S]+?purgeRaceEmail[\s\S]+?concurrency-fixture-cleanup/,
+  );
   assert.match(source, /create unlogged table public\.\$\{barrierTable\}/);
   assert.match(source, /drop table public\.\$\{barrierTable\}/);
   assert.match(harness, /insert into public\.\$\{barrierTable\}/);
@@ -407,6 +427,59 @@ test("la migración R5A.2 cualifica columnas sensibles sin ocultar conflictos", 
   assert.ok(activationIndex > voluntaryLiftIndex);
   assert.ok(tokenConsumptionIndex > activationIndex);
   assert.ok(confirmedConsentIndex > tokenConsumptionIndex);
+});
+
+test("R5A.3 repara sólo la baja heredada y conserva helpers fuera de Data API", async () => {
+  const migration = await readFile(
+    join(
+      process.cwd(),
+      "database",
+      "migrations",
+      "20260730100000_newsletter_canary_hardening.sql",
+    ),
+    "utf8",
+  );
+
+  assert.match(migration, /status <> 'unsubscribed'/);
+  assert.match(
+    migration,
+    /insert into public\.newsletter_suppressions[\s\S]+?'voluntary'/,
+  );
+  assert.match(migration, /public\.newsletter_email_hash\(v_subscriber\.email_normalized\)/);
+  assert.match(
+    migration,
+    /purpose = 'resubscribe'[\s\S]+?used_at is null[\s\S]+?invalidated_at is null/,
+  );
+  assert.doesNotMatch(
+    migration,
+    /delete from public\.newsletter_confirmation_tokens/,
+  );
+  assert.match(
+    migration,
+    /last_confirmation_requested_at = null,[\s\S]+?confirmation_request_window_started_at = null,[\s\S]+?confirmation_request_count = 0/,
+  );
+  assert.match(
+    migration,
+    /revoke all on function public\.repair_legacy_newsletter_unsubscribe\([\s\S]+?\) from public, anon, authenticated, service_role;/,
+  );
+  assert.match(
+    migration,
+    /revoke all on function public\.newsletter_request_subscription_r5a2_internal\([\s\S]+?\) from public, anon, authenticated, service_role;/,
+  );
+  assert.match(
+    migration,
+    /status in \('bounced', 'complained', 'suppressed'\)[\s\S]+?return query select 'blocked', null::uuid, null::text;[\s\S]+?repair_legacy_newsletter_unsubscribe/i,
+  );
+  assert.match(
+    migration,
+    /status = 'unsubscribed'[\s\S]+?unsubscribed_at is not null[\s\S]+?bounced_at is null[\s\S]+?complained_at is null[\s\S]+?suppressed_at is null/i,
+  );
+  assert.doesNotMatch(
+    migration,
+    /request_newsletter_subscription_r5a2\s*\(/,
+  );
+  assert.match(migration, /security definer\s+set search_path = ''/i);
+  assert.doesNotMatch(migration, /https?:\/\/|supabase (?:link|db push)|resend/i);
 });
 
 test("la baja pending materializa el outcome antes de leer el estado persistido", async () => {

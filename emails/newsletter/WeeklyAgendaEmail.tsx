@@ -80,9 +80,8 @@ export default function WeeklyAgendaEmail({
           EventoMotor.
         </Text>
         <Text style={styles.legal}>
-          Responsable: Rubén Ginés Sánchez García, titular del proyecto
-          EventoMotor. EventoMotor no comparte tus datos con organizadores,
-          patrocinadores ni terceros para sus propios fines.
+          EventoMotor no comparte tus datos con organizadores, patrocinadores ni
+          terceros para sus propios fines.
         </Text>
         <Text style={styles.legalLinks}>
           <Link href={privacyUrl} style={styles.unsubscribe}>Política de privacidad</Link>

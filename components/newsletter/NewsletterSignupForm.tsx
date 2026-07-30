@@ -61,9 +61,9 @@ const STATE_DESCRIPTIONS: Record<NewsletterPreviewFormState, string> = {
 
 const RESULT_COPY: Partial<Record<NewsletterSignupState, { title: string; copy: string }>> = {
   accepted: {
-    title: "Revisa tu correo",
+    title: "Solicitud recibida",
     copy:
-      "Si la solicitud puede completarse, recibirás un mensaje para confirmar tu suscripción. El enlace será válido durante 24 horas.",
+      "Si la dirección indicada puede completar la suscripción, recibirás un correo de confirmación en unos minutos. Revisa también las carpetas de Spam y Promociones.",
   },
   invalid: {
     title: "Revisa los datos",
@@ -158,7 +158,11 @@ function NewsletterProductSignupForm() {
       }),
     );
     if (!nextState) return;
-    if (nextState === "accepted") setEmail("");
+    if (nextState === "accepted") {
+      setEmail("");
+      setProvince("");
+      setConsent(false);
+    }
     setState(nextState);
   }
 
@@ -170,7 +174,26 @@ function NewsletterProductSignupForm() {
 
   return (
     <div data-form-state={state}>
-      <form className={styles.signupForm} noValidate onSubmit={submit}>
+      {state === "accepted" ? (
+        <div
+          aria-live="polite"
+          className={styles.acceptedResult}
+          ref={resultRef}
+          role="status"
+          tabIndex={-1}
+        >
+          <span aria-hidden="true" className={styles.acceptedResultIcon}>✓</span>
+          <strong>{RESULT_COPY.accepted?.title}</strong>
+          <p>{RESULT_COPY.accepted?.copy}</p>
+          <small>El enlace de confirmación caduca a las 24 horas.</small>
+        </div>
+      ) : (
+      <form
+        aria-busy={busy}
+        className={styles.signupForm}
+        noValidate
+        onSubmit={submit}
+      >
         <aside
           aria-labelledby="newsletter-privacy-summary-title"
           className={styles.privacyLayer}
@@ -180,32 +203,15 @@ function NewsletterProductSignupForm() {
           </strong>
           <p>
             <b>Responsable:</b> Rubén Ginés Sánchez García, titular del proyecto
-            EventoMotor.
+            EventoMotor. <b>Finalidad:</b> gestionar la suscripción y enviar “La
+            Agenda Motor”. <b>Legitimación:</b> tu consentimiento.
           </p>
           <p>
-            <b>Finalidad:</b> gestionar tu solicitud y enviarte semanalmente “La
-            Agenda Motor”. Si indicas una provincia, la utilizaremos para
-            recomendarte eventos cercanos.
-          </p>
-          <p><b>Legitimación:</b> tu consentimiento.</p>
-          <p>
-            <b>Proveedores:</b> Vercel, Supabase, Resend y Zoho prestan la
-            infraestructura necesaria. No facilitaremos tus datos a organizadores,
-            patrocinadores ni terceros para sus propios fines. Algunos proveedores
-            pueden tratar datos fuera del EEE con las garantías aplicables.
-          </p>
-          <p>
-            <b>Conservación:</b> mientras permanezcas suscrito. Tras la baja
-            mantendremos la evidencia necesaria para respetarla y evitar envíos
-            indebidos.
-          </p>
-          <p>
-            <b>Derechos:</b> puedes retirar el consentimiento, darte de baja o
-            ejercer tus derechos escribiendo a info@eventomotor.com.
-          </p>
-          <p>
-            <b>Más información:</b>{" "}
-            <Link href="/privacidad">Política de privacidad</Link>.
+            <b>Derechos:</b> puedes ejercerlos en{" "}
+            <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>.{" "}
+            <Link href="/privacidad">Política de privacidad</Link>
+            {" · "}
+            <Link href="/aviso-legal">Aviso legal</Link>.
           </p>
         </aside>
 
@@ -325,11 +331,9 @@ function NewsletterProductSignupForm() {
             <>
               <strong>{result.title}</strong>
               <p>{result.copy}</p>
-              {state !== "accepted" ? (
-                <button className={styles.textButton} onClick={resetResult} type="button">
-                  Intentarlo de nuevo
-                </button>
-              ) : null}
+              <button className={styles.textButton} onClick={resetResult} type="button">
+                Intentarlo de nuevo
+              </button>
             </>
           ) : (
             <span className={styles.srOnly}>
@@ -338,6 +342,7 @@ function NewsletterProductSignupForm() {
           )}
         </div>
       </form>
+      )}
     </div>
   );
 }
