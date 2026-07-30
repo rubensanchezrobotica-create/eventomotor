@@ -249,6 +249,7 @@ test("la baja usa el copy legal sin exponer dirección ni simular minimización"
 test("el formulario de eventos muestra primera capa y nunca acopla la newsletter", () => {
   const form = source("components/public/EventSubmissionForm.tsx");
   assert.match(form, /Protección de datos:/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.match(form, /hasta 2 años\s+después del evento/);
   assert.match(form, /href="\/privacidad"/);
   assert.doesNotMatch(form, /newsletter|La Agenda Motor|\/api\/newsletter/i);
