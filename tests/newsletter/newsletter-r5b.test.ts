@@ -459,14 +459,13 @@ test("landing, captación y primera capa legal conservan sus contratos públicos
     card,
     /<form|<input|checkbox|<img|EventomotorLogo|iconOnly/i,
   );
-  assert.equal(form.match(/Rubén Sánchez/g)?.length, 1);
-  assert.doesNotMatch(form, /Rubén Ginés Sánchez García/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /if \(!consent\)/);
   assert.match(form, /href="\/privacidad"/);
   assert.match(form, /href="\/aviso-legal"/);
 
-  for (const surface of [home, event, footer, card, emails]) {
+  for (const surface of [home, event, footer, card, form, emails]) {
     assert.doesNotMatch(surface, /Rubén(?: Ginés)? Sánchez/);
   }
   assert.match(footer, /La Agenda Motor/);

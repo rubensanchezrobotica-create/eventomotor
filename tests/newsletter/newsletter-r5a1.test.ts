@@ -163,9 +163,11 @@ test("el servicio completa confirmación y bienvenida sin provincia", async () =
 
 test("el formulario integra la primera capa, edad y consentimiento literal desmarcado", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
-  assert.equal(form.match(/Rubén Sánchez/g)?.length, 1);
-  assert.doesNotMatch(form, /Rubén Ginés Sánchez García/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   assert.doesNotMatch(form, /Vercel, Supabase, Resend y Zoho/);
+  assert.match(form, /Finalidad:/);
+  assert.match(form, /Legitimación:/);
+  assert.match(form, /Consulta la/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /selección general de España/);
   assert.match(
@@ -201,7 +203,7 @@ test("privacidad y aviso legal identifican al responsable sin sociedad inventada
   assert.match(visualStyles, /\.legalPage \.document h2/);
   assert.match(visualStyles, /\.legalPage \.document h3/);
   assert.match(visualStyles, /a:focus-visible/);
-  assert.match(visualStyles, /@media \(max-width: 400px\)/);
+  assert.match(visualStyles, /@media \(max-width: 768px\)/);
 });
 
 test("los tres emails integran el bloque legal sin prometer la purga inexistente", () => {

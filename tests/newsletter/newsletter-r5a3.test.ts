@@ -82,15 +82,14 @@ test("el estado aceptado sustituye el formulario y conserva accesibilidad", () =
   );
 });
 
-test("la primera capa legal es breve, completa y muestra una sola identidad", () => {
+test("la primera capa legal es breve, completa y no muestra identidad personal", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
-  assert.equal(form.match(/Rubén Sánchez/g)?.length, 1);
-  assert.doesNotMatch(form, /Rubén Ginés Sánchez García/);
+  assert.doesNotMatch(form, /Rubén(?: Ginés)? Sánchez(?: García)?/);
   for (const requirement of [
-    "Responsable:",
     "Finalidad:",
     "Legitimación:",
     "derechos en",
+    "Consulta la",
     "info@eventomotor.com",
     'href="/privacidad"',
     'href="/aviso-legal"',

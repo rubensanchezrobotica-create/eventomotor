@@ -30,14 +30,13 @@ tenía el ritmo de un documento de consulta.
 ## Primera capa legal
 
 La información permanece visible junto al consentimiento, sin panel, fondo,
-borde o título independiente. En esta capa breve se usa una sola vez la
-identidad abreviada `Rubén Sánchez`. La identidad legal completa
-`Rubén Ginés Sánchez García` se conserva sin cambios en Política de privacidad
-y Aviso legal.
+borde, título independiente ni identificación personal. La identidad legal
+completa `Rubén Ginés Sánchez García` se conserva sin cambios exclusivamente en
+Política de privacidad y Aviso legal.
 
-La abreviación de la primera capa es una decisión de jerarquía visual y no se
-presenta como una revisión jurídica definitiva. Se mantienen los enlaces,
-provincia opcional, consentimiento desmarcado y declaración de edad.
+Se mantienen la finalidad, la legitimación, el contacto para ejercer derechos,
+los enlaces legales, la provincia opcional, el consentimiento desmarcado y la
+declaración de edad.
 
 ## Documentos legales
 
