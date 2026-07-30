@@ -11,6 +11,7 @@ export default function ConfirmSubscriptionEmail({
   contactEmail,
 }: ConfirmSubscriptionEmailProps) {
   const metadata = NEWSLETTER_EMAIL_METADATA.confirmation;
+  const legalNoticeUrl = new URL("/aviso-legal", privacyUrl).toString();
 
   return (
     <NewsletterEmailShell logoUrl={logoUrl} preheader={metadata.preheader}>
@@ -32,10 +33,15 @@ export default function ConfirmSubscriptionEmail({
           de alta.
         </Text>
         <Text style={styles.legal}>
-          Responsable: Rubén Ginés Sánchez García, titular del proyecto
-          EventoMotor. Puedes consultar la{" "}
+          Recibes este correo porque solicitaste tu suscripción a La Agenda
+          Motor de EventoMotor.
+        </Text>
+        <Text style={styles.legal}>
+          EventoMotor ·{" "}
           <Link href={privacyUrl} style={styles.link}>Política de privacidad</Link>
-          {" "}o escribir a{" "}
+          {" · "}
+          <Link href={legalNoticeUrl} style={styles.link}>Aviso legal</Link>
+          {" · Contacto: "}
           <Link href={`mailto:${contactEmail}`} style={styles.link}>{contactEmail}</Link>.
         </Text>
       </Section>

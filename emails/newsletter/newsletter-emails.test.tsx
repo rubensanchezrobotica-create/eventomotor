@@ -5,6 +5,8 @@ import test from "node:test";
 import { NEWSLETTER_EMAIL_METADATA } from "./email-metadata";
 import { renderAllNewsletterEmailPreviews, renderNewsletterEmail, renderNewsletterEmailText } from "./email-renderer";
 
+const PERSONAL_IDENTITY = "Rubén Ginés Sánchez García";
+
 const expected = {
   confirmation: {
     subject: "Confirma tu suscripción a La Agenda Motor",
@@ -37,6 +39,10 @@ for (const kind of ["confirmation", "welcome", "weekly"] as const) {
     assert.ok(text.length > 200);
     assert.equal(NEWSLETTER_EMAIL_METADATA[kind].subject, expected[kind].subject);
     assert.equal(NEWSLETTER_EMAIL_METADATA[kind].preheader, expected[kind].preheader);
+    assert.doesNotMatch(html, new RegExp(PERSONAL_IDENTITY, "i"));
+    assert.doesNotMatch(text, new RegExp(PERSONAL_IDENTITY, "i"));
+    assert.doesNotMatch(NEWSLETTER_EMAIL_METADATA[kind].subject, new RegExp(PERSONAL_IDENTITY, "i"));
+    assert.doesNotMatch(NEWSLETTER_EMAIL_METADATA[kind].preheader, new RegExp(PERSONAL_IDENTITY, "i"));
     assert.doesNotMatch(html, /<script|<form/i);
     assert.doesNotMatch(html, /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i);
     assert.doesNotMatch(html, /(?:api[_-]?key|secret|bearer|token)=/i);
@@ -56,6 +62,49 @@ test("bienvenida y agenda incluyen baja; confirmación mantiene un único CTA", 
   assert.equal(
     (confirmation.match(/href="[^"]*#confirmacion-simulada"/g) ?? []).length,
     1,
+  );
+});
+
+test("los pies identifican EventoMotor y conservan contacto y enlaces legales", async () => {
+  const [confirmation, welcome, weekly] = await Promise.all([
+    renderNewsletterEmail("confirmation"),
+    renderNewsletterEmail("welcome"),
+    renderNewsletterEmail("weekly"),
+  ]);
+
+  for (const html of [confirmation, welcome, weekly]) {
+    assert.match(html, /La Agenda Motor · EventoMotor/);
+    assert.match(html, /href="https:\/\/www\.eventomotor\.com\/privacidad"/);
+    assert.match(html, /href="https:\/\/www\.eventomotor\.com\/aviso-legal"/);
+    assert.match(html, /href="mailto:info@eventomotor\.com"/);
+  }
+
+  assert.match(
+    confirmation,
+    /Recibes este correo porque solicitaste tu suscripción a La Agenda\s+Motor de EventoMotor/,
+  );
+  assert.match(
+    welcome,
+    /Recibes este correo porque confirmaste tu suscripción a La Agenda\s+Motor de EventoMotor/,
+  );
+  assert.match(
+    weekly,
+    /Recibes este correo porque confirmaste tu suscripción a La Agenda\s+Motor de EventoMotor/,
+  );
+});
+
+test("el remitente y Reply-To contractuales permanecen intactos", () => {
+  const config = readFileSync(
+    join(process.cwd(), "lib/newsletter/resend-config.server.ts"),
+    "utf8",
+  );
+  assert.match(
+    config,
+    /NEWSLETTER_PRODUCTION_SENDER\s*=\s*\n?\s*"La Agenda Motor · EventoMotor <agenda@news\.eventomotor\.com>"/,
+  );
+  assert.match(
+    config,
+    /NEWSLETTER_PRODUCTION_REPLY_TO\s*=\s*"info@eventomotor\.com"/,
   );
 });
 

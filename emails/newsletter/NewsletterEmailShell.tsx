@@ -31,7 +31,7 @@ export default function NewsletterEmailShell({
           <Hr style={styles.hr} />
           <Section style={styles.footer}>
             <Text style={styles.footerText}>{footerNote}</Text>
-            <Text style={styles.footerText}>EventoMotor · La Agenda Motor</Text>
+            <Text style={styles.footerText}>La Agenda Motor · EventoMotor</Text>
           </Section>
         </Container>
       </Body>
