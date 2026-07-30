@@ -288,14 +288,14 @@ function NewsletterProductSignupForm() {
           className={styles.privacyLayer}
         >
           <p>
-            <b>Responsable:</b> Rubén Ginés Sánchez García, titular de
-            EventoMotor. <b>Finalidad:</b> gestionar la suscripción y enviar La
-            Agenda Motor. <b>Legitimación:</b> consentimiento.{" "}
-            <b>Derechos:</b> puedes ejercerlos en{" "}
+            <b>Responsable:</b> Rubén Sánchez, titular de EventoMotor.{" "}
+            <b>Finalidad:</b> gestionar tu suscripción y enviarte La Agenda
+            Motor. <b>Legitimación:</b> consentimiento. Puedes ejercer tus
+            derechos en{" "}
             <a href="mailto:info@eventomotor.com">info@eventomotor.com</a>.{" "}
             Más información en la{" "}
             <Link href="/privacidad">Política de privacidad</Link>
-            {" · "}
+            {" y el "}
             <Link href="/aviso-legal">Aviso legal</Link>.
           </p>
         </aside>

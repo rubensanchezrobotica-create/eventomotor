@@ -84,12 +84,13 @@ test("el estado aceptado sustituye el formulario y conserva accesibilidad", () =
 
 test("la primera capa legal es breve, completa y muestra una sola identidad", () => {
   const form = source("components/newsletter/NewsletterSignupForm.tsx");
-  assert.equal(form.match(/Rubén Ginés Sánchez García/g)?.length, 1);
+  assert.equal(form.match(/Rubén Sánchez/g)?.length, 1);
+  assert.doesNotMatch(form, /Rubén Ginés Sánchez García/);
   for (const requirement of [
     "Responsable:",
     "Finalidad:",
     "Legitimación:",
-    "Derechos:",
+    "derechos en",
     "info@eventomotor.com",
     'href="/privacidad"',
     'href="/aviso-legal"',

@@ -4,6 +4,7 @@ import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { SITE_URL } from "@/lib/seo";
+import legalStyles from "../legal-document.module.css";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
@@ -16,23 +17,23 @@ export const metadata: Metadata = {
 
 export default function PrivacidadPage() {
   return (
-    <div className="emc-page">
+    <div className={`emc-page ${legalStyles.legalPage}`}>
       <ConceptStyles />
       <ConceptStaticHeader compactActions />
       <main className="emc-contact-page emc-publish-page">
-        <section className="emc-contact-hero">
-          <div className="emc-container">
+        <section className={`emc-contact-hero ${legalStyles.hero}`}>
+          <div className={`emc-container ${legalStyles.heroInner}`}>
             <div className="emc-kicker">Legal</div>
             <h1>Política de privacidad de EventoMotor</h1>
-            <p className="emc-contact-lead">
+            <p className={`emc-contact-lead ${legalStyles.lead}`}>
               Última actualización: 29 de julio de 2026.
             </p>
           </div>
         </section>
 
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <article className="emc-panel emc-contact-list-panel emc-legal-document">
+        <section className={`emc-section emc-contact-section ${legalStyles.content}`}>
+          <div className={`emc-container ${legalStyles.contentInner}`}>
+            <article className={`emc-panel emc-contact-list-panel emc-legal-document ${legalStyles.document}`}>
               <section>
                 <h2>1. Responsable del tratamiento</h2>
                 <p><strong>Responsable:</strong> Rubén Ginés Sánchez García</p>
