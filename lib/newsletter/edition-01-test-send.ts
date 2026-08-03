@@ -7,9 +7,9 @@ import {
 } from "@/lib/newsletter/schemas";
 
 const HTML_SHA256 =
-  "8faaf0afdfb717c089c177bdf522e529f0e0e03c7736b75e507ad3e456231496";
+  "63da5d9dd5bc452f52727dd5a9bcdcced563b254f9c597d5f8b715d431ea39a6";
 const TEXT_SHA256 =
-  "e99738f8f9a54ffe7d11054f5609ead768d34ab63209f31f0b8ef06e89f51d2a";
+  "1e455b715895999acf47327e8732d99466cc3c0ab629d68f1bd69bbca22371be";
 const ASSET_ORIGIN =
   "https://www.eventomotor.com/newsletter/2026-08-06/assets/";
 const CAMPAIGN_MARKER = "utm_campaign=agenda_motor_2026_08_06";
@@ -127,6 +127,10 @@ function countOccurrences(value: string, marker: string): number {
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+export function canonicalizeEdition01TemplateText(value: string): string {
+  return value.replace(/\r\n?/g, "\n");
 }
 
 export function assertNewsletterEdition01TestExecutionEnvironment(
@@ -258,8 +262,8 @@ export function validateEdition01SourceIntegrity(
   source: NewsletterEdition01Source,
 ): NewsletterEdition01TemplateSummary {
   if (
-    sha256(source.html) !== HTML_SHA256 ||
-    sha256(source.text) !== TEXT_SHA256
+    sha256(canonicalizeEdition01TemplateText(source.html)) !== HTML_SHA256 ||
+    sha256(canonicalizeEdition01TemplateText(source.text)) !== TEXT_SHA256
   ) {
     fail("template_digest_mismatch");
   }

@@ -8,10 +8,12 @@ import {
   NEWSLETTER_EDITION_01_TEST_CONFIRM_PHRASE,
   NEWSLETTER_EDITION_01_TEST_SUBJECT,
   NewsletterEdition01TestSendError,
+  canonicalizeEdition01TemplateText,
   executeNewsletterEdition01TestSend as executeNewsletterEdition01TestSendNeutral,
   parseNewsletterEdition01TestArguments,
   prepareEdition01Content,
   selectNewsletterEdition01Environment,
+  validateEdition01SourceIntegrity,
   validateEdition01Template,
   validateEdition01UnsubscribeUrl,
   type ExecuteNewsletterEdition01TestOptions,
@@ -358,6 +360,87 @@ test("la plantilla real supera integridad, imágenes, UTMs y codificación", asy
     assert.equal(source.html.includes(marker), false);
     assert.equal(source.text.includes(marker), false);
   }
+});
+
+test("la integridad canónica acepta la plantilla con LF", async () => {
+  const source = await loadEdition01Source();
+  const lfSource = {
+    html: canonicalizeEdition01TemplateText(source.html),
+    text: canonicalizeEdition01TemplateText(source.text),
+  };
+
+  assert.doesNotThrow(() => validateEdition01SourceIntegrity(lfSource));
+});
+
+test("la integridad canónica acepta el mismo contenido con CRLF", async () => {
+  const source = await loadEdition01Source();
+  const crlfSource = {
+    html: canonicalizeEdition01TemplateText(source.html).replace(/\n/g, "\r\n"),
+    text: canonicalizeEdition01TemplateText(source.text).replace(/\n/g, "\r\n"),
+  };
+
+  assert.doesNotThrow(() => validateEdition01SourceIntegrity(crlfSource));
+});
+
+test("la integridad canónica acepta el mismo contenido con CR", async () => {
+  const source = await loadEdition01Source();
+  const crSource = {
+    html: canonicalizeEdition01TemplateText(source.html).replace(/\n/g, "\r"),
+    text: canonicalizeEdition01TemplateText(source.text).replace(/\n/g, "\r"),
+  };
+
+  assert.doesNotThrow(() => validateEdition01SourceIntegrity(crSource));
+});
+
+test("la integridad rechaza palabras, enlaces, UTMs y placeholders alterados", async () => {
+  const source = await loadEdition01Source();
+  const canonicalSource = {
+    html: canonicalizeEdition01TemplateText(source.html),
+    text: canonicalizeEdition01TemplateText(source.text),
+  };
+  const mutations: NewsletterEdition01Source[] = [
+    {
+      ...canonicalSource,
+      text: canonicalSource.text.replace("rally", "rallye"),
+    },
+    {
+      ...canonicalSource,
+      html: canonicalSource.html.replace(
+        "https://www.eventomotor.com/newsletter/2026-08-06/assets/",
+        "https://www.eventomotor.com/newsletter/2026-08-06/other/",
+      ),
+    },
+    {
+      ...canonicalSource,
+      html: canonicalSource.html.replace(
+        "utm_campaign=agenda_motor_2026_08_06",
+        "utm_campaign=agenda_motor_changed",
+      ),
+    },
+    {
+      ...canonicalSource,
+      html: canonicalSource.html.replace(
+        "{{unsubscribe_url}}",
+        "{{unsubscribe_link}}",
+      ),
+    },
+  ];
+
+  for (const mutation of mutations) {
+    assert.throws(
+      () => validateEdition01SourceIntegrity(mutation),
+      (error: unknown) =>
+        error instanceof NewsletterEdition01TestSendError &&
+        error.code === "template_digest_mismatch",
+    );
+  }
+});
+
+test("la canonicalización conserva espacios y extremos sin aplicar trim", () => {
+  assert.equal(
+    canonicalizeEdition01TemplateText("  A  B \r\n C \rD  "),
+    "  A  B \n C \nD  ",
+  );
 });
 
 test("el test usa núcleo neutral y la CLI conserva el adaptador server-only", async () => {
