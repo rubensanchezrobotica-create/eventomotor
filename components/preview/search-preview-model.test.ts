@@ -41,6 +41,13 @@ function event(overrides: Partial<EventItem> = {}): EventItem {
   };
 }
 
+function localIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 test("normaliza búsquedas ignorando mayúsculas y acentos", () => {
   assert.equal(normalizePreviewText("  Próximos en Cataluña  "), "proximos en cataluna");
 });
@@ -126,6 +133,31 @@ test("la home pública conserva su buscador por defecto", () => {
   assert.doesNotMatch(markup, /data-preview-search="true"/);
   assert.match(markup, /Todos los próximos eventos\. 0 eventos visibles con los filtros actuales\./);
   assert.doesNotMatch(markup, /0 eventos próximos con los filtros actuales\./);
+});
+
+test("la home renderiza el inventario inicial con enlaces y contadores reales", () => {
+  const today = localIsoDate(new Date());
+  const initialEvent = event({ start: today, end: today });
+  const markup = renderToStaticMarkup(createElement(ConceptHomePage, {
+    explorerSummaryVariant: "concise",
+    initialEvents: [initialEvent],
+  }));
+
+  assert.match(markup, /Rally Comunidad de Madrid/);
+  assert.match(markup, /href="\/evento\/rally-jarama"/);
+  assert.match(markup, /1 evento próximo con los filtros actuales\./);
+  assert.match(markup, />1(?:<!-- -->)? próximos</);
+  assert.doesNotMatch(markup, /0 eventos próximos con los filtros actuales\./);
+});
+
+test("la home conserva el estado vacío cuando el inventario inicial está realmente vacío", () => {
+  const markup = renderToStaticMarkup(createElement(ConceptHomePage, {
+    explorerSummaryVariant: "concise",
+    initialEvents: [],
+  }));
+
+  assert.match(markup, /0 eventos próximos con los filtros actuales\./);
+  assert.doesNotMatch(markup, /href="\/evento\//);
 });
 
 test("el slot opcional sustituye solo el buscador dentro de la misma home", () => {

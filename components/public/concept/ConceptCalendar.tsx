@@ -356,29 +356,43 @@ export default function ConceptCalendar({
               const isToday = TODAY.toDateString() === day.toDateString();
 
               return (
-                <button
-                  aria-label={
-                    dayEvents.length
-                      ? `${day.getDate()} de ${MONTHS[day.getMonth()]}, ${dayEvents.length} eventos`
-                      : `${day.getDate()} de ${MONTHS[day.getMonth()]}, sin eventos`
-                  }
+                <div
                   className={`emc-day ${dayEvents.length ? "emc-has" : ""} ${isFocused ? "emc-focus" : ""} ${isModalSelected ? "emc-modal-selected" : ""} ${isToday ? "emc-today" : ""}`}
                   key={day.toISOString()}
-                  onClick={() => openDay(day, dayEvents)}
-                  type="button"
                 >
-                  <span className="emc-day-number">{day.getDate()}</span>
-                  {dayEvents.length ? <small>{dayEvents.length}</small> : null}
+                  <button
+                    aria-label={
+                      dayEvents.length
+                        ? `${day.getDate()} de ${MONTHS[day.getMonth()]}, ${dayEvents.length} eventos`
+                        : `${day.getDate()} de ${MONTHS[day.getMonth()]}, sin eventos`
+                    }
+                    className="emc-day-trigger"
+                    onClick={() => openDay(day, dayEvents)}
+                    type="button"
+                  >
+                    <span className="emc-day-number">{day.getDate()}</span>
+                    {dayEvents.length ? <small>{dayEvents.length}</small> : null}
+                  </button>
                   <span className="emc-dots">
                     {dayEvents.slice(0, 5).map((event) => (
-                      <span
+                      <Link
+                        aria-label={`Ver ${event.title}, ${formatRange(event)}`}
                         className="emc-edot"
+                        href={eventHref(event)}
                         key={event.id}
+                        onClick={() => trackEvent("click_event_detail", {
+                          ...eventAnalyticsParams(event),
+                          discipline: event.discipline,
+                          zone: eventZone(event),
+                          vehicle_type: vehicleKind(event),
+                          page_path: currentPagePath(),
+                        })}
                         style={{ background: vehicleDotColor(event) }}
+                        title={event.title}
                       />
                     ))}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

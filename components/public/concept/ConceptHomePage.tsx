@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentType, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConceptCalendar from "@/components/public/concept/ConceptCalendar";
 import ConceptDisciplineExplorer, {
@@ -156,6 +156,7 @@ export type ConceptHomeSearchPanelProps = {
 
 type ConceptHomePageProps = {
   hasHeroImage?: boolean;
+  initialEvents?: EventItem[];
   newsletterCapture?: ReactNode;
   newsletterPublicLaunchEnabled?: boolean;
   className?: string;
@@ -172,6 +173,7 @@ export default function ConceptHomePage({
   explorerSummaryVariant = "default",
   footerVariant = "default",
   hasHeroImage = false,
+  initialEvents = [],
   newsletterCapture,
   newsletterPublicLaunchEnabled = false,
   popularSearchesVariant = "default",
@@ -179,7 +181,7 @@ export default function ConceptHomePage({
   useCalendarCountGrammar = false,
   zoneExplorerVariant = "default",
 }: ConceptHomePageProps) {
-  const [events, setEvents] = useState<EventItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>(() => initialEvents);
   const [query, setQuery] = useState("");
   const [discipline, setDiscipline] = useState("Todas");
   const [disciplineCategory, setDisciplineCategory] = useState<DisciplineCategoryId | "todas">("todas");
@@ -203,13 +205,14 @@ export default function ConceptHomePage({
 
       setEvents(normalizeRemoteEvents(await response.json()));
     } catch {
-      setEvents([]);
+      console.error("No se pudieron actualizar los eventos de la home; se conservan los datos existentes.");
     }
   }
 
   useEffect(() => {
-    refreshEvents();
-    const timer = window.setInterval(refreshEvents, AUTO_REFRESH_MS);
+    const timer = window.setInterval(() => {
+      void refreshEvents();
+    }, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, []);
 

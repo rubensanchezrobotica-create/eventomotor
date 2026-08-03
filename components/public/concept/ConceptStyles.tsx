@@ -1629,10 +1629,12 @@ export default function ConceptStyles() {
     0 0 0 1px rgba(255,181,71,.12),
     0 18px 44px rgba(255,59,0,.18);
 }
+.emc-day-trigger { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; border: 0; border-radius: inherit; padding: 13px; background: transparent; color: inherit; text-align: left; cursor: inherit !important; }
 .emc-day-number { position: relative; z-index: 1; font-size: 22px; line-height: 1; }
 .emc-day small { position: absolute; right: 11px; top: 11px; z-index: 1; min-width: 27px; height: 27px; display: grid; place-items: center; border-radius: 999px; background: rgba(255,255,255,.94); color: #07090f; font-size: 11px; box-shadow: 0 8px 20px rgba(0,0,0,.22); }
-.emc-dots { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 1; display: flex; gap: 6px; flex-wrap: wrap; }
-.emc-edot { width: 7px; height: 7px; border-radius: 50%; }
+.emc-dots { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 2; display: flex; gap: 6px; flex-wrap: wrap; }
+.emc-edot { display: block; width: 7px; height: 7px; border-radius: 50%; }
+.emc-edot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .emc-agenda { display: grid; gap: 12px; }
 .emc-agenda-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .emc-agenda-head h3 { font-size: 27px; letter-spacing: -1px; font-weight: 900; }
@@ -3243,6 +3245,7 @@ export default function ConceptStyles() {
   .emc-weekdays { margin-bottom: 7px; }
   .emc-weekdays div { font-size: 11px; }
   .emc-day { min-height: 62px; border-radius: 14px; padding: 7px; }
+  .emc-day-trigger { padding: 7px; }
   .emc-day.emc-has { background: linear-gradient(180deg, rgba(255,59,0,.12), rgba(8,12,20,.94)); border-color: rgba(255,91,31,.34); }
   .emc-day-number { font-size: 15px; line-height: 1; }
   .emc-day small { right: 5px; top: 5px; min-width: 14px; height: 14px; background: rgba(255,91,31,.18); border: 1px solid rgba(255,91,31,.30); color: #ffd1c2; font-size: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
