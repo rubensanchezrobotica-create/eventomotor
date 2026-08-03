@@ -1,0 +1,30 @@
+PAQUETE DE LA AGENDA MOTOR · EDICIÓN 01
+Fecha prevista: jueves 6 de agosto de 2026
+
+CONTENIDO
+- preview-local.html: vista previa que carga las imágenes desde la carpeta assets.
+- email-production.html: HTML con URLs absolutas previstas para producción.
+- email-texto-plano.txt: alternativa de texto plano.
+- assets/: logo oficial e imágenes optimizadas.
+
+RUTA PROPUESTA EN EL PROYECTO
+Copiar esta carpeta a:
+public/newsletter/2026-08-06/
+
+Al copiarla, las imágenes quedarían disponibles en:
+https://www.eventomotor.com/newsletter/2026-08-06/assets/
+
+ANTES DEL ENVÍO REAL
+1. Verificar que todas las URLs de imágenes responden en producción.
+2. Sustituir {{unsubscribe_url}} por el enlace individual generado por EventoMotor.
+3. Hacer un envío de prueba únicamente al propietario.
+4. Revisar en Gmail/Apple Mail móvil y escritorio.
+5. Confirmar fechas y posibles cambios de los seis eventos el mismo jueves.
+6. Enviar únicamente a suscriptores activos, confirmados y no suprimidos.
+
+No se ha modificado el proyecto, Supabase, Vercel ni Resend.
+
+REVISIÓN 1
+- Contenedor fluido para evitar recortes laterales.
+- Apilado móvil reforzado hasta 700 px.
+- Imágenes secundarias recortadas hacia la acción, sin fragmentos de títulos.
