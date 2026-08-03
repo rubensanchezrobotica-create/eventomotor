@@ -28,3 +28,30 @@ REVISIÓN 1
 - Contenedor fluido para evitar recortes laterales.
 - Apilado móvil reforzado hasta 700 px.
 - Imágenes secundarias recortadas hacia la acción, sin fragmentos de títulos.
+
+HERRAMIENTA LOCAL DE PRUEBA
+La herramienta es dry-run por defecto. No consulta suscriptores, no recorre listas
+y sólo admite un destinatario escrito manualmente.
+
+Dry-run seguro:
+npm run --silent newsletter:edition01:test -- `
+  --to "correo-de-prueba" `
+  --unsubscribe-url "enlace-individual"
+
+El dry-run valida la edición, sustituye el enlace únicamente en memoria y termina
+con "Dry-run complete. No email was sent.". No necesita ni carga la API key.
+
+ENVÍO REAL DE UNA ÚNICA PRUEBA (NO EJECUTAR SIN AUTORIZACIÓN EXPRESA)
+$env:NEWSLETTER_EDITION_TEST_SEND_ARMED = "edition-01-test-only"
+
+npm run --silent newsletter:edition01:test -- `
+  --send `
+  --to "correo-de-prueba" `
+  --confirm-to "correo-de-prueba" `
+  --confirm-phrase "SEND-EDITION-01-TEST" `
+  --unsubscribe-url "enlace-individual"
+
+El envío real queda bloqueado en CI, Vercel y NODE_ENV=production. Requiere un
+único email válido, confirmación exacta, frase exacta, armado temporal, enlace de
+baja individual válido y NEWSLETTER_RESEND_API_KEY disponible. Nunca admite cc,
+bcc, separadores de destinatarios ni envíos a la lista.
