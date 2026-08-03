@@ -12,6 +12,7 @@ import {
   evaluateNewsletterPublicLaunchResendConfiguration,
 } from "@/lib/newsletter/resend-config.server";
 import { isNewsletterPublicLaunchPageRequestAllowed } from "@/lib/newsletter/r5b-guard";
+import { getHomeVisibleEvents } from "@/lib/public-events";
 import { absoluteUrl, DEFAULT_OG_IMAGE, HOME_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -47,7 +48,10 @@ const websiteJsonLd = {
 
 export default async function HomePage() {
   await connection();
-  const requestHeaders = await headers();
+  const [requestHeaders, initialEvents] = await Promise.all([
+    headers(),
+    getHomeVisibleEvents(),
+  ]);
   const publicConfiguration =
     evaluateNewsletterPublicLaunchResendConfiguration(
       currentNewsletterPublicLaunchEnvironment(),
@@ -71,6 +75,7 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <PreviewHomePage
         hasHeroImage={hasHeroImage}
+        initialEvents={initialEvents}
         newsletterCapture={
           newsletterPublicLaunchEnabled
             ? <NewsletterCaptureCard placement="home" />
