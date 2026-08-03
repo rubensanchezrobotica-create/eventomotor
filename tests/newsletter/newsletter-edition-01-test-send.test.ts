@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import test from "node:test";
 
 import {
@@ -6,25 +8,24 @@ import {
   NEWSLETTER_EDITION_01_TEST_CONFIRM_PHRASE,
   NEWSLETTER_EDITION_01_TEST_SUBJECT,
   NewsletterEdition01TestSendError,
-  executeNewsletterEdition01TestSend,
-  loadEdition01Source,
-  newsletterEdition01EnvironmentFromProcess,
+  executeNewsletterEdition01TestSend as executeNewsletterEdition01TestSendNeutral,
   parseNewsletterEdition01TestArguments,
   prepareEdition01Content,
+  selectNewsletterEdition01Environment,
   validateEdition01Template,
   validateEdition01UnsubscribeUrl,
+  type ExecuteNewsletterEdition01TestOptions,
+  type NewsletterEdition01Client,
+  type NewsletterEdition01ClientResult,
+  type NewsletterEdition01EmailPayload,
+  type NewsletterEdition01Source,
   type NewsletterEdition01TestEnvironment,
   type NewsletterEdition01TestRequest,
-} from "../../lib/newsletter/edition-01-test-send.server";
-import type {
-  NewsletterResendClient,
-  NewsletterResendClientResult,
-  NewsletterResendEmailPayload,
-} from "../../lib/newsletter/resend-client.server";
-import {
-  NEWSLETTER_PRODUCTION_REPLY_TO,
-  NEWSLETTER_PRODUCTION_SENDER,
-} from "../../lib/newsletter/resend-config.server";
+} from "../../lib/newsletter/edition-01-test-send";
+
+const NEWSLETTER_PRODUCTION_SENDER =
+  "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
+const NEWSLETTER_PRODUCTION_REPLY_TO = "info@eventomotor.com";
 
 const RECIPIENT = "edition-test@example.invalid";
 const OTHER_RECIPIENT = "other-test@example.invalid";
@@ -52,17 +53,43 @@ const SEND_ENVIRONMENT: NewsletterEdition01TestEnvironment = {
   apiKey: API_KEY,
 };
 
-class FakeResendClient implements NewsletterResendClient {
-  readonly calls: NewsletterResendEmailPayload[] = [];
-  result: NewsletterResendClientResult = {
+class FakeResendClient implements NewsletterEdition01Client {
+  readonly calls: NewsletterEdition01EmailPayload[] = [];
+  result: NewsletterEdition01ClientResult = {
     status: "accepted",
     providerMessageId: "fake-edition-01-message-id",
   };
 
-  async sendEmail(payload: NewsletterResendEmailPayload) {
+  async sendEmail(payload: NewsletterEdition01EmailPayload) {
     this.calls.push(structuredClone(payload));
     return this.result;
   }
+}
+
+async function loadEdition01Source(): Promise<NewsletterEdition01Source> {
+  const editionDirectory = resolve(
+    process.cwd(),
+    "docs/newsletter/ediciones/2026-08-06",
+  );
+  const [html, text] = await Promise.all([
+    readFile(resolve(editionDirectory, "email-production.html"), "utf8"),
+    readFile(resolve(editionDirectory, "email-texto-plano.txt"), "utf8"),
+  ]);
+  return { html, text };
+}
+
+async function executeNewsletterEdition01TestSend(
+  options: Omit<
+    ExecuteNewsletterEdition01TestOptions,
+    "source" | "sender" | "replyTo"
+  >,
+) {
+  return executeNewsletterEdition01TestSendNeutral({
+    ...options,
+    source: await loadEdition01Source(),
+    sender: NEWSLETTER_PRODUCTION_SENDER,
+    replyTo: NEWSLETTER_PRODUCTION_REPLY_TO,
+  });
 }
 
 async function expectBlocked(
@@ -112,21 +139,14 @@ test("la ausencia de --send prevalece incluso con armado y API key", async () =>
 });
 
 test("dry-run no captura la API key del proceso", () => {
-  const previousApiKey = process.env.NEWSLETTER_RESEND_API_KEY;
-  process.env.NEWSLETTER_RESEND_API_KEY = API_KEY;
-  try {
-    assert.equal(newsletterEdition01EnvironmentFromProcess().apiKey, undefined);
-    assert.equal(
-      newsletterEdition01EnvironmentFromProcess(true).apiKey,
-      API_KEY,
-    );
-  } finally {
-    if (previousApiKey === undefined) {
-      delete process.env.NEWSLETTER_RESEND_API_KEY;
-    } else {
-      process.env.NEWSLETTER_RESEND_API_KEY = previousApiKey;
-    }
-  }
+  assert.equal(
+    selectNewsletterEdition01Environment({ apiKey: API_KEY }).apiKey,
+    undefined,
+  );
+  assert.equal(
+    selectNewsletterEdition01Environment({ apiKey: API_KEY }, true).apiKey,
+    API_KEY,
+  );
 });
 
 test("rechaza múltiples destinatarios, separadores y cc/bcc", async () => {
@@ -338,4 +358,55 @@ test("la plantilla real supera integridad, imágenes, UTMs y codificación", asy
     assert.equal(source.html.includes(marker), false);
     assert.equal(source.text.includes(marker), false);
   }
+});
+
+test("el test usa núcleo neutral y la CLI conserva el adaptador server-only", async () => {
+  const [testSource, neutralSource, serverSource, scriptSource] =
+    await Promise.all([
+      readFile(
+        resolve(
+          process.cwd(),
+          "tests/newsletter/newsletter-edition-01-test-send.test.ts",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          process.cwd(),
+          "lib/newsletter/edition-01-test-send.ts",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          process.cwd(),
+          "lib/newsletter/edition-01-test-send.server.ts",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          process.cwd(),
+          "scripts/send-newsletter-edition-01-test.ts",
+        ),
+        "utf8",
+      ),
+    ]);
+
+  const testNewsletterImports = testSource
+    .split("\n")
+    .filter((line) => line.includes("from \"../../lib/newsletter/"))
+    .join("\n");
+  assert.doesNotMatch(testNewsletterImports, /edition-01-test-send\.server/);
+  assert.doesNotMatch(testNewsletterImports, /resend-client\.server/);
+  assert.doesNotMatch(testNewsletterImports, /resend-config\.server/);
+  assert.match(testNewsletterImports, /edition-01-test-send"/);
+  assert.doesNotMatch(neutralSource, /import\s+["']server-only["']/);
+  assert.doesNotMatch(neutralSource, /process\.env/);
+  assert.doesNotMatch(neutralSource, /FetchNewsletterResendClient/);
+  assert.match(serverSource, /^import "server-only";/);
+  assert.match(serverSource, /FetchNewsletterResendClient/);
+  assert.match(serverSource, /NEWSLETTER_PRODUCTION_SENDER/);
+  assert.match(serverSource, /NEWSLETTER_PRODUCTION_REPLY_TO/);
+  assert.match(scriptSource, /edition-01-test-send\.server/);
 });
