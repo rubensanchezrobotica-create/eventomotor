@@ -381,41 +381,43 @@ test("la plantilla real supera integridad, imágenes, UTMs y codificación", asy
   }
 });
 
-test("producción y preview declaran un esquema exclusivamente oscuro", async () => {
+test("producción y preview usan una base email-safe sin defensas de inversión", async () => {
   const source = await loadEdition01Source();
   const preview = await loadEdition01Preview();
 
   for (const html of [source.html, preview]) {
-    assert.match(html, /<meta name="color-scheme" content="dark">/);
+    assert.doesNotMatch(html, /color-scheme/);
+    assert.doesNotMatch(html, /prefers-color-scheme/);
+    assert.doesNotMatch(html, /mix-blend-mode/);
+    assert.doesNotMatch(html, /gmail-blend/);
+    assert.doesNotMatch(html, /u \+ \.body/);
+    assert.doesNotMatch(html, /linear-gradient/);
+    assert.doesNotMatch(html, /background-image/);
     assert.match(
       html,
-      /<meta name="supported-color-schemes" content="dark">/,
+      /a\[x-apple-data-detectors\] \{ color:inherit !important; text-decoration:none !important; \}/,
     );
-    assert.match(
-      html,
-      /:root \{ color-scheme:dark; supported-color-schemes:dark; \}/,
-    );
-    assert.match(html, /@media \(prefers-color-scheme:dark\)/);
-    assert.match(html, /<body class="body"/);
   }
 });
 
-test("los fondos principales conservan las tres capas de color", async () => {
+test("los fondos principales declaran una paleta clara compatible", async () => {
   const source = await loadEdition01Source();
   const preview = await loadEdition01Preview();
   const surfaces = [
-    ["body", "#080a0e", 1],
-    ["email-bg", "#080a0e", 1],
-    ["email-shell", "#0d1015", 1],
+    ["email-bg", "#cfd6de", 1],
+    ["email-shell", "#dde3e9", 1],
     ["email-header", "#050608", 1],
-    ["intro-surface", "#0d1015", 1],
-    ["email-card", "#11141a", 5],
-    ["final-cta", "#171b22", 1],
-    ["email-footer", "#080a0e", 1],
-    ["logo-protect", "#050608", 1],
+    ["intro-surface", "#e6ebf0", 1],
+    ["featured-surface", "#e6ebf0", 1],
+    ["email-card", "#f1f3f5", 5],
+    ["final-cta", "#d6dde4", 1],
+    ["email-footer", "#090b0f", 1],
   ] as const;
 
   for (const html of [source.html, preview]) {
+    const bodyTag = html.match(/<body\b[^>]*>/)?.[0] ?? "";
+    assert.match(bodyTag, /bgcolor="#cfd6de"/);
+    assert.match(bodyTag, /background-color:#cfd6de/);
     for (const [className, color, expectedCount] of surfaces) {
       const tags = [
         ...html.matchAll(
@@ -429,41 +431,38 @@ test("los fondos principales conservan las tres capas de color", async () => {
       for (const tag of tags) {
         assert.match(tag, new RegExp(`bgcolor="${color}"`));
         assert.match(tag, new RegExp(`background-color:${color}`));
-        assert.match(
-          tag,
-          new RegExp(`background-image:linear-gradient\\(${color},${color}\\)`),
-        );
       }
     }
-  }
-});
-
-test("la defensa Gmail iOS limita los blends a grupos de texto", async () => {
-  const source = await loadEdition01Source();
-  const preview = await loadEdition01Preview();
-
-  for (const html of [source.html, preview]) {
-    assert.match(html, /u \+ \.body \.gmail-blend-screen/);
-    assert.match(html, /mix-blend-mode:screen/);
-    assert.match(html, /u \+ \.body \.gmail-blend-difference/);
-    assert.match(html, /mix-blend-mode:difference/);
-    const screenWrappers = [
-      ...html.matchAll(/<[^>]+class="gmail-blend-screen"[^>]*>/g),
-    ].map((match) => match[0]);
-    const differenceWrappers = [
-      ...html.matchAll(/<[^>]+class="gmail-blend-difference"[^>]*>/g),
-    ].map((match) => match[0]);
-    assert.equal(screenWrappers.length, 11);
-    assert.equal(differenceWrappers.length, 11);
-    assert.equal(screenWrappers.every((tag) => tag.startsWith("<div")), true);
+    const cards = [...html.matchAll(/<table class="email-card"[^>]*>/g)].map(
+      (match) => match[0],
+    );
     assert.equal(
-      differenceWrappers.every((tag) => tag.startsWith("<div")),
+      cards.every((card) => card.includes("border:1px solid #c4ccd5")),
       true,
     );
   }
 });
 
-test("botones y logo mantienen contraste protegido", async () => {
+test("el cuerpo claro conserva texto oscuro y enlaces explícitos", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    assert.match(html, /class="hero-title"[^>]+color:#111827/);
+    assert.match(
+      html,
+      /class="[^"]*\bintro-surface\b[^"]*"[^>]+background-color:#e6ebf0/,
+    );
+    assert.equal(html.match(/color:#111827;font-weight:800/g)?.length, 5);
+    assert.equal(
+      html.match(/font-weight:700;color:#111827;text-decoration:none/g)?.length,
+      5,
+    );
+    assert.match(html, /color:#111827;text-transform:uppercase/);
+  }
+});
+
+test("botones y logo mantienen contraste sin wrappers", async () => {
   const source = await loadEdition01Source();
   const preview = await loadEdition01Preview();
 
@@ -474,16 +473,13 @@ test("botones y logo mantienen contraste protegido", async () => {
     assert.equal(buttons.length, 2);
     for (const button of buttons) {
       assert.match(button, /background-color:#ff5a0a/);
-      assert.match(
-        button,
-        /background-image:linear-gradient\(#ff5a0a,#ff5a0a\)/,
-      );
-      assert.match(button, /color:#ffffff/);
+      assert.match(button, /color:#111827/);
     }
     assert.match(
       html,
-      /<table class="logo-protect"[\s\S]*?<img[^>]+eventomotor-logo\.png[\s\S]*?<\/table>/,
+      /class="email-header"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?<img[^>]+eventomotor-logo\.png/,
     );
+    assert.doesNotMatch(html, /logo-protect/);
   }
 });
 
