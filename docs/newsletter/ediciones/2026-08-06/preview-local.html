@@ -27,14 +27,17 @@
       <td align="center" style="padding:22px 0;">
         <table class="email-shell" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#dde3e9"
                style="width:100%;max-width:620px;background-color:#dde3e9;border-radius:18px;overflow:hidden;">
-          <tr>
-            <td class="email-header" align="center" bgcolor="#050608" style="padding:25px 26px 19px 26px;background-color:#050608;border-bottom:1px solid #23262d;">
-              <img src="assets/eventomotor-logo.png" width="245" alt="EventoMotor"
-                   style="display:block;width:245px;max-width:100%;height:auto;border:0;">
-              <p style="margin:13px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;
-                        line-height:17px;letter-spacing:1.5px;color:#cbd0d8;text-transform:uppercase;">
-                La Agenda Motor · Edición 01 · 7–9 agosto 2026
-              </p>
+          <tr bgcolor="#050608" style="background-color:#050608;">
+            <td class="email-header" align="center" bgcolor="#050608" style="padding:0;background-color:#050608;border-bottom:1px solid #23262d;">
+              <table class="email-header-table" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#050608" style="width:100%;background-color:#050608;">
+                <tr bgcolor="#050608" style="background-color:#050608;">
+                  <td align="center" bgcolor="#050608" style="padding:0;background-color:#050608;">
+                    <img src="assets/eventomotor-header.png" width="620"
+                         alt="EventoMotor — La Agenda Motor · Edición 01 · 7–9 agosto 2026"
+                         style="display:block;width:100%;max-width:620px;height:auto;border:0;background-color:#050608;color:#cbd0d8;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;">
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
@@ -313,24 +316,30 @@
               </table>
             </td>
           </tr>
-          <tr>
-            <td class="mobile-pad email-footer" bgcolor="#090b0f" style="background-color:#090b0f;padding:20px 28px 24px 28px;border-top:1px solid #23262d;">
-              <p style="margin:0 0 11px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;
-                        line-height:19px;color:#cbd0d8;">
-                La información puede sufrir modificaciones. Antes de desplazarte, revisa la ficha
-                y los canales oficiales del evento para confirmar horarios, ubicación y programa.
-              </p>
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#cbd0d8;">
-                <a href="https://www.eventomotor.com/privacidad" style="color:#cbd0d8;">Privacidad</a>
-                &nbsp;·&nbsp;
-                <a href="https://www.eventomotor.com/aviso-legal" style="color:#cbd0d8;">Aviso legal</a>
-                &nbsp;·&nbsp;
-                <a href="{{unsubscribe_url}}" style="color:#cbd0d8;">Darme de baja</a>
-              </p>
-              <p style="margin:8px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;
-                        line-height:18px;color:#9ca3af;">
-                La Agenda Motor · EventoMotor · info@eventomotor.com
-              </p>
+          <tr bgcolor="#090b0f" style="background-color:#090b0f;">
+            <td class="email-footer" bgcolor="#090b0f" style="padding:0;background-color:#090b0f;border-top:1px solid #23262d;">
+              <table class="email-footer-table" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#090b0f" style="width:100%;background-color:#090b0f;">
+                <tr bgcolor="#090b0f" style="background-color:#090b0f;">
+                  <td class="mobile-pad" bgcolor="#090b0f" style="padding:20px 28px 24px 28px;background-color:#090b0f;">
+                    <p style="margin:0 0 11px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;
+                              line-height:19px;color:#cbd0d8;">
+                      La información puede sufrir modificaciones. Antes de desplazarte, revisa la ficha
+                      y los canales oficiales del evento para confirmar horarios, ubicación y programa.
+                    </p>
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#cbd0d8;">
+                      <a href="https://www.eventomotor.com/privacidad" style="color:#cbd0d8 !important;text-decoration:underline;">Privacidad</a>
+                      &nbsp;·&nbsp;
+                      <a href="https://www.eventomotor.com/aviso-legal" style="color:#cbd0d8 !important;text-decoration:underline;">Aviso legal</a>
+                      &nbsp;·&nbsp;
+                      <a href="{{unsubscribe_url}}" style="color:#cbd0d8 !important;text-decoration:underline;">Darme de baja</a>
+                    </p>
+                    <p style="margin:8px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;
+                              line-height:18px;color:#9ca3af;">
+                      La Agenda Motor · EventoMotor · info@eventomotor.com
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>
