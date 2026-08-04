@@ -7,7 +7,7 @@ import {
 } from "@/lib/newsletter/schemas";
 
 const HTML_SHA256 =
-  "bfca8e2fa65cd754e66492936ebc2a34a54ab1f4a9aa0a98025b853cbf6fe179";
+  "75299306a8cfd8b67b37f1770244dccedd81e00137b44deff3432730bdb722ab";
 const TEXT_SHA256 =
   "1e455b715895999acf47327e8732d99466cc3c0ab629d68f1bd69bbca22371be";
 const ASSET_ORIGIN =

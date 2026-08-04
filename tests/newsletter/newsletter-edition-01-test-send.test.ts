@@ -30,9 +30,11 @@ const NEWSLETTER_PRODUCTION_SENDER =
   "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
 const NEWSLETTER_PRODUCTION_REPLY_TO = "info@eventomotor.com";
 const EDITION_VISIBLE_TEXT_SHA256 =
-  "ec2cc5bc96b7e1234df7e2bfdd44717327b0c5082fd240a0e2979bab084438a0";
+  "4bad5783143c444c5461edbeea2266c1a1cb400a09a8d076bb49de2aeb1d148f";
 const EDITION_HREFS_SHA256 =
   "baafdfede056c1ddf70b43190e4838d518ab055a3383c329e29b6c7187f694c9";
+const EDITION_HEADER_ASSET_SHA256 =
+  "d460ad30eaebb7ce97996c99259835d89b988068c0f0d1bc783a4ff66218b811";
 
 const RECIPIENT = "edition-test@example.invalid";
 const OTHER_RECIPIENT = "other-test@example.invalid";
@@ -95,8 +97,29 @@ async function loadEdition01Preview(): Promise<string> {
   );
 }
 
+async function loadEdition01HeaderAssets(): Promise<readonly Buffer[]> {
+  return Promise.all([
+    readFile(
+      resolve(
+        process.cwd(),
+        "docs/newsletter/ediciones/2026-08-06/assets/eventomotor-header.png",
+      ),
+    ),
+    readFile(
+      resolve(
+        process.cwd(),
+        "public/newsletter/2026-08-06/assets/eventomotor-header.png",
+      ),
+    ),
+  ]);
+}
+
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function sha256Bytes(value: Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 async function executeNewsletterEdition01TestSend(
@@ -422,7 +445,7 @@ test("los fondos principales declaran una paleta clara compatible", async () => 
       const tags = [
         ...html.matchAll(
           new RegExp(
-            `<[^>]+class="[^"]*\\b${className}\\b[^"]*"[^>]*>`,
+            `<[^>]+class="(?:[^"]*\\s)?${className}(?:\\s[^"]*)?"[^>]*>`,
             "g",
           ),
         ),
@@ -462,9 +485,14 @@ test("el cuerpo claro conserva texto oscuro y enlaces explícitos", async () => 
   }
 });
 
-test("botones y logo mantienen contraste sin wrappers", async () => {
+test("botones y cabecera opaca mantienen contraste sin wrappers", async () => {
   const source = await loadEdition01Source();
   const preview = await loadEdition01Preview();
+  const headerAssets = await loadEdition01HeaderAssets();
+
+  for (const asset of headerAssets) {
+    assert.equal(sha256Bytes(asset), EDITION_HEADER_ASSET_SHA256);
+  }
 
   for (const html of [source.html, preview]) {
     const buttons = [
@@ -477,9 +505,35 @@ test("botones y logo mantienen contraste sin wrappers", async () => {
     }
     assert.match(
       html,
-      /class="email-header"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?<img[^>]+eventomotor-logo\.png/,
+      /class="email-header"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?class="email-header-table"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?<img[^>]+eventomotor-header\.png[^>]+width="620"/,
     );
+    assert.match(
+      html,
+      /alt="EventoMotor — La Agenda Motor · Edición 01 · 7–9 agosto 2026"/,
+    );
+    assert.doesNotMatch(html, /eventomotor-logo\.png/);
     assert.doesNotMatch(html, /logo-protect/);
+  }
+});
+
+test("cabecera y footer repiten fondos email-safe en todas sus capas", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    assert.ok((html.match(/bgcolor="#050608"/g)?.length ?? 0) >= 4);
+    assert.ok((html.match(/background-color:#050608/g)?.length ?? 0) >= 5);
+    assert.ok((html.match(/bgcolor="#090b0f"/g)?.length ?? 0) >= 4);
+    assert.ok((html.match(/background-color:#090b0f/g)?.length ?? 0) >= 4);
+    assert.match(
+      html,
+      /class="email-footer"[^>]+bgcolor="#090b0f"[^>]*>[\s\S]*?class="email-footer-table"[^>]+bgcolor="#090b0f"/,
+    );
+    assert.equal(
+      html.match(/color:#cbd0d8 !important;text-decoration:underline/g)
+        ?.length,
+      3,
+    );
   }
 });
 
