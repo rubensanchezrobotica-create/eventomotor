@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
@@ -28,6 +29,10 @@ import {
 const NEWSLETTER_PRODUCTION_SENDER =
   "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
 const NEWSLETTER_PRODUCTION_REPLY_TO = "info@eventomotor.com";
+const EDITION_VISIBLE_TEXT_SHA256 =
+  "ec2cc5bc96b7e1234df7e2bfdd44717327b0c5082fd240a0e2979bab084438a0";
+const EDITION_HREFS_SHA256 =
+  "baafdfede056c1ddf70b43190e4838d518ab055a3383c329e29b6c7187f694c9";
 
 const RECIPIENT = "edition-test@example.invalid";
 const OTHER_RECIPIENT = "other-test@example.invalid";
@@ -78,6 +83,20 @@ async function loadEdition01Source(): Promise<NewsletterEdition01Source> {
     readFile(resolve(editionDirectory, "email-texto-plano.txt"), "utf8"),
   ]);
   return { html, text };
+}
+
+async function loadEdition01Preview(): Promise<string> {
+  return readFile(
+    resolve(
+      process.cwd(),
+      "docs/newsletter/ediciones/2026-08-06/preview-local.html",
+    ),
+    "utf8",
+  );
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 async function executeNewsletterEdition01TestSend(
@@ -359,6 +378,137 @@ test("la plantilla real supera integridad, imágenes, UTMs y codificación", asy
   for (const marker of ["\u00c3", "\u00c2", "\u00e2\u20ac", "\ufffd"]) {
     assert.equal(source.html.includes(marker), false);
     assert.equal(source.text.includes(marker), false);
+  }
+});
+
+test("producción y preview declaran un esquema exclusivamente oscuro", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    assert.match(html, /<meta name="color-scheme" content="dark">/);
+    assert.match(
+      html,
+      /<meta name="supported-color-schemes" content="dark">/,
+    );
+    assert.match(
+      html,
+      /:root \{ color-scheme:dark; supported-color-schemes:dark; \}/,
+    );
+    assert.match(html, /@media \(prefers-color-scheme:dark\)/);
+    assert.match(html, /<body class="body"/);
+  }
+});
+
+test("los fondos principales conservan las tres capas de color", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+  const surfaces = [
+    ["body", "#080a0e", 1],
+    ["email-bg", "#080a0e", 1],
+    ["email-shell", "#0d1015", 1],
+    ["email-header", "#050608", 1],
+    ["intro-surface", "#0d1015", 1],
+    ["email-card", "#11141a", 5],
+    ["final-cta", "#171b22", 1],
+    ["email-footer", "#080a0e", 1],
+    ["logo-protect", "#050608", 1],
+  ] as const;
+
+  for (const html of [source.html, preview]) {
+    for (const [className, color, expectedCount] of surfaces) {
+      const tags = [
+        ...html.matchAll(
+          new RegExp(
+            `<[^>]+class="[^"]*\\b${className}\\b[^"]*"[^>]*>`,
+            "g",
+          ),
+        ),
+      ].map((match) => match[0]);
+      assert.equal(tags.length, expectedCount, className);
+      for (const tag of tags) {
+        assert.match(tag, new RegExp(`bgcolor="${color}"`));
+        assert.match(tag, new RegExp(`background-color:${color}`));
+        assert.match(
+          tag,
+          new RegExp(`background-image:linear-gradient\\(${color},${color}\\)`),
+        );
+      }
+    }
+  }
+});
+
+test("la defensa Gmail iOS limita los blends a grupos de texto", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    assert.match(html, /u \+ \.body \.gmail-blend-screen/);
+    assert.match(html, /mix-blend-mode:screen/);
+    assert.match(html, /u \+ \.body \.gmail-blend-difference/);
+    assert.match(html, /mix-blend-mode:difference/);
+    const screenWrappers = [
+      ...html.matchAll(/<[^>]+class="gmail-blend-screen"[^>]*>/g),
+    ].map((match) => match[0]);
+    const differenceWrappers = [
+      ...html.matchAll(/<[^>]+class="gmail-blend-difference"[^>]*>/g),
+    ].map((match) => match[0]);
+    assert.equal(screenWrappers.length, 11);
+    assert.equal(differenceWrappers.length, 11);
+    assert.equal(screenWrappers.every((tag) => tag.startsWith("<div")), true);
+    assert.equal(
+      differenceWrappers.every((tag) => tag.startsWith("<div")),
+      true,
+    );
+  }
+});
+
+test("botones y logo mantienen contraste protegido", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    const buttons = [
+      ...html.matchAll(/<a[^>]+class="orange-button"[^>]*>/g),
+    ].map((match) => match[0]);
+    assert.equal(buttons.length, 2);
+    for (const button of buttons) {
+      assert.match(button, /background-color:#ff5a0a/);
+      assert.match(
+        button,
+        /background-image:linear-gradient\(#ff5a0a,#ff5a0a\)/,
+      );
+      assert.match(button, /color:#ffffff/);
+    }
+    assert.match(
+      html,
+      /<table class="logo-protect"[\s\S]*?<img[^>]+eventomotor-logo\.png[\s\S]*?<\/table>/,
+    );
+  }
+});
+
+test("texto, enlaces, UTMs y baja permanecen idénticos", async () => {
+  const source = await loadEdition01Source();
+  const preview = await loadEdition01Preview();
+
+  for (const html of [source.html, preview]) {
+    const visibleText = html
+      .slice(html.indexOf("<body"))
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const hrefs = [...html.matchAll(/\bhref="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    assert.equal(sha256(visibleText), EDITION_VISIBLE_TEXT_SHA256);
+    assert.equal(sha256(JSON.stringify(hrefs)), EDITION_HREFS_SHA256);
+    assert.equal(hrefs.length, 16);
+    assert.equal(
+      html.split("utm_campaign=agenda_motor_2026_08_06").length - 1,
+      13,
+    );
+    assert.equal(html.split("{{unsubscribe_url}}").length - 1, 1);
   }
 });
 
