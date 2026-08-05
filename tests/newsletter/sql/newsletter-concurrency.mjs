@@ -1051,14 +1051,16 @@ try {
       container,
       `
         select concat(
-          status, '|', retryable, '|', attempt_count, '|',
-          updated_at >= created_at
+          status, '|', retryable::text, '|', attempt_count, '|',
+          (
+            updated_at >= created_at
             and prepared_at >= created_at
             and last_attempt_at >= created_at
             and claimed_at >= created_at
             and unknown_at >= created_at
             and accepted_at is null
             and failed_at is null
+          )::text
         )
         from public.newsletter_campaign_deliveries
         where id = ${sqlLiteral(postAcceptanceDeliveryId)}::uuid;
