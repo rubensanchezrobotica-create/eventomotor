@@ -6,9 +6,9 @@ import {
   normalizeEmail,
 } from "@/lib/newsletter/schemas";
 
-const HTML_SHA256 =
+export const NEWSLETTER_EDITION_01_HTML_SHA256 =
   "75299306a8cfd8b67b37f1770244dccedd81e00137b44deff3432730bdb722ab";
-const TEXT_SHA256 =
+export const NEWSLETTER_EDITION_01_TEXT_SHA256 =
   "1e455b715895999acf47327e8732d99466cc3c0ab629d68f1bd69bbca22371be";
 const ASSET_ORIGIN =
   "https://www.eventomotor.com/newsletter/2026-08-06/assets/";
@@ -262,8 +262,10 @@ export function validateEdition01SourceIntegrity(
   source: NewsletterEdition01Source,
 ): NewsletterEdition01TemplateSummary {
   if (
-    sha256(canonicalizeEdition01TemplateText(source.html)) !== HTML_SHA256 ||
-    sha256(canonicalizeEdition01TemplateText(source.text)) !== TEXT_SHA256
+    sha256(canonicalizeEdition01TemplateText(source.html)) !==
+      NEWSLETTER_EDITION_01_HTML_SHA256 ||
+    sha256(canonicalizeEdition01TemplateText(source.text)) !==
+      NEWSLETTER_EDITION_01_TEXT_SHA256
   ) {
     fail("template_digest_mismatch");
   }

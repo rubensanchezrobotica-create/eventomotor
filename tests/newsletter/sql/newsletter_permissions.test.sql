@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(44);
+select plan(50);
 
 set local role anon;
 select throws_ok(
@@ -47,6 +47,12 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_webhook_receipts',
   'anon cannot select webhook receipts'
+);
+select throws_ok(
+  $$select * from public.newsletter_campaign_deliveries$$,
+  '42501',
+  'permission denied for table newsletter_campaign_deliveries',
+  'anon cannot inspect campaign recipients'
 );
 reset role;
 
@@ -92,6 +98,12 @@ select throws_ok(
   '42501',
   'permission denied for table newsletter_webhook_receipts',
   'authenticated cannot select webhook receipts'
+);
+select throws_ok(
+  $$select * from public.newsletter_campaign_deliveries$$,
+  '42501',
+  'permission denied for table newsletter_campaign_deliveries',
+  'authenticated cannot inspect campaign recipients'
 );
 reset role;
 
@@ -175,6 +187,15 @@ select ok(
   ),
   'anon has no execute privilege on webhook RPC'
 );
+select ok(
+  not has_function_privilege('anon', 'public.preview_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.prepare_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.claim_newsletter_campaign_delivery(uuid,text,boolean)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.record_newsletter_campaign_delivery_accepted(uuid,uuid,text,timestamptz)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.record_newsletter_campaign_delivery_failed(uuid,uuid,text,boolean,timestamptz)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.record_newsletter_campaign_delivery_unknown(uuid,uuid,text,timestamptz)', 'EXECUTE'),
+  'anon has no execute privilege on campaign RPCs'
+);
 
 select ok(
   not has_function_privilege(
@@ -256,6 +277,15 @@ select ok(
   ),
   'authenticated has no execute privilege on webhook RPC'
 );
+select ok(
+  not has_function_privilege('authenticated', 'public.preview_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.prepare_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.claim_newsletter_campaign_delivery(uuid,text,boolean)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.record_newsletter_campaign_delivery_accepted(uuid,uuid,text,timestamptz)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.record_newsletter_campaign_delivery_failed(uuid,uuid,text,boolean,timestamptz)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.record_newsletter_campaign_delivery_unknown(uuid,uuid,text,timestamptz)', 'EXECUTE'),
+  'authenticated has no execute privilege on campaign RPCs'
+);
 
 set local role service_role;
 select lives_ok(
@@ -270,6 +300,12 @@ select lives_ok(
     union all select count(*) from public.newsletter_webhook_receipts
   $$,
   'service_role can read every newsletter table'
+);
+select throws_ok(
+  $$select * from public.newsletter_campaign_deliveries$$,
+  '42501',
+  'permission denied for table newsletter_campaign_deliveries',
+  'service_role must use campaign RPCs instead of direct recipient reads'
 );
 select lives_ok(
   $$select * from public.request_newsletter_subscription('service@example.invalid', 'service@example.invalid', repeat('c', 64), now() + interval '1 day', 'permissions_test', 'test')$$,
@@ -288,7 +324,17 @@ select ok(
   and has_function_privilege('service_role', 'public.check_newsletter_delivery_eligibility(uuid,text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.register_newsletter_outbound_delivery(uuid,text,text,timestamptz)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.process_newsletter_resend_webhook(text,text,text,timestamptz,text,boolean)', 'EXECUTE'),
-  'service_role has execute privilege on all ten RPCs'
+  'service_role has execute privilege on the legacy RPCs'
+);
+
+select ok(
+  has_function_privilege('service_role', 'public.preview_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.prepare_newsletter_campaign(text,text,text,text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.claim_newsletter_campaign_delivery(uuid,text,boolean)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.record_newsletter_campaign_delivery_accepted(uuid,uuid,text,timestamptz)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.record_newsletter_campaign_delivery_failed(uuid,uuid,text,boolean,timestamptz)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.record_newsletter_campaign_delivery_unknown(uuid,uuid,text,timestamptz)', 'EXECUTE'),
+  'service_role has execute privilege on all campaign RPCs'
 );
 
 select ok(

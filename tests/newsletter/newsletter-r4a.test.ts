@@ -4,6 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  FetchNewsletterResendClient,
   type NewsletterResendClient,
   type NewsletterResendClientResult,
   type NewsletterResendEmailPayload,
@@ -289,6 +290,46 @@ test("cliente real fija origen, endpoint, redirect y timeout sin aceptar fetch u
     source,
     /process\.env|baseUrl|origin\s*[?:]|fetchImpl|proxy|http:\/\/|RESEND_BASE_URL/,
   );
+});
+
+test("cliente real envía Idempotency-Key válido y rechaza uno inseguro sin red", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ input: string; init?: RequestInit }> = [];
+  globalThis.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return new Response(JSON.stringify({ id: "idempotent-message" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  try {
+    const client = new FetchNewsletterResendClient({ apiKey: API_KEY });
+    const payload: NewsletterResendEmailPayload = {
+      from: FROM,
+      to: [RECIPIENT],
+      replyTo: REPLY_TO,
+      subject: "Campaign fixture",
+      html: "<p>fixture</p>",
+      text: "fixture",
+      idempotencyKey: "newsletter/campaign/delivery/1",
+    };
+    assert.deepEqual(await client.sendEmail(payload), {
+      status: "accepted",
+      providerMessageId: "idempotent-message",
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(
+      (calls[0].init?.headers as Record<string, string>)["Idempotency-Key"],
+      payload.idempotencyKey,
+    );
+    assert.deepEqual(
+      await client.sendEmail({ ...payload, idempotencyKey: "unsafe key" }),
+      { status: "provider_error", httpStatus: null },
+    );
+    assert.equal(calls.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("suite usa fake inyectado y demuestra cero fetch global", async () => {

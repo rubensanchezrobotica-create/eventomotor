@@ -75,8 +75,9 @@ test("prepara sólo la migración newsletter y verifica una copia byte a byte", 
     "20260721133000_newsletter_core_foundation.sql",
     "20260729120000_newsletter_launch_operations.sql",
     "20260730100000_newsletter_canary_hardening.sql",
+    "20260804120000_newsletter_manual_campaign_sender.sql",
   ]);
-  assert.equal(result.manifest.migrations.length, 3);
+  assert.equal(result.manifest.migrations.length, 4);
   for (const [index, copiedFile] of copiedFiles.entries()) {
     assert.equal(
       result.manifest.migrations[index].sha256,
@@ -155,7 +156,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 298);
+  assert.equal(plannedAssertions, 346);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -186,6 +187,8 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /runConcurrentScenario[\s\S]+?request-versus-suppression-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?purge-versus-confirmation-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?parallel-retention-purge/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?campaign-delivery-claim-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?different-campaign-delivery-claims/);
   assert.match(source, /createHash\("sha256"\)/);
   assert.match(source, /const tokenHashes = Object\.freeze\(\{/);
   assert.match(
@@ -220,6 +223,13 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /updated_at < created_at/);
   assert.match(source, /"1\|1\|0\|0"/);
   assert.match(source, /"1\|0\|0"/);
+  assert.match(source, /"1\|1\|1"/);
+  assert.match(source, /single campaign claim winner/);
+  assert.match(source, /single campaign claim loser/);
+  assert.match(source, /current campaign sending lease blocks another claim/);
+  assert.match(source, /next delivery is claimable after acceptance/);
+  assert.match(source, /stale sending lease becomes unknown and releases the next claim/);
+  assert.match(source, /different campaigns retain independent claim locks/);
 });
 
 test("el harness conserva stdout, stderr, exit code, worker y comando seguros", async () => {
@@ -482,6 +492,56 @@ test("R5A.3 repara sólo la baja heredada y conserva helpers fuera de Data API",
   assert.doesNotMatch(migration, /https?:\/\/|supabase (?:link|db push)|resend/i);
 });
 
+test("campaña manual conserva unicidad, claims atómicos, unknown y tokens sólo hash", async () => {
+  const migration = await readFile(
+    join(
+      process.cwd(),
+      "database/migrations/20260804120000_newsletter_manual_campaign_sender.sql",
+    ),
+    "utf8",
+  );
+  const claimStart = migration.indexOf(
+    "create or replace function public.claim_newsletter_campaign_delivery(",
+  );
+  const claimEnd = migration.indexOf(
+    "revoke all on function public.claim_newsletter_campaign_delivery(uuid, text, boolean)",
+    claimStart,
+  );
+  const claim = migration.slice(claimStart, claimEnd);
+  const campaignLock = claim.indexOf("from public.newsletter_campaigns as campaign");
+  const staleTransition = claim.indexOf("last_error_code = 'stale_claim_unknown'");
+  const activeSendingGuard = claim.indexOf("and active.status = 'sending'");
+  const candidateLock = claim.indexOf("for update skip locked");
+
+  assert.ok(claimStart >= 0 && claimEnd > claimStart);
+  assert.ok(campaignLock >= 0);
+  assert.ok(staleTransition > campaignLock);
+  assert.ok(activeSendingGuard > staleTransition);
+  assert.ok(candidateLock > activeSendingGuard);
+  assert.match(
+    claim,
+    /if exists \([\s\S]+?active\.campaign_id = p_campaign_id[\s\S]+?active\.status = 'sending'[\s\S]+?\) then\s+return;/i,
+  );
+  assert.match(migration, /unique \(campaign_id, subscriber_id\)/i);
+  assert.match(migration, /for update skip locked/i);
+  assert.match(migration, /status = 'unknown'[\s\S]+retryable = false/i);
+  assert.match(migration, /delivery\.status = 'failed'[\s\S]+delivery\.retryable/i);
+  assert.match(migration, /subscriber\.status = 'active'/i);
+  assert.match(migration, /preference\.weekly_digest_enabled/i);
+  assert.match(migration, /suppression\.lifted_at is null/i);
+  assert.match(migration, /token_hash ~ '\^\[0-9a-f\]\{64\}\$'/i);
+  assert.doesNotMatch(migration, /token_raw|raw_token|recipient_email\s+text\s+not\s+null/i);
+  assert.match(
+    migration,
+    /rename to newsletter_unsubscribe_by_token_legacy_internal/i,
+  );
+  assert.match(
+    migration,
+    /revoke all on function public\.newsletter_campaign_subscriber_is_eligible\(uuid\)[\s\S]+service_role/i,
+  );
+  assert.match(migration, /commit;\s*$/i);
+});
+
 test("la baja pending materializa el outcome antes de leer el estado persistido", async () => {
   const unsubscribe = await readFile(
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter_unsubscribe.test.sql"),
@@ -511,11 +571,11 @@ test("pgTAP conserva rechazos reales de tabla, RPCs y helpers sensibles", async 
     (match) => match[1],
   );
 
-  assert.equal(throwsBlocks.length, 14);
+  assert.equal(throwsBlocks.length, 17);
   for (const block of throwsBlocks) {
     assert.match(
       block,
-      /\$\$,\s*'42501',\s*'permission denied for table newsletter_(?:subscribers|unsubscribe_tokens|suppressions|webhook_receipts)',\s*'[^']+'\s*$/i,
+      /\$\$,\s*'42501',\s*'permission denied for table newsletter_(?:subscribers|unsubscribe_tokens|suppressions|webhook_receipts|campaign_deliveries)',\s*'[^']+'\s*$/i,
     );
   }
   const catalogChecks = [
@@ -523,11 +583,11 @@ test("pgTAP conserva rechazos reales de tabla, RPCs y helpers sensibles", async 
       /not\s+has_function_privilege\(\s*'(?:anon|authenticated)'([\s\S]*?)\n\s*\)/gi,
     ),
   ].map((match) => match[0]);
-  assert.equal(catalogChecks.length, 20);
-  assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 10);
-  assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 10);
+  assert.equal(catalogChecks.length, 22);
+  assert.equal(catalogChecks.filter((block) => /'anon'/i.test(block)).length, 11);
+  assert.equal(catalogChecks.filter((block) => /'authenticated'/i.test(block)).length, 11);
   for (const block of catalogChecks) {
-    assert.match(block, /'public\.[^']+\([^']*\)'::regprocedure/i);
+    assert.match(block, /'public\.[^']+\([^']*\)'(?:::regprocedure)?/i);
     assert.match(block, /'EXECUTE'/i);
   }
   assert.match(permissions, /public\.newsletter_email_hash\(text\)/i);
@@ -537,7 +597,7 @@ test("pgTAP conserva rechazos reales de tabla, RPCs y helpers sensibles", async 
   );
   assert.match(permissions, /'service_role'[\s\S]+newsletter_email_hash/i);
   assert.match(permissions, /'service_role'[\s\S]+minimize_newsletter_subscriber/i);
-  assert.match(permissions, /select\s+plan\(44\);/i);
+  assert.match(permissions, /select\s+plan\(50\);/i);
 });
 
 type ProcessResult = {
@@ -589,6 +649,9 @@ const ZERO_COUNTS = {
   newsletter_email_events: 0,
   newsletter_suppressions: 0,
   newsletter_webhook_receipts: 0,
+  newsletter_campaigns: 0,
+  newsletter_campaign_deliveries: 0,
+  newsletter_campaign_unsubscribe_tokens: 0,
 };
 
 function createDataApiHarness({
@@ -687,13 +750,13 @@ function createDataApiHarness({
   return { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations };
 }
 
-test("el validador Data API genera diez casos anon y diez authenticated con firmas exactas", async () => {
+test("el validador Data API genera dieciséis casos por rol con firmas exactas", async () => {
   const cases = buildRpcPermissionCases();
-  assert.equal(cases.length, 20);
-  assert.equal(cases.filter(({ role }) => role === "anon").length, 10);
-  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 10);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 10);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 10);
+  assert.equal(cases.length, 32);
+  assert.equal(cases.filter(({ role }) => role === "anon").length, 16);
+  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 16);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 16);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 16);
   assert.deepEqual(
     cases.map(({ rpcName }) => rpcName),
     [
@@ -707,6 +770,12 @@ test("el validador Data API genera diez casos anon y diez authenticated con firm
       "check_newsletter_delivery_eligibility",
       "register_newsletter_outbound_delivery",
       "process_newsletter_resend_webhook",
+      "preview_newsletter_campaign",
+      "prepare_newsletter_campaign",
+      "claim_newsletter_campaign_delivery",
+      "record_newsletter_campaign_delivery_accepted",
+      "record_newsletter_campaign_delivery_failed",
+      "record_newsletter_campaign_delivery_unknown",
       "request_newsletter_subscription",
       "confirm_newsletter_subscription",
       "prepare_newsletter_welcome_delivery",
@@ -717,6 +786,12 @@ test("el validador Data API genera diez casos anon y diez authenticated con firm
       "check_newsletter_delivery_eligibility",
       "register_newsletter_outbound_delivery",
       "process_newsletter_resend_webhook",
+      "preview_newsletter_campaign",
+      "prepare_newsletter_campaign",
+      "claim_newsletter_campaign_delivery",
+      "record_newsletter_campaign_delivery_accepted",
+      "record_newsletter_campaign_delivery_failed",
+      "record_newsletter_campaign_delivery_unknown",
     ],
   );
   assert.deepEqual(Object.keys(cases[0].body), [
@@ -836,7 +911,7 @@ test("status JSON acepta aliases auditables y no exige material JWT", () => {
   );
 });
 
-test("ejecuta veinte POST, exige 401/403 con 42501 y conserva recuentos", async () => {
+test("ejecuta treinta y dos POST, exige 401/403 con 42501 y conserva recuentos", async () => {
   const { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations } =
     createDataApiHarness();
   const output: string[] = [];
@@ -849,22 +924,22 @@ test("ejecuta veinte POST, exige 401/403 con 42501 y conserva recuentos", async 
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 20);
-  assert.equal(fetchInvocations.length, 22);
+  assert.equal(rpcInvocations.length, 32);
+  assert.equal(fetchInvocations.length, 34);
   assert.equal(
     output.filter((message) => /denied-http-(?:401|403)-sqlstate-42501/.test(message)).length,
-    20,
+    32,
   );
   assert.equal(masked.length, 3);
   assert.ok(masked.includes(LOCAL_PUBLIC_KEY));
   assert.ok(masked.includes(LOCAL_ACCESS_TOKEN));
-  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 10);
+  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 16);
   assert.equal(
     rpcInvocations.filter(
       ({ init }) => init.headers?.Authorization === `Bearer ${LOCAL_ACCESS_TOKEN}`,
     )
       .length,
-    10,
+    16,
   );
   for (const invocation of rpcInvocations) {
     assert.equal(invocation.init.method, "POST");
@@ -902,7 +977,7 @@ test("ejecuta veinte POST, exige 401/403 con 42501 y conserva recuentos", async 
     .filter(({ args }) => args[0] === "exec")
     .map(({ args }) => args[args.indexOf("--command") + 1]);
   assert.equal(adminSql.filter((sql) => /json_build_object/i.test(sql)).length, 2);
-  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 21);
+  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 33);
   assert.equal(
     adminSql.filter((sql) => /request_newsletter_subscription|set role/i.test(sql)).length,
     0,
@@ -922,7 +997,7 @@ test("usa login local si signup crea usuario sin devolver sesión", async () => 
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 20);
+  assert.equal(rpcInvocations.length, 32);
   assert.equal(
     fetchInvocations.filter(({ url }) => url.endsWith("/auth/v1/signup")).length,
     1,
@@ -1092,7 +1167,7 @@ test("una desconexión se clasifica como runtime failure y no reintenta", async 
   assert.equal(errors.filter((message) => message.includes("data-api-runtime-failure")).length, 1);
 });
 
-test("detecta cualquier efecto lateral aunque las veinte denegaciones sean correctas", async () => {
+test("detecta cualquier efecto lateral aunque las treinta y dos denegaciones sean correctas", async () => {
   const { execute, fetchImpl } = createDataApiHarness({
     afterCounts: { ...ZERO_COUNTS, newsletter_subscribers: 1 },
   });

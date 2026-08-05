@@ -19,9 +19,12 @@ select set_eq(
     'newsletter_consent_events',
     'newsletter_email_events',
     'newsletter_suppressions',
-    'newsletter_webhook_receipts'
+    'newsletter_webhook_receipts',
+    'newsletter_campaigns',
+    'newsletter_campaign_deliveries',
+    'newsletter_campaign_unsubscribe_tokens'
   ],
-  'the isolated newsletter schema contains exactly eight tables'
+  'the isolated newsletter schema contains exactly eleven tables'
 );
 
 select ok(
@@ -66,10 +69,13 @@ select is(
         'public.newsletter_consent_events'::regclass,
         'public.newsletter_email_events'::regclass,
         'public.newsletter_suppressions'::regclass,
-        'public.newsletter_webhook_receipts'::regclass
+        'public.newsletter_webhook_receipts'::regclass,
+        'public.newsletter_campaigns'::regclass,
+        'public.newsletter_campaign_deliveries'::regclass,
+        'public.newsletter_campaign_unsubscribe_tokens'::regclass
       )
   ),
-  8,
+  11,
   'every newsletter table has a primary key'
 );
 
@@ -96,11 +102,13 @@ select is(
         'public.newsletter_consent_events'::regclass,
         'public.newsletter_email_events'::regclass,
         'public.newsletter_suppressions'::regclass,
-        'public.newsletter_webhook_receipts'::regclass
+        'public.newsletter_webhook_receipts'::regclass,
+        'public.newsletter_campaign_deliveries'::regclass,
+        'public.newsletter_campaign_unsubscribe_tokens'::regclass
       )
   ),
-  7,
-  'the seven subscriber-owned tables have foreign keys'
+  11,
+  'subscriber and campaign-owned tables have foreign keys'
 );
 
 select ok(
@@ -161,7 +169,10 @@ select ok(
       'public.newsletter_consent_events'::regclass,
       'public.newsletter_email_events'::regclass,
       'public.newsletter_suppressions'::regclass,
-      'public.newsletter_webhook_receipts'::regclass
+      'public.newsletter_webhook_receipts'::regclass,
+      'public.newsletter_campaigns'::regclass,
+      'public.newsletter_campaign_deliveries'::regclass,
+      'public.newsletter_campaign_unsubscribe_tokens'::regclass
     )
   ),
   'RLS is enabled on all newsletter tables'
@@ -182,7 +193,13 @@ select set_eq(
         'purge_stale_newsletter_pending',
         'check_newsletter_delivery_eligibility',
         'register_newsletter_outbound_delivery',
-        'process_newsletter_resend_webhook'
+        'process_newsletter_resend_webhook',
+        'preview_newsletter_campaign',
+        'prepare_newsletter_campaign',
+        'claim_newsletter_campaign_delivery',
+        'record_newsletter_campaign_delivery_accepted',
+        'record_newsletter_campaign_delivery_failed',
+        'record_newsletter_campaign_delivery_unknown'
       )
   $$,
   array[
@@ -195,9 +212,15 @@ select set_eq(
     'purge_stale_newsletter_pending(integer, timestamp with time zone)',
     'check_newsletter_delivery_eligibility(uuid, text)',
     'register_newsletter_outbound_delivery(uuid, text, text, timestamp with time zone)',
-    'process_newsletter_resend_webhook(text, text, text, timestamp with time zone, text, boolean)'
+    'process_newsletter_resend_webhook(text, text, text, timestamp with time zone, text, boolean)',
+    'preview_newsletter_campaign(text, text, text, text)',
+    'prepare_newsletter_campaign(text, text, text, text)',
+    'claim_newsletter_campaign_delivery(uuid, text, boolean)',
+    'record_newsletter_campaign_delivery_accepted(uuid, uuid, text, timestamp with time zone)',
+    'record_newsletter_campaign_delivery_failed(uuid, uuid, text, boolean, timestamp with time zone)',
+    'record_newsletter_campaign_delivery_unknown(uuid, uuid, text, timestamp with time zone)'
   ],
-  'the ten RPC signatures are exact'
+  'the sixteen RPC signatures are exact'
 );
 
 select ok(
@@ -215,7 +238,13 @@ select ok(
         'purge_stale_newsletter_pending',
         'check_newsletter_delivery_eligibility',
         'register_newsletter_outbound_delivery',
-        'process_newsletter_resend_webhook'
+        'process_newsletter_resend_webhook',
+        'preview_newsletter_campaign',
+        'prepare_newsletter_campaign',
+        'claim_newsletter_campaign_delivery',
+        'record_newsletter_campaign_delivery_accepted',
+        'record_newsletter_campaign_delivery_failed',
+        'record_newsletter_campaign_delivery_unknown'
       )
   ),
   'all mutation RPCs are security definer'
@@ -236,7 +265,13 @@ select ok(
         'purge_stale_newsletter_pending',
         'check_newsletter_delivery_eligibility',
         'register_newsletter_outbound_delivery',
-        'process_newsletter_resend_webhook'
+        'process_newsletter_resend_webhook',
+        'preview_newsletter_campaign',
+        'prepare_newsletter_campaign',
+        'claim_newsletter_campaign_delivery',
+        'record_newsletter_campaign_delivery_accepted',
+        'record_newsletter_campaign_delivery_failed',
+        'record_newsletter_campaign_delivery_unknown'
       )
   ),
   'all mutation RPCs have an empty fixed search_path'
@@ -257,7 +292,13 @@ select set_eq(
         'purge_stale_newsletter_pending',
         'check_newsletter_delivery_eligibility',
         'register_newsletter_outbound_delivery',
-        'process_newsletter_resend_webhook'
+        'process_newsletter_resend_webhook',
+        'preview_newsletter_campaign',
+        'prepare_newsletter_campaign',
+        'claim_newsletter_campaign_delivery',
+        'record_newsletter_campaign_delivery_accepted',
+        'record_newsletter_campaign_delivery_failed',
+        'record_newsletter_campaign_delivery_unknown'
       )
   $$,
   array[
@@ -265,7 +306,9 @@ select set_eq(
     'TABLE(outcome text, subscriber_id uuid)',
     'TABLE(outcome text)',
     'TABLE(subscriber_id uuid, recipient_email text, preferred_province text, preferred_region text, locale text)',
-    'TABLE(purged_count integer)'
+    'TABLE(purged_count integer)',
+    'TABLE(campaign_id uuid, campaign_status text, eligible_count integer, prepared_count integer, sending_count integer, accepted_count integer, failed_count integer, unknown_count integer, retryable_count integer)',
+    'TABLE(delivery_id uuid, campaign_id uuid, subscriber_id uuid, recipient_email text, claim_id uuid, attempt_count integer, idempotency_key text)'
   ],
   'RPC return types expose only the minimal orchestration fields'
 );
@@ -285,7 +328,13 @@ select ok(
         'purge_stale_newsletter_pending',
         'check_newsletter_delivery_eligibility',
         'register_newsletter_outbound_delivery',
-        'process_newsletter_resend_webhook'
+        'process_newsletter_resend_webhook',
+        'preview_newsletter_campaign',
+        'prepare_newsletter_campaign',
+        'claim_newsletter_campaign_delivery',
+        'record_newsletter_campaign_delivery_accepted',
+        'record_newsletter_campaign_delivery_failed',
+        'record_newsletter_campaign_delivery_unknown'
       )
   ),
   'the RPC bodies contain no dynamic EXECUTE'
@@ -293,7 +342,7 @@ select ok(
 
 select ok(
   (
-    select count(*) = 16
+    select count(*) = 25
     from pg_indexes
     where schemaname = 'public'
       and indexname in (
@@ -312,7 +361,16 @@ select ok(
         'newsletter_suppressions_subscriber_key',
         'newsletter_suppressions_active_email_key',
         'newsletter_suppressions_active_subscriber_idx',
-        'newsletter_webhook_receipts_message_idx'
+        'newsletter_webhook_receipts_message_idx',
+        'newsletter_campaigns_edition_key',
+        'newsletter_campaign_deliveries_recipient_key',
+        'newsletter_campaign_deliveries_idempotency_key',
+        'newsletter_campaign_deliveries_provider_message_key',
+        'newsletter_campaign_unsubscribe_tokens_hash_key',
+        'newsletter_campaign_unsubscribe_tokens_attempt_key',
+        'newsletter_campaign_deliveries_claim_idx',
+        'newsletter_campaign_deliveries_subscriber_idx',
+        'newsletter_campaign_unsubscribe_tokens_subscriber_idx'
       )
   ),
   'the expected lookup, expiry and deduplication indexes exist'

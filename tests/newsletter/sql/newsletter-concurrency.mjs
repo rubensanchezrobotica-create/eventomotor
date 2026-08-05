@@ -115,7 +115,11 @@ function assertIncluded(actual, expectedValues, label) {
 
 async function assertTokenHashesUnused(container, tableName, hashes, label) {
   if (
-    !["newsletter_confirmation_tokens", "newsletter_unsubscribe_tokens"].includes(
+    ![
+      "newsletter_confirmation_tokens",
+      "newsletter_unsubscribe_tokens",
+      "newsletter_campaign_unsubscribe_tokens",
+    ].includes(
       tableName,
     ) ||
     hashes.length === 0 ||
@@ -223,6 +227,10 @@ const webhookEmail = `concurrent-webhook-${runId}@example.invalid`;
 const suppressionRaceEmail = `concurrent-suppression-${runId}@example.invalid`;
 const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
 const legacyRepairEmail = `concurrent-legacy-repair-${runId}@example.invalid`;
+const campaignEmails = Array.from(
+  { length: 3 },
+  (_, index) => `concurrent-campaign-${runId}-${index}@example.invalid`,
+);
 const legacyRepairSubscriberId = randomUUID();
 const providerName = `ci-${runId}`;
 const purgeEmails = Array.from(
@@ -239,6 +247,22 @@ const tokenHashes = Object.freeze({
   welcomePreparationB: deterministicTokenHash(runId, "welcome-preparation-b"),
   suppressionRequest: deterministicTokenHash(runId, "suppression-request"),
   purgeConfirmation: deterministicTokenHash(runId, "purge-confirmation"),
+  campaignClaimA: deterministicTokenHash(runId, "campaign-claim-a"),
+  campaignClaimB: deterministicTokenHash(runId, "campaign-claim-b"),
+  campaignClaimWhileSending: deterministicTokenHash(
+    runId,
+    "campaign-claim-while-sending",
+  ),
+  campaignClaimAfterAccepted: deterministicTokenHash(
+    runId,
+    "campaign-claim-after-accepted",
+  ),
+  campaignClaimAfterStale: deterministicTokenHash(
+    runId,
+    "campaign-claim-after-stale",
+  ),
+  campaignDifferentA: deterministicTokenHash(runId, "campaign-different-a"),
+  campaignDifferentB: deterministicTokenHash(runId, "campaign-different-b"),
 });
 if (new Set(Object.values(tokenHashes)).size !== Object.keys(tokenHashes).length) {
   throw new Error("Deterministic token fixtures must be unique.");
@@ -249,6 +273,10 @@ let providerSubscriberId = "";
 let unsubscribeSubscriberId = "";
 let webhookSubscriberId = "";
 let suppressionRaceSubscriberId = "";
+let campaignSubscriberId = "";
+let campaignId = "";
+let campaignIsolationAId = "";
+let campaignIsolationBId = "";
 let primaryError;
 let cleanupError;
 try {
@@ -808,6 +836,304 @@ try {
     "concurrent purge final count",
   );
 
+  campaignSubscriberId = await query(
+    container,
+    `
+      with subscriber as (
+        insert into public.newsletter_subscribers (
+          email, email_normalized, status, source, consent_version, confirmed_at
+        ) values
+          ${campaignEmails
+            .map(
+              (email) =>
+                `(${sqlLiteral(email)}, ${sqlLiteral(email)}, 'active', 'concurrency_test', '2026-07', now())`,
+            )
+            .join(",\n          ")}
+        returning id
+      ), preference as (
+        insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+        select id, true from subscriber
+      ), consent as (
+        insert into public.newsletter_consent_events (
+          subscriber_id, action, consent_version, source
+        ) select id, 'confirmed', '2026-07', 'concurrency_test' from subscriber
+      )
+      select id::text
+      from subscriber
+      order by id::text
+      limit 1;
+    `,
+  );
+  campaignId = await query(
+    container,
+    `
+      select campaign_id
+      from public.prepare_newsletter_campaign(
+        ${sqlLiteral(`concurrency_${runId}`)},
+        'Concurrency fixture',
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-html"))},
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-text"))}
+      );
+    `,
+  );
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_campaign_unsubscribe_tokens",
+    [
+      tokenHashes.campaignClaimA,
+      tokenHashes.campaignClaimB,
+      tokenHashes.campaignClaimWhileSending,
+      tokenHashes.campaignClaimAfterAccepted,
+      tokenHashes.campaignClaimAfterStale,
+      tokenHashes.campaignDifferentA,
+      tokenHashes.campaignDifferentB,
+    ],
+    "campaign claim token hash precondition",
+  );
+  const campaignClaimSql = (
+    tokenHash,
+    targetCampaignId = campaignId,
+    allowRetry = false,
+  ) => `
+    select coalesce(
+      (
+        select delivery_id::text
+        from public.claim_newsletter_campaign_delivery(
+          ${sqlLiteral(targetCampaignId)}::uuid,
+          ${sqlLiteral(tokenHash)},
+          ${allowRetry ? "true" : "false"}
+        )
+      ),
+      'none'
+    );
+  `;
+  const campaignClaimOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "campaign-delivery-claim-race",
+    [
+      {
+        name: "campaign-delivery-claim-a",
+        sql: campaignClaimSql(tokenHashes.campaignClaimA),
+      },
+      {
+        name: "campaign-delivery-claim-b",
+        sql: campaignClaimSql(tokenHashes.campaignClaimB),
+      },
+    ],
+  );
+  assertEqual(
+    campaignClaimOutputs.filter((output) => output !== "none").length.toString(),
+    "1",
+    "single campaign claim winner",
+  );
+  assertEqual(
+    campaignClaimOutputs.filter((output) => output === "none").length.toString(),
+    "1",
+    "single campaign claim loser",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          count(*) filter (where status = 'sending'), '|',
+          count(distinct claim_id), '|',
+          count(distinct idempotency_key)
+        )
+        from public.newsletter_campaign_deliveries
+        where campaign_id = ${sqlLiteral(campaignId)}::uuid;
+      `,
+    ),
+    "1|1|1",
+    "atomic campaign claim state",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select count(*)
+        from public.newsletter_campaign_unsubscribe_tokens
+        where delivery_id in (
+          select id from public.newsletter_campaign_deliveries
+          where campaign_id = ${sqlLiteral(campaignId)}::uuid
+        );
+      `,
+    ),
+    "1",
+    "single campaign claim token hash",
+  );
+
+  const winningCampaignDeliveryId = campaignClaimOutputs.find(
+    (output) => output !== "none",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select count(*)
+        from public.newsletter_campaign_deliveries
+        where campaign_id = ${sqlLiteral(campaignId)}::uuid
+          and id <> ${sqlLiteral(winningCampaignDeliveryId)}::uuid
+          and status <> 'prepared';
+      `,
+    ),
+    "0",
+    "campaign claim loser leaves every other delivery prepared",
+  );
+  assertEqual(
+    await query(
+      container,
+      campaignClaimSql(tokenHashes.campaignClaimWhileSending),
+    ),
+    "none",
+    "current campaign sending lease blocks another claim",
+  );
+
+  const winningCampaignClaimId = await query(
+    container,
+    `
+      select claim_id::text
+      from public.newsletter_campaign_deliveries
+      where id = ${sqlLiteral(winningCampaignDeliveryId)}::uuid;
+    `,
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select outcome
+        from public.record_newsletter_campaign_delivery_accepted(
+          ${sqlLiteral(winningCampaignDeliveryId)}::uuid,
+          ${sqlLiteral(winningCampaignClaimId)}::uuid,
+          ${sqlLiteral(`resend-concurrency-${runId}-accepted`)},
+          now()
+        );
+      `,
+    ),
+    "recorded",
+    "accepted campaign delivery releases the sequential claim slot",
+  );
+
+  const postAcceptanceDeliveryId = await query(
+    container,
+    campaignClaimSql(tokenHashes.campaignClaimAfterAccepted),
+  );
+  assertEqual(
+    postAcceptanceDeliveryId === "none" ? "none" : "claimed",
+    "claimed",
+    "next delivery is claimable after acceptance",
+  );
+  await query(
+    container,
+    `
+      update public.newsletter_campaign_deliveries
+      set created_at = now() - interval '18 minutes',
+          prepared_at = now() - interval '18 minutes',
+          last_attempt_at = now() - interval '17 minutes',
+          claimed_at = now() - interval '17 minutes',
+          updated_at = now() - interval '17 minutes'
+      where id = ${sqlLiteral(postAcceptanceDeliveryId)}::uuid;
+    `,
+  );
+
+  const postStaleDeliveryId = await query(
+    container,
+    campaignClaimSql(tokenHashes.campaignClaimAfterStale),
+  );
+  assertEqual(
+    postStaleDeliveryId === "none" ? "none" : "claimed",
+    "claimed",
+    "stale sending lease becomes unknown and releases the next claim",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          status, '|', retryable::text, '|', attempt_count, '|',
+          (
+            updated_at >= created_at
+            and prepared_at >= created_at
+            and last_attempt_at >= created_at
+            and claimed_at >= created_at
+            and unknown_at >= created_at
+            and accepted_at is null
+            and failed_at is null
+          )::text
+        )
+        from public.newsletter_campaign_deliveries
+        where id = ${sqlLiteral(postAcceptanceDeliveryId)}::uuid;
+      `,
+    ),
+    "unknown|false|1|true",
+    "stale campaign delivery remains unknown and non-retryable",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select count(*)
+        from public.newsletter_campaign_deliveries
+        where campaign_id = ${sqlLiteral(campaignId)}::uuid
+          and status = 'sending';
+      `,
+    ),
+    "1",
+    "stale recovery still leaves exactly one current sending delivery",
+  );
+
+  campaignIsolationAId = await query(
+    container,
+    `
+      select campaign_id
+      from public.prepare_newsletter_campaign(
+        ${sqlLiteral(`concurrency_isolation_a_${runId}`)},
+        'Concurrency isolation A',
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-isolation-html-a"))},
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-isolation-text-a"))}
+      );
+    `,
+  );
+  campaignIsolationBId = await query(
+    container,
+    `
+      select campaign_id
+      from public.prepare_newsletter_campaign(
+        ${sqlLiteral(`concurrency_isolation_b_${runId}`)},
+        'Concurrency isolation B',
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-isolation-html-b"))},
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-isolation-text-b"))}
+      );
+    `,
+  );
+  const isolatedCampaignOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "different-campaign-delivery-claims",
+    [
+      {
+        name: "different-campaign-claim-a",
+        sql: campaignClaimSql(
+          tokenHashes.campaignDifferentA,
+          campaignIsolationAId,
+        ),
+      },
+      {
+        name: "different-campaign-claim-b",
+        sql: campaignClaimSql(
+          tokenHashes.campaignDifferentB,
+          campaignIsolationBId,
+        ),
+      },
+    ],
+  );
+  assertEqual(
+    isolatedCampaignOutputs.filter((output) => output !== "none").length.toString(),
+    "2",
+    "different campaigns retain independent claim locks",
+  );
+
 } catch (error) {
   primaryError = error;
 } finally {
@@ -820,6 +1146,7 @@ try {
         webhookEmail,
         suppressionRaceEmail,
         purgeRaceEmail,
+        ...campaignEmails,
         ...purgeEmails,
       ];
       const fixtureSubscriberIds = [
@@ -828,6 +1155,7 @@ try {
         unsubscribeSubscriberId,
         webhookSubscriberId,
         suppressionRaceSubscriberId,
+        campaignSubscriberId,
       ].filter(Boolean);
       const fixtureSubscriberPredicate = `
         subscriber_id in (${fixtureSubscriberIds
@@ -838,6 +1166,16 @@ try {
           where email_normalized in (${fixtureEmails.map(sqlLiteral).join(", ")})
         )
       `;
+      const fixtureCampaignIds = [
+        campaignId,
+        campaignIsolationAId,
+        campaignIsolationBId,
+      ].filter(Boolean);
+      const fixtureCampaignIdList = fixtureCampaignIds.length
+        ? fixtureCampaignIds
+            .map((id) => `${sqlLiteral(id)}::uuid`)
+            .join(", ")
+        : "null::uuid";
       await query(
         container,
         `
@@ -850,6 +1188,15 @@ try {
           where ${fixtureSubscriberPredicate};
           delete from public.newsletter_confirmation_tokens
           where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_campaign_unsubscribe_tokens
+          where delivery_id in (
+            select id from public.newsletter_campaign_deliveries
+            where campaign_id in (${fixtureCampaignIdList})
+          );
+          delete from public.newsletter_campaign_deliveries
+          where campaign_id in (${fixtureCampaignIdList});
+          delete from public.newsletter_campaigns
+          where id in (${fixtureCampaignIdList});
           delete from public.newsletter_unsubscribe_tokens
           where ${fixtureSubscriberPredicate};
           delete from public.newsletter_preferences
