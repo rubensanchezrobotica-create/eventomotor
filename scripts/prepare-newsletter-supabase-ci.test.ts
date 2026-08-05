@@ -188,6 +188,7 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /runConcurrentScenario[\s\S]+?purge-versus-confirmation-race/);
   assert.match(source, /runConcurrentScenario[\s\S]+?parallel-retention-purge/);
   assert.match(source, /runConcurrentScenario[\s\S]+?campaign-delivery-claim-race/);
+  assert.match(source, /runConcurrentScenario[\s\S]+?different-campaign-delivery-claims/);
   assert.match(source, /createHash\("sha256"\)/);
   assert.match(source, /const tokenHashes = Object\.freeze\(\{/);
   assert.match(
@@ -225,6 +226,10 @@ test("la concurrencia conserva todos los escenarios y exige una rotación tempor
   assert.match(source, /"1\|1\|1"/);
   assert.match(source, /single campaign claim winner/);
   assert.match(source, /single campaign claim loser/);
+  assert.match(source, /current campaign sending lease blocks another claim/);
+  assert.match(source, /next delivery is claimable after acceptance/);
+  assert.match(source, /stale sending lease becomes unknown and releases the next claim/);
+  assert.match(source, /different campaigns retain independent claim locks/);
 });
 
 test("el harness conserva stdout, stderr, exit code, worker y comando seguros", async () => {
@@ -494,6 +499,28 @@ test("campaña manual conserva unicidad, claims atómicos, unknown y tokens sól
       "database/migrations/20260804120000_newsletter_manual_campaign_sender.sql",
     ),
     "utf8",
+  );
+  const claimStart = migration.indexOf(
+    "create or replace function public.claim_newsletter_campaign_delivery(",
+  );
+  const claimEnd = migration.indexOf(
+    "revoke all on function public.claim_newsletter_campaign_delivery(uuid, text, boolean)",
+    claimStart,
+  );
+  const claim = migration.slice(claimStart, claimEnd);
+  const campaignLock = claim.indexOf("from public.newsletter_campaigns as campaign");
+  const staleTransition = claim.indexOf("last_error_code = 'stale_claim_unknown'");
+  const activeSendingGuard = claim.indexOf("and active.status = 'sending'");
+  const candidateLock = claim.indexOf("for update skip locked");
+
+  assert.ok(claimStart >= 0 && claimEnd > claimStart);
+  assert.ok(campaignLock >= 0);
+  assert.ok(staleTransition > campaignLock);
+  assert.ok(activeSendingGuard > staleTransition);
+  assert.ok(candidateLock > activeSendingGuard);
+  assert.match(
+    claim,
+    /if exists \([\s\S]+?active\.campaign_id = p_campaign_id[\s\S]+?active\.status = 'sending'[\s\S]+?\) then\s+return;/i,
   );
   assert.match(migration, /unique \(campaign_id, subscriber_id\)/i);
   assert.match(migration, /for update skip locked/i);

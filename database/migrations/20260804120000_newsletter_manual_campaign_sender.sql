@@ -464,6 +464,17 @@ begin
     and stale.status = 'sending'
     and stale.claimed_at < v_now - interval '15 minutes';
 
+  -- The campaign row lock above serializes claim attempts for this campaign.
+  -- Once a worker owns a current lease, no other delivery may be claimed.
+  if exists (
+    select 1
+    from public.newsletter_campaign_deliveries as active
+    where active.campaign_id = p_campaign_id
+      and active.status = 'sending'
+  ) then
+    return;
+  end if;
+
   if exists (
     select 1
     from public.newsletter_campaign_deliveries as delivery

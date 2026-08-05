@@ -252,6 +252,35 @@ select ok(
   ),
   'provider idempotency identity contains no recipient PII'
 );
+
+insert into public.newsletter_subscribers (
+  id, email, email_normalized, status, source, consent_version, confirmed_at
+) values (
+  '81000000-0000-4000-8000-000000000010',
+  'campaign-sequential@example.invalid',
+  'campaign-sequential@example.invalid',
+  'active',
+  'campaign_sequential_test',
+  '2026-07',
+  now()
+);
+insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+values ('81000000-0000-4000-8000-000000000010', true);
+insert into public.newsletter_consent_events (
+  subscriber_id, action, consent_version, source
+) values (
+  '81000000-0000-4000-8000-000000000010',
+  'confirmed',
+  '2026-07',
+  'campaign_sequential_test'
+);
+create temporary table sequential_prepare as
+select * from public.prepare_newsletter_campaign(
+  'agenda_motor_2026_08_06',
+  'La Bañeza, rally y 4 planes más para este fin de semana',
+  repeat('1', 64),
+  repeat('2', 64)
+);
 select is_empty(
   $$
     select * from public.claim_newsletter_campaign_delivery(
@@ -260,8 +289,16 @@ select is_empty(
       false
     )
   $$,
-  'a sending delivery cannot be claimed twice'
+  'a current sending delivery blocks another prepared delivery in the same campaign'
 );
+delete from public.newsletter_campaign_deliveries
+where subscriber_id = '81000000-0000-4000-8000-000000000010';
+delete from public.newsletter_consent_events
+where subscriber_id = '81000000-0000-4000-8000-000000000010';
+delete from public.newsletter_preferences
+where subscriber_id = '81000000-0000-4000-8000-000000000010';
+delete from public.newsletter_subscribers
+where id = '81000000-0000-4000-8000-000000000010';
 
 select results_eq(
   $$

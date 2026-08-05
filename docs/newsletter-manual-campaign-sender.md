@@ -29,7 +29,7 @@ La preparación exige simultáneamente:
 - ausencia de baja, bounce, complaint o suppression en el agregado;
 - ausencia de una supresión activa.
 
-La misma regla se revalida bajo bloqueo de fila en el claim inmediatamente anterior al envío. Dos claims concurrentes no pueden obtener la misma entrega. `accepted` y `unknown` nunca son reclamables; un `failed` sólo lo es con `--resume` y cuando el rechazo del proveedor fue inequívoco y se marcó como reintentable.
+La misma regla se revalida bajo bloqueo de fila en el claim inmediatamente anterior al envío. Cada claim bloquea primero la fila de campaña: mientras exista una entrega `sending` no caducada, ninguna otra entrega de esa campaña puede reclamarse. Las campañas distintas mantienen bloqueos independientes. Dos claims concurrentes no pueden obtener la misma entrega ni entregas diferentes de una misma campaña. `accepted` y `unknown` nunca son reclamables; un `failed` sólo lo es con `--resume` y cuando el rechazo del proveedor fue inequívoco y se marcó como reintentable.
 
 ## Idempotencia y resultados ambiguos
 
