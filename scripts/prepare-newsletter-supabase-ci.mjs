@@ -17,6 +17,7 @@ export const NEWSLETTER_MIGRATIONS = [
   "database/migrations/20260721133000_newsletter_core_foundation.sql",
   "database/migrations/20260729120000_newsletter_launch_operations.sql",
   "database/migrations/20260730100000_newsletter_canary_hardening.sql",
+  "database/migrations/20260804120000_newsletter_manual_campaign_sender.sql",
 ];
 export const NEWSLETTER_SQL_TESTS = [
   "newsletter_schema.test.sql",
@@ -29,6 +30,7 @@ export const NEWSLETTER_SQL_TESTS = [
   "newsletter_rollback.test.sql",
   "newsletter_launch_operations.test.sql",
   "newsletter_canary_hardening.test.sql",
+  "newsletter_manual_campaign.test.sql",
 ];
 
 const CONFIG = `project_id = "${NEWSLETTER_CI_PROJECT_ID}"

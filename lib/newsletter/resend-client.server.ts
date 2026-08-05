@@ -13,6 +13,7 @@ export type NewsletterResendEmailPayload = {
   subject: string;
   html: string;
   text: string;
+  idempotencyKey?: string;
 };
 
 export type NewsletterResendClientResult =
@@ -43,6 +44,8 @@ function isSafeSingleRecipientPayload(payload: NewsletterResendEmailPayload): bo
     Array.isArray(candidate.to) &&
     candidate.to.length === 1 &&
     typeof candidate.to[0] === "string" &&
+    (candidate.idempotencyKey === undefined ||
+      /^[A-Za-z0-9_./:-]{1,256}$/.test(candidate.idempotencyKey)) &&
     !Object.hasOwn(candidate, "cc") &&
     !Object.hasOwn(candidate, "bcc")
   );
@@ -115,6 +118,9 @@ export class FetchNewsletterResendClient implements NewsletterResendClient {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
           "User-Agent": "eventomotor-newsletter-r4a/1.0",
+          ...(payload.idempotencyKey
+            ? { "Idempotency-Key": payload.idempotencyKey }
+            : {}),
         },
         body: JSON.stringify({
           from: payload.from,

@@ -12,6 +12,12 @@ import type {
 } from "@/lib/event-candidates/types";
 import type { EventDataQuality, EventItem } from "@/types/event";
 import type {
+  NewsletterCampaignDeliveryInsert,
+  NewsletterCampaignDeliveryRow,
+  NewsletterCampaignInsert,
+  NewsletterCampaignRow,
+  NewsletterCampaignUnsubscribeTokenInsert,
+  NewsletterCampaignUnsubscribeTokenRow,
   NewsletterConfirmationTokenInsert,
   NewsletterConfirmationTokenRow,
   NewsletterConsentEventInsert,
@@ -242,6 +248,24 @@ export type Database = {
         Update: Partial<NewsletterWebhookReceiptInsert>;
         Relationships: [];
       };
+      newsletter_campaigns: {
+        Row: NewsletterCampaignRow;
+        Insert: NewsletterCampaignInsert;
+        Update: Partial<NewsletterCampaignInsert>;
+        Relationships: [];
+      };
+      newsletter_campaign_deliveries: {
+        Row: NewsletterCampaignDeliveryRow;
+        Insert: NewsletterCampaignDeliveryInsert;
+        Update: Partial<NewsletterCampaignDeliveryInsert>;
+        Relationships: [];
+      };
+      newsletter_campaign_unsubscribe_tokens: {
+        Row: NewsletterCampaignUnsubscribeTokenRow;
+        Insert: NewsletterCampaignUnsubscribeTokenInsert;
+        Update: Partial<NewsletterCampaignUnsubscribeTokenInsert>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -353,6 +377,88 @@ export type Database = {
           p_cutoff?: string;
         };
         Returns: Array<{ purged_count: number }>;
+      };
+      preview_newsletter_campaign: {
+        Args: {
+          p_edition_key: string;
+          p_subject: string;
+          p_html_sha256: string;
+          p_text_sha256: string;
+        };
+        Returns: Array<{
+          campaign_id: string | null;
+          campaign_status: string;
+          eligible_count: number;
+          prepared_count: number;
+          sending_count: number;
+          accepted_count: number;
+          failed_count: number;
+          unknown_count: number;
+          retryable_count: number;
+        }>;
+      };
+      prepare_newsletter_campaign: {
+        Args: {
+          p_edition_key: string;
+          p_subject: string;
+          p_html_sha256: string;
+          p_text_sha256: string;
+        };
+        Returns: Array<{
+          campaign_id: string;
+          campaign_status: string;
+          eligible_count: number;
+          prepared_count: number;
+          sending_count: number;
+          accepted_count: number;
+          failed_count: number;
+          unknown_count: number;
+          retryable_count: number;
+        }>;
+      };
+      claim_newsletter_campaign_delivery: {
+        Args: {
+          p_campaign_id: string;
+          p_token_hash: string;
+          p_allow_retry?: boolean;
+        };
+        Returns: Array<{
+          delivery_id: string;
+          campaign_id: string;
+          subscriber_id: string;
+          recipient_email: string;
+          claim_id: string;
+          attempt_count: number;
+          idempotency_key: string;
+        }>;
+      };
+      record_newsletter_campaign_delivery_accepted: {
+        Args: {
+          p_delivery_id: string;
+          p_claim_id: string;
+          p_provider_message_id: string;
+          p_occurred_at: string;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      record_newsletter_campaign_delivery_failed: {
+        Args: {
+          p_delivery_id: string;
+          p_claim_id: string;
+          p_error_code: string;
+          p_retryable: boolean;
+          p_occurred_at: string;
+        };
+        Returns: Array<{ outcome: string }>;
+      };
+      record_newsletter_campaign_delivery_unknown: {
+        Args: {
+          p_delivery_id: string;
+          p_claim_id: string;
+          p_error_code: string;
+          p_occurred_at: string;
+        };
+        Returns: Array<{ outcome: string }>;
       };
     };
     Enums: Record<string, never>;

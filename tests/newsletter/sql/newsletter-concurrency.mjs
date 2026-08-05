@@ -115,7 +115,11 @@ function assertIncluded(actual, expectedValues, label) {
 
 async function assertTokenHashesUnused(container, tableName, hashes, label) {
   if (
-    !["newsletter_confirmation_tokens", "newsletter_unsubscribe_tokens"].includes(
+    ![
+      "newsletter_confirmation_tokens",
+      "newsletter_unsubscribe_tokens",
+      "newsletter_campaign_unsubscribe_tokens",
+    ].includes(
       tableName,
     ) ||
     hashes.length === 0 ||
@@ -223,6 +227,7 @@ const webhookEmail = `concurrent-webhook-${runId}@example.invalid`;
 const suppressionRaceEmail = `concurrent-suppression-${runId}@example.invalid`;
 const purgeRaceEmail = `concurrent-purge-confirm-${runId}@example.invalid`;
 const legacyRepairEmail = `concurrent-legacy-repair-${runId}@example.invalid`;
+const campaignEmail = `concurrent-campaign-${runId}@example.invalid`;
 const legacyRepairSubscriberId = randomUUID();
 const providerName = `ci-${runId}`;
 const purgeEmails = Array.from(
@@ -239,6 +244,8 @@ const tokenHashes = Object.freeze({
   welcomePreparationB: deterministicTokenHash(runId, "welcome-preparation-b"),
   suppressionRequest: deterministicTokenHash(runId, "suppression-request"),
   purgeConfirmation: deterministicTokenHash(runId, "purge-confirmation"),
+  campaignClaimA: deterministicTokenHash(runId, "campaign-claim-a"),
+  campaignClaimB: deterministicTokenHash(runId, "campaign-claim-b"),
 });
 if (new Set(Object.values(tokenHashes)).size !== Object.keys(tokenHashes).length) {
   throw new Error("Deterministic token fixtures must be unique.");
@@ -249,6 +256,8 @@ let providerSubscriberId = "";
 let unsubscribeSubscriberId = "";
 let webhookSubscriberId = "";
 let suppressionRaceSubscriberId = "";
+let campaignSubscriberId = "";
+let campaignId = "";
 let primaryError;
 let cleanupError;
 try {
@@ -808,6 +817,115 @@ try {
     "concurrent purge final count",
   );
 
+  campaignSubscriberId = await query(
+    container,
+    `
+      with subscriber as (
+        insert into public.newsletter_subscribers (
+          email, email_normalized, status, source, consent_version, confirmed_at
+        ) values (
+          ${sqlLiteral(campaignEmail)}, ${sqlLiteral(campaignEmail)},
+          'active', 'concurrency_test', '2026-07', now()
+        ) returning id
+      ), preference as (
+        insert into public.newsletter_preferences (subscriber_id, weekly_digest_enabled)
+        select id, true from subscriber
+      ), consent as (
+        insert into public.newsletter_consent_events (
+          subscriber_id, action, consent_version, source
+        ) select id, 'confirmed', '2026-07', 'concurrency_test' from subscriber
+      )
+      select id from subscriber;
+    `,
+  );
+  campaignId = await query(
+    container,
+    `
+      select campaign_id
+      from public.prepare_newsletter_campaign(
+        ${sqlLiteral(`concurrency_${runId}`)},
+        'Concurrency fixture',
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-html"))},
+        ${sqlLiteral(deterministicTokenHash(runId, "campaign-text"))}
+      );
+    `,
+  );
+  await assertTokenHashesUnused(
+    container,
+    "newsletter_campaign_unsubscribe_tokens",
+    [tokenHashes.campaignClaimA, tokenHashes.campaignClaimB],
+    "campaign claim token hash precondition",
+  );
+  const campaignClaimSql = (tokenHash) => `
+    select coalesce(
+      (
+        select delivery_id::text
+        from public.claim_newsletter_campaign_delivery(
+          ${sqlLiteral(campaignId)}::uuid,
+          ${sqlLiteral(tokenHash)},
+          false
+        )
+      ),
+      'none'
+    );
+  `;
+  const campaignClaimOutputs = await runConcurrentScenario(
+    container,
+    runId,
+    "campaign-delivery-claim-race",
+    [
+      {
+        name: "campaign-delivery-claim-a",
+        sql: campaignClaimSql(tokenHashes.campaignClaimA),
+      },
+      {
+        name: "campaign-delivery-claim-b",
+        sql: campaignClaimSql(tokenHashes.campaignClaimB),
+      },
+    ],
+  );
+  assertEqual(
+    campaignClaimOutputs.filter((output) => output !== "none").length.toString(),
+    "1",
+    "single campaign claim winner",
+  );
+  assertEqual(
+    campaignClaimOutputs.filter((output) => output === "none").length.toString(),
+    "1",
+    "single campaign claim loser",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select concat(
+          count(*) filter (where status = 'sending'), '|',
+          count(distinct claim_id), '|',
+          count(distinct idempotency_key)
+        )
+        from public.newsletter_campaign_deliveries
+        where campaign_id = ${sqlLiteral(campaignId)}::uuid;
+      `,
+    ),
+    "1|1|1",
+    "atomic campaign claim state",
+  );
+  assertEqual(
+    await query(
+      container,
+      `
+        select count(*)
+        from public.newsletter_campaign_unsubscribe_tokens
+        where delivery_id in (
+          select id from public.newsletter_campaign_deliveries
+          where campaign_id = ${sqlLiteral(campaignId)}::uuid
+        );
+      `,
+    ),
+    "1",
+    "single campaign claim token hash",
+  );
+
 } catch (error) {
   primaryError = error;
 } finally {
@@ -820,6 +938,7 @@ try {
         webhookEmail,
         suppressionRaceEmail,
         purgeRaceEmail,
+        campaignEmail,
         ...purgeEmails,
       ];
       const fixtureSubscriberIds = [
@@ -828,6 +947,7 @@ try {
         unsubscribeSubscriberId,
         webhookSubscriberId,
         suppressionRaceSubscriberId,
+        campaignSubscriberId,
       ].filter(Boolean);
       const fixtureSubscriberPredicate = `
         subscriber_id in (${fixtureSubscriberIds
@@ -850,6 +970,15 @@ try {
           where ${fixtureSubscriberPredicate};
           delete from public.newsletter_confirmation_tokens
           where ${fixtureSubscriberPredicate};
+          delete from public.newsletter_campaign_unsubscribe_tokens
+          where delivery_id in (
+            select id from public.newsletter_campaign_deliveries
+            where campaign_id = ${campaignId ? `${sqlLiteral(campaignId)}::uuid` : "null::uuid"}
+          );
+          delete from public.newsletter_campaign_deliveries
+          where campaign_id = ${campaignId ? `${sqlLiteral(campaignId)}::uuid` : "null::uuid"};
+          delete from public.newsletter_campaigns
+          where id = ${campaignId ? `${sqlLiteral(campaignId)}::uuid` : "null::uuid"};
           delete from public.newsletter_unsubscribe_tokens
           where ${fixtureSubscriberPredicate};
           delete from public.newsletter_preferences

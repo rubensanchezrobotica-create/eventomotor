@@ -33,6 +33,9 @@ const COUNT_TABLES = [
   "newsletter_email_events",
   "newsletter_suppressions",
   "newsletter_webhook_receipts",
+  "newsletter_campaigns",
+  "newsletter_campaign_deliveries",
+  "newsletter_campaign_unsubscribe_tokens",
 ];
 
 const RPCS = [
@@ -140,6 +143,66 @@ const RPCS = [
       p_occurred_at: "2099-01-01T00:00:00.000Z",
       p_recipient_email_normalized: null,
       p_is_permanent: false,
+    },
+  },
+  {
+    name: "preview-campaign",
+    rpcName: "preview_newsletter_campaign",
+    body: {
+      p_edition_key: "agenda_motor_2026_08_06",
+      p_subject: "La Agenda Motor permission fixture",
+      p_html_sha256: "e".repeat(64),
+      p_text_sha256: "f".repeat(64),
+    },
+  },
+  {
+    name: "prepare-campaign",
+    rpcName: "prepare_newsletter_campaign",
+    body: {
+      p_edition_key: "agenda_motor_2026_08_06",
+      p_subject: "La Agenda Motor permission fixture",
+      p_html_sha256: "e".repeat(64),
+      p_text_sha256: "f".repeat(64),
+    },
+  },
+  {
+    name: "claim-campaign-delivery",
+    rpcName: "claim_newsletter_campaign_delivery",
+    body: {
+      p_campaign_id: "00000000-0000-4000-8000-000000000001",
+      p_token_hash: "1".repeat(64),
+      p_allow_retry: false,
+    },
+  },
+  {
+    name: "accept-campaign-delivery",
+    rpcName: "record_newsletter_campaign_delivery_accepted",
+    body: {
+      p_delivery_id: "00000000-0000-4000-8000-000000000001",
+      p_claim_id: "00000000-0000-4000-8000-000000000002",
+      p_provider_message_id: "permission-message",
+      p_occurred_at: "2099-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    name: "fail-campaign-delivery",
+    rpcName: "record_newsletter_campaign_delivery_failed",
+    body: {
+      p_delivery_id: "00000000-0000-4000-8000-000000000001",
+      p_claim_id: "00000000-0000-4000-8000-000000000002",
+      p_error_code: "permission_test",
+      p_retryable: false,
+      p_occurred_at: "2099-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    name: "unknown-campaign-delivery",
+    rpcName: "record_newsletter_campaign_delivery_unknown",
+    body: {
+      p_delivery_id: "00000000-0000-4000-8000-000000000001",
+      p_claim_id: "00000000-0000-4000-8000-000000000002",
+      p_error_code: "permission_test",
+      p_occurred_at: "2099-01-01T00:00:00.000Z",
     },
   },
 ];
@@ -352,6 +415,9 @@ async function readProtectedCounts(execute, container) {
       'newsletter_email_events', (select count(*)::integer from public.newsletter_email_events),
       'newsletter_suppressions', (select count(*)::integer from public.newsletter_suppressions),
       'newsletter_webhook_receipts', (select count(*)::integer from public.newsletter_webhook_receipts)
+      , 'newsletter_campaigns', (select count(*)::integer from public.newsletter_campaigns)
+      , 'newsletter_campaign_deliveries', (select count(*)::integer from public.newsletter_campaign_deliveries)
+      , 'newsletter_campaign_unsubscribe_tokens', (select count(*)::integer from public.newsletter_campaign_unsubscribe_tokens)
     )::text;`,
   );
   let counts;

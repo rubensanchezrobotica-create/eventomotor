@@ -239,6 +239,109 @@ export type NewsletterWebhookReceiptInsert = {
   outcome: NewsletterWebhookReceiptRow["outcome"];
 };
 
+export type NewsletterCampaignStatus =
+  | "prepared"
+  | "sending"
+  | "completed"
+  | "paused";
+export type NewsletterCampaignDeliveryStatus =
+  | "prepared"
+  | "sending"
+  | "accepted"
+  | "failed"
+  | "unknown";
+
+export type NewsletterCampaignRow = {
+  id: string;
+  edition_key: string;
+  subject: string;
+  html_sha256: string;
+  text_sha256: string;
+  status: NewsletterCampaignStatus;
+  created_at: string;
+  updated_at: string;
+  prepared_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+};
+export type NewsletterCampaignInsert = {
+  id?: string;
+  edition_key: string;
+  subject: string;
+  html_sha256: string;
+  text_sha256: string;
+  status?: NewsletterCampaignStatus;
+  created_at?: string;
+  updated_at?: string;
+  prepared_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+};
+
+export type NewsletterCampaignDeliveryRow = {
+  id: string;
+  campaign_id: string;
+  subscriber_id: string;
+  status: NewsletterCampaignDeliveryStatus;
+  attempt_count: number;
+  retryable: boolean;
+  claim_id: string | null;
+  idempotency_key: string | null;
+  provider_message_id: string | null;
+  last_error_code: string | null;
+  created_at: string;
+  updated_at: string;
+  prepared_at: string;
+  last_attempt_at: string | null;
+  claimed_at: string | null;
+  accepted_at: string | null;
+  failed_at: string | null;
+  unknown_at: string | null;
+};
+export type NewsletterCampaignDeliveryInsert = {
+  id?: string;
+  campaign_id: string;
+  subscriber_id: string;
+  status?: NewsletterCampaignDeliveryStatus;
+  attempt_count?: number;
+  retryable?: boolean;
+  claim_id?: string | null;
+  idempotency_key?: string | null;
+  provider_message_id?: string | null;
+  last_error_code?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  prepared_at?: string;
+  last_attempt_at?: string | null;
+  claimed_at?: string | null;
+  accepted_at?: string | null;
+  failed_at?: string | null;
+  unknown_at?: string | null;
+};
+
+export type NewsletterCampaignUnsubscribeTokenRow = {
+  id: string;
+  delivery_id: string;
+  subscriber_id: string;
+  attempt_number: number;
+  token_hash: string;
+  created_at: string;
+  updated_at: string;
+  first_used_at: string | null;
+  invalidated_at: string | null;
+};
+export type NewsletterCampaignUnsubscribeTokenInsert = {
+  id?: string;
+  delivery_id: string;
+  subscriber_id: string;
+  attempt_number: number;
+  token_hash: string;
+  created_at?: string;
+  updated_at?: string;
+  first_used_at?: string | null;
+  invalidated_at?: string | null;
+};
+
 export type NewsletterSubscriptionOutcome =
   | "confirmation_required"
   | "already_active"
