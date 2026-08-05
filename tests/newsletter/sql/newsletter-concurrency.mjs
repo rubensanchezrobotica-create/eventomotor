@@ -858,7 +858,10 @@ try {
           subscriber_id, action, consent_version, source
         ) select id, 'confirmed', '2026-07', 'concurrency_test' from subscriber
       )
-      select min(id)::text from subscriber;
+      select id::text
+      from subscriber
+      order by id::text
+      limit 1;
     `,
   );
   campaignId = await query(
