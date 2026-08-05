@@ -50,3 +50,10 @@ test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
   assert.match(model, /kind:\s*"representative"/);
   assert.match(model, /label:\s*"Imagen representativa"/);
 });
+
+test("el destacado queda fuera de la agenda inmediata por identidad estable", () => {
+  assert.match(home, /excludeEventId=\{featured\.event\?\.id\}/);
+  assert.match(search, /excludePreviewEventById\(events, excludeEventId\)/);
+  assert.match(search, /"próximos eventos"/);
+  assert.match(search, /"resultados"\} para tu búsqueda/);
+});

@@ -87,8 +87,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
             </div>
             {featured.event ? (
               <aside className={styles.featuredWrap} aria-label={featured.eyebrow}>
-                <span className={styles.featuredEyebrow}>{featured.eyebrow}</span>
-                <EventCard event={featured.event} featured nowIso={nowIso} />
+                <EventCard event={featured.event} featured featuredLabel={featured.eyebrow} nowIso={nowIso} />
               </aside>
             ) : null}
           </div>
@@ -96,7 +95,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
 
         <section className={`${styles.shell} ${styles.eventsSection}`} id="proximos-eventos" aria-labelledby="events-title">
           <h2 className={styles.visuallyHidden} id="events-title">Buscar y descubrir próximos eventos</h2>
-          <SearchExperience events={upcoming} nowIso={nowIso} />
+          <SearchExperience events={upcoming} excludeEventId={featured.event?.id} nowIso={nowIso} />
         </section>
 
         <section className={styles.darkSection} aria-labelledby="disciplines-title">

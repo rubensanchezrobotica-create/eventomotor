@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import EventCard from "./EventCard";
 import styles from "./RedesignV2.module.css";
 import {
+  excludePreviewEventById,
   filterPreviewEvents,
   type PreviewEvent,
   type SearchFilters,
@@ -14,13 +15,16 @@ const EMPTY_FILTERS: SearchFilters = { place: "", date: "", discipline: "", vehi
 
 type SearchExperienceProps = {
   events: PreviewEvent[];
+  excludeEventId?: string | null;
   nowIso: string;
 };
 
-export default function SearchExperience({ events, nowIso }: SearchExperienceProps) {
+export default function SearchExperience({ events, excludeEventId, nowIso }: SearchExperienceProps) {
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
-  const filtered = useMemo(() => filterPreviewEvents(events, filters), [events, filters]);
+  const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
+  const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
+  const hasActiveFilters = Object.values(filters).some(Boolean);
   const visible = filtered.slice(0, 9);
 
   function updateFilter<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
@@ -81,7 +85,11 @@ export default function SearchExperience({ events, nowIso }: SearchExperiencePro
           <span className={styles.kicker}>Agenda motor</span>
           <h2>Próximos eventos</h2>
         </div>
-        <p aria-live="polite">{filtered.length} {filtered.length === 1 ? "evento encontrado" : "eventos encontrados"}</p>
+        <p aria-live="polite">
+          {hasActiveFilters
+            ? `${filtered.length} ${filtered.length === 1 ? "resultado" : "resultados"} para tu búsqueda`
+            : `${filtered.length} ${filtered.length === 1 ? "próximo evento" : "próximos eventos"} en toda España`}
+        </p>
       </div>
 
       {visible.length ? (

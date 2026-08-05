@@ -119,6 +119,11 @@ export function selectFeaturedEvent(events: readonly PreviewEvent[]): { event: P
   return { event, eyebrow: event?.featured ? "Evento destacado" : "Próximo evento" };
 }
 
+export function excludePreviewEventById(events: readonly PreviewEvent[], excludedId: string | null | undefined): PreviewEvent[] {
+  if (!excludedId) return [...events];
+  return events.filter((event) => event.id !== excludedId);
+}
+
 export function resolveRedesignEventImage(event: PreviewEvent): ResolvedEventImage {
   const source = event.imageUrl?.trim();
   if (source) return { src: source, kind: "event", alt: `Imagen del evento ${event.title}` };

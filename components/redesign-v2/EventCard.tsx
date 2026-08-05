@@ -19,15 +19,22 @@ type EventCardProps = {
   event: PreviewEvent;
   nowIso: string;
   featured?: boolean;
+  featuredLabel?: string;
 };
 
-export default function EventCard({ event, nowIso, featured = false }: EventCardProps) {
+export default function EventCard({ event, nowIso, featured = false, featuredLabel }: EventCardProps) {
   const image = resolveRedesignEventImage(event);
   const date = dateFormatter.format(new Date(event.start));
   const [day, month] = date.replace(".", "").split(" ");
 
   return (
     <article className={featured ? `${styles.eventCard} ${styles.eventCardFeatured}` : styles.eventCard}>
+      {featured ? (
+        <div className={styles.featuredChrome}>
+          <span>{featuredLabel ?? "Evento destacado"}</span>
+          <span>Selección editorial</span>
+        </div>
+      ) : null}
       <Link className={styles.eventImageLink} href={previewEventHref(event)} aria-label={`Ver ${event.title}`}>
         <Image
           alt={image.alt}

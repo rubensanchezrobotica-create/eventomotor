@@ -4,6 +4,7 @@ import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
   buildTerritoryCards,
+  excludePreviewEventById,
   filterPreviewEvents,
   isRedesignPreviewAvailable,
   projectPreviewEvent,
@@ -61,6 +62,17 @@ test("selecciona el destacado real y usa el próximo como reserva", () => {
   const featured = projectPreviewEvent(event({ id: "featured", title: "Evento destacado", featured: true }));
   assert.equal(selectFeaturedEvent([regular, featured]).event?.id, "featured");
   assert.equal(selectFeaturedEvent([regular]).eyebrow, "Próximo evento");
+});
+
+test("excluye de la parrilla únicamente el evento destacado por su identificador estable", () => {
+  const featured = projectPreviewEvent(event({ id: "featured", title: "Título compartido", featured: true }));
+  const sameTitle = projectPreviewEvent(event({ id: "same-title", title: "Título compartido" }));
+  const regular = projectPreviewEvent(event({ id: "regular", title: "Otra cita" }));
+  const original = [featured, sameTitle, regular];
+
+  assert.deepEqual(excludePreviewEventById(original, featured.id).map(({ id }) => id), [sameTitle.id, regular.id]);
+  assert.deepEqual(excludePreviewEventById(original, null).map(({ id }) => id), [featured.id, sameTitle.id, regular.id]);
+  assert.equal(original.length, 3);
 });
 
 test("ordena próximos eventos y excluye los ya finalizados", () => {
