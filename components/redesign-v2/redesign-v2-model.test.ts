@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
@@ -89,6 +90,32 @@ test("los conteos territoriales proceden del conjunto recibido", () => {
   assert.equal(cards.find(({ name }) => name === "Murcia")?.count, 1);
   assert.equal(cards.find(({ name }) => name === "Madrid")?.count, 1);
   assert.equal(cards.find(({ name }) => name === "Asturias")?.count, 0);
+});
+
+test("cada territorio enlaza a su landing pública real", () => {
+  const expectedHrefs = new Map([
+    ["Madrid", "/eventos-motor-madrid"],
+    ["Barcelona", "/eventos-motor-cataluna"],
+    ["Valencia", "/eventos-motor-valencia"],
+    ["Asturias", "/eventos-motor-asturias"],
+    ["Murcia", "/eventos-motor-murcia"],
+    ["Andalucía", "/eventos-motor-andalucia"],
+  ]);
+
+  const cards = buildTerritoryCards([]);
+  assert.equal(cards.length, expectedHrefs.size);
+  for (const card of cards) assert.equal(card.href, expectedHrefs.get(card.name));
+});
+
+test("las landings territoriales existen y no recuperan el patrón inexistente", () => {
+  for (const card of buildTerritoryCards([])) {
+    assert.doesNotMatch(card.href, /^\/eventos\//);
+    assert.equal(
+      existsSync(new URL(`../../app${card.href}/page.tsx`, import.meta.url)),
+      true,
+      `Falta la ruta pública ${card.href}`,
+    );
+  }
 });
 
 test("la preview queda bloqueada en producción", () => {

@@ -47,12 +47,12 @@ export const REDESIGN_DISCIPLINES = [
 ] as const;
 
 export const REDESIGN_TERRITORIES = [
-  { name: "Madrid", href: "/eventos/madrid", image: "/images/redesign-v2/locations/madrid.webp", terms: ["madrid"] },
-  { name: "Barcelona", href: "/eventos/barcelona", image: "/images/redesign-v2/locations/barcelona.webp", terms: ["barcelona", "cataluna", "cataluña"] },
-  { name: "Valencia", href: "/eventos/valencia", image: "/images/redesign-v2/locations/valencia.webp", terms: ["valencia", "valenciana"] },
-  { name: "Asturias", href: "/eventos/asturias", image: "/images/redesign-v2/locations/asturias.webp", terms: ["asturias"] },
-  { name: "Murcia", href: "/eventos/murcia", image: "/images/redesign-v2/locations/murcia.webp", terms: ["murcia"] },
-  { name: "Andalucía", href: "/eventos/andalucia", image: "/images/redesign-v2/locations/sevilla.webp", terms: ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"] },
+  { name: "Madrid", href: "/eventos-motor-madrid", image: "/images/redesign-v2/locations/madrid.webp", terms: ["madrid"] },
+  { name: "Barcelona", href: "/eventos-motor-cataluna", image: "/images/redesign-v2/locations/barcelona.webp", terms: ["barcelona", "cataluna", "cataluña"] },
+  { name: "Valencia", href: "/eventos-motor-valencia", image: "/images/redesign-v2/locations/valencia.webp", terms: ["valencia", "valenciana"] },
+  { name: "Asturias", href: "/eventos-motor-asturias", image: "/images/redesign-v2/locations/asturias.webp", terms: ["asturias"] },
+  { name: "Murcia", href: "/eventos-motor-murcia", image: "/images/redesign-v2/locations/murcia.webp", terms: ["murcia"] },
+  { name: "Andalucía", href: "/eventos-motor-andalucia", image: "/images/redesign-v2/locations/sevilla.webp", terms: ["andalucia", "andalucía", "sevilla", "malaga", "málaga", "cadiz", "cádiz", "cordoba", "córdoba", "granada", "huelva", "jaen", "jaén", "almeria", "almería"] },
 ] as const;
 
 function normalize(value: unknown): string {

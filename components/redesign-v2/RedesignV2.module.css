@@ -43,6 +43,9 @@
   z-index: 100;
   top: 12px;
   left: 12px;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   padding: 10px 14px;
   transform: translateY(-160%);
   border-radius: 6px;
@@ -1238,6 +1241,13 @@
 
   .footerBrand {
     grid-column: 1 / -1;
+  }
+
+  .footer nav a,
+  .footer nav :global(.em-cookie-footer-button) {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
   }
 }
 
