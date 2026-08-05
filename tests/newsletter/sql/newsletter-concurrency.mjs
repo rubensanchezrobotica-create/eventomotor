@@ -1028,7 +1028,11 @@ try {
     container,
     `
       update public.newsletter_campaign_deliveries
-      set claimed_at = now() - interval '16 minutes'
+      set created_at = now() - interval '18 minutes',
+          prepared_at = now() - interval '18 minutes',
+          last_attempt_at = now() - interval '17 minutes',
+          claimed_at = now() - interval '17 minutes',
+          updated_at = now() - interval '17 minutes'
       where id = ${sqlLiteral(postAcceptanceDeliveryId)}::uuid;
     `,
   );
@@ -1046,12 +1050,21 @@ try {
     await query(
       container,
       `
-        select concat(status, '|', retryable, '|', attempt_count)
+        select concat(
+          status, '|', retryable, '|', attempt_count, '|',
+          updated_at >= created_at
+            and prepared_at >= created_at
+            and last_attempt_at >= created_at
+            and claimed_at >= created_at
+            and unknown_at >= created_at
+            and accepted_at is null
+            and failed_at is null
+        )
         from public.newsletter_campaign_deliveries
         where id = ${sqlLiteral(postAcceptanceDeliveryId)}::uuid;
       `,
     ),
-    "unknown|false|1",
+    "unknown|false|1|true",
     "stale campaign delivery remains unknown and non-retryable",
   );
   assertEqual(
