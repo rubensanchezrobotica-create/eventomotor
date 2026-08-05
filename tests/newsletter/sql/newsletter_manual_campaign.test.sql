@@ -246,7 +246,7 @@ select is(
 );
 select ok(
   (
-    select pg_catalog.position(pg_catalog.chr(64) in idempotency_key) = 0
+    select pg_catalog.strpos(idempotency_key, pg_catalog.chr(64)) = 0
       and idempotency_key not like '%campaign-active%'
     from first_claim
   ),
