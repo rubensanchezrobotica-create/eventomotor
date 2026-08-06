@@ -7,6 +7,7 @@ import styles from "./RedesignV2.module.css";
 import {
   excludePreviewEventById,
   filterPreviewEvents,
+  resolveRedesignEventImages,
   type PreviewEvent,
   type SearchFilters,
 } from "./redesign-v2-model";
@@ -15,16 +16,23 @@ const EMPTY_FILTERS: SearchFilters = { place: "", date: "", discipline: "", vehi
 
 type SearchExperienceProps = {
   events: PreviewEvent[];
-  excludeEventId?: string | null;
+  featuredEvent?: PreviewEvent | null;
+  featuredLabel?: string;
   nowIso: string;
 };
 
-export default function SearchExperience({ events, excludeEventId, nowIso }: SearchExperienceProps) {
+export default function SearchExperience({ events, featuredEvent, featuredLabel, nowIso }: SearchExperienceProps) {
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
-  const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const gridEvents = useMemo(() => excludePreviewEventById(events, featuredEvent?.id), [events, featuredEvent?.id]);
   const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
+  const imageByEventId = useMemo(() => {
+    const resolved = resolveRedesignEventImages(events);
+    return new Map(events.map((event, index) => [event.id, resolved[index]]));
+  }, [events]);
   const hasActiveFilters = Object.values(filters).some(Boolean);
+  const advancedFilterCount = [draft.discipline, draft.vehicle].filter(Boolean).length;
   const visible = filtered.slice(0, 9);
 
   function updateFilter<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
@@ -40,45 +48,78 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
           setFilters(draft);
         }}
       >
-        <label>
-          <span>Dónde</span>
-          <input
-            name="place"
-            onChange={(event) => updateFilter("place", event.target.value)}
-            placeholder="Ciudad o provincia"
-            type="search"
-            value={draft.place}
-          />
-        </label>
-        <label>
-          <span>Cuándo</span>
-          <input name="date" onChange={(event) => updateFilter("date", event.target.value)} type="date" value={draft.date} />
-        </label>
-        <label>
-          <span>Disciplina</span>
-          <select name="discipline" onChange={(event) => updateFilter("discipline", event.target.value)} value={draft.discipline}>
-            <option value="">Todas</option>
-            <option value="rally">Rally</option>
-            <option value="circuito">Circuito</option>
-            <option value="kart">Karting</option>
-            <option value="moto">Motos</option>
-            <option value="clasico">Clásicos</option>
-            <option value="concentracion">Concentraciones</option>
-          </select>
-        </label>
-        <label>
-          <span>Vehículo</span>
-          <select name="vehicle" onChange={(event) => updateFilter("vehicle", event.target.value)} value={draft.vehicle}>
-            <option value="">Todos</option>
-            <option value="moto">Moto</option>
-            <option value="coche">Coche</option>
-            <option value="kart">Kart</option>
-          </select>
-        </label>
-        <button type="submit">
+        <div className={styles.basicFilters}>
+          <label>
+            <span>Dónde</span>
+            <input
+              name="place"
+              onChange={(event) => updateFilter("place", event.target.value)}
+              placeholder="Ciudad o provincia"
+              type="search"
+              value={draft.place}
+            />
+          </label>
+          <label>
+            <span>Cuándo</span>
+            <input
+              aria-describedby="redesign-v2-date-hint"
+              name="date"
+              onChange={(event) => updateFilter("date", event.target.value)}
+              type="date"
+              value={draft.date}
+            />
+            <small id="redesign-v2-date-hint">Selecciona un día</small>
+          </label>
+        </div>
+        <button
+          aria-controls="redesign-v2-advanced-filters"
+          aria-expanded={advancedOpen}
+          className={styles.advancedToggle}
+          onClick={() => setAdvancedOpen((current) => !current)}
+          type="button"
+        >
+          <span>Más filtros</span>
+          <span>{advancedFilterCount ? `${advancedFilterCount} ${advancedFilterCount === 1 ? "activo" : "activos"}` : advancedOpen ? "−" : "+"}</span>
+        </button>
+        <div className={styles.advancedFilters} data-open={advancedOpen} id="redesign-v2-advanced-filters">
+          <label>
+            <span>Disciplina</span>
+            <select name="discipline" onChange={(event) => updateFilter("discipline", event.target.value)} value={draft.discipline}>
+              <option value="">Todas</option>
+              <option value="rally">Rally</option>
+              <option value="circuito">Circuito</option>
+              <option value="kart">Karting</option>
+              <option value="moto">Motos</option>
+              <option value="clasico">Clásicos</option>
+              <option value="concentracion">Concentraciones</option>
+            </select>
+          </label>
+          <label>
+            <span>Vehículo</span>
+            <select name="vehicle" onChange={(event) => updateFilter("vehicle", event.target.value)} value={draft.vehicle}>
+              <option value="">Todos</option>
+              <option value="moto">Moto</option>
+              <option value="coche">Coche</option>
+              <option value="kart">Kart</option>
+            </select>
+          </label>
+        </div>
+        <button className={styles.searchSubmit} type="submit">
           Buscar eventos <span aria-hidden="true">→</span>
         </button>
       </form>
+
+      {featuredEvent ? (
+        <aside className={styles.featuredWrap} aria-label={featuredLabel ?? "Evento destacado"}>
+          <EventCard
+            event={featuredEvent}
+            featured
+            featuredLabel={featuredLabel}
+            nowIso={nowIso}
+            resolvedImage={imageByEventId.get(featuredEvent.id)}
+          />
+        </aside>
+      ) : null}
 
       <div className={styles.sectionHeading}>
         <div>
@@ -88,13 +129,15 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
         <p aria-live="polite">
           {hasActiveFilters
             ? `${filtered.length} ${filtered.length === 1 ? "resultado" : "resultados"} para tu búsqueda`
-            : `${filtered.length} ${filtered.length === 1 ? "próximo evento" : "próximos eventos"} en toda España`}
+            : `${events.length} ${events.length === 1 ? "próximo evento" : "próximos eventos"} en toda España`}
         </p>
       </div>
 
       {visible.length ? (
         <div className={styles.eventGrid}>
-          {visible.map((event) => <EventCard event={event} key={event.id} nowIso={nowIso} />)}
+          {visible.map((event) => (
+            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={imageByEventId.get(event.id)} />
+          ))}
         </div>
       ) : (
         <div className={styles.emptyState}>

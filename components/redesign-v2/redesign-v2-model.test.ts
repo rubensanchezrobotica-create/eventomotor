@@ -6,9 +6,13 @@ import {
   buildTerritoryCards,
   excludePreviewEventById,
   filterPreviewEvents,
+  isEditoriallyComplete,
   isRedesignPreviewAvailable,
+  previewEventStatus,
+  prioritizeEditorialEvents,
   projectPreviewEvent,
   resolveRedesignEventImage,
+  resolveRedesignEventImages,
   selectFeaturedEvent,
   upcomingPreviewEvents,
 } from "./redesign-v2-model";
@@ -82,6 +86,48 @@ test("ordena próximos eventos y excluye los ya finalizados", () => {
   assert.deepEqual(upcomingPreviewEvents([later, past, current], "2026-08-05T10:00:00.000Z").map(({ id }) => id), [current.id, later.id]);
 });
 
+test("clasifica futuro, en curso, finalizado y día único con fecha española", () => {
+  const now = "2026-08-06T08:00:00.000Z";
+  const future = projectPreviewEvent(event({ id: "future", start: "2026-08-08", end: "2026-08-09" }));
+  const ongoing = projectPreviewEvent(event({ id: "ongoing", start: "2026-08-05", end: "2026-08-07" }));
+  const past = projectPreviewEvent(event({ id: "past", start: "2026-08-04", end: "2026-08-05" }));
+  const today = projectPreviewEvent(event({ id: "today", start: "2026-08-06", end: "2026-08-06" }));
+
+  assert.equal(previewEventStatus(future, now), "Próximamente");
+  assert.equal(previewEventStatus(ongoing, now), "En curso");
+  assert.equal(previewEventStatus(today, now), "Hoy");
+  assert.deepEqual(upcomingPreviewEvents([future, ongoing, past, today], now).map(({ id }) => id), [ongoing.id, today.id, future.id]);
+});
+
+test("resuelve el cambio de día con Europe/Madrid y sin desfase UTC", () => {
+  const previousDay = projectPreviewEvent(event({ id: "previous", start: "2026-08-05", end: "2026-08-05" }));
+  const spanishToday = projectPreviewEvent(event({ id: "spanish-today", start: "2026-08-06", end: "2026-08-06" }));
+  const afterMidnightInSpain = "2026-08-05T22:30:00.000Z";
+
+  assert.deepEqual(upcomingPreviewEvents([previousDay, spanishToday], afterMidnightInSpain).map(({ id }) => id), [spanishToday.id]);
+  assert.equal(previewEventStatus(spanishToday, afterMidnightInSpain), "Hoy");
+});
+
+test("un evento sin fecha final se trata de forma conservadora como evento de un día", () => {
+  const noEnd = projectPreviewEvent(event({ id: "no-end", start: "2026-08-06", end: "" }));
+  assert.equal(previewEventStatus(noEnd, "2026-08-06T10:00:00.000Z"), "Hoy");
+  assert.deepEqual(upcomingPreviewEvents([noEnd], "2026-08-07T10:00:00.000Z"), []);
+});
+
+test("prioriza eventos editoriales completos sin eliminarlos del conjunto", () => {
+  const incomplete = projectPreviewEvent(event({ id: "incomplete", title: "Por confirmar", start: "2026-08-07", featured: true }));
+  const complete = projectPreviewEvent(event({ id: "complete", start: "2026-08-08" }));
+  const original = [incomplete, complete];
+  const prioritized = prioritizeEditorialEvents(original);
+
+  assert.equal(isEditoriallyComplete(incomplete), false);
+  assert.equal(isEditoriallyComplete(complete), true);
+  assert.deepEqual(prioritized.map(({ id }) => id), [complete.id, incomplete.id]);
+  assert.equal(selectFeaturedEvent(prioritized).event?.id, complete.id);
+  assert.equal(original.length, prioritized.length);
+  assert.equal(original[0].id, incomplete.id);
+});
+
 test("el buscador filtra datos reales por lugar, fecha, disciplina y vehículo", () => {
   const projected = [projectPreviewEvent(event())];
   const matches = filterPreviewEvents(projected, {
@@ -92,6 +138,84 @@ test("el buscador filtra datos reales por lugar, fecha, disciplina y vehículo",
   });
   assert.equal(matches.length, 1);
   assert.equal(filterPreviewEvents(projected, { place: "Asturias", date: "", discipline: "", vehicle: "" }).length, 0);
+});
+
+test("la asignación por lote es estable y no repite imágenes mientras hay alternativas", () => {
+  const cars = Array.from({ length: 5 }, (_, index) => projectPreviewEvent(event({
+    id: `car-${index}`,
+    championship: "",
+    discipline: "",
+    tags: [],
+    title: "Cita de automovilismo",
+    vehicleType: "Coche",
+  })));
+  const first = resolveRedesignEventImages(cars);
+  const second = resolveRedesignEventImages(cars);
+
+  assert.deepEqual(first, second);
+  assert.equal(new Set(first.map(({ src }) => src)).size, cars.length);
+  assert.equal(cars.every((candidate, index) => candidate.id === `car-${index}`), true);
+});
+
+test("al agotarse el banco reutiliza una variante coherente y segura", () => {
+  const cars = Array.from({ length: 6 }, (_, index) => projectPreviewEvent(event({
+    id: `bank-${index}`,
+    championship: "",
+    discipline: "",
+    tags: [],
+    title: "Cita de automovilismo",
+    vehicleType: "Coche",
+  })));
+  const resolved = resolveRedesignEventImages(cars);
+  assert.equal(resolved.every(({ kind, src }) => kind === "representative" && Boolean(src)), true);
+  assert.equal(new Set(resolved.map(({ src }) => src)).size, 5);
+});
+
+test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan datos", () => {
+  const motorcycle = projectPreviewEvent(event({
+    id: "motorcycle",
+    championship: "",
+    discipline: "",
+    tags: [],
+    title: "Cita sobre dos ruedas",
+    vehicleType: "Moto",
+  }));
+  const unknown = projectPreviewEvent(event({
+    id: "unknown",
+    championship: "",
+    discipline: "",
+    tags: [],
+    title: "Cita especial",
+    vehicleType: "",
+  }));
+  const enduro = projectPreviewEvent(event({
+    id: "enduro",
+    championship: "Campeonato de España de Enduro",
+    discipline: "Enduro",
+    tags: [],
+    title: "Campeonato de España de Enduro - Oristà",
+    vehicleType: "",
+  }));
+  const motoImage = resolveRedesignEventImage(motorcycle);
+  assert.equal([
+    "/images/redesign-v2/disciplines/motorcycles.webp",
+    "/images/redesign-v2/disciplines/offroad.webp",
+    "/images/redesign-v2/disciplines/circuit.webp",
+  ].includes(motoImage.src ?? ""), true);
+  assert.equal([
+    "/images/redesign-v2/disciplines/motorcycles.webp",
+    "/images/redesign-v2/disciplines/offroad.webp",
+  ].includes(resolveRedesignEventImage(enduro).src ?? ""), true);
+  assert.deepEqual(resolveRedesignEventImage(unknown), { src: null, kind: "neutral", alt: "" });
+});
+
+test("la imagen propia conserva prioridad también en la asignación por lote", () => {
+  const owned = projectPreviewEvent(event({ id: "owned", imageUrl: "/event-images/owned.webp" }));
+  assert.deepEqual(resolveRedesignEventImages([owned]), [{
+    src: "/event-images/owned.webp",
+    kind: "event",
+    alt: "Imagen del evento Rallye Sierra de Levante",
+  }]);
 });
 
 test("los conteos territoriales proceden del conjunto recibido", () => {

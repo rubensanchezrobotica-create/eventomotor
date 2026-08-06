@@ -3,13 +3,13 @@ import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import type { EventItem } from "@/types/event";
-import EventCard from "./EventCard";
 import MobileNavigation from "./MobileNavigation.client";
 import SearchExperience from "./SearchExperience.client";
 import styles from "./RedesignV2.module.css";
 import {
   buildDisciplineCards,
   buildTerritoryCards,
+  prioritizeEditorialEvents,
   projectPreviewEvent,
   selectFeaturedEvent,
   upcomingPreviewEvents,
@@ -25,7 +25,8 @@ const yearFormatter = new Intl.DateTimeFormat("es-ES", { year: "numeric" });
 export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) {
   const projected = events.map(projectPreviewEvent);
   const upcoming = upcomingPreviewEvents(projected, nowIso);
-  const featured = selectFeaturedEvent(upcoming);
+  const editorialEvents = prioritizeEditorialEvents(upcoming);
+  const featured = selectFeaturedEvent(editorialEvents);
   const disciplines = buildDisciplineCards(upcoming);
   const territories = buildTerritoryCards(upcoming);
   const representedTerritories = new Set(upcoming.map((event) => event.region).filter(Boolean)).size;
@@ -85,17 +86,17 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                 <span><strong>{representedDisciplines}</strong> disciplinas</span>
               </div>
             </div>
-            {featured.event ? (
-              <aside className={styles.featuredWrap} aria-label={featured.eyebrow}>
-                <EventCard event={featured.event} featured featuredLabel={featured.eyebrow} nowIso={nowIso} />
-              </aside>
-            ) : null}
           </div>
         </section>
 
         <section className={`${styles.shell} ${styles.eventsSection}`} id="proximos-eventos" aria-labelledby="events-title">
           <h2 className={styles.visuallyHidden} id="events-title">Buscar y descubrir próximos eventos</h2>
-          <SearchExperience events={upcoming} excludeEventId={featured.event?.id} nowIso={nowIso} />
+          <SearchExperience
+            events={editorialEvents}
+            featuredEvent={featured.event}
+            featuredLabel={featured.eyebrow}
+            nowIso={nowIso}
+          />
         </section>
 
         <section className={styles.darkSection} aria-labelledby="disciplines-title">
@@ -149,10 +150,6 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
 
         <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
           <div className={`${styles.shell} ${styles.newsletterLayout}`}>
-            <div className={styles.newsletterVisual}>
-              <span className={styles.newsletterGlow} />
-              <Image alt="La Agenda Motor de EventoMotor en un teléfono móvil" fill sizes="(max-width: 800px) 100vw, 45vw" src="/images/redesign-v2/newsletter-phone.webp" />
-            </div>
             <div className={styles.newsletterCopy}>
               <span className={styles.kicker}>Cada semana en tu correo</span>
               <h2 id="newsletter-title">La Agenda Motor</h2>
@@ -164,6 +161,10 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
               </ul>
               <Link className={styles.primaryButton} href="/newsletter">Descubrir la newsletter <span aria-hidden="true">→</span></Link>
               <small>Consulta todos los detalles en la página de La Agenda Motor.</small>
+            </div>
+            <div className={styles.newsletterVisual}>
+              <span className={styles.newsletterGlow} />
+              <Image alt="La Agenda Motor de EventoMotor en un teléfono móvil" fill sizes="(max-width: 800px) 100vw, 45vw" src="/images/redesign-v2/newsletter-phone.webp" />
             </div>
           </div>
         </section>

@@ -311,7 +311,8 @@
 
 .featuredWrap {
   position: relative;
-  align-self: center;
+  width: min(100%, 980px);
+  margin: 30px auto 0;
   filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.28));
 }
 
@@ -348,6 +349,17 @@
   backdrop-filter: blur(14px);
 }
 
+.basicFilters,
+.advancedFilters {
+  display: contents;
+}
+
+.searchPanel > *,
+.basicFilters > *,
+.advancedFilters > * {
+  min-width: 0;
+}
+
 .searchPanel::before {
   position: absolute;
   top: -1px;
@@ -373,7 +385,12 @@
 
 .searchPanel input,
 .searchPanel select {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  inline-size: 100%;
   min-height: 49px;
   padding: 0 13px;
   border: 1px solid #343b45;
@@ -383,11 +400,30 @@
   color: #f2f2f0;
 }
 
+.searchPanel input[type="date"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  inline-size: 100%;
+  overflow: hidden;
+}
+
+.searchPanel label > small {
+  display: none;
+  min-height: 16px;
+  margin: 4px 0 0 2px;
+  color: #7f8690;
+  font-size: 0.66rem;
+  line-height: 1.2;
+}
+
 .searchPanel input::placeholder {
   color: #737983;
 }
 
-.searchPanel button {
+.searchSubmit {
   min-height: 49px;
   align-self: end;
   padding: 0 18px;
@@ -398,6 +434,10 @@
   font-weight: 900;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.advancedToggle {
+  display: none;
 }
 
 .sectionHeading {
@@ -455,6 +495,7 @@
 }
 
 .eventCard {
+  display: flex;
   min-width: 0;
   overflow: hidden;
   border: 1px solid #292f37;
@@ -462,6 +503,14 @@
   background: linear-gradient(150deg, #11161c, #080b0f);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
   transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.eventCardLink {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex: 1;
+  flex-direction: column;
 }
 
 .eventCard:hover {
@@ -475,6 +524,26 @@
   border-radius: 15px;
   background: linear-gradient(145deg, #151b22 0%, #06080b 76%);
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(255, 255, 255, 0.035) inset;
+}
+
+.eventCardFeatured .eventCardLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1.36fr) minmax(300px, 0.64fr);
+  grid-template-rows: auto 1fr;
+}
+
+.eventCardFeatured .featuredChrome {
+  grid-column: 1 / -1;
+}
+
+.eventCardFeatured .eventImageLink {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.eventCardFeatured .eventCardBody {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .featuredChrome {
@@ -510,7 +579,7 @@
 .eventCardFeatured .eventImageLink {
   aspect-ratio: 16 / 9.6;
   border: 1px solid #343c46;
-  border-radius: 9px 9px 4px 4px;
+  border-radius: 9px 4px 4px 9px;
 }
 
 .eventImageLink {
@@ -519,6 +588,32 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #15191e;
+}
+
+.neutralEventImage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(255, 98, 0, 0.18), transparent 38%),
+    linear-gradient(145deg, #1b2129, #080b0f);
+  color: #f3f3ef;
+  letter-spacing: -0.02em;
+}
+
+.neutralEventImage strong {
+  font-size: 1.1rem;
+}
+
+.neutralEventImage small {
+  color: #9ca3ad;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .eventImage {
@@ -544,8 +639,9 @@
   border-radius: 3px;
   background: rgba(6, 8, 11, 0.78);
   color: #dde0e3;
-  font-size: 0.61rem;
+  font-size: 0.56rem;
   letter-spacing: 0.03em;
+  opacity: 0.82;
 }
 
 .dateBlock {
@@ -575,6 +671,10 @@
 }
 
 .eventCardBody {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
   padding: 17px 18px 19px;
 }
 
@@ -603,7 +703,7 @@
   line-height: 1.25;
 }
 
-.eventCardBody h3 a:hover {
+.eventCardLink:hover .eventCardBody h3 {
   color: var(--orange);
 }
 
@@ -622,7 +722,8 @@
   min-height: 44px;
   align-items: center;
   gap: 8px;
-  margin-top: 9px;
+  margin-top: auto;
+  padding-top: 9px;
   color: #f5f5f3 !important;
   font-size: 0.82rem;
   font-weight: 850;
@@ -633,10 +734,10 @@
 }
 
 .eventCardFeatured .eventCardBody {
-  margin-top: 6px;
+  margin: 0 0 0 6px;
   padding: 18px 18px 14px;
   border: 1px solid #252c34;
-  border-radius: 4px 4px 9px 9px;
+  border-radius: 4px 9px 9px 4px;
   background: linear-gradient(145deg, #0d1218, #070a0e);
 }
 
@@ -889,6 +990,16 @@
 }
 
 .newsletterVisual {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.newsletterCopy {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.newsletterVisual {
   position: relative;
   min-height: 425px;
   overflow: hidden;
@@ -1091,7 +1202,7 @@
     grid-template-columns: 1.2fr 0.8fr 0.9fr 0.75fr;
   }
 
-  .searchPanel button {
+  .searchSubmit {
     grid-column: 1 / -1;
   }
 
@@ -1182,9 +1293,12 @@
     gap: 28px;
   }
 
+  .searchPanel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .featuredWrap {
-    align-self: end;
-    margin-bottom: 50px;
+    margin-top: 24px;
   }
 
   .eventGrid {
@@ -1212,6 +1326,7 @@
   .footer nav a,
   .footer nav :global(.em-cookie-footer-button) {
     display: inline-flex;
+    min-width: 44px;
     min-height: 44px;
     align-items: center;
   }
@@ -1222,16 +1337,12 @@
     width: min(100% - 32px, 620px);
   }
 
-  .utilityBar .shell {
-    justify-content: flex-start;
-  }
-
-  .utilityBar a {
+  .utilityBar {
     display: none;
   }
 
   .navbar {
-    min-height: 69px;
+    min-height: 62px;
   }
 
   .brand {
@@ -1262,9 +1373,9 @@
     display: grid;
     min-height: auto;
     grid-template-columns: minmax(0, 1fr);
-    gap: 34px;
-    padding-top: 74px;
-    padding-bottom: 82px;
+    gap: 24px;
+    padding-top: 54px;
+    padding-bottom: 58px;
   }
 
   .heroCopy {
@@ -1286,30 +1397,70 @@
     display: block;
     width: 100%;
     max-width: 540px;
-    margin: 0;
+    margin: 22px auto 0;
     filter: none;
   }
 
   .trustLine {
-    gap: 13px 20px;
+    display: none;
   }
 
   .searchPanel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: -27px;
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: -24px;
   }
 
-  .searchPanel button {
-    grid-column: 1 / -1;
+  .basicFilters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .advancedToggle {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border: 1px solid #3a424d;
+    border-radius: 7px;
+    background: #0b1016;
+    color: #eef0f2;
+    cursor: pointer;
+    font-weight: 800;
+  }
+
+  .advancedToggle span:last-child {
+    color: var(--orange);
+    font-size: 0.75rem;
+  }
+
+  .advancedFilters {
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .advancedFilters[data-open="true"] {
+    display: grid;
+  }
+
+  .searchPanel label > small {
+    display: block;
+  }
+
+  .searchSubmit {
+    width: 100%;
+    grid-column: auto;
   }
 
   .eventsSection {
-    padding-bottom: 68px;
+    padding-bottom: 58px;
   }
 
   .sectionHeading {
     align-items: flex-start;
-    margin-top: 58px;
+    margin-top: 44px;
   }
 
   .sectionHeading h2,
@@ -1326,21 +1477,30 @@
 
   .newsletterLayout {
     grid-template-columns: 1fr;
-    gap: 38px;
+    gap: 28px;
   }
 
   .newsletterVisual {
-    min-height: 390px;
+    min-height: 290px;
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .newsletterCopy {
     max-width: none;
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .organizerLayout {
     align-items: flex-start;
     flex-direction: column;
-    gap: 28px;
+    gap: 22px;
+  }
+
+  .organizerLayout .lightButton {
+    width: 100%;
+    justify-content: center;
   }
 
   .footerGrid {
@@ -1355,8 +1515,27 @@
   .footer nav a,
   .footer nav :global(.em-cookie-footer-button) {
     display: inline-flex;
+    min-width: 44px;
     min-height: 44px;
     align-items: center;
+  }
+
+  .footer nav {
+    font-size: 0.9rem;
+  }
+
+  .eventCardFeatured .eventCardLink {
+    display: flex;
+  }
+
+  .eventCardFeatured .eventImageLink {
+    aspect-ratio: 16 / 8.8;
+    border-radius: 9px 9px 4px 4px;
+  }
+
+  .eventCardFeatured .eventCardBody {
+    margin: 6px 0 0;
+    border-radius: 4px 4px 9px 9px;
   }
 }
 
@@ -1374,18 +1553,18 @@
   }
 
   .navbar {
-    min-height: 68px;
+    min-height: 60px;
   }
 
   .heroLayout {
     min-height: auto;
-    gap: 28px;
-    padding-top: 70px;
-    padding-bottom: 72px;
+    gap: 22px;
+    padding-top: 46px;
+    padding-bottom: 48px;
   }
 
   .heroCopy h1 {
-    font-size: clamp(2.8rem, 12.2vw, 3.55rem);
+    font-size: clamp(2.55rem, 11vw, 3.2rem);
   }
 
   .heroCopy > p {
@@ -1402,29 +1581,36 @@
   .heroActions .primaryButton,
   .heroTextLink {
     width: 100%;
-    min-height: 53px;
+    min-height: 50px;
     justify-content: center;
     border-radius: 7px;
   }
 
   .heroTextLink {
-    border: 1px solid #414954;
-    background: rgba(15, 20, 27, 0.88);
-  }
-
-  .trustLine {
-    font-size: 0.76rem;
+    min-height: 44px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.42);
+    text-underline-offset: 6px;
   }
 
   .searchPanel {
     grid-template-columns: 1fr;
-    gap: 12px;
-    margin-top: -25px;
-    padding: 14px;
+    gap: 10px;
+    margin-top: -20px;
+    padding: 12px;
   }
 
-  .searchPanel button {
-    grid-column: auto;
+  .basicFilters,
+  .advancedFilters,
+  .advancedFilters[data-open="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .searchSubmit {
+    min-height: 50px;
   }
 
   .sectionHeading {
@@ -1469,7 +1655,7 @@
   }
 
   .newsletterVisual {
-    min-height: 310px;
+    min-height: 245px;
   }
 
   .newsletterCopy h2 {
@@ -1477,17 +1663,22 @@
   }
 
   .featuredChrome {
-    min-height: 36px;
-    font-size: 0.57rem;
-    letter-spacing: 0.08em;
+    min-height: 32px;
+    font-size: 0.54rem;
+    letter-spacing: 0.07em;
   }
 
   .eventCardFeatured .eventCardBody {
-    padding: 16px 15px 12px;
+    padding: 14px 14px 9px;
+  }
+
+  .eventCardFeatured .cardAction {
+    min-height: 40px;
+    padding-top: 6px;
   }
 
   .organizerSection {
-    padding-block: 54px;
+    padding-block: 44px;
   }
 
   .footer {
@@ -1532,7 +1723,7 @@
 
   .heroLayout {
     min-height: auto;
-    padding-top: 67px;
+    padding-top: 42px;
   }
 
   .heroCopy h1 {
@@ -1571,7 +1762,7 @@
   }
 
   .newsletterVisual {
-    min-height: 270px;
+    min-height: 225px;
   }
 
   .footerGrid {
