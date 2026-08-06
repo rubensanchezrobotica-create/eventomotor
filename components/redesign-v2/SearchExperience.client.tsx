@@ -16,16 +16,15 @@ const EMPTY_FILTERS: SearchFilters = { place: "", date: "", discipline: "", vehi
 
 type SearchExperienceProps = {
   events: PreviewEvent[];
-  featuredEvent?: PreviewEvent | null;
-  featuredLabel?: string;
+  excludeEventId?: string | null;
   nowIso: string;
 };
 
-export default function SearchExperience({ events, featuredEvent, featuredLabel, nowIso }: SearchExperienceProps) {
+export default function SearchExperience({ events, excludeEventId, nowIso }: SearchExperienceProps) {
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const gridEvents = useMemo(() => excludePreviewEventById(events, featuredEvent?.id), [events, featuredEvent?.id]);
+  const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
   const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
   const imageByEventId = useMemo(() => {
     const resolved = resolveRedesignEventImages(events);
@@ -108,18 +107,6 @@ export default function SearchExperience({ events, featuredEvent, featuredLabel,
           Buscar eventos <span aria-hidden="true">→</span>
         </button>
       </form>
-
-      {featuredEvent ? (
-        <aside className={styles.featuredWrap} aria-label={featuredLabel ?? "Evento destacado"}>
-          <EventCard
-            event={featuredEvent}
-            featured
-            featuredLabel={featuredLabel}
-            nowIso={nowIso}
-            resolvedImage={imageByEventId.get(featuredEvent.id)}
-          />
-        </aside>
-      ) : null}
 
       <div className={styles.sectionHeading}>
         <div>

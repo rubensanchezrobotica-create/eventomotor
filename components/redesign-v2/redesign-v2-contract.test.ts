@@ -53,29 +53,45 @@ test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
 });
 
 test("el destacado queda fuera de la agenda inmediata sin alterar el recuento total", () => {
-  assert.match(home, /featuredEvent=\{featured\.event\}/);
-  assert.match(search, /excludePreviewEventById\(events, featuredEvent\?\.id\)/);
+  assert.match(home, /<EventCard[\s\S]*?event=\{featured\.event\}[\s\S]*?featured/);
+  assert.match(home, /excludeEventId=\{featured\.event\?\.id\}/);
+  assert.match(search, /excludePreviewEventById\(events, excludeEventId\)/);
   assert.match(search, /`\$\{events\.length\}[^`]+próximo evento/);
   assert.match(search, /"próximos eventos"/);
   assert.match(search, /"resultados"\} para tu búsqueda/);
 });
 
-test("móvil conserva un solo formulario y sitúa el destacado tras la búsqueda", () => {
+test("móvil conserva un solo destacado dentro del hero y antes de la búsqueda", () => {
   assert.equal(search.match(/<form/g)?.length, 1);
-  assert.ok(search.indexOf("<form") < search.indexOf("{featuredEvent ?"));
-  assert.ok(search.indexOf("{featuredEvent ?") < search.indexOf("className={styles.sectionHeading}"));
+  assert.equal(home.match(/event=\{featured\.event\}/g)?.length, 1);
+  assert.ok(home.indexOf("className={`${styles.shell} ${styles.heroLayout}`}") < home.indexOf("{featured.event ?"));
+  assert.ok(home.indexOf("{featured.event ?") < home.indexOf("className={`${styles.shell} ${styles.eventsSection}`}"));
+  assert.doesNotMatch(search, /featuredEvent|featuredLabel|featuredWrap/);
   assert.match(search, /aria-controls="redesign-v2-advanced-filters"/);
   assert.match(search, /aria-expanded=\{advancedOpen\}/);
   assert.match(search, /data-open=\{advancedOpen\}/);
 });
 
-test("el selector de fecha neutraliza su tamaño intrínseco sin ocultarlo", () => {
+test("la cadena geométrica del selector de fecha contiene el control nativo de WebKit sin recortarlo", () => {
+  const panelRule = styles.match(/\.searchPanel\s*\{([^}]*)\}/)?.[1] ?? "";
+  const labelRule = styles.match(/\.searchPanel label\s*\{([^}]*)\}/)?.[1] ?? "";
   const dateRule = styles.match(/\.searchPanel input\[type="date"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(panelRule, /max-inline-size:\s*100%/);
+  assert.match(panelRule, /min-inline-size:\s*0/);
+  assert.match(labelRule, /display:\s*block/);
+  assert.match(labelRule, /max-inline-size:\s*100%/);
+  assert.match(labelRule, /min-inline-size:\s*0/);
   assert.match(styles, /\.searchPanel input,[\s\S]*?box-sizing:\s*border-box/);
+  assert.match(styles, /\.searchPanel input,[\s\S]*?display:\s*block/);
   assert.match(styles, /\.searchPanel input,[\s\S]*?max-width:\s*100%/);
   assert.match(styles, /\.searchPanel input,[\s\S]*?min-inline-size:\s*0/);
   assert.match(dateRule, /inline-size:\s*100%/);
-  assert.doesNotMatch(dateRule, /display:\s*none/);
+  assert.match(dateRule, /max-inline-size:\s*100%/);
+  assert.match(dateRule, /box-sizing:\s*border-box/);
+  assert.match(dateRule, /-webkit-appearance:\s*none/);
+  assert.doesNotMatch(dateRule, /overflow/);
+  assert.match(styles, /::-webkit-date-and-time-value,[\s\S]*?min-inline-size:\s*0/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.searchPanel input,[\s\S]*?font-size:\s*16px/);
 });
 
 test("el modo móvil reduce la cabecera y colapsa filtros avanzados", () => {

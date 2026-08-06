@@ -3,6 +3,7 @@ import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import type { EventItem } from "@/types/event";
+import EventCard from "./EventCard";
 import MobileNavigation from "./MobileNavigation.client";
 import SearchExperience from "./SearchExperience.client";
 import styles from "./RedesignV2.module.css";
@@ -11,6 +12,7 @@ import {
   buildTerritoryCards,
   prioritizeEditorialEvents,
   projectPreviewEvent,
+  resolveRedesignEventImages,
   selectFeaturedEvent,
   upcomingPreviewEvents,
 } from "./redesign-v2-model";
@@ -27,6 +29,8 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
   const upcoming = upcomingPreviewEvents(projected, nowIso);
   const editorialEvents = prioritizeEditorialEvents(upcoming);
   const featured = selectFeaturedEvent(editorialEvents);
+  const resolvedImages = resolveRedesignEventImages(editorialEvents);
+  const imageByEventId = new Map(editorialEvents.map((event, index) => [event.id, resolvedImages[index]]));
   const disciplines = buildDisciplineCards(upcoming);
   const territories = buildTerritoryCards(upcoming);
   const representedTerritories = new Set(upcoming.map((event) => event.region).filter(Boolean)).size;
@@ -86,6 +90,17 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                 <span><strong>{representedDisciplines}</strong> disciplinas</span>
               </div>
             </div>
+            {featured.event ? (
+              <aside className={styles.featuredWrap} aria-label={featured.eyebrow}>
+                <EventCard
+                  event={featured.event}
+                  featured
+                  featuredLabel={featured.eyebrow}
+                  nowIso={nowIso}
+                  resolvedImage={imageByEventId.get(featured.event.id)}
+                />
+              </aside>
+            ) : null}
           </div>
         </section>
 
@@ -93,8 +108,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
           <h2 className={styles.visuallyHidden} id="events-title">Buscar y descubrir próximos eventos</h2>
           <SearchExperience
             events={editorialEvents}
-            featuredEvent={featured.event}
-            featuredLabel={featured.eyebrow}
+            excludeEventId={featured.event?.id}
             nowIso={nowIso}
           />
         </section>
