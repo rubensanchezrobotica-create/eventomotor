@@ -4,10 +4,13 @@ import test from "node:test";
 
 const route = readFileSync(new URL("../../app/preview/redesign-v2/page.tsx", import.meta.url), "utf8");
 const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
+const eventCard = readFileSync(new URL("./EventCard.tsx", import.meta.url), "utf8");
 const search = readFileSync(new URL("./SearchExperience.client.tsx", import.meta.url), "utf8");
 const menu = readFileSync(new URL("./MobileNavigation.client.tsx", import.meta.url), "utf8");
 const model = readFileSync(new URL("./redesign-v2-model.ts", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./RedesignV2.module.css", import.meta.url), "utf8");
+const signup = readFileSync(new URL("../newsletter/NewsletterSignupForm.tsx", import.meta.url), "utf8");
+const signupStyles = readFileSync(new URL("../newsletter/NewsletterPreview.module.css", import.meta.url), "utf8");
 
 test("la ruta conserva el límite Server Component y la consulta pública actual", () => {
   assert.doesNotMatch(route, /["']use client["']/);
@@ -32,18 +35,27 @@ test("el hero usa exactamente el recurso y API de Next 16 aprobados", () => {
   assert.doesNotMatch(home, /priority/);
 });
 
-test("la interactividad se limita a menú y búsqueda", () => {
+test("la home conserva el límite servidor y delega la interactividad", () => {
   assert.doesNotMatch(home, /["']use client["']/);
   assert.match(search, /^["']use client["']/);
   assert.match(menu, /^["']use client["']/);
+  assert.match(signup, /^["']use client["']/);
   assert.match(menu, /event\.key === "Escape"/);
   assert.match(menu, /buttonRef\.current\?\.focus\(\)/);
 });
 
-test("newsletter es editorial y reutiliza la entrada existente", () => {
-  assert.match(home, /href="\/newsletter"/);
+test("newsletter unifica contenido, formulario real y fotografía aprobada", () => {
+  assert.match(home, /import NewsletterSignupForm/);
+  assert.match(home, /La Agenda Motor, por EventoMotor/);
+  assert.match(home, /<NewsletterSignupForm appearance="homeEditorial" \/>/);
   assert.match(home, /newsletter-phone\.webp/);
-  assert.doesNotMatch(home, /NewsletterCaptureCard|<form|subscribe|resend/i);
+  assert.match(home, /sizes="\(max-width: 800px\) 100vw, 45vw"/);
+  assert.doesNotMatch(home, /NewsletterCaptureCard|Descubrir la newsletter/);
+  assert.match(signup, /requestNewsletterSubscription\(\{/);
+  assert.match(signup, /province:\s*province \|\| undefined/);
+  assert.match(signup, /consentVersion:\s*NEWSLETTER_CONSENT_VERSION/);
+  assert.match(signup, /data-newsletter-surface=\{appearance === "homeEditorial"/);
+  assert.match(signupStyles, /\.homeEditorial \.formGrid/);
 });
 
 test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
@@ -70,6 +82,13 @@ test("móvil conserva un solo destacado dentro del hero y antes de la búsqueda"
   assert.match(search, /aria-controls="redesign-v2-advanced-filters"/);
   assert.match(search, /aria-expanded=\{advancedOpen\}/);
   assert.match(search, /data-open=\{advancedOpen\}/);
+  assert.match(eventCard, /Destacado esta semana/);
+  assert.match(eventCard, /className=\{styles\.featuredDesktopLabel\}/);
+  assert.match(eventCard, /className=\{styles\.featuredMobileLabel\}/);
+  assert.match(styles, /\.featuredMobileLabel\s*\{[\s\S]*?display:\s*none/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.eventCardFeatured \.eventCardLink\s*\{[\s\S]*?grid-template-columns:\s*112px minmax\(0, 1fr\)/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.eventCardFeatured \.eventCardBody h3\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.searchPanel\s*\{[\s\S]*?margin-top:\s*0/);
 });
 
 test("la cadena geométrica del selector de fecha contiene el control nativo de WebKit sin recortarlo", () => {

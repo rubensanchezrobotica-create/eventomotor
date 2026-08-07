@@ -35,8 +35,9 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
       <Link className={styles.eventCardLink} href={href} aria-label={`Ver ${event.title}`}>
         {featured ? (
           <div className={styles.featuredChrome}>
-            <span>{featuredLabel ?? "Evento destacado"}</span>
-            <span>Selección editorial</span>
+            <span className={styles.featuredDesktopLabel}>{featuredLabel ?? "Evento destacado"}</span>
+            <span className={styles.featuredMobileLabel}>Destacado esta semana</span>
+            <span className={styles.featuredEditorialLabel}>Selección editorial</span>
           </div>
         ) : null}
         <div className={styles.eventImageLink}>

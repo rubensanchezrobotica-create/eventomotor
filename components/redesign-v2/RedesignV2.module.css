@@ -580,20 +580,26 @@
   text-transform: uppercase;
 }
 
-.featuredChrome span:first-child {
+.featuredDesktopLabel,
+.featuredMobileLabel {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--orange);
 }
 
-.featuredChrome span:first-child::before {
+.featuredDesktopLabel::before,
+.featuredMobileLabel::before {
   width: 7px;
   height: 7px;
   border-radius: 99px;
   content: "";
   background: var(--orange);
   box-shadow: 0 0 0 4px rgba(255, 98, 0, 0.13);
+}
+
+.featuredMobileLabel {
+  display: none;
 }
 
 .eventCardFeatured .eventImageLink {
@@ -996,7 +1002,7 @@
 .newsletterSection {
   position: relative;
   overflow: hidden;
-  padding: 90px 0;
+  padding: 76px 0;
   background:
     radial-gradient(circle at 20% 60%, rgba(255, 98, 0, 0.16), transparent 30%),
     linear-gradient(120deg, #07090c 0%, #10151b 100%);
@@ -1004,27 +1010,34 @@
 
 .newsletterLayout {
   display: grid;
-  grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1.08fr);
-  align-items: center;
-  gap: clamp(52px, 8vw, 120px);
+  min-height: 560px;
+  grid-template-columns: minmax(0, 1.12fr) minmax(330px, 0.88fr);
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(255, 98, 0, 0.16), transparent 32%),
+    linear-gradient(135deg, #10151c, #080b10 68%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
 }
 
 .newsletterVisual {
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 1;
 }
 
 .newsletterCopy {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
 }
 
 .newsletterVisual {
   position: relative;
-  min-height: 425px;
+  min-height: 100%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(145deg, #141b23, #05070a);
 }
 
@@ -1048,18 +1061,27 @@
 }
 
 .newsletterCopy {
-  max-width: 550px;
+  max-width: none;
+  align-self: center;
+  padding: 46px clamp(32px, 4.2vw, 56px);
 }
 
 .newsletterCopy h2 {
-  font-size: clamp(2.8rem, 5vw, 4.4rem);
+  max-width: 15ch;
+  font-size: clamp(2.45rem, 4vw, 3.65rem);
 }
 
 .newsletterCopy > p {
-  margin: 19px 0 21px;
+  max-width: 620px;
+  margin: 17px 0 0;
   color: #bdc1c6;
-  font-size: 1.08rem;
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.58;
+}
+
+.newsletterForm {
+  max-width: 680px;
+  margin-top: 22px;
 }
 
 .newsletterCopy ul {
@@ -1330,12 +1352,15 @@
   }
 
   .newsletterLayout {
-    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
-    gap: 42px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(290px, 0.92fr);
   }
 
   .newsletterVisual {
-    min-height: 360px;
+    min-height: 100%;
+  }
+
+  .newsletterCopy {
+    padding: 38px 32px;
   }
 
   .footerGrid {
@@ -1421,13 +1446,109 @@
     filter: none;
   }
 
+  .eventCardFeatured {
+    min-height: 126px;
+    padding: 6px;
+    border-radius: 13px;
+  }
+
+  .eventCardFeatured .eventCardLink {
+    display: grid;
+    height: 124px;
+    min-height: 124px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: 29px minmax(0, 1fr);
+  }
+
+  .featuredChrome {
+    min-height: 29px;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-start;
+    padding: 0 10px;
+  }
+
+  .featuredDesktopLabel,
+  .featuredEditorialLabel {
+    display: none;
+  }
+
+  .featuredMobileLabel {
+    display: inline-flex;
+  }
+
+  .eventCardFeatured .eventImageLink {
+    height: 100%;
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    aspect-ratio: auto;
+    border-radius: 8px;
+  }
+
+  .eventCardFeatured .imageLabel {
+    display: none;
+  }
+
+  .eventCardFeatured .dateBlock {
+    top: 8px;
+    left: 8px;
+    min-width: 42px;
+    padding: 6px;
+  }
+
+  .eventCardFeatured .dateBlock strong {
+    font-size: 1rem;
+  }
+
+  .eventCardFeatured .eventCardBody {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+    padding: 3px 10px 5px;
+    border: 0;
+    background: transparent;
+  }
+
+  .eventCardFeatured .eventMetaLine {
+    display: none;
+  }
+
+  .eventCardFeatured .eventCardBody h3 {
+    display: -webkit-box;
+    flex-shrink: 0;
+    margin: 0 0 4px;
+    overflow: hidden;
+    font-size: 0.98rem;
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .eventCardFeatured .eventCardBody p {
+    min-height: 0;
+    flex-shrink: 0;
+    font-size: 0.72rem;
+  }
+
+  .eventCardFeatured .cardAction {
+    min-height: 24px;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 2px;
+    font-size: 0.72rem;
+  }
+
   .trustLine {
     display: none;
   }
 
   .searchPanel {
     grid-template-columns: minmax(0, 1fr);
-    margin-top: -24px;
+    margin-top: 0;
   }
 
   .basicFilters {
@@ -1480,6 +1601,7 @@
   }
 
   .eventsSection {
+    padding-top: 24px;
     padding-bottom: 58px;
   }
 
@@ -1502,19 +1624,23 @@
 
   .newsletterLayout {
     grid-template-columns: 1fr;
-    gap: 28px;
+    min-height: 0;
+    gap: 0;
   }
 
   .newsletterVisual {
-    min-height: 290px;
+    min-height: 280px;
     grid-column: 1;
     grid-row: 2;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 0;
   }
 
   .newsletterCopy {
     max-width: none;
     grid-column: 1;
     grid-row: 1;
+    padding: 32px 24px 0;
   }
 
   .organizerLayout {
@@ -1549,19 +1675,6 @@
     font-size: 0.9rem;
   }
 
-  .eventCardFeatured .eventCardLink {
-    display: flex;
-  }
-
-  .eventCardFeatured .eventImageLink {
-    aspect-ratio: 16 / 8.8;
-    border-radius: 9px 9px 4px 4px;
-  }
-
-  .eventCardFeatured .eventCardBody {
-    margin: 6px 0 0;
-    border-radius: 4px 4px 9px 9px;
-  }
 }
 
 @media (max-width: 520px) {
@@ -1624,7 +1737,7 @@
   .searchPanel {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
-    margin-top: -20px;
+    margin-top: 0;
     padding: 12px;
   }
 
@@ -1680,26 +1793,34 @@
   }
 
   .newsletterVisual {
-    min-height: 245px;
+    min-height: 240px;
   }
 
   .newsletterCopy h2 {
-    font-size: clamp(2.7rem, 14vw, 3.5rem);
+    font-size: clamp(2.18rem, 11vw, 2.8rem);
+  }
+
+  .newsletterCopy {
+    padding: 27px 18px 0;
+  }
+
+  .newsletterForm {
+    margin-top: 18px;
   }
 
   .featuredChrome {
-    min-height: 32px;
+    min-height: 29px;
     font-size: 0.54rem;
     letter-spacing: 0.07em;
   }
 
   .eventCardFeatured .eventCardBody {
-    padding: 14px 14px 9px;
+    padding: 3px 10px 5px;
   }
 
   .eventCardFeatured .cardAction {
-    min-height: 40px;
-    padding-top: 6px;
+    min-height: 24px;
+    padding-top: 2px;
   }
 
   .organizerSection {
@@ -1760,6 +1881,10 @@
     padding-inline: 7px;
     font-size: 0.52rem;
     letter-spacing: 0.06em;
+  }
+
+  .eventCardFeatured .eventCardLink {
+    grid-template-columns: 94px minmax(0, 1fr);
   }
 
   .featuredChrome span {

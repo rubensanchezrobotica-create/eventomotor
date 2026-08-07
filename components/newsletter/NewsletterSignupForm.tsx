@@ -29,6 +29,7 @@ export const NEWSLETTER_SIGNUP_STATES = [
 export type NewsletterSignupState = (typeof NEWSLETTER_SIGNUP_STATES)[number];
 
 type NewsletterSignupFormProps = {
+  appearance?: "default" | "homeEditorial";
   initialState?: NewsletterPreviewFormState;
   variant?: "product" | "lab";
 };
@@ -108,7 +109,11 @@ function NewsletterSignupLab({ initialState }: { initialState: NewsletterPreview
   );
 }
 
-function NewsletterProductSignupForm() {
+function NewsletterProductSignupForm({
+  appearance,
+}: {
+  appearance: NonNullable<NewsletterSignupFormProps["appearance"]>;
+}) {
   const [email, setEmail] = useState("");
   const [province, setProvince] = useState("");
   const [consent, setConsent] = useState(false);
@@ -173,7 +178,11 @@ function NewsletterProductSignupForm() {
   }
 
   return (
-    <div data-form-state={state}>
+    <div
+      className={appearance === "homeEditorial" ? styles.homeEditorial : undefined}
+      data-form-state={state}
+      data-newsletter-surface={appearance === "homeEditorial" ? "home-editorial" : undefined}
+    >
       {state === "accepted" ? (
         <div
           aria-live="polite"
@@ -343,9 +352,10 @@ function NewsletterProductSignupForm() {
 }
 
 export default function NewsletterSignupForm({
+  appearance = "default",
   initialState = "idle",
   variant = "product",
 }: NewsletterSignupFormProps) {
   if (variant === "lab") return <NewsletterSignupLab initialState={initialState} />;
-  return <NewsletterProductSignupForm />;
+  return <NewsletterProductSignupForm appearance={appearance} />;
 }

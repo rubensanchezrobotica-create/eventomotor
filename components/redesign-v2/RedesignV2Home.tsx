@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
+import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
 import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
 import MobileNavigation from "./MobileNavigation.client";
@@ -165,16 +166,12 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
         <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
           <div className={`${styles.shell} ${styles.newsletterLayout}`}>
             <div className={styles.newsletterCopy}>
-              <span className={styles.kicker}>Cada semana en tu correo</span>
-              <h2 id="newsletter-title">La Agenda Motor</h2>
-              <p>Una selección editorial con los eventos que merece la pena tener en el radar. Sin ruido. Sólo motor.</p>
-              <ul>
-                <li>Próximas citas destacadas</li>
-                <li>Ideas para tu fin de semana</li>
-                <li>Novedades de EventoMotor</li>
-              </ul>
-              <Link className={styles.primaryButton} href="/newsletter">Descubrir la newsletter <span aria-hidden="true">→</span></Link>
-              <small>Consulta todos los detalles en la página de La Agenda Motor.</small>
+              <span className={styles.kicker}>La Agenda Motor, por EventoMotor</span>
+              <h2 id="newsletter-title">Tu próximo plan de motor, cada semana en tu correo.</h2>
+              <p>Concentraciones, rallyes, clásicos, motos, circuitos y mucho más, seleccionados cerca de ti.</p>
+              <div className={styles.newsletterForm}>
+                <NewsletterSignupForm appearance="homeEditorial" />
+              </div>
             </div>
             <div className={styles.newsletterVisual}>
               <span className={styles.newsletterGlow} />
