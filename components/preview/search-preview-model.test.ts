@@ -113,6 +113,22 @@ test("el autocompletado elimina duplicados y respeta el límite", () => {
   assert.equal(new Set(suggestions.map((item) => item.id)).size, suggestions.length);
 });
 
+test("el autocompletado acepta la proyección mínima usada por la preview V2", () => {
+  const suggestions = buildPreviewSuggestions([
+    {
+      title: "Rallye de La Bañeza",
+      venue: "Circuito urbano de La Bañeza",
+      city: "La Bañeza",
+      province: "León",
+      region: "Castilla y León",
+      discipline: "Rally",
+    },
+  ], "bañeza");
+
+  assert.equal(suggestions.some((item) => item.kind === "evento" && item.label.includes("Rallye")), true);
+  assert.equal(suggestions.some((item) => item.kind === "ubicacion" && item.label === "La Bañeza"), true);
+});
+
 test("el botón usa el recuento real con singular y plural", () => {
   assert.equal(previewSearchButtonLabel(0), "Ver 0 eventos");
   assert.equal(previewSearchButtonLabel(1), "Ver 1 evento");

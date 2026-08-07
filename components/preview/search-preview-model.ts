@@ -8,6 +8,11 @@ export type PreviewSuggestion = {
   label: string;
 };
 
+export type PreviewSuggestionEvent = Pick<
+  EventItem,
+  "title" | "venue" | "city" | "province" | "region" | "discipline"
+>;
+
 export function normalizePreviewText(value: string) {
   return value
     .normalize("NFD")
@@ -30,7 +35,7 @@ function addSuggestion(
   if (!suggestions.has(key)) suggestions.set(key, { id: key, kind, label });
 }
 
-export function buildPreviewSuggestions(events: EventItem[], query: string, limit = 8) {
+export function buildPreviewSuggestions(events: readonly PreviewSuggestionEvent[], query: string, limit = 8) {
   const normalizedQuery = normalizePreviewText(query);
   if (normalizedQuery.length < 2 || limit <= 0) return [];
 

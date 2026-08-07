@@ -56,6 +56,26 @@ test("newsletter unifica contenido, formulario real y fotografía aprobada", () 
   assert.match(signup, /consentVersion:\s*NEWSLETTER_CONSENT_VERSION/);
   assert.match(signup, /data-newsletter-surface=\{appearance === "homeEditorial"/);
   assert.match(signupStyles, /\.homeEditorial \.formGrid/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterVisual\s*\{[\s\S]*?grid-row:\s*1/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterCopy\s*\{[\s\S]*?grid-row:\s*2/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterVisual::after[\s\S]*?linear-gradient/);
+});
+
+test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en segunda capa", () => {
+  assert.match(search, /buildPreviewSuggestions/);
+  assert.match(search, /@\/components\/preview\/search-preview-model/);
+  assert.match(search, />¿Qué buscas\?</);
+  assert.match(search, /placeholder="Evento, ciudad o ubicación"/);
+  assert.match(search, /role="combobox"/);
+  assert.match(search, /role="listbox"/);
+  assert.match(search, /SUGGESTION_KIND_ORDER/);
+  assert.match(search, /event\.key === "Escape"/);
+  assert.match(search, /event\.key === "ArrowDown"/);
+  assert.match(search, /Limpiar fecha/);
+  assert.ok(search.indexOf("redesign-v2-query") < search.indexOf("redesign-v2-advanced-filters"));
+  assert.ok(search.indexOf("redesign-v2-advanced-filters") < search.indexOf('name="date"'));
+  assert.doesNotMatch(search, /<span>Dónde<\/span>/);
+  assert.doesNotMatch(search, /<span>Cuándo<\/span>/);
 });
 
 test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
@@ -118,7 +138,7 @@ test("el modo móvil reduce la cabecera y colapsa filtros avanzados", () => {
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.advancedToggle\s*\{[\s\S]*?display:\s*flex/);
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.advancedFilters\s*\{[\s\S]*?display:\s*none/);
   assert.match(styles, /\.advancedFilters\[data-open="true"\][\s\S]*?display:\s*grid/);
-  assert.match(styles, /@media \(max-width:\s*900px\)[\s\S]*?\.searchPanel\s*\{[\s\S]*?repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /@media \(max-width:\s*900px\)[\s\S]*?\.searchPrimary\s*\{[\s\S]*?minmax\(0, 1fr\) auto auto/);
   assert.match(styles, /\.footer nav a,[\s\S]*?min-width:\s*44px;[\s\S]*?min-height:\s*44px/);
 });
 
