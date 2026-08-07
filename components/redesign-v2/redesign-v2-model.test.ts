@@ -8,9 +8,11 @@ import {
   filterPreviewEvents,
   isEditoriallyComplete,
   isRedesignPreviewAvailable,
+  previewEventDateLabel,
   previewEventStatus,
   prioritizeEditorialEvents,
   projectPreviewEvent,
+  reconcileAppliedTextFilter,
   resolveRedesignEventImage,
   resolveRedesignEventImages,
   selectFeaturedEvent,
@@ -138,6 +140,77 @@ test("el buscador filtra datos reales por lugar, fecha, disciplina y vehículo",
   });
   assert.equal(matches.length, 1);
   assert.equal(filterPreviewEvents(projected, { place: "Asturias", date: "", discipline: "", vehicle: "" }).length, 0);
+});
+
+test("vaciar la búsqueda aplicada restaura resultados sin borrar los filtros secundarios", () => {
+  const applied = {
+    place: "La Bañeza",
+    date: "2026-08-09",
+    discipline: "rally",
+    vehicle: "coche",
+  };
+
+  assert.equal(reconcileAppliedTextFilter(applied, "La Ba"), applied);
+  assert.deepEqual(reconcileAppliedTextFilter(applied, ""), {
+    place: "",
+    date: "2026-08-09",
+    discipline: "rally",
+    vehicle: "coche",
+  });
+  assert.equal(applied.place, "La Bañeza");
+});
+
+test("La Bañeza pasa de dos resultados a la agenda general al borrar el texto", () => {
+  const events = [
+    projectPreviewEvent(event({ id: "baneza-rally", city: "La Bañeza", province: "León" })),
+    projectPreviewEvent(event({
+      id: "baneza-moto",
+      title: "Encuentro de motos de La Bañeza",
+      championship: "",
+      city: "La Bañeza",
+      province: "León",
+      discipline: "Motos",
+      tags: ["motos"],
+      vehicleType: "Moto",
+    })),
+    projectPreviewEvent(event({ id: "madrid-rally", city: "Madrid", province: "Madrid" })),
+  ];
+  const textOnly = { place: "La Bañeza", date: "", discipline: "", vehicle: "" };
+  const withDiscipline = { ...textOnly, discipline: "rally" };
+
+  assert.equal(filterPreviewEvents(events, textOnly).length, 2);
+  assert.equal(filterPreviewEvents(events, reconcileAppliedTextFilter(textOnly, "")).length, 3);
+  assert.equal(filterPreviewEvents(events, withDiscipline).length, 1);
+  assert.equal(filterPreviewEvents(events, reconcileAppliedTextFilter(withDiscipline, "")).length, 2);
+});
+
+test("formatea fechas de un día y rangos sin inventar una fecha final", () => {
+  const single = projectPreviewEvent(event({ start: "2026-08-07", end: "" }));
+  const equal = projectPreviewEvent(event({ start: "2026-08-07", end: "2026-08-07" }));
+  const sameMonth = projectPreviewEvent(event({ start: "2026-08-07", end: "2026-08-09" }));
+  const crossMonth = projectPreviewEvent(event({ start: "2026-08-31", end: "2026-09-02" }));
+
+  assert.deepEqual(previewEventDateLabel(single), {
+    kind: "single",
+    day: "07",
+    month: "AGO",
+    ariaLabel: "Fecha: 7 de agosto",
+  });
+  assert.deepEqual(previewEventDateLabel(equal), previewEventDateLabel(single));
+  assert.deepEqual(previewEventDateLabel(sameMonth), {
+    kind: "range",
+    day: "07–09",
+    month: "AGO",
+    ariaLabel: "Fecha: del 7 al 9 de agosto",
+  });
+  assert.deepEqual(previewEventDateLabel(crossMonth), {
+    kind: "cross-month",
+    startDay: "31",
+    startMonth: "AGO",
+    endDay: "02",
+    endMonth: "SEP",
+    ariaLabel: "Fecha: del 31 de agosto al 2 de septiembre",
+  });
 });
 
 test("la asignación por lote es estable y no repite imágenes mientras hay alternativas", () => {

@@ -815,6 +815,41 @@
   text-transform: uppercase;
 }
 
+.dateBlockRange {
+  min-width: 72px;
+}
+
+.dateBlockRange strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.dateBlockCrossMonth {
+  min-width: 68px;
+  gap: 2px;
+  padding-inline: 8px;
+}
+
+.dateLine {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 0 !important;
+  line-height: 1;
+}
+
+.dateLine strong {
+  font-size: 0.8rem;
+}
+
+.dateLine span {
+  margin-top: 0;
+  font-size: 0.52rem;
+}
+
 .eventCardBody {
   display: flex;
   min-width: 0;
@@ -897,6 +932,14 @@
   padding: 9px;
   border: 1px solid rgba(6, 8, 10, 0.42);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+}
+
+.eventCardFeatured .dateBlockRange {
+  min-width: 72px;
+}
+
+.eventCardFeatured .dateBlockCrossMonth {
+  min-width: 68px;
 }
 
 .eventCardFeatured .cardAction {
@@ -1618,6 +1661,27 @@
 
   .eventCardFeatured .dateBlock strong {
     font-size: 1rem;
+  }
+
+  .eventCardFeatured .dateBlockRange {
+    min-width: 60px;
+  }
+
+  .eventCardFeatured .dateBlockRange strong {
+    font-size: 0.78rem;
+  }
+
+  .eventCardFeatured .dateBlockCrossMonth {
+    min-width: 58px;
+    padding-inline: 5px;
+  }
+
+  .eventCardFeatured .dateLine strong {
+    font-size: 0.68rem;
+  }
+
+  .eventCardFeatured .dateLine span {
+    font-size: 0.46rem;
   }
 
   .eventCardFeatured .eventCardBody {

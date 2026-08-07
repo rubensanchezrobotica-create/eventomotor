@@ -3,6 +3,7 @@ import Link from "next/link";
 import styles from "./RedesignV2.module.css";
 import {
   isRemoteImage,
+  previewEventDateLabel,
   previewEventHref,
   previewEventStatus,
   previewVehicleLabel,
@@ -10,11 +11,6 @@ import {
   type PreviewEvent,
   type ResolvedEventImage,
 } from "./redesign-v2-model";
-
-const dateFormatter = new Intl.DateTimeFormat("es-ES", {
-  day: "2-digit",
-  month: "short",
-});
 
 type EventCardProps = {
   event: PreviewEvent;
@@ -26,8 +22,7 @@ type EventCardProps = {
 
 export default function EventCard({ event, nowIso, featured = false, featuredLabel, resolvedImage }: EventCardProps) {
   const image = resolvedImage ?? resolveRedesignEventImage(event);
-  const date = dateFormatter.format(new Date(`${event.start.slice(0, 10)}T12:00:00`));
-  const [day, month] = date.replace(".", "").split(" ");
+  const date = previewEventDateLabel(event);
   const href = previewEventHref(event);
 
   return (
@@ -58,10 +53,36 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
           )}
           <span className={styles.imageShade} />
           {image.label ? <span className={styles.imageLabel}>{image.label}</span> : null}
-          <span className={styles.dateBlock} aria-label={`Fecha: ${date}`}>
-            <strong>{day}</strong>
-            <span>{month}</span>
-          </span>
+          {date ? (
+            <span
+              className={`${styles.dateBlock} ${
+                date.kind === "range"
+                  ? styles.dateBlockRange
+                  : date.kind === "cross-month"
+                    ? styles.dateBlockCrossMonth
+                    : ""
+              }`}
+              aria-label={date.ariaLabel}
+            >
+              {date.kind === "cross-month" ? (
+                <>
+                  <span className={styles.dateLine}>
+                    <strong>{date.startDay}</strong>
+                    <span>{date.startMonth}</span>
+                  </span>
+                  <span className={styles.dateLine}>
+                    <strong>{date.endDay}</strong>
+                    <span>{date.endMonth}</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <strong>{date.day}</strong>
+                  <span>{date.month}</span>
+                </>
+              )}
+            </span>
+          ) : null}
         </div>
         <div className={styles.eventCardBody}>
           <div className={styles.eventMetaLine}>

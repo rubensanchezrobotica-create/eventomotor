@@ -72,6 +72,9 @@ test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en seg
   assert.match(search, /event\.key === "Escape"/);
   assert.match(search, /event\.key === "ArrowDown"/);
   assert.match(search, /Limpiar fecha/);
+  assert.match(search, /reconcileAppliedTextFilter\(current, nextPlace\)/);
+  assert.match(search, /type="search"/);
+  assert.match(search, /setSuggestionsOpen\(nextPlace !== ""\)/);
   assert.ok(search.indexOf("redesign-v2-query") < search.indexOf("redesign-v2-advanced-filters"));
   assert.ok(search.indexOf("redesign-v2-advanced-filters") < search.indexOf('name="date"'));
   assert.doesNotMatch(search, /<span>Dónde<\/span>/);
@@ -82,6 +85,16 @@ test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
   assert.match(model, /`\/evento\/\$\{event\.slug \|\| event\.id\}`/);
   assert.match(model, /kind:\s*"representative"/);
   assert.match(model, /label:\s*"Imagen representativa"/);
+});
+
+test("las tarjetas comparten una fecha accesible para día y rangos reales", () => {
+  assert.match(eventCard, /previewEventDateLabel\(event\)/);
+  assert.match(eventCard, /date\.kind === "range"/);
+  assert.match(eventCard, /date\.kind === "cross-month"/);
+  assert.match(eventCard, /aria-label=\{date\.ariaLabel\}/);
+  assert.match(styles, /\.dateBlockRange/);
+  assert.match(styles, /\.dateBlockCrossMonth/);
+  assert.match(styles, /\.dateLine/);
 });
 
 test("el destacado queda fuera de la agenda inmediata sin alterar el recuento total", () => {

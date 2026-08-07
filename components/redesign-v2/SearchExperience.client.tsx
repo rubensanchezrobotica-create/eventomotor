@@ -13,6 +13,7 @@ import styles from "./RedesignV2.module.css";
 import {
   excludePreviewEventById,
   filterPreviewEvents,
+  reconcileAppliedTextFilter,
   resolveRedesignEventImages,
   type PreviewEvent,
   type SearchFilters,
@@ -116,8 +117,11 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
                 name="place"
                 onBlur={closeSuggestions}
                 onChange={(event) => {
-                  updateFilter("place", event.target.value);
-                  setSuggestionsOpen(true);
+                  const nextPlace = event.target.value;
+
+                  updateFilter("place", nextPlace);
+                  setFilters((current) => reconcileAppliedTextFilter(current, nextPlace));
+                  setSuggestionsOpen(nextPlace !== "");
                   setActiveSuggestion(-1);
                 }}
                 onFocus={() => setSuggestionsOpen(true)}

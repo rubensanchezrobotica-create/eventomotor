@@ -37,6 +37,17 @@ export type SearchFilters = {
   vehicle: string;
 };
 
+export function reconcileAppliedTextFilter(
+  filters: SearchFilters,
+  nextPlace: string,
+): SearchFilters {
+  if (nextPlace !== "" || filters.place === "") {
+    return filters;
+  }
+
+  return { ...filters, place: "" };
+}
+
 export const REDESIGN_DISCIPLINES = [
   { name: "Circuito", href: "/disciplinas/circuito", image: "/images/redesign-v2/disciplines/circuit.webp", terms: ["circuito", "trackday", "velocidad"] },
   { name: "Rally", href: "/disciplinas/rally", image: "/images/redesign-v2/disciplines/rally-asphalt.webp", terms: ["rally", "rallysprint", "regularidad"] },
@@ -105,6 +116,66 @@ function eventDateRange(event: PreviewEvent): { start: string; end: string } | n
   if (!start) return null;
   const candidateEnd = dateKey(event.end);
   return { start, end: candidateEnd && candidateEnd >= start ? candidateEnd : start };
+}
+
+export type PreviewEventDateLabel =
+  | { kind: "single"; day: string; month: string; ariaLabel: string }
+  | { kind: "range"; day: string; month: string; ariaLabel: string }
+  | {
+      kind: "cross-month";
+      startDay: string;
+      startMonth: string;
+      endDay: string;
+      endMonth: string;
+      ariaLabel: string;
+    };
+
+const VISUAL_MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"] as const;
+const spokenDateFormatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long" });
+
+function dateLabelParts(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day, 12);
+
+  return {
+    day: String(day).padStart(2, "0"),
+    month: VISUAL_MONTHS[month - 1],
+    spoken: spokenDateFormatter.format(date),
+  };
+}
+
+export function previewEventDateLabel(event: PreviewEvent): PreviewEventDateLabel | null {
+  const range = eventDateRange(event);
+  if (!range) return null;
+
+  const start = dateLabelParts(range.start);
+  if (range.end === range.start) {
+    return {
+      kind: "single",
+      day: start.day,
+      month: start.month,
+      ariaLabel: `Fecha: ${start.spoken}`,
+    };
+  }
+
+  const end = dateLabelParts(range.end);
+  if (range.start.slice(0, 7) === range.end.slice(0, 7)) {
+    return {
+      kind: "range",
+      day: `${start.day}–${end.day}`,
+      month: start.month,
+      ariaLabel: `Fecha: del ${Number(start.day)} al ${end.spoken}`,
+    };
+  }
+
+  return {
+    kind: "cross-month",
+    startDay: start.day,
+    startMonth: start.month,
+    endDay: end.day,
+    endMonth: end.month,
+    ariaLabel: `Fecha: del ${start.spoken} al ${end.spoken}`,
+  };
 }
 
 function matchesTerms(event: PreviewEvent, terms: readonly string[]): boolean {
