@@ -4,8 +4,10 @@ import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
   buildTerritoryCards,
+  clearAppliedDateFilter,
   excludePreviewEventById,
   filterPreviewEvents,
+  formatPreviewSelectedDate,
   isEditoriallyComplete,
   isRedesignPreviewAvailable,
   previewEventDateLabel,
@@ -160,6 +162,24 @@ test("vaciar la búsqueda aplicada restaura resultados sin borrar los filtros se
   assert.equal(applied.place, "La Bañeza");
 });
 
+test("quitar la fecha aplicada conserva disciplina, vehículo y texto", () => {
+  const applied = {
+    place: "Murcia",
+    date: "2026-08-31",
+    discipline: "rally",
+    vehicle: "coche",
+  };
+
+  assert.deepEqual(clearAppliedDateFilter(applied), {
+    place: "Murcia",
+    date: "",
+    discipline: "rally",
+    vehicle: "coche",
+  });
+  assert.equal(clearAppliedDateFilter({ ...applied, date: "" }).date, "");
+  assert.equal(applied.date, "2026-08-31");
+});
+
 test("La Bañeza pasa de dos resultados a la agenda general al borrar el texto", () => {
   const events = [
     projectPreviewEvent(event({ id: "baneza-rally", city: "La Bañeza", province: "León" })),
@@ -211,6 +231,30 @@ test("formatea fechas de un día y rangos sin inventar una fecha final", () => {
     endMonth: "SEP",
     ariaLabel: "Fecha: del 31 de agosto al 2 de septiembre",
   });
+});
+
+test("formatea la fecha seleccionada sin depender de UTC", () => {
+  assert.equal(formatPreviewSelectedDate("2026-08-31"), "31 ago 2026");
+  assert.equal(formatPreviewSelectedDate("2026-01-01"), "1 ene 2026");
+  assert.equal(formatPreviewSelectedDate("2026-02-30"), null);
+  assert.equal(formatPreviewSelectedDate(""), null);
+});
+
+test("el filtro de fecha incluye todo el rango real y excluye el día posterior", () => {
+  const longRange = projectPreviewEvent(event({ id: "long-range", start: "2026-08-03", end: "2026-08-18" }));
+  const shortRange = projectPreviewEvent(event({ id: "short-range", start: "2026-08-07", end: "2026-08-09" }));
+  const singleDay = projectPreviewEvent(event({ id: "single-day", start: "2026-08-10", end: "" }));
+  const events = [longRange, shortRange, singleDay];
+  const idsFor = (date: string) => filterPreviewEvents(events, {
+    place: "",
+    date,
+    discipline: "",
+    vehicle: "",
+  }).map(({ id }) => id);
+
+  assert.deepEqual(idsFor("2026-08-08"), ["long-range", "short-range"]);
+  assert.deepEqual(idsFor("2026-08-10"), ["long-range", "single-day"]);
+  assert.deepEqual(idsFor("2026-08-11"), ["long-range"]);
 });
 
 test("la asignación por lote es estable y no repite imágenes mientras hay alternativas", () => {

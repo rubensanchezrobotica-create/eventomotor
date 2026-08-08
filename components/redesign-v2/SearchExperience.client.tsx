@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { KeyboardEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildPreviewSuggestions,
   type PreviewSuggestion,
@@ -11,8 +11,10 @@ import {
 import EventCard from "./EventCard";
 import styles from "./RedesignV2.module.css";
 import {
+  clearAppliedDateFilter,
   excludePreviewEventById,
   filterPreviewEvents,
+  formatPreviewSelectedDate,
   reconcileAppliedTextFilter,
   resolveRedesignEventImages,
   type PreviewEvent,
@@ -45,6 +47,8 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [explicitSearchVersion, setExplicitSearchVersion] = useState(0);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
   const suggestions = useMemo(() => buildPreviewSuggestions(gridEvents, draft.place), [gridEvents, draft.place]);
   const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
@@ -56,6 +60,22 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
   const advancedFilterCount = [draft.date, draft.discipline, draft.vehicle].filter(Boolean).length;
   const visible = filtered.slice(0, 9);
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
+  const selectedDateLabel = formatPreviewSelectedDate(draft.date);
+
+  useEffect(() => {
+    if (explicitSearchVersion === 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const heading = resultsHeadingRef.current;
+      if (!heading) return;
+
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      heading.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      heading.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [explicitSearchVersion]);
 
   function updateFilter<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -101,6 +121,7 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
           event.preventDefault();
           closeSuggestions();
           setFilters(draft);
+          setExplicitSearchVersion((current) => current + 1);
         }}
       >
         <div className={styles.searchPrimary}>
@@ -185,28 +206,46 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
           <div className={styles.dateFilter}>
             <label htmlFor="redesign-v2-date"><span>Fecha</span></label>
             <div className={styles.dateControl}>
-              <input
-                aria-describedby="redesign-v2-date-hint"
-                id="redesign-v2-date"
-                name="date"
-                onChange={(event) => updateFilter("date", event.target.value)}
-                type="date"
-                value={draft.date}
-              />
-              {draft.date ? (
-                <button
-                  className={styles.clearDate}
-                  onClick={() => {
-                    updateFilter("date", "");
-                    setFilters((current) => ({ ...current, date: "" }));
-                  }}
-                  type="button"
-                >
-                  Limpiar fecha
-                </button>
-              ) : null}
+              {draft.date && selectedDateLabel ? (
+                <div className={styles.dateSelectedRow}>
+                  <div className={styles.selectedDatePicker}>
+                    <time dateTime={draft.date}>{selectedDateLabel}</time>
+                    <input
+                      aria-describedby="redesign-v2-date-hint"
+                      aria-label={`Cambiar fecha. Fecha seleccionada: ${selectedDateLabel}`}
+                      id="redesign-v2-date"
+                      name="date"
+                      onChange={(event) => updateFilter("date", event.target.value)}
+                      type="date"
+                      value={draft.date}
+                    />
+                  </div>
+                  <button
+                    aria-label={`Quitar fecha ${selectedDateLabel}`}
+                    className={styles.clearDate}
+                    onClick={() => {
+                      updateFilter("date", "");
+                      setFilters(clearAppliedDateFilter);
+                    }}
+                    type="button"
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+              ) : (
+                <input
+                  aria-describedby="redesign-v2-date-hint"
+                  id="redesign-v2-date"
+                  name="date"
+                  onChange={(event) => updateFilter("date", event.target.value)}
+                  type="date"
+                  value={draft.date}
+                />
+              )}
             </div>
-            <small id="redesign-v2-date-hint">Opcional. Puedes eliminarla en cualquier momento.</small>
+            <small className={styles.dateHint} id="redesign-v2-date-hint">
+              {draft.date ? "Toca la fecha para cambiarla." : "Ver eventos activos ese día."}
+            </small>
           </div>
 
           <label>
@@ -236,7 +275,7 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
       <div className={styles.sectionHeading}>
         <div>
           <span className={styles.kicker}>Agenda motor</span>
-          <h2>Próximos eventos</h2>
+          <h2 className={styles.resultsHeading} ref={resultsHeadingRef} tabIndex={-1}>Próximos eventos</h2>
         </div>
         <p aria-live="polite">
           {hasActiveFilters

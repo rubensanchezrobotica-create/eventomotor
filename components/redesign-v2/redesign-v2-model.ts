@@ -48,6 +48,11 @@ export function reconcileAppliedTextFilter(
   return { ...filters, place: "" };
 }
 
+export function clearAppliedDateFilter(filters: SearchFilters): SearchFilters {
+  if (filters.date === "") return filters;
+  return { ...filters, date: "" };
+}
+
 export const REDESIGN_DISCIPLINES = [
   { name: "Circuito", href: "/disciplinas/circuito", image: "/images/redesign-v2/disciplines/circuit.webp", terms: ["circuito", "trackday", "velocidad"] },
   { name: "Rally", href: "/disciplinas/rally", image: "/images/redesign-v2/disciplines/rally-asphalt.webp", terms: ["rally", "rallysprint", "regularidad"] },
@@ -142,6 +147,13 @@ function dateLabelParts(value: string) {
     month: VISUAL_MONTHS[month - 1],
     spoken: spokenDateFormatter.format(date),
   };
+}
+
+export function formatPreviewSelectedDate(value: string): string | null {
+  const key = dateKey(value);
+  if (!key) return null;
+  const [year, month, day] = key.split("-").map(Number);
+  return `${day} ${VISUAL_MONTHS[month - 1].toLocaleLowerCase("es-ES")} ${year}`;
 }
 
 export function previewEventDateLabel(event: PreviewEvent): PreviewEventDateLabel | null {

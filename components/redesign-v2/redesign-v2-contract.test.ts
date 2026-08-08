@@ -71,7 +71,12 @@ test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en seg
   assert.match(search, /SUGGESTION_KIND_ORDER/);
   assert.match(search, /event\.key === "Escape"/);
   assert.match(search, /event\.key === "ArrowDown"/);
-  assert.match(search, /Limpiar fecha/);
+  assert.match(search, /Ver eventos activos ese día\./);
+  assert.match(search, /Toca la fecha para cambiarla\./);
+  assert.match(search, /type="date"/);
+  assert.match(search, /<time dateTime=\{draft\.date\}>\{selectedDateLabel\}<\/time>/);
+  assert.match(search, /aria-label=\{`Quitar fecha \$\{selectedDateLabel\}`\}/);
+  assert.match(search, /clearAppliedDateFilter/);
   assert.match(search, /reconcileAppliedTextFilter\(current, nextPlace\)/);
   assert.match(search, /type="search"/);
   assert.match(search, /setSuggestionsOpen\(nextPlace !== ""\)/);
@@ -79,6 +84,25 @@ test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en seg
   assert.ok(search.indexOf("redesign-v2-advanced-filters") < search.indexOf('name="date"'));
   assert.doesNotMatch(search, /<span>Dónde<\/span>/);
   assert.doesNotMatch(search, /<span>Cuándo<\/span>/);
+});
+
+test("el submit explícito lleva a resultados sin animación forzada para movimiento reducido", () => {
+  assert.match(search, /setExplicitSearchVersion\(\(current\) => current \+ 1\)/);
+  assert.match(search, /window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches/);
+  assert.match(search, /scrollIntoView\(\{ behavior: reducedMotion \? "auto" : "smooth", block: "start" \}\)/);
+  assert.match(search, /heading\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(search, /ref=\{resultsHeadingRef\}/);
+  assert.match(search, /tabIndex=\{-1\}/);
+  assert.match(styles, /\.resultsHeading\s*\{[\s\S]*?scroll-margin-top:\s*24px/);
+});
+
+test("la fecha aplicada usa un control nativo compacto y una acción secundaria táctil", () => {
+  assert.match(styles, /\.dateSelectedRow\s*\{[\s\S]*?min-width:\s*0/);
+  assert.match(styles, /\.selectedDatePicker\s*\{[\s\S]*?min-height:\s*49px/);
+  assert.match(styles, /\.selectedDatePicker input\s*\{[\s\S]*?opacity:\s*0/);
+  assert.match(styles, /\.clearDate\s*\{[\s\S]*?width:\s*49px;[\s\S]*?min-height:\s*49px/);
+  assert.doesNotMatch(search, />Limpiar fecha</);
+  assert.doesNotMatch(search, /from ["'](?:react-datepicker|react-day-picker|@mui\/x-date-pickers)/);
 });
 
 test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
