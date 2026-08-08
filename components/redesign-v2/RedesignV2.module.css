@@ -589,10 +589,13 @@
 
 .selectedDatePicker {
   position: relative;
-  display: flex;
   min-width: 0;
-  min-height: 49px;
   flex: 1;
+}
+
+.selectedDatePicker[data-selected="true"] {
+  display: flex;
+  min-height: 49px;
   align-items: center;
   padding: 0 13px;
   border: 1px solid #3a424d;
@@ -601,6 +604,7 @@
 }
 
 .selectedDatePicker time {
+  display: none;
   overflow: hidden;
   color: #f2f2f0;
   font-size: 0.9rem;
@@ -609,7 +613,11 @@
   white-space: nowrap;
 }
 
-.selectedDatePicker input {
+.selectedDatePicker[data-selected="true"] time {
+  display: block;
+}
+
+.selectedDatePicker[data-selected="true"] input {
   position: absolute;
   z-index: 1;
   inset: 0;
@@ -623,7 +631,7 @@
   opacity: 0;
 }
 
-.selectedDatePicker:focus-within {
+.selectedDatePicker[data-selected="true"]:focus-within {
   outline: 3px solid #ff9d5d;
   outline-offset: 3px;
 }

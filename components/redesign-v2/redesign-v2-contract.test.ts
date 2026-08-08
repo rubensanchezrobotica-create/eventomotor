@@ -6,6 +6,10 @@ const route = readFileSync(new URL("../../app/preview/redesign-v2/page.tsx", imp
 const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
 const eventCard = readFileSync(new URL("./EventCard.tsx", import.meta.url), "utf8");
 const search = readFileSync(new URL("./SearchExperience.client.tsx", import.meta.url), "utf8");
+const dateControl = search.slice(
+  search.indexOf('<div className={styles.dateControl}>'),
+  search.indexOf('<small className={styles.dateHint}'),
+);
 const menu = readFileSync(new URL("./MobileNavigation.client.tsx", import.meta.url), "utf8");
 const model = readFileSync(new URL("./redesign-v2-model.ts", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./RedesignV2.module.css", import.meta.url), "utf8");
@@ -74,7 +78,7 @@ test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en seg
   assert.match(search, /Ver eventos activos ese día\./);
   assert.match(search, /Toca la fecha para cambiarla\./);
   assert.match(search, /type="date"/);
-  assert.match(search, /<time dateTime=\{draft\.date\}>\{selectedDateLabel\}<\/time>/);
+  assert.match(search, /<time aria-hidden="true" dateTime=\{draft\.date \|\| undefined\}>\{selectedDateLabel \?\? ""\}<\/time>/);
   assert.match(search, /aria-label=\{`Quitar fecha \$\{selectedDateLabel\}`\}/);
   assert.match(search, /clearAppliedDateFilter/);
   assert.match(search, /reconcileAppliedTextFilter\(current, nextPlace\)/);
@@ -98,11 +102,22 @@ test("el submit explícito lleva a resultados sin animación forzada para movimi
 
 test("la fecha aplicada usa un control nativo compacto y una acción secundaria táctil", () => {
   assert.match(styles, /\.dateSelectedRow\s*\{[\s\S]*?min-width:\s*0/);
-  assert.match(styles, /\.selectedDatePicker\s*\{[\s\S]*?min-height:\s*49px/);
-  assert.match(styles, /\.selectedDatePicker input\s*\{[\s\S]*?opacity:\s*0/);
+  assert.match(styles, /\.selectedDatePicker\[data-selected="true"\]\s*\{[\s\S]*?min-height:\s*49px/);
+  assert.match(styles, /\.selectedDatePicker\[data-selected="true"\] input\s*\{[\s\S]*?opacity:\s*0/);
   assert.match(styles, /\.clearDate\s*\{[\s\S]*?width:\s*49px;[\s\S]*?min-height:\s*49px/);
   assert.doesNotMatch(search, />Limpiar fecha</);
   assert.doesNotMatch(search, /from ["'](?:react-datepicker|react-day-picker|@mui\/x-date-pickers)/);
+});
+
+test("el selector nativo conserva el mismo nodo al pasar de vacío a fecha seleccionada", () => {
+  assert.equal(dateControl.match(/type="date"/g)?.length, 1);
+  assert.equal(dateControl.match(/id="redesign-v2-date"/g)?.length, 1);
+  assert.match(dateControl, /data-selected=\{Boolean\(draft\.date && selectedDateLabel\)\}/);
+  assert.match(dateControl, /<time aria-hidden="true"[\s\S]*?<input[\s\S]*?type="date"/);
+  assert.match(dateControl, /onChange=\{\(event\) => updateFilter\("date", event\.target\.value\)\}/);
+  assert.doesNotMatch(dateControl, /showPicker|onInput=|onBlur=/);
+  assert.ok(dateControl.indexOf('type="date"') < dateControl.indexOf('aria-label={`Quitar fecha'));
+  assert.doesNotMatch(dateControl, /setFilters\(draft\)/);
 });
 
 test("los enlaces de ficha y fallbacks respetan el contrato público", () => {

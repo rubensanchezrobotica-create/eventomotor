@@ -206,20 +206,23 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
           <div className={styles.dateFilter}>
             <label htmlFor="redesign-v2-date"><span>Fecha</span></label>
             <div className={styles.dateControl}>
-              {draft.date && selectedDateLabel ? (
-                <div className={styles.dateSelectedRow}>
-                  <div className={styles.selectedDatePicker}>
-                    <time dateTime={draft.date}>{selectedDateLabel}</time>
-                    <input
-                      aria-describedby="redesign-v2-date-hint"
-                      aria-label={`Cambiar fecha. Fecha seleccionada: ${selectedDateLabel}`}
-                      id="redesign-v2-date"
-                      name="date"
-                      onChange={(event) => updateFilter("date", event.target.value)}
-                      type="date"
-                      value={draft.date}
-                    />
-                  </div>
+              <div className={styles.dateSelectedRow}>
+                <div
+                  className={styles.selectedDatePicker}
+                  data-selected={Boolean(draft.date && selectedDateLabel)}
+                >
+                  <time aria-hidden="true" dateTime={draft.date || undefined}>{selectedDateLabel ?? ""}</time>
+                  <input
+                    aria-describedby="redesign-v2-date-hint"
+                    aria-label={selectedDateLabel ? `Cambiar fecha. Fecha seleccionada: ${selectedDateLabel}` : undefined}
+                    id="redesign-v2-date"
+                    name="date"
+                    onChange={(event) => updateFilter("date", event.target.value)}
+                    type="date"
+                    value={draft.date}
+                  />
+                </div>
+                {draft.date && selectedDateLabel ? (
                   <button
                     aria-label={`Quitar fecha ${selectedDateLabel}`}
                     className={styles.clearDate}
@@ -231,17 +234,8 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
                   >
                     <span aria-hidden="true">×</span>
                   </button>
-                </div>
-              ) : (
-                <input
-                  aria-describedby="redesign-v2-date-hint"
-                  id="redesign-v2-date"
-                  name="date"
-                  onChange={(event) => updateFilter("date", event.target.value)}
-                  type="date"
-                  value={draft.date}
-                />
-              )}
+                ) : null}
+              </div>
             </div>
             <small className={styles.dateHint} id="redesign-v2-date-hint">
               {draft.date ? "Toca la fecha para cambiarla." : "Ver eventos activos ese día."}
