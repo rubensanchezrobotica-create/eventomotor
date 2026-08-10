@@ -76,8 +76,9 @@ test("prepara sólo la migración newsletter y verifica una copia byte a byte", 
     "20260729120000_newsletter_launch_operations.sql",
     "20260730100000_newsletter_canary_hardening.sql",
     "20260804120000_newsletter_manual_campaign_sender.sql",
+    "20260810120000_newsletter_edition_02_personalization.sql",
   ]);
-  assert.equal(result.manifest.migrations.length, 4);
+  assert.equal(result.manifest.migrations.length, 5);
   for (const [index, copiedFile] of copiedFiles.entries()) {
     assert.equal(
       result.manifest.migrations[index].sha256,
@@ -156,7 +157,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 346);
+  assert.equal(plannedAssertions, 388);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
@@ -542,6 +543,115 @@ test("campaña manual conserva unicidad, claims atómicos, unknown y tokens sól
   assert.match(migration, /commit;\s*$/i);
 });
 
+test("Edition 02 añade snapshot, freeze y RPC v2 sin alterar la API de Edition 01", async () => {
+  const migration = await readFile(
+    join(
+      process.cwd(),
+      "database/migrations/20260810120000_newsletter_edition_02_personalization.sql",
+    ),
+    "utf8",
+  );
+  const prepareStart = migration.indexOf(
+    "create or replace function public.prepare_newsletter_campaign_v2(",
+  );
+  const legacyPrepareStart = migration.indexOf(
+    "create or replace function public.prepare_newsletter_campaign(",
+  );
+  const legacyClaimStart = migration.indexOf(
+    "create or replace function public.claim_newsletter_campaign_delivery(",
+  );
+  const claimStart = migration.indexOf(
+    "create or replace function public.claim_newsletter_campaign_delivery_v2(",
+  );
+  const claimEnd = migration.indexOf(
+    "revoke all on function public.claim_newsletter_campaign_delivery_v2(",
+    claimStart,
+  );
+  const previewStart = migration.indexOf(
+    "create or replace function public.preview_newsletter_campaign_v2(",
+  );
+  const freezeGuardStart = migration.indexOf(
+    "create or replace function public.newsletter_campaign_delivery_freeze_guard()",
+  );
+  const freezeGuardEnd = migration.indexOf(
+    "create trigger newsletter_campaign_deliveries_freeze_guard",
+    freezeGuardStart,
+  );
+  const freezeGuard = migration.slice(freezeGuardStart, freezeGuardEnd);
+  const legacyPrepare = migration.slice(legacyPrepareStart, legacyClaimStart);
+  const legacyClaim = migration.slice(legacyClaimStart, previewStart);
+  const prepare = migration.slice(prepareStart, claimStart);
+  const claim = migration.slice(claimStart, claimEnd);
+
+  assert.ok(
+    freezeGuardStart >= 0
+      && freezeGuardEnd > freezeGuardStart
+      && legacyPrepareStart > freezeGuardEnd
+      && legacyClaimStart > legacyPrepareStart
+      && previewStart > legacyClaimStart
+      && prepareStart > previewStart
+      && claimStart > prepareStart
+      && claimEnd > claimStart,
+  );
+  assert.match(migration, /add column audience_frozen_at timestamptz/i);
+  assert.match(migration, /add column content_manifest_digest text/i);
+  assert.match(migration, /add column content_variant text not null default 'national'/i);
+  assert.match(migration, /content_variant in \('national', 'madrid', 'a-coruna', 'barcelona'\)/i);
+  assert.match(
+    freezeGuard,
+    /security definer\s+set search_path = ''[\s\S]+select campaign\.audience_frozen_at[\s\S]+from public\.newsletter_campaigns[\s\S]+for update;[\s\S]+if v_audience_frozen_at is not null then[\s\S]+raise exception 'newsletter campaign audience is frozen'/i,
+  );
+  assert.match(
+    migration,
+    /create trigger newsletter_campaign_deliveries_freeze_guard\s+before insert on public\.newsletter_campaign_deliveries/i,
+  );
+  assert.match(
+    migration,
+    /revoke all on function public\.newsletter_campaign_delivery_freeze_guard\(\)[\s\S]+service_role/i,
+  );
+  assert.match(
+    legacyPrepare,
+    /select \* into strict v_campaign[\s\S]+for update;[\s\S]+if v_campaign\.content_manifest_digest is not null then[\s\S]+raise exception 'newsletter campaign v2 requires prepare v2'/i,
+  );
+  assert.match(
+    legacyClaim,
+    /select \* into v_campaign[\s\S]+for update;[\s\S]+if v_campaign\.content_manifest_digest is not null then[\s\S]+raise exception 'newsletter campaign v2 requires claim v2'/i,
+  );
+  assert.match(prepare, /if v_campaign\.audience_frozen_at is null then[\s\S]+insert into public\.newsletter_campaign_deliveries/i);
+  assert.match(prepare, /newsletter_edition_02_content_variant\(subscriber\.province_slug\)/i);
+  assert.match(prepare, /audience_frozen_at = greatest\(v_now, campaign\.created_at\)/i);
+  assert.match(claim, /newsletter_edition_02_subscriber_is_sendable\(v_delivery\.subscriber_id\)/i);
+  assert.match(claim, /v_delivery\.content_variant/i);
+  assert.doesNotMatch(claim, /v_subscriber\.province_slug|v_subscriber\.region_slug/i);
+  assert.match(claim, /for update skip locked/i);
+  assert.match(claim, /last_error_code = 'stale_claim_unknown'/i);
+  assert.match(migration, /revoke all on function public\.newsletter_edition_02_content_variant\(text\)[\s\S]+service_role/i);
+  assert.match(migration, /grant execute on function public\.prepare_newsletter_campaign_v2\([\s\S]+to service_role/i);
+  assert.doesNotMatch(migration, /https?:\/\/|supabase\s+(?:link|db push)|resend/i);
+  assert.match(migration, /commit;\s*$/i);
+});
+
+test("la concurrencia Edition 02 valida freeze único, snapshots y un solo claim", async () => {
+  const source = await readFile(
+    join(
+      process.cwd(),
+      "tests/newsletter/sql/newsletter-edition-02-concurrency.mjs",
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /Promise\.all(?:Settled)?/);
+  assert.match(source, /waitForConcurrencyWorkers/);
+  assert.match(source, /prepare-race/);
+  assert.match(source, /claim-race/);
+  assert.match(source, /v1-v2-prepare-race/);
+  assert.match(source, /prepare_newsletter_campaign\(/);
+  assert.match(source, /prepare_newsletter_campaign_v2/);
+  assert.match(source, /claim_newsletter_campaign_delivery_v2/);
+  assert.match(source, /finally[\s\S]+delete from public\.newsletter_campaign_unsubscribe_tokens/i);
+  assert.match(source, /count\(distinct campaign\.audience_frozen_at\)/i);
+  assert.match(source, /string_agg\(content_variant/i);
+});
+
 test("la baja pending materializa el outcome antes de leer el estado persistido", async () => {
   const unsubscribe = await readFile(
     join(process.cwd(), "tests", "newsletter", "sql", "newsletter_unsubscribe.test.sql"),
@@ -750,13 +860,13 @@ function createDataApiHarness({
   return { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations };
 }
 
-test("el validador Data API genera dieciséis casos por rol con firmas exactas", async () => {
+test("el validador Data API genera diecinueve casos por rol con firmas exactas", async () => {
   const cases = buildRpcPermissionCases();
-  assert.equal(cases.length, 32);
-  assert.equal(cases.filter(({ role }) => role === "anon").length, 16);
-  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 16);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 16);
-  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 16);
+  assert.equal(cases.length, 38);
+  assert.equal(cases.filter(({ role }) => role === "anon").length, 19);
+  assert.equal(cases.filter(({ role }) => role === "authenticated").length, 19);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 401).length, 19);
+  assert.equal(cases.filter(({ expectedStatus }) => expectedStatus === 403).length, 19);
   assert.deepEqual(
     cases.map(({ rpcName }) => rpcName),
     [
@@ -773,6 +883,9 @@ test("el validador Data API genera dieciséis casos por rol con firmas exactas",
       "preview_newsletter_campaign",
       "prepare_newsletter_campaign",
       "claim_newsletter_campaign_delivery",
+      "preview_newsletter_campaign_v2",
+      "prepare_newsletter_campaign_v2",
+      "claim_newsletter_campaign_delivery_v2",
       "record_newsletter_campaign_delivery_accepted",
       "record_newsletter_campaign_delivery_failed",
       "record_newsletter_campaign_delivery_unknown",
@@ -789,6 +902,9 @@ test("el validador Data API genera dieciséis casos por rol con firmas exactas",
       "preview_newsletter_campaign",
       "prepare_newsletter_campaign",
       "claim_newsletter_campaign_delivery",
+      "preview_newsletter_campaign_v2",
+      "prepare_newsletter_campaign_v2",
+      "claim_newsletter_campaign_delivery_v2",
       "record_newsletter_campaign_delivery_accepted",
       "record_newsletter_campaign_delivery_failed",
       "record_newsletter_campaign_delivery_unknown",
@@ -911,7 +1027,7 @@ test("status JSON acepta aliases auditables y no exige material JWT", () => {
   );
 });
 
-test("ejecuta treinta y dos POST, exige 401/403 con 42501 y conserva recuentos", async () => {
+test("ejecuta treinta y ocho POST, exige 401/403 con 42501 y conserva recuentos", async () => {
   const { execute, fetchImpl, invocations, fetchInvocations, rpcInvocations } =
     createDataApiHarness();
   const output: string[] = [];
@@ -924,22 +1040,22 @@ test("ejecuta treinta y dos POST, exige 401/403 con 42501 y conserva recuentos",
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 32);
-  assert.equal(fetchInvocations.length, 34);
+  assert.equal(rpcInvocations.length, 38);
+  assert.equal(fetchInvocations.length, 40);
   assert.equal(
     output.filter((message) => /denied-http-(?:401|403)-sqlstate-42501/.test(message)).length,
-    32,
+    38,
   );
   assert.equal(masked.length, 3);
   assert.ok(masked.includes(LOCAL_PUBLIC_KEY));
   assert.ok(masked.includes(LOCAL_ACCESS_TOKEN));
-  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 16);
+  assert.equal(rpcInvocations.filter(({ init }) => !init.headers?.Authorization).length, 19);
   assert.equal(
     rpcInvocations.filter(
       ({ init }) => init.headers?.Authorization === `Bearer ${LOCAL_ACCESS_TOKEN}`,
     )
       .length,
-    16,
+    19,
   );
   for (const invocation of rpcInvocations) {
     assert.equal(invocation.init.method, "POST");
@@ -947,7 +1063,7 @@ test("ejecuta treinta y dos POST, exige 401/403 con 42501 y conserva recuentos",
     assert.match(invocation.init.headers?.["Content-Type"] ?? "", /^application\/json$/i);
     assert.match(
       invocation.url,
-      /^http:\/\/127\.0\.0\.1:54321\/rest\/v1\/rpc\/[a-z_]+$/,
+      /^http:\/\/127\.0\.0\.1:54321\/rest\/v1\/rpc\/[a-z0-9_]+$/,
     );
     assert.doesNotThrow(() => JSON.parse(invocation.init.body ?? ""));
   }
@@ -977,7 +1093,7 @@ test("ejecuta treinta y dos POST, exige 401/403 con 42501 y conserva recuentos",
     .filter(({ args }) => args[0] === "exec")
     .map(({ args }) => args[args.indexOf("--command") + 1]);
   assert.equal(adminSql.filter((sql) => /json_build_object/i.test(sql)).length, 2);
-  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 33);
+  assert.equal(adminSql.filter((sql) => /pg_is_in_recovery/i.test(sql)).length, 39);
   assert.equal(
     adminSql.filter((sql) => /request_newsletter_subscription|set role/i.test(sql)).length,
     0,
@@ -997,7 +1113,7 @@ test("usa login local si signup crea usuario sin devolver sesión", async () => 
     maskSecret: (secret: string) => masked.push(secret),
   });
 
-  assert.equal(rpcInvocations.length, 32);
+  assert.equal(rpcInvocations.length, 38);
   assert.equal(
     fetchInvocations.filter(({ url }) => url.endsWith("/auth/v1/signup")).length,
     1,
@@ -1167,7 +1283,7 @@ test("una desconexión se clasifica como runtime failure y no reintenta", async 
   assert.equal(errors.filter((message) => message.includes("data-api-runtime-failure")).length, 1);
 });
 
-test("detecta cualquier efecto lateral aunque las treinta y dos denegaciones sean correctas", async () => {
+test("detecta cualquier efecto lateral aunque las treinta y ocho denegaciones sean correctas", async () => {
   const { execute, fetchImpl } = createDataApiHarness({
     afterCounts: { ...ZERO_COUNTS, newsletter_subscribers: 1 },
   });

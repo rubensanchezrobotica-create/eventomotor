@@ -53,6 +53,8 @@
     "newsletter:edition01:test": "node --conditions=react-server --import tsx scripts/send-newsletter-edition-01-test.ts",
     "test:newsletter-campaign": "node --import tsx --test tests/newsletter/newsletter-manual-campaign.test.ts && node --conditions=react-server --import tsx --test tests/newsletter/newsletter-manual-campaign.test.ts",
     "newsletter:edition01:campaign": "node --conditions=react-server --import tsx scripts/send-newsletter-edition-01.ts",
+    "test:newsletter-edition02": "node --import tsx --test tests/newsletter/newsletter-edition-02.test.ts && node --conditions=react-server --import tsx --test tests/newsletter/newsletter-edition-02.test.ts",
+    "newsletter:edition02:campaign": "node --conditions=react-server --import tsx scripts/send-newsletter-edition-02.ts",
     "typecheck": "tsc --noEmit",
     "backfill:vehicle-type": "tsx scripts/backfill-event-vehicle-type.ts",
     "replace:events-seed": "tsx scripts/replace-events-seed.ts",

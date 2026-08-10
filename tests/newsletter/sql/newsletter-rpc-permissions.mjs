@@ -175,6 +175,37 @@ const RPCS = [
     },
   },
   {
+    name: "preview-campaign-v2",
+    rpcName: "preview_newsletter_campaign_v2",
+    body: {
+      p_edition_key: "agenda_motor_2026_08_13",
+      p_subject: "La Agenda Motor Edition 02 permission fixture",
+      p_html_sha256: "2".repeat(64),
+      p_text_sha256: "3".repeat(64),
+      p_content_manifest_digest: "4".repeat(64),
+    },
+  },
+  {
+    name: "prepare-campaign-v2",
+    rpcName: "prepare_newsletter_campaign_v2",
+    body: {
+      p_edition_key: "agenda_motor_2026_08_13",
+      p_subject: "La Agenda Motor Edition 02 permission fixture",
+      p_html_sha256: "2".repeat(64),
+      p_text_sha256: "3".repeat(64),
+      p_content_manifest_digest: "4".repeat(64),
+    },
+  },
+  {
+    name: "claim-campaign-delivery-v2",
+    rpcName: "claim_newsletter_campaign_delivery_v2",
+    body: {
+      p_campaign_id: "00000000-0000-4000-8000-000000000001",
+      p_token_hash: "5".repeat(64),
+      p_allow_retry: false,
+    },
+  },
+  {
     name: "accept-campaign-delivery",
     rpcName: "record_newsletter_campaign_delivery_accepted",
     body: {

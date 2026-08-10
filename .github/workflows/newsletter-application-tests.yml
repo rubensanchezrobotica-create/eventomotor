@@ -63,12 +63,15 @@ jobs:
       - name: Manual campaign tests
         run: npm run test:newsletter-campaign
 
+      - name: Edition 02 tests
+        run: npm run test:newsletter-edition02
+
       - name: Standard application tests
         shell: bash
         run: |
           mapfile -t standard_tests < <(
             git ls-files -- '*.test.ts' '*.test.tsx' |
-              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a|r4b|r5a|r5a1|r5a2|r5a3|r5b|manual-campaign)\.test\.ts)$'
+              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a|r4b|r5a|r5a1|r5a2|r5a3|r5b|manual-campaign|edition-02)\.test\.ts)$'
           )
           test "${#standard_tests[@]}" -gt 0
           node --import tsx --test "${standard_tests[@]}"

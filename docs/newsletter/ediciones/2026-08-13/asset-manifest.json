@@ -1,0 +1,51 @@
+[
+  {
+    "file": "01-rpm-fest-hero.jpg",
+    "width": 1200,
+    "height": 675,
+    "bytes": 227745,
+    "sha256": "40f3a71a95892754ea6813c2677ddbcb1cfa3830a0e891fc536110495319635e"
+  },
+  {
+    "file": "02-rallysprint-carbayin.jpg",
+    "width": 800,
+    "height": 500,
+    "bytes": 100548,
+    "sha256": "ccfbce1e6cc971bb56ee3dc1da8fde9b8dec0d2d88ac6cbc74b83edd1270b9d1"
+  },
+  {
+    "file": "03-xativa-velocitat.jpg",
+    "width": 800,
+    "height": 500,
+    "bytes": 92152,
+    "sha256": "eda88bf31b80201ae29b82b93f7d10d47fff48ccb6085ef6f5c018477e1f624c"
+  },
+  {
+    "file": "04-supercross-castrojeriz.jpg",
+    "width": 800,
+    "height": 500,
+    "bytes": 79918,
+    "sha256": "7336060ccf952acf0cee559af7d563557e0a5066015a24a62d159ce0e008c4dd"
+  },
+  {
+    "file": "05-concentracion-cambrils.jpg",
+    "width": 800,
+    "height": 500,
+    "bytes": 82520,
+    "sha256": "2b5988bbbbcf70a9a79e3431a8611de19afa41411c930aea48d566f70ad29845"
+  },
+  {
+    "file": "06-clasicos-el-regato.jpg",
+    "width": 800,
+    "height": 500,
+    "bytes": 110355,
+    "sha256": "d66d3437223316b1b422d8986c6e48318b223204941f76d10a68bcdeba4b0437"
+  },
+  {
+    "file": "eventomotor-logo.png",
+    "width": 520,
+    "height": 56,
+    "bytes": 26745,
+    "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc"
+  }
+]
