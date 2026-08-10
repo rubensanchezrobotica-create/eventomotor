@@ -321,18 +321,19 @@
 .eventsSection {
   position: relative;
   z-index: 4;
-  padding-bottom: 82px;
+  overflow: visible;
+  padding-bottom: 72px;
 }
 
 .eventsSection::before {
   position: absolute;
   z-index: -1;
-  top: -76px;
+  top: -34px;
   right: -7vw;
   left: -7vw;
-  height: 190px;
+  height: 164px;
   content: "";
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 98, 0, 0.085), transparent 62%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 98, 0, 0.12), transparent 64%);
   pointer-events: none;
 }
 
@@ -346,13 +347,13 @@
   min-inline-size: 0;
   inline-size: 100%;
   max-inline-size: 100%;
-  margin-top: -42px;
-  padding: 17px;
-  border: 1px solid #333b45;
-  border-radius: 14px;
-  background: linear-gradient(145deg, rgba(18, 23, 30, 0.98), rgba(8, 12, 17, 0.98));
-  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(255, 255, 255, 0.025) inset;
-  backdrop-filter: blur(14px);
+  margin-top: -28px;
+  padding: 16px;
+  border: 1px solid #303842;
+  border-radius: 4px 4px 13px 13px;
+  background: linear-gradient(180deg, rgba(15, 20, 26, 0.99), rgba(8, 12, 17, 0.99));
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.025) inset;
+  backdrop-filter: blur(10px);
 }
 
 .searchPrimary {
@@ -377,12 +378,12 @@
 .searchPanel::before {
   position: absolute;
   top: -1px;
-  right: 18px;
-  left: 18px;
-  height: 2px;
-  border-radius: 99px;
+  right: -1px;
+  left: -1px;
+  height: 3px;
+  border-radius: 4px 4px 0 0;
   content: "";
-  background: linear-gradient(90deg, transparent, var(--orange) 35%, rgba(255, 98, 0, 0.25) 75%, transparent);
+  background: linear-gradient(90deg, rgba(255, 98, 0, 0.28), var(--orange) 36%, rgba(255, 98, 0, 0.44) 78%, rgba(255, 98, 0, 0.16));
 }
 
 .queryFilter,
@@ -1074,25 +1075,43 @@
   color: var(--orange) !important;
 }
 
-.darkSection {
-  padding: 77px 0 88px;
+.disciplineSection {
+  padding: 46px 0 50px;
   border-block: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at 14% 20%, rgba(255, 98, 0, 0.07), transparent 32%),
-    linear-gradient(180deg, #090c10 0%, #090c10 74%, #171614 100%);
+    radial-gradient(circle at 14% 20%, rgba(255, 98, 0, 0.055), transparent 32%),
+    linear-gradient(180deg, #090c10 0%, #0b0e12 100%);
 }
 
-.darkSection .sectionHeading {
-  margin-top: 0;
+.disciplineSection .sectionHeading {
+  align-items: flex-end;
+  margin: 0 0 20px;
 }
 
-.disciplineGrid {
+.disciplineSection .sectionHeading h2 {
+  font-size: clamp(1.8rem, 2.5vw, 2.55rem);
+}
+
+.disciplineSection .sectionHeading > a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.disciplineRail {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
 
-.disciplineCard,
+.disciplineRail::-webkit-scrollbar {
+  display: none;
+}
+
 .territoryCard {
   position: relative;
   display: block;
@@ -1104,7 +1123,71 @@
 }
 
 .disciplineCard {
-  aspect-ratio: 1.35 / 1;
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-rows: 52px auto;
+  align-content: center;
+  gap: 7px;
+  padding: 10px 9px;
+  border: 1px solid #2a3139;
+  border-radius: 8px;
+  background: #11161c;
+  color: #f4f4f2 !important;
+  scroll-snap-align: start;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.disciplineIcon {
+  width: 76px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline: auto;
+}
+
+.disciplineIconImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+}
+
+.disciplineCard:nth-child(5) .disciplineIconImage {
+  transform: scale(1.08);
+}
+
+.disciplineCard:nth-child(6) .disciplineIconImage,
+.disciplineCard:nth-child(8) .disciplineIconImage {
+  transform: scale(1.06);
+}
+
+.disciplineCard:nth-child(7) .disciplineIconImage {
+  transform: scale(1.1);
+}
+
+.disciplineCardCopy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  text-align: center;
+}
+
+.disciplineCardCopy strong {
+  overflow: hidden;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.disciplineCardCopy > span {
+  color: #9da4ad;
+  font-size: 0.66rem;
+  line-height: 1.2;
 }
 
 .coverImage {
@@ -1143,15 +1226,19 @@
   font-size: 0.68rem;
 }
 
-.disciplineCard:hover .coverImage,
 .territoryCard:hover .coverImage {
   transform: scale(1.06);
   filter: saturate(1.12);
 }
 
-.disciplineCard:hover,
 .territoryCard:hover {
   border-color: rgba(255, 98, 0, 0.7);
+}
+
+.disciplineCard:hover {
+  border-color: rgba(255, 98, 0, 0.72);
+  background: #161c23;
+  transform: translateY(-2px);
 }
 
 .territorySection {
@@ -1492,6 +1579,13 @@
   .territoryCard {
     aspect-ratio: 1.25 / 1;
   }
+
+  .disciplineRail {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(132px, 16vw);
+    grid-auto-flow: column;
+    padding-bottom: 5px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1584,8 +1678,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .disciplineGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .disciplineRail {
+    grid-auto-columns: clamp(124px, 20vw, 144px);
   }
 
   .newsletterLayout {
@@ -1806,6 +1900,8 @@
 
   .searchPanel {
     margin-top: 0;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
   }
 
   .searchPrimary {
@@ -1870,7 +1966,7 @@
   }
 
   .eventsSection {
-    padding-top: 24px;
+    padding-top: 14px;
     padding-bottom: 58px;
   }
 
@@ -1885,10 +1981,13 @@
     font-size: clamp(2rem, 8vw, 3rem);
   }
 
-  .darkSection,
   .territorySection,
   .newsletterSection {
     padding-block: 68px;
+  }
+
+  .disciplineSection {
+    padding-block: 44px;
   }
 
   .newsletterLayout {
@@ -2045,12 +2144,23 @@
     grid-template-columns: 1fr;
   }
 
-  .disciplineGrid {
+  .disciplineRail {
+    grid-auto-columns: clamp(112px, 31vw, 128px);
     gap: 9px;
   }
 
   .disciplineCard {
-    aspect-ratio: 1 / 1.08;
+    min-height: 112px;
+  }
+
+  .disciplineSection .sectionHeading {
+    align-items: flex-end;
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .disciplineSection .sectionHeading h2 {
+    font-size: clamp(1.65rem, 7.4vw, 2rem);
   }
 
   .photoCardCopy {
@@ -2185,12 +2295,10 @@
     gap: 8px 12px;
   }
 
-  .disciplineGrid,
   .territoryGrid {
     grid-template-columns: 1fr;
   }
 
-  .disciplineCard,
   .territoryCard {
     aspect-ratio: 1.55 / 1;
   }

@@ -54,14 +54,14 @@ export function clearAppliedDateFilter(filters: SearchFilters): SearchFilters {
 }
 
 export const REDESIGN_DISCIPLINES = [
-  { name: "Circuito", href: "/disciplinas/circuito", image: "/images/redesign-v2/disciplines/circuit.webp", terms: ["circuito", "trackday", "velocidad"] },
-  { name: "Rally", href: "/disciplinas/rally", image: "/images/redesign-v2/disciplines/rally-asphalt.webp", terms: ["rally", "rallysprint", "regularidad"] },
-  { name: "Todoterreno", href: "/disciplinas/todoterreno", image: "/images/redesign-v2/disciplines/offroad.webp", terms: ["todoterreno", "off road", "offroad", "raid", "4x4"] },
-  { name: "Karting", href: "/disciplinas/karting", image: "/images/redesign-v2/disciplines/karting.webp", terms: ["karting", "kart"] },
-  { name: "Motos", href: "/disciplinas/motos", image: "/images/redesign-v2/disciplines/motorcycles.webp", terms: ["moto", "motociclismo", "motoalmuerzo", "motero"] },
-  { name: "Clásicos", href: "/disciplinas/clasicos", image: "/images/redesign-v2/disciplines/classics.webp", terms: ["clasico", "clásico", "historico", "histórico", "vintage"] },
-  { name: "Concentraciones", href: "/disciplinas/concentraciones", image: "/images/redesign-v2/disciplines/meetup.webp", terms: ["concentracion", "concentración", "encuentro", "quedada"] },
-  { name: "Ferias del motor", href: "/disciplinas/ferias", image: "/images/redesign-v2/disciplines/motor-fair.webp", terms: ["feria", "salon", "salón", "exposicion", "exposición"] },
+  { name: "Rallyes", href: "/disciplinas/rallyes", image: "/images/disciplines/icons/web/discipline-rallyes.png", terms: ["rally", "rallye", "rallysprint", "subida", "montaña", "montana", "rally tt", "baja", "eco rallye"] },
+  { name: "Circuito", href: "/disciplinas/circuito", image: "/images/disciplines/icons/web/discipline-circuito.png", terms: ["motogp", "superbike", "velocidad", "trackday", "circuito", "tandas", "esbk", "gt", "racing weekend"] },
+  { name: "Concentraciones", href: "/disciplinas/concentraciones", image: "/images/disciplines/icons/web/discipline-concentraciones.png", terms: ["concentración", "concentracion", "motoalmuerzo", "custom", "bikers", "festival motero"] },
+  { name: "Offroad", href: "/disciplinas/offroad", image: "/images/disciplines/icons/web/discipline-offroad.png", terms: ["motocross", "enduro", "trial", "offroad", "mx", "4x4", "overland", "raid"] },
+  { name: "Clásicos", href: "/disciplinas/clasicos", image: "/images/disciplines/icons/web/discipline-clasicos.png", terms: ["clásicos", "clasicos", "clásicas", "clasicas", "histórico", "historico", "classic", "retro", "americanos"] },
+  { name: "Karting", href: "/disciplinas/karting", image: "/images/disciplines/icons/web/discipline-karting.png", terms: ["kart", "karting"] },
+  { name: "Rutas", href: "/disciplinas/rutas", image: "/images/disciplines/icons/web/discipline-rutas.png", terms: ["ruta", "ruta motera", "mototurismo", "touring", "rider", "viaje", "trail touring", "road trip", "paseo motero"] },
+  { name: "Ferias", href: "/disciplinas/ferias", image: "/images/disciplines/icons/web/discipline-ferias.png", terms: ["feria", "salón", "salon", "expo", "exposición", "exposicion", "motor show", "motorshow", "festival", "muestra"] },
 ] as const;
 
 export const REDESIGN_TERRITORIES = [

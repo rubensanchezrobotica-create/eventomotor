@@ -4,6 +4,10 @@ import test from "node:test";
 
 const route = readFileSync(new URL("../../app/preview/redesign-v2/page.tsx", import.meta.url), "utf8");
 const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
+const disciplineSection = home.slice(
+  home.indexOf("className={styles.disciplineSection}"),
+  home.indexOf("className={styles.territorySection}"),
+);
 const eventCard = readFileSync(new URL("./EventCard.tsx", import.meta.url), "utf8");
 const search = readFileSync(new URL("./SearchExperience.client.tsx", import.meta.url), "utf8");
 const dateControl = search.slice(
@@ -143,6 +147,31 @@ test("el destacado queda fuera de la agenda inmediata sin alterar el recuento to
   assert.match(search, /`\$\{events\.length\}[^`]+próximo evento/);
   assert.match(search, /"próximos eventos"/);
   assert.match(search, /"resultados"\} para tu búsqueda/);
+});
+
+test("R5 integra el buscador como dock visible del hero sin recortar sus capas", () => {
+  assert.ok(home.indexOf("className={styles.hero}") < home.indexOf("className={`${styles.shell} ${styles.eventsSection}`}"));
+  assert.ok(home.indexOf("className={`${styles.shell} ${styles.eventsSection}`}") < home.indexOf("className={styles.disciplineSection}"));
+  assert.match(styles, /\.eventsSection\s*\{[\s\S]*?overflow:\s*visible/);
+  assert.match(styles, /\.searchPanel\s*\{[\s\S]*?margin-top:\s*-28px/);
+  assert.match(styles, /\.searchPanel::before\s*\{[\s\S]*?height:\s*3px/);
+  assert.match(styles, /\.suggestions\s*\{[\s\S]*?z-index:\s*30/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.searchPanel\s*\{[\s\S]*?margin-top:\s*0/);
+});
+
+test("R5 muestra ocho disciplinas compactas con iconos optimizados y scroll horizontal", () => {
+  assert.match(disciplineSection, /aria-label="Disciplinas de motor"/);
+  assert.match(disciplineSection, /className=\{styles\.disciplineRail\}/);
+  assert.match(disciplineSection, /className=\{styles\.disciplineIconImage\}/);
+  assert.match(disciplineSection, /width=\{256\}/);
+  assert.match(disciplineSection, /height=\{192\}/);
+  assert.doesNotMatch(disciplineSection, /coverImage|photoShade|photoCardCopy|fill/);
+  assert.match(styles, /\.disciplineRail\s*\{[\s\S]*?repeat\(8, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.disciplineRail\s*\{[\s\S]*?overflow-x:\s*auto/);
+  assert.match(styles, /\.disciplineRail\s*\{[\s\S]*?scroll-snap-type:\s*x proximity/);
+  assert.match(styles, /\.disciplineCard\s*\{[\s\S]*?min-height:\s*112px/);
+  assert.match(styles, /\.disciplineIconImage\s*\{[\s\S]*?object-fit:\s*contain/);
+  assert.match(styles, /@media \(max-width:\s*520px\)[\s\S]*?\.disciplineRail\s*\{[\s\S]*?31vw/);
 });
 
 test("móvil conserva un solo destacado dentro del hero y antes de la búsqueda", () => {

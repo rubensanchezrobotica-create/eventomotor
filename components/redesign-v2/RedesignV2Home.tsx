@@ -114,7 +114,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
           />
         </section>
 
-        <section className={styles.darkSection} aria-labelledby="disciplines-title">
+        <section className={styles.disciplineSection} aria-labelledby="disciplines-title">
           <div className={styles.shell}>
             <div className={styles.sectionHeading}>
               <div>
@@ -123,12 +123,20 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
               </div>
               <Link href="/disciplinas">Ver todas <span aria-hidden="true">→</span></Link>
             </div>
-            <div className={styles.disciplineGrid}>
+            <div aria-label="Disciplinas de motor" className={styles.disciplineRail}>
               {disciplines.map((discipline) => (
                 <Link className={styles.disciplineCard} href={discipline.href} key={discipline.name}>
-                  <Image alt="" className={styles.coverImage} fill sizes="(max-width: 680px) 50vw, (max-width: 1100px) 25vw, 25vw" src={discipline.image} />
-                  <span className={styles.photoShade} />
-                  <span className={styles.photoCardCopy}>
+                  <span aria-hidden="true" className={styles.disciplineIcon}>
+                    <Image
+                      alt=""
+                      className={styles.disciplineIconImage}
+                      height={192}
+                      sizes="(max-width: 760px) 36vw, 160px"
+                      src={discipline.image}
+                      width={256}
+                    />
+                  </span>
+                  <span className={styles.disciplineCardCopy}>
                     <strong>{discipline.name}</strong>
                     <span>{discipline.count} {discipline.count === 1 ? "evento" : "eventos"}</span>
                   </span>

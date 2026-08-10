@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
 import {
+  buildDisciplineCards,
   buildTerritoryCards,
   clearAppliedDateFilter,
   excludePreviewEventById,
@@ -343,6 +344,37 @@ test("los conteos territoriales proceden del conjunto recibido", () => {
   assert.equal(cards.find(({ name }) => name === "Murcia")?.count, 1);
   assert.equal(cards.find(({ name }) => name === "Madrid")?.count, 1);
   assert.equal(cards.find(({ name }) => name === "Asturias")?.count, 0);
+});
+
+test("la franja R5 usa la taxonomía pública exacta, conteos reales e iconos web", () => {
+  const cards = buildDisciplineCards([
+    projectPreviewEvent(event({ id: "rally", discipline: "Rally", tags: ["rally"] })),
+    projectPreviewEvent(event({
+      id: "route",
+      title: "Ruta del Norte",
+      championship: "Encuentro touring",
+      discipline: "Mototurismo",
+      tags: ["ruta motera"],
+    })),
+  ]);
+  const expected = [
+    ["Rallyes", "/disciplinas/rallyes", "discipline-rallyes.png"],
+    ["Circuito", "/disciplinas/circuito", "discipline-circuito.png"],
+    ["Concentraciones", "/disciplinas/concentraciones", "discipline-concentraciones.png"],
+    ["Offroad", "/disciplinas/offroad", "discipline-offroad.png"],
+    ["Clásicos", "/disciplinas/clasicos", "discipline-clasicos.png"],
+    ["Karting", "/disciplinas/karting", "discipline-karting.png"],
+    ["Rutas", "/disciplinas/rutas", "discipline-rutas.png"],
+    ["Ferias", "/disciplinas/ferias", "discipline-ferias.png"],
+  ];
+
+  assert.deepEqual(cards.map(({ name, href, image }) => [name, href, image.split("/").at(-1)]), expected);
+  assert.equal(cards.find(({ name }) => name === "Rallyes")?.count, 1);
+  assert.equal(cards.find(({ name }) => name === "Rutas")?.count, 1);
+  assert.equal(cards.some(({ name }) => String(name) === "Motos"), false);
+  for (const card of cards) {
+    assert.equal(existsSync(new URL(`../../public${card.image}`, import.meta.url)), true);
+  }
 });
 
 test("cada territorio enlaza a su landing pública real", () => {
