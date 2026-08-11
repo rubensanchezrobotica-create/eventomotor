@@ -6,18 +6,22 @@ import styles from "./RegionalLanding.module.css";
 
 type RegionalFilterDisclosureProps = {
   activePeriodLabel?: string;
+  analyticsEventName?: string;
   analyticsSource: string;
   children: ReactNode;
   region: string;
   totalLabel: string;
+  toggleEventName?: string;
 };
 
 export default function RegionalFilterDisclosure({
   activePeriodLabel,
+  analyticsEventName = "filter_region",
   analyticsSource,
   children,
   region,
   totalLabel,
+  toggleEventName = "toggle_region_filters",
 }: RegionalFilterDisclosureProps) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
@@ -38,7 +42,7 @@ export default function RegionalFilterDisclosure({
             }
           }
         }
-        trackEvent("filter_region", {
+        trackEvent(analyticsEventName, {
           action: "apply",
           page_path: currentPagePath(),
           region,
@@ -58,7 +62,7 @@ export default function RegionalFilterDisclosure({
           className={styles.filterToggle}
           onClick={() => {
             setExpanded((current) => {
-              trackEvent("toggle_region_filters", {
+              trackEvent(toggleEventName, {
                 expanded: !current,
                 page_path: currentPagePath(),
                 region,

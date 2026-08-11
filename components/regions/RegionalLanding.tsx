@@ -3,10 +3,10 @@ import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import PublicListingFinder from "@/components/public/listing/PublicListingFinder";
 import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import type { EventItem } from "@/types/event";
 import RegionalEventCard from "./RegionalEventCard";
-import RegionalFilterDisclosure from "./RegionalFilterDisclosure";
 import RegionalLandingAnalytics from "./RegionalLandingAnalytics";
 import RegionalTrackedDetails from "./RegionalTrackedDetails";
 import {
@@ -77,32 +77,6 @@ function buildVenueHighlights(events: EventItem[]) {
     .slice(0, 4);
 }
 
-function FilterSelect({
-  label,
-  name,
-  options,
-  value,
-}: {
-  label: string;
-  name: "discipline" | "province" | "vehicle";
-  options: RegionalLandingModel["provinceCounts"];
-  value: string;
-}) {
-  return (
-    <label className={styles.finderField}>
-      <span>{label}</span>
-      <select defaultValue={value} name={name}>
-        <option value="">Todas</option>
-        {options.map((option) => (
-          <option key={option.key} value={option.key}>
-            {option.label} ({option.count})
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function EventFinder({
   filteredTotal,
   mode,
@@ -125,96 +99,33 @@ function EventFinder({
 
   return (
     <div id="encuentra-evento">
-      <RegionalFilterDisclosure
+      <PublicListingFinder
         activePeriodLabel={activePeriodLabel}
         analyticsSource={`regional_${mode}_${model.config.id}`}
+        extraFilters={[
+          ...(showDiscipline ? [{
+            label: "Disciplina",
+            name: "discipline",
+            options: model.disciplineCounts,
+            value: query.discipline,
+          }] : []),
+          ...(showVehicle ? [{
+            label: "Vehículo",
+            name: "vehicle",
+            options: model.vehicleCounts,
+            value: query.vehicle,
+          }] : []),
+        ]}
+        nextThirtyDaysAvailable={showNextThirtyDays}
+        pathname={pathname}
+        provinceCounts={showProvince ? model.provinceCounts : []}
+        query={query}
         region={model.config.id}
+        searchPlaceholder="Evento, circuito, ciudad…"
+        showSearch={showSearch}
         totalLabel={countLabel(filteredTotal)}
-      >
-        <form
-          action={`${pathname}#eventos`}
-          aria-label="Filtrar eventos"
-          className={styles.finderPanel}
-          method="get"
-        >
-          <div className={styles.finderControls}>
-            {showSearch ? (
-              <label className={`${styles.finderField} ${styles.searchField}`}>
-                <span>Buscar</span>
-                <input
-                  defaultValue={query.query}
-                  name="q"
-                  placeholder="Evento, circuito, ciudad…"
-                  type="search"
-                />
-              </label>
-            ) : null}
-            {showProvince ? (
-              <FilterSelect
-                label="Provincia"
-                name="province"
-                options={model.provinceCounts}
-                value={query.province}
-              />
-            ) : null}
-            <label className={styles.finderField}>
-              <span>Cuándo</span>
-              <select defaultValue={query.when} name="when">
-                <option value="upcoming">Próximos</option>
-                {model.weekendEvents.length > 0 ? (
-                  <option value="weekend">Fin de semana</option>
-                ) : null}
-                {showNextThirtyDays ? (
-                  <option value="next30">Próximos 30 días</option>
-                ) : null}
-              </select>
-            </label>
-          </div>
-
-          <div className={styles.filterFooter}>
-            {showDiscipline || showVehicle ? (
-              <details className={styles.moreFilters}>
-                <summary>Más filtros <span aria-hidden="true">+</span></summary>
-                <div className={styles.moreFiltersGrid}>
-                  {showDiscipline ? (
-                    <FilterSelect
-                      label="Disciplina"
-                      name="discipline"
-                      options={model.disciplineCounts}
-                      value={query.discipline}
-                    />
-                  ) : null}
-                  {showVehicle ? (
-                    <FilterSelect
-                      label="Vehículo"
-                      name="vehicle"
-                      options={model.vehicleCounts}
-                      value={query.vehicle}
-                    />
-                  ) : null}
-                </div>
-              </details>
-            ) : <span />}
-          </div>
-
-          <button className={`${styles.applyFilters} emc-btn emc-btn-primary`} type="submit">
-            Aplicar filtros
-          </button>
-
-          <TrackLink
-            className={styles.resetFilters}
-            eventName="filter_region"
-            eventParams={{
-              action: "reset",
-              region: model.config.id,
-              source: `regional_${mode}`,
-            }}
-            href={`${pathname}#eventos`}
-          >
-            Restablecer
-          </TrackLink>
-        </form>
-      </RegionalFilterDisclosure>
+        weekendAvailable={model.weekendEvents.length > 0}
+      />
     </div>
   );
 }

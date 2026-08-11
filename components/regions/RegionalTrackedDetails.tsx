@@ -4,11 +4,13 @@ import type { ComponentPropsWithoutRef } from "react";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
 
 type RegionalTrackedDetailsProps = ComponentPropsWithoutRef<"details"> & {
+  eventName?: string;
   region: string;
 };
 
 export default function RegionalTrackedDetails({
   children,
+  eventName = "open_region_history",
   onToggle,
   region,
   ...props
@@ -18,7 +20,7 @@ export default function RegionalTrackedDetails({
       {...props}
       onToggle={(event) => {
         if (event.currentTarget.open) {
-          trackEvent("open_region_history", {
+          trackEvent(eventName, {
             page_path: currentPagePath(),
             region,
           });
