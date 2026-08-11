@@ -25,6 +25,7 @@ export type V2FallbackEvent = {
 export type V2FallbackClassification = {
   discipline: FallbackDiscipline;
   vehicle: FallbackVehicle;
+  subtype?: string;
   reason: string;
 };
 
@@ -43,6 +44,7 @@ export type V2AssignedEventImage = {
   fallbackReason?: string;
   interpretedDiscipline?: FallbackDiscipline;
   interpretedVehicle?: FallbackVehicle;
+  interpretedSubtype?: string;
 };
 
 function normalize(value: unknown): string {
@@ -88,36 +90,185 @@ function includesAny(text: string, phrases: readonly string[]): boolean {
   return phrases.some((phrase) => includesPhrase(text, phrase));
 }
 
-function classifyDiscipline(text: string): { discipline: FallbackDiscipline; reason: string } | null {
+type DisciplineClassification = Omit<V2FallbackClassification, "vehicle">;
+
+function classification(
+  discipline: FallbackDiscipline,
+  subtype: string,
+  reason: string,
+): DisciplineClassification {
+  return { discipline, subtype, reason };
+}
+
+function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["kart", "karting", "kartodromo"])) {
-    return { discipline: "karting", reason: "karting" };
+    return classification("karting", "karting", "karting");
   }
   if (includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "historico", "historica", "youngtimer", "youngtimers", "regularidad", "vintage", "retro"])) {
-    return { discipline: "clasicos", reason: "clasicos o regularidad historica" };
+    const subtype = includesAny(text, ["moto", "motos", "motocicleta", "motocicletas"])
+      ? "motos-clasicas"
+      : includesAny(text, ["rally", "rallye"])
+        ? "rally-historico"
+        : includesAny(text, ["regularidad"])
+          ? "regularidad-historica"
+          : "clasicos";
+    return classification("clasicos", subtype, "clasicos o regularidad historica");
   }
-  if (includesAny(text, ["motocross", "supercross", "enduro", "hard enduro", "trial", "offroad", "off road", "todoterreno", "4x4", "overland", "buggy"])) {
-    return { discipline: "offroad", reason: "offroad" };
+
+  // Modalidades de rally de alta confianza: deben ganar a palabras secundarias
+  // como circuito, cross country u offroad.
+  if (includesAny(text, ["rallysprint"])) {
+    return classification("rallyes", "rallysprint", "rallysprint");
   }
-  if (includesAny(text, ["motogp", "superbike", "circuito", "circuit", "trackday", "track day", "tandas", "velocidad", "minivelocidad", "esbk", "gt", "racing weekend"])) {
-    return { discipline: "circuito", reason: "circuito o tandas" };
+  if (includesAny(text, ["rallycrono"])) {
+    return classification("rallyes", "rallycrono", "rallycrono");
+  }
+  if (includesAny(text, ["rallymix"])) {
+    return classification("rallyes", "rallymix", "rallymix");
+  }
+  if (includesAny(text, ["rally tt", "baja"])) {
+    return classification("rallyes", "rally-tt", "rally tt");
+  }
+  if (includesAny(text, ["rally tierra", "rallye tierra"])) {
+    return classification("rallyes", "rally-tierra", "rally de tierra");
+  }
+
+  if (includesAny(text, ["resistencia tierra", "resistencia de tierra"])) {
+    return classification("offroad", "resistencia-tierra", "resistencia de tierra");
+  }
+  if (includesAny(text, ["tramo de tierra", "tramo tierra"])) {
+    return classification("offroad", "tramo-tierra", "tramo de tierra");
+  }
+  if (includesAny(text, ["cross country", "cross-country"])) {
+    return classification("offroad", "cross-country", "cross country");
+  }
+  if (includesAny(text, ["autocross"])) {
+    return classification("offroad", "autocross", "autocross");
+  }
+  if (includesAny(text, ["enduret"])) {
+    return classification("offroad", "enduro", "enduret");
+  }
+  if (includesAny(text, ["freestyle"])) {
+    return classification("offroad", "freestyle", "freestyle");
+  }
+  if (includesAny(text, ["motocross"])) {
+    return classification("offroad", "motocross", "motocross");
+  }
+  if (includesAny(text, ["supercross"])) {
+    return classification("offroad", "supercross", "supercross");
+  }
+  if (includesAny(text, ["hard enduro"])) {
+    return classification("offroad", "hard-enduro", "hard enduro");
+  }
+  if (includesAny(text, ["enduro indoor", "indoors enduro"])) {
+    return classification("offroad", "enduro-indoor", "enduro indoor");
+  }
+  if (includesAny(text, ["enduro"])) {
+    return classification("offroad", "enduro", "enduro");
+  }
+  if (includesAny(text, ["trial"])) {
+    return classification("offroad", "trial", "trial");
+  }
+  if (includesAny(text, ["offroad", "off road", "todoterreno", "4x4", "overland", "buggy"])) {
+    return classification("offroad", "offroad", "offroad");
+  }
+
+  if (includesAny(text, ["resistencia ciclomotores", "resistencia de ciclomotores", "resistencia ciclomotors"])) {
+    return classification("circuito", "resistencia-ciclomotores", "resistencia de ciclomotores");
+  }
+  if (includesAny(text, ["pitbike", "pit bike", "drpit"])) {
+    return classification("circuito", "pitbike", "pitbike");
+  }
+  if (includesAny(text, ["minivelocidad", "mini velocidad"])) {
+    return classification("circuito", "minivelocidad", "minivelocidad");
+  }
+  if (includesAny(text, ["minimotard", "mini motard"])) {
+    return classification("circuito", "minimotard", "minimotard");
+  }
+  if (includesAny(text, ["supermotard", "supermoto"])) {
+    return classification("circuito", "supermotard", "supermotard o supermoto");
+  }
+  if (includesAny(text, ["slalom"])) {
+    return classification("circuito", "slalom", "slalom");
+  }
+  if (includesAny(text, ["drift"])) {
+    return classification("circuito", "drift", "drift");
+  }
+  if (includesAny(text, ["motogp"])) {
+    return classification("circuito", "motogp", "motogp");
+  }
+  if (includesAny(text, ["juniorgp", "junior gp"])) {
+    return classification("circuito", "juniorgp", "juniorgp");
+  }
+  if (includesAny(text, ["superbike", "worldsbk", "esbk"])) {
+    return classification("circuito", "superbike", "superbike");
+  }
+  if (includesAny(text, ["trackday", "track day"])) {
+    return classification("circuito", "trackday", "trackday");
+  }
+  if (includesAny(text, ["tandas"])) {
+    return classification("circuito", "tandas", "tandas");
+  }
+  if (includesAny(text, ["velocidad"])) {
+    return classification("circuito", "velocidad", "velocidad");
+  }
+  if (includesAny(text, ["circuito", "circuit", "gt", "racing weekend"])) {
+    return classification("circuito", "circuito", "circuito");
   }
   if (includesAny(text, ["concentracion", "encuentro", "quedada", "motoalmuerzo", "festival motero", "bikers"])) {
-    return { discipline: "concentraciones", reason: "concentracion o encuentro" };
+    const subtype = includesAny(text, ["motoalmuerzo"])
+      ? "motoalmuerzo"
+      : includesAny(text, ["bikers", "custom"])
+        ? "custom-biker"
+        : "concentracion";
+    return classification("concentraciones", subtype, "concentracion o encuentro");
   }
   if (includesAny(text, ["mototurismo", "ruta motera", "ruta", "rutas", "touring", "road trip", "paseo motero"])) {
-    return { discipline: "rutas", reason: "ruta o touring" };
+    const subtype = includesAny(text, ["mototurismo", "touring"]) ? "mototurismo" : "ruta";
+    return classification("rutas", subtype, "ruta o touring");
   }
   if (includesAny(text, ["feria", "ferias", "salon", "expo", "exposicion", "motor show", "motorshow", "muestra"])) {
-    return { discipline: "ferias", reason: "feria o salon" };
+    return classification("ferias", "feria", "feria o salon");
   }
-  if (includesAny(text, ["rally", "rallye", "rallyes", "rallysprint", "subida", "rally tt", "baja"])) {
-    return { discipline: "rallyes", reason: "rally" };
+  if (includesAny(text, ["rally", "rallye", "rallyes"])) {
+    return classification("rallyes", "rally", "rally");
+  }
+  if (includesAny(text, ["subida", "montana"])) {
+    return classification("rallyes", "subida", "subida o montana");
+  }
+  if (includesAny(text, ["cronometrada"])) {
+    return classification("rallyes", "cronometrada", "cronometrada");
   }
   if (includesPhrase(text, "raid")) {
-    return { discipline: "offroad", reason: "raid offroad" };
+    return classification("offroad", "raid", "raid offroad");
+  }
+  if (includesAny(text, ["automovilismo"])) {
+    return classification("circuito", "automovilismo", "automovilismo generico");
+  }
+  if (includesAny(text, ["resistencia"])) {
+    return classification("circuito", "resistencia", "resistencia generica");
   }
   return null;
 }
+
+const PRIMARY_P0_SUBTYPES = new Set([
+  "slalom",
+  "drift",
+  "pitbike",
+  "minivelocidad",
+  "minimotard",
+  "supermotard",
+  "resistencia-ciclomotores",
+  "autocross",
+  "cross-country",
+  "tramo-tierra",
+  "freestyle",
+  "resistencia-tierra",
+  "cronometrada",
+  "subida",
+  "rallycrono",
+  "rallymix",
+]);
 
 function classifyVehicle(text: string, discipline: FallbackDiscipline): FallbackVehicle {
   if (discipline === "karting") return "karting";
@@ -125,11 +276,14 @@ function classifyVehicle(text: string, discipline: FallbackDiscipline): Fallback
   const hasMoto = includesAny(text, [
     "moto", "motos", "motocicleta", "motocicletas", "motociclismo", "motogp",
     "superbike", "motocross", "supercross", "enduro", "hard enduro", "trial",
-    "motoalmuerzo", "mototurismo", "bikers",
+    "motoalmuerzo", "mototurismo", "bikers", "pitbike", "pit bike", "drpit",
+    "minivelocidad", "mini velocidad", "minimotard", "mini motard", "supermotard",
+    "supermoto", "ciclomotor", "ciclomotores", "ciclomotors",
   ]);
   const hasCar = includesAny(text, [
     "coche", "coches", "automovil", "automoviles", "automovilismo", "turismo",
     "turismos", "4x4", "buggy", "gt", "rally", "rallye", "rallyes", "rallysprint",
+    "slalom", "drift", "autocross", "tramo de tierra", "tramo tierra",
   ]);
 
   if (includesAny(text, ["mixto", "mixta", "coches y motos", "motos y coches"]) || (hasMoto && hasCar)) return "mixto";
@@ -142,7 +296,16 @@ function classifyVehicle(text: string, discipline: FallbackDiscipline): Fallback
 
 export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClassification | null {
   const text = classificationText(event);
-  const discipline = classifyDiscipline(text);
+  const inferredDiscipline = classifyDiscipline(text);
+  const primaryText = normalize(event.discipline);
+  const primaryDiscipline = classifyDiscipline(primaryText);
+  const primaryIsP0 = PRIMARY_P0_SUBTYPES.has(primaryDiscipline?.subtype ?? "")
+    || (primaryText === "enduret" && primaryDiscipline?.subtype === "enduro");
+  const discipline = primaryDiscipline
+    && inferredDiscipline?.discipline === primaryDiscipline.discipline
+    && primaryIsP0
+    ? primaryDiscipline
+    : inferredDiscipline ?? primaryDiscipline;
   if (!discipline) return null;
   return {
     ...discipline,
@@ -286,6 +449,7 @@ export function assignV2HomeEventImages(events: readonly V2FallbackEvent[]): V2A
       fallbackReason: selected.reason,
       interpretedDiscipline: classification.discipline,
       interpretedVehicle: classification.vehicle,
+      interpretedSubtype: classification.subtype,
     };
     assignedByEvent.set(stableKey, assigned);
     return assigned;

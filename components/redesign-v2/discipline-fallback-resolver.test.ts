@@ -36,6 +36,12 @@ function ids(candidate: V2FallbackEvent) {
   return resolveV2EventImageCandidates(candidate).map(({ id }) => id);
 }
 
+function classificationOf(candidate: V2FallbackEvent) {
+  const classification = classifyV2FallbackEvent(candidate);
+  assert.ok(classification);
+  return classification;
+}
+
 test("clasifica las ocho familias visuales sin convertir motos en disciplina", () => {
   assert.equal(classifyV2FallbackEvent(event({ title: "Rallye de montaña", discipline: "Rally" }))?.discipline, "rallyes");
   assert.equal(classifyV2FallbackEvent(event({ title: "Tandas en circuito", discipline: "Velocidad" }))?.discipline, "circuito");
@@ -76,6 +82,99 @@ test("los subtipos de alta confianza encabezan sus candidatos", () => {
 
   const fourByFour = resolveV2EventImageCandidates(event({ title: "Encuentro 4x4 de barro y trialeras", discipline: "Offroad", vehicleType: "Coche" }));
   assert.deepEqual(new Set(fourByFour.filter(({ tier }) => tier === 1).map(({ id }) => id)), new Set(["offroad-01", "offroad-06"]));
+});
+
+test("clasifica las modalidades P0 de circuito con vehiculo y subtipo", () => {
+  const cases = [
+    [event({ discipline: "Slalom", vehicleType: "Coche" }), "coche", "slalom"],
+    [event({ discipline: "Drift", vehicleType: "Coche" }), "coche", "drift"],
+    [event({ discipline: "Automovilismo", vehicleType: "Coche" }), "coche", "automovilismo"],
+    [event({ discipline: "Pitbike", vehicleType: "Otros" }), "moto", "pitbike"],
+    [event({ championship: "Copa Centro DrPit", vehicleType: "Otros" }), "moto", "pitbike"],
+    [event({ discipline: "MiniVelocidad", vehicleType: "Moto" }), "moto", "minivelocidad"],
+    [event({ discipline: "Minivelocidad", vehicleType: "Moto" }), "moto", "minivelocidad"],
+    [event({ discipline: "Minimotard", vehicleType: "Moto" }), "moto", "minimotard"],
+    [event({ discipline: "Supermotard", vehicleType: "Moto", tags: ["minimotard"] }), "moto", "supermotard"],
+    [event({ discipline: "Supermoto", vehicleType: "Moto" }), "moto", "supermotard"],
+    [event({ discipline: "Resistencia Ciclomotores", vehicleType: "Moto" }), "moto", "resistencia-ciclomotores"],
+  ] as const;
+
+  for (const [candidate, vehicle, subtype] of cases) {
+    assert.deepEqual(classificationOf(candidate), {
+      discipline: "circuito",
+      vehicle,
+      subtype,
+      reason: classificationOf(candidate).reason,
+    });
+  }
+});
+
+test("clasifica las modalidades P0 offroad y conserva la intencion principal", () => {
+  const cases = [
+    ["Autocross", "coche", "autocross"],
+    ["Cross Country", "moto", "cross-country"],
+    ["Tramo de Tierra", "coche", "tramo-tierra"],
+    ["Freestyle", "moto", "freestyle"],
+    ["Resistencia Tierra", "moto", "resistencia-tierra"],
+    ["Enduret", "moto", "enduro"],
+  ] as const;
+
+  for (const [discipline, vehicleType, subtype] of cases) {
+    const result = classificationOf(event({ discipline, vehicleType }));
+    assert.equal(result.discipline, "offroad");
+    assert.equal(result.vehicle, vehicleType);
+    assert.equal(result.subtype, subtype);
+  }
+
+  assert.equal(classificationOf(event({ discipline: "Rally Tierra", vehicleType: "Coche", tags: ["offroad"] })).discipline, "rallyes");
+  assert.equal(classificationOf(event({ discipline: "Resistencia Tierra", vehicleType: "Moto", tags: ["circuito"] })).discipline, "offroad");
+});
+
+test("clasifica las modalidades P0 de rallyes sin depender del titulo", () => {
+  const cases = [
+    ["Cronometrada", "cronometrada"],
+    ["Montana", "subida"],
+    ["Rallycrono", "rallycrono"],
+    ["Rallymix", "rallymix"],
+  ] as const;
+
+  for (const [discipline, subtype] of cases) {
+    const result = classificationOf(event({ discipline, vehicleType: "Coche" }));
+    assert.equal(result.discipline, "rallyes");
+    assert.equal(result.vehicle, "coche");
+    assert.equal(result.subtype, subtype);
+  }
+});
+
+test("la precedencia mantiene las modalidades existentes por delante de reglas genericas", () => {
+  const protectedCases = [
+    [event({ discipline: "Rally", tags: ["automovilismo"] }), "rallyes"],
+    [event({ discipline: "Rallysprint", tags: ["automovilismo"] }), "rallyes"],
+    [event({ discipline: "Rally Tierra", tags: ["cross country"] }), "rallyes"],
+    [event({ discipline: "Rally TT", tags: ["offroad"] }), "rallyes"],
+    [event({ discipline: "Subida", tags: ["automovilismo"] }), "rallyes"],
+    [event({ discipline: "Motocross", vehicleType: "Moto" }), "offroad"],
+    [event({ discipline: "Enduro", vehicleType: "Moto" }), "offroad"],
+    [event({ discipline: "Trial", vehicleType: "Moto" }), "offroad"],
+    [event({ discipline: "Tandas", vehicleType: "Moto" }), "circuito"],
+    [event({ discipline: "Trackday", vehicleType: "Coche" }), "circuito"],
+    [event({ discipline: "MotoGP", vehicleType: "Moto" }), "circuito"],
+    [event({ discipline: "WorldSBK", vehicleType: "Moto" }), "circuito"],
+    [event({ discipline: "Motoalmuerzo", vehicleType: "Moto" }), "concentraciones"],
+    [event({ discipline: "Karting", vehicleType: "Karting" }), "karting"],
+    [event({ discipline: "Rutas", vehicleType: "Moto" }), "rutas"],
+    [event({ discipline: "Clasicos", vehicleType: "Coche" }), "clasicos"],
+    [event({ discipline: "Ferias", vehicleType: "Mixto" }), "ferias"],
+  ] as const;
+
+  for (const [candidate, discipline] of protectedCases) {
+    assert.equal(classificationOf(candidate).discipline, discipline);
+  }
+
+  assert.equal(classificationOf(event({ discipline: "Rally Historico", tags: ["automovilismo"] })).discipline, "clasicos");
+  assert.equal(classificationOf(event({ discipline: "Motocross Clasico", tags: ["offroad"] })).discipline, "clasicos");
+  assert.equal(classificationOf(event({ title: "Rally Piston", discipline: "Concentracion", tags: ["motos"] })).discipline, "concentraciones");
+  assert.equal(classificationOf(event({ title: "Rally nacional", discipline: "Automovilismo", vehicleType: "Coche" })).discipline, "rallyes");
 });
 
 test("rutas, clásicos, ferias y karting mantienen su semántica de vehículo", () => {
