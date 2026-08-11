@@ -96,7 +96,10 @@ test("separa el inventario territorial futuro e histórico sin inflar el hero", 
   assert.equal(model.upcomingTotal, 88);
   assert.equal(model.pastEvents.length, 34);
 
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   assert.doesNotMatch(component, /inventoryPill|upcomingCountLabel/);
   assert.match(component, /filteredTotal=\{filteredEvents\.length\}/);
   assert.match(component, /Aplicar filtros/);
@@ -442,7 +445,10 @@ test("no quedan campos, lógica ni etiquetas de alternativas externas", () => {
 });
 
 test("el finder móvil está plegado y abre un panel completo sin overflow", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
   const disclosure = source("components/preview/regions/RegionalFilterDisclosure.tsx");
 
@@ -452,7 +458,7 @@ test("el finder móvil está plegado y abre un panel completo sin overflow", () 
   assert.match(disclosure, /Filtrar/);
   assert.match(disclosure, /<strong>\{totalLabel\}<\/strong>/);
   assert.match(disclosure, /sortLabel.*Ordenados por fecha/);
-  assert.match(component, /\{showSearch \? \([\s\S]*\{showProvince \? \([\s\S]*<span>Cuándo<\/span>[\s\S]*styles\.applyFilters/);
+  assert.match(component, /\{showSearch \? \([\s\S]*provinceCounts\.length > 1 \? \([\s\S]*<span>Cuándo<\/span>[\s\S]*styles\.applyFilters/);
   assert.match(component, /styles\.filterFooter[\s\S]*styles\.applyFilters[\s\S]*styles\.resetFilters/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterFooter\s*\{[\s\S]*order:\s*2/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.applyFilters\s*\{[\s\S]*order:\s*3/);
@@ -510,7 +516,10 @@ test("el breadcrumb usa Inicio / Zonas / región y la tarjeta mantiene accesibil
 });
 
 test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /model\.finderMode === "full" \|\| model\.finderMode === "compact"/);
@@ -524,7 +533,8 @@ test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
   assert.match(component, /Restablecer/);
   assert.match(component, /model\.weekendEvents\.length > 0/);
   assert.match(component, /model\.nextThirtyDaysEvents\.length !== model\.upcomingTotal/);
-  assert.match(component, /\{showDiscipline \|\| showVehicle \? \([\s\S]*<details className=\{styles\.moreFilters\}/);
+  assert.match(component, /extraFilters=\{\[[\s\S]*showDiscipline[\s\S]*showVehicle/);
+  assert.match(component, /\{extraFilters\.length > 0 \? \([\s\S]*<details className=\{styles\.moreFilters\}/);
   assert.match(css, /\.finderPanel\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto/);
   assert.match(css, /\.page \.applyFilters\s*\{[\s\S]*height:\s*46px[\s\S]*min-height:\s*46px/);
   assert.doesNotMatch(component, /Encuentra un evento|Agenda a tu medida|Ver \{countLabel\(filteredTotal\)\}/);
@@ -623,7 +633,10 @@ test("las rutas regionales son de solo lectura y no escriben en Supabase", () =>
 });
 
 test("la jerarquía y los controles conservan accesibilidad básica", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /<h1>/);

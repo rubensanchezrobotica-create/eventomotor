@@ -15,6 +15,7 @@ type RegionalEventCardProps = {
   event: EventItem;
   hideOnMobileInitially?: boolean;
   source: string;
+  status?: "ongoing";
 };
 
 export default function RegionalEventCard({
@@ -22,9 +23,11 @@ export default function RegionalEventCard({
   event,
   hideOnMobileInitially = false,
   source,
+  status,
 }: RegionalEventCardProps) {
   const date = regionalEventDateLabel(event);
   const badges = regionalEventBadges(event);
+  const statusLabel = status === "ongoing" ? "En curso" : badges.status;
   const slug = event.slug || event.id;
   const province = event.province?.trim();
   const location = [event.city?.trim(), province].filter(Boolean).join(", ");
@@ -45,7 +48,7 @@ export default function RegionalEventCard({
   const classNames = [
     styles.eventCard,
     event.featured ? styles.eventCardFeatured : "",
-    badges.status ? styles.eventCardWithStatus : "",
+    statusLabel ? styles.eventCardWithStatus : "",
     hideOnMobileInitially ? styles.mobileInitialHidden : "",
   ].filter(Boolean).join(" ");
 
@@ -79,9 +82,9 @@ export default function RegionalEventCard({
 
       <div className={styles.cardBody}>
         <div className={styles.badges}>
-          {badges.status ? <span className={styles.statusBadge}>{badges.status}</span> : null}
+          {statusLabel ? <span className={styles.statusBadge}>{statusLabel}</span> : null}
           {badges.informational
-            .slice(0, badges.status ? 1 : 2)
+            .slice(0, statusLabel ? 1 : 2)
             .map((badge) => <span key={badge}>{badge}</span>)}
         </div>
         <h3 className={styles.cardTitle}>{event.title}</h3>
