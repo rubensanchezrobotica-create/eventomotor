@@ -1,4 +1,5 @@
 import type { EventItem } from "@/types/event";
+import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 
 export type PreviewEvent = Pick<
   EventItem,
@@ -240,86 +241,17 @@ export function excludePreviewEventById(events: readonly PreviewEvent[], exclude
   return events.filter((event) => event.id !== excludedId);
 }
 
-const EVENT_IMAGE_PATHS = {
-  circuit: "/images/redesign-v2/disciplines/circuit.webp",
-  classics: "/images/redesign-v2/disciplines/classics.webp",
-  karting: "/images/redesign-v2/disciplines/karting.webp",
-  meetup: "/images/redesign-v2/disciplines/meetup.webp",
-  fair: "/images/redesign-v2/disciplines/motor-fair.webp",
-  motorcycles: "/images/redesign-v2/disciplines/motorcycles.webp",
-  offroad: "/images/redesign-v2/disciplines/offroad.webp",
-  rally: "/images/redesign-v2/disciplines/rally-asphalt.webp",
-} as const;
-
-function stableHash(value: string): number {
-  let hash = 2166136261;
-  for (const character of value) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function uniqueImages(images: readonly string[]): string[] {
-  return [...new Set(images)];
-}
-
-function fallbackImageCandidates(event: PreviewEvent): string[] {
-  const text = eventText(event);
-  const vehicle = normalize(event.vehicleType);
-  const isMotorcycle = /\b(moto|motocicleta|motociclismo)\b/.test(vehicle)
-    || /\b(motogp|superbike|moto|motocross|supercross|enduro|trial|motoalmuerzo)\b/.test(text);
-  const isCar = /\b(coche|automovil|turismo|4x4)\b/.test(vehicle);
-
-  if (/\b(kart|karting)\b/.test(text)) return [EVENT_IMAGE_PATHS.karting];
-  if (/\b(motocross|enduro|trial|off road|offroad|todoterreno|raid|4x4)\b/.test(text)) {
-    return uniqueImages([EVENT_IMAGE_PATHS.offroad, ...(isMotorcycle ? [EVENT_IMAGE_PATHS.motorcycles] : [EVENT_IMAGE_PATHS.rally])]);
-  }
-  if (/\b(motogp|superbike|circuito|circuit|trackday|tandas|velocidad)\b/.test(text)) {
-    return uniqueImages([EVENT_IMAGE_PATHS.circuit, ...(isMotorcycle ? [EVENT_IMAGE_PATHS.motorcycles] : [EVENT_IMAGE_PATHS.rally])]);
-  }
-  if (/\b(rally|rallye|rallysprint|regularidad)\b/.test(text)) return [EVENT_IMAGE_PATHS.rally, EVENT_IMAGE_PATHS.offroad];
-  if (/\b(clasico|historico|vintage)\b/.test(text)) return [EVENT_IMAGE_PATHS.classics, EVENT_IMAGE_PATHS.meetup];
-  if (/\b(concentracion|encuentro|quedada|motoalmuerzo)\b/.test(text)) {
-    return uniqueImages([...(isMotorcycle ? [EVENT_IMAGE_PATHS.motorcycles] : []), EVENT_IMAGE_PATHS.meetup]);
-  }
-  if (/\b(feria|salon|exposicion)\b/.test(text)) return [EVENT_IMAGE_PATHS.fair, EVENT_IMAGE_PATHS.meetup];
-  if (isMotorcycle) return [EVENT_IMAGE_PATHS.motorcycles, EVENT_IMAGE_PATHS.offroad, EVENT_IMAGE_PATHS.circuit];
-  if (vehicle.includes("kart")) return [EVENT_IMAGE_PATHS.karting];
-  if (isCar) {
-    return [EVENT_IMAGE_PATHS.rally, EVENT_IMAGE_PATHS.circuit, EVENT_IMAGE_PATHS.classics, EVENT_IMAGE_PATHS.meetup, EVENT_IMAGE_PATHS.fair];
-  }
-  return [];
-}
-
-function representativeImage(src: string | null): ResolvedEventImage {
-  if (!src) return { src: null, kind: "neutral", alt: "" };
-  return { src, kind: "representative", alt: "Imagen representativa del tipo de evento", label: "Imagen representativa" };
-}
-
 export function resolveRedesignEventImage(event: PreviewEvent): ResolvedEventImage {
-  const source = event.imageUrl?.trim();
-  if (source) return { src: source, kind: "event", alt: `Imagen del evento ${event.title}` };
-  const candidates = fallbackImageCandidates(event);
-  return representativeImage(candidates.length ? candidates[stableHash(event.id) % candidates.length] : null);
+  const [resolved] = assignV2HomeEventImages([event]);
+  return resolved.label
+    ? { src: resolved.src, kind: resolved.kind, alt: resolved.alt, label: resolved.label }
+    : { src: resolved.src, kind: resolved.kind, alt: resolved.alt };
 }
 
 export function resolveRedesignEventImages(events: readonly PreviewEvent[]): ResolvedEventImage[] {
-  const used = new Set<string>();
-  return events.map((event) => {
-    const source = event.imageUrl?.trim();
-    if (source) {
-      used.add(source);
-      return { src: source, kind: "event", alt: `Imagen del evento ${event.title}` };
-    }
-    const candidates = fallbackImageCandidates(event);
-    if (!candidates.length) return representativeImage(null);
-    const offset = stableHash(event.id) % candidates.length;
-    const ordered = candidates.map((_, index) => candidates[(offset + index) % candidates.length]);
-    const selected = ordered.find((candidate) => !used.has(candidate)) ?? ordered[0];
-    used.add(selected);
-    return representativeImage(selected);
-  });
+  return assignV2HomeEventImages(events).map(({ src, kind, alt, label }) => (
+    label ? { src, kind, alt, label } : { src, kind, alt }
+  ));
 }
 
 export function isRemoteImage(src: string | null): boolean {

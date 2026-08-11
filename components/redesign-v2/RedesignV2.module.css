@@ -798,7 +798,7 @@
 }
 
 .eventCardFeatured .eventImageLink {
-  aspect-ratio: 16 / 9.6;
+  aspect-ratio: 3 / 2;
   border: 1px solid #343c46;
   border-radius: 9px 9px 4px 4px;
 }
@@ -806,7 +806,7 @@
 .eventImageLink {
   position: relative;
   display: block;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 3 / 2;
   overflow: hidden;
   background: #15191e;
 }
@@ -838,6 +838,9 @@
 }
 
 .eventImage {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   transition: transform 450ms ease;
 }

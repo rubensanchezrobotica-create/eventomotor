@@ -16,8 +16,8 @@ import {
   filterPreviewEvents,
   formatPreviewSelectedDate,
   reconcileAppliedTextFilter,
-  resolveRedesignEventImages,
   type PreviewEvent,
+  type ResolvedEventImage,
   type SearchFilters,
 } from "./redesign-v2-model";
 
@@ -34,6 +34,7 @@ const SUGGESTION_KIND_LABELS: Record<PreviewSuggestionKind, string> = {
 type SearchExperienceProps = {
   events: PreviewEvent[];
   excludeEventId?: string | null;
+  imageByEventId: Record<string, ResolvedEventImage>;
   nowIso: string;
 };
 
@@ -41,7 +42,7 @@ function suggestionDomId(suggestion: PreviewSuggestion) {
   return `redesign-v2-${suggestion.id.replace(/[^a-z0-9_-]+/gi, "-")}`;
 }
 
-export default function SearchExperience({ events, excludeEventId, nowIso }: SearchExperienceProps) {
+export default function SearchExperience({ events, excludeEventId, imageByEventId, nowIso }: SearchExperienceProps) {
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -52,10 +53,6 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
   const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
   const suggestions = useMemo(() => buildPreviewSuggestions(gridEvents, draft.place), [gridEvents, draft.place]);
   const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
-  const imageByEventId = useMemo(() => {
-    const resolved = resolveRedesignEventImages(events);
-    return new Map(events.map((event, index) => [event.id, resolved[index]]));
-  }, [events]);
   const hasActiveFilters = Object.values(filters).some(Boolean);
   const advancedFilterCount = [draft.date, draft.discipline, draft.vehicle].filter(Boolean).length;
   const visible = filtered.slice(0, 9);
@@ -281,7 +278,7 @@ export default function SearchExperience({ events, excludeEventId, nowIso }: Sea
       {visible.length ? (
         <div className={styles.eventGrid}>
           {visible.map((event) => (
-            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={imageByEventId.get(event.id)} />
+            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={imageByEventId[event.id]} />
           ))}
         </div>
       ) : (

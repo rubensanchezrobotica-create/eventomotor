@@ -8,12 +8,12 @@ import EventCard from "./EventCard";
 import MobileNavigation from "./MobileNavigation.client";
 import SearchExperience from "./SearchExperience.client";
 import styles from "./RedesignV2.module.css";
+import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
   buildDisciplineCards,
   buildTerritoryCards,
   prioritizeEditorialEvents,
   projectPreviewEvent,
-  resolveRedesignEventImages,
   selectFeaturedEvent,
   upcomingPreviewEvents,
 } from "./redesign-v2-model";
@@ -30,8 +30,8 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
   const upcoming = upcomingPreviewEvents(projected, nowIso);
   const editorialEvents = prioritizeEditorialEvents(upcoming);
   const featured = selectFeaturedEvent(editorialEvents);
-  const resolvedImages = resolveRedesignEventImages(editorialEvents);
-  const imageByEventId = new Map(editorialEvents.map((event, index) => [event.id, resolvedImages[index]]));
+  const resolvedImages = assignV2HomeEventImages(editorialEvents);
+  const imageByEventId = Object.fromEntries(editorialEvents.map((event, index) => [event.id, resolvedImages[index]]));
   const disciplines = buildDisciplineCards(upcoming);
   const territories = buildTerritoryCards(upcoming);
   const representedTerritories = new Set(upcoming.map((event) => event.region).filter(Boolean)).size;
@@ -98,7 +98,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                   featured
                   featuredLabel={featured.eyebrow}
                   nowIso={nowIso}
-                  resolvedImage={imageByEventId.get(featured.event.id)}
+                  resolvedImage={imageByEventId[featured.event.id]}
                 />
               </aside>
             ) : null}
@@ -110,6 +110,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
           <SearchExperience
             events={editorialEvents}
             excludeEventId={featured.event?.id}
+            imageByEventId={imageByEventId}
             nowIso={nowIso}
           />
         </section>

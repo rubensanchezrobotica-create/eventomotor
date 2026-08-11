@@ -40,10 +40,11 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
             <Image
               alt={image.alt}
               className={styles.eventImage}
-              fill
+              height={800}
               sizes={featured ? "(max-width: 920px) 100vw, 38vw" : "(max-width: 680px) 100vw, (max-width: 1100px) 50vw, 33vw"}
               src={image.src}
               unoptimized={isRemoteImage(image.src)}
+              width={1200}
             />
           ) : (
             <span className={styles.neutralEventImage} aria-hidden="true">

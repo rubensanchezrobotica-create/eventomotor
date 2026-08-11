@@ -16,6 +16,7 @@ const dateControl = search.slice(
 );
 const menu = readFileSync(new URL("./MobileNavigation.client.tsx", import.meta.url), "utf8");
 const model = readFileSync(new URL("./redesign-v2-model.ts", import.meta.url), "utf8");
+const fallbackResolver = readFileSync(new URL("./discipline-fallback-resolver.ts", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./RedesignV2.module.css", import.meta.url), "utf8");
 const signup = readFileSync(new URL("../newsletter/NewsletterSignupForm.tsx", import.meta.url), "utf8");
 const signupStyles = readFileSync(new URL("../newsletter/NewsletterPreview.module.css", import.meta.url), "utf8");
@@ -126,8 +127,9 @@ test("el selector nativo conserva el mismo nodo al pasar de vacío a fecha selec
 
 test("los enlaces de ficha y fallbacks respetan el contrato público", () => {
   assert.match(model, /`\/evento\/\$\{event\.slug \|\| event\.id\}`/);
-  assert.match(model, /kind:\s*"representative"/);
-  assert.match(model, /label:\s*"Imagen representativa"/);
+  assert.match(fallbackResolver, /kind:\s*"representative"/);
+  assert.match(fallbackResolver, /label:\s*"Imagen representativa"/);
+  assert.match(fallbackResolver, /alt:\s*""/);
 });
 
 test("las tarjetas comparten una fecha accesible para día y rangos reales", () => {
@@ -138,6 +140,15 @@ test("las tarjetas comparten una fecha accesible para día y rangos reales", () 
   assert.match(styles, /\.dateBlockRange/);
   assert.match(styles, /\.dateBlockCrossMonth/);
   assert.match(styles, /\.dateLine/);
+});
+
+test("los fallbacks de evento conservan formato 3:2, dimensiones intrínsecas y carga diferida", () => {
+  assert.match(eventCard, /height=\{800\}/);
+  assert.match(eventCard, /width=\{1200\}/);
+  assert.match(eventCard, /sizes=\{featured \?/);
+  assert.doesNotMatch(eventCard, /preload|priority|loading="eager"/);
+  assert.match(styles, /\.eventImageLink\s*\{[\s\S]*?aspect-ratio:\s*3 \/ 2/);
+  assert.match(styles, /\.eventImage\s*\{[\s\S]*?width:\s*100%;[\s\S]*?height:\s*100%;[\s\S]*?object-fit:\s*cover/);
 });
 
 test("el destacado queda fuera de la agenda inmediata sin alterar el recuento total", () => {
@@ -224,8 +235,13 @@ test("el modo móvil reduce la cabecera y colapsa filtros avanzados", () => {
 });
 
 test("la resolución de imágenes es estable y contempla un fallback neutro", () => {
-  assert.match(model, /function stableHash\(/);
+  assert.match(fallbackResolver, /function stableV2Hash\(/);
+  assert.match(fallbackResolver, /resolveV2EventImageCandidates/);
+  assert.match(fallbackResolver, /assignV2HomeEventImages/);
+  assert.doesNotMatch(fallbackResolver, /Math\.random|Date\.now/);
   assert.match(model, /resolveRedesignEventImages/);
-  assert.match(model, /kind:\s*"neutral"/);
-  assert.match(model, /src:\s*null/);
+  assert.match(fallbackResolver, /kind:\s*"neutral"/);
+  assert.match(fallbackResolver, /src:\s*null/);
+  assert.match(home, /imageByEventId=\{imageByEventId\}/);
+  assert.doesNotMatch(search, /resolveRedesignEventImages/);
 });

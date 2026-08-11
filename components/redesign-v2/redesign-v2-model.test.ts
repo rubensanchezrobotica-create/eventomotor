@@ -62,8 +62,8 @@ test("resuelve un fallback determinista sin atribuirlo al evento", () => {
   assert.deepEqual(first, second);
   assert.equal(first.kind, "representative");
   assert.equal(first.label, "Imagen representativa");
-  assert.equal(first.src, "/images/redesign-v2/disciplines/rally-asphalt.webp");
-  assert.doesNotMatch(first.alt, /Sierra de Levante/);
+  assert.match(first.src ?? "", /^\/images\/disciplines\/fallbacks\/rallyes\/rallyes-[0-9]{2}-/);
+  assert.equal(first.alt, "");
 });
 
 test("selecciona el destacado real y usa el próximo como reserva", () => {
@@ -259,34 +259,36 @@ test("el filtro de fecha incluye todo el rango real y excluye el día posterior"
 });
 
 test("la asignación por lote es estable y no repite imágenes mientras hay alternativas", () => {
-  const cars = Array.from({ length: 5 }, (_, index) => projectPreviewEvent(event({
-    id: `car-${index}`,
+  const motorcycles = Array.from({ length: 3 }, (_, index) => projectPreviewEvent(event({
+    id: `moto-${index}`,
+    slug: `moto-${index}`,
     championship: "",
-    discipline: "",
+    discipline: "Circuito",
     tags: [],
-    title: "Cita de automovilismo",
-    vehicleType: "Coche",
+    title: `Copa de motos ${index}`,
+    vehicleType: "Moto",
   })));
-  const first = resolveRedesignEventImages(cars);
-  const second = resolveRedesignEventImages(cars);
+  const first = resolveRedesignEventImages(motorcycles);
+  const second = resolveRedesignEventImages(motorcycles);
 
   assert.deepEqual(first, second);
-  assert.equal(new Set(first.map(({ src }) => src)).size, cars.length);
-  assert.equal(cars.every((candidate, index) => candidate.id === `car-${index}`), true);
+  assert.equal(new Set(first.map(({ src }) => src)).size, motorcycles.length);
+  assert.equal(motorcycles.every((candidate, index) => candidate.id === `moto-${index}`), true);
 });
 
 test("al agotarse el banco reutiliza una variante coherente y segura", () => {
-  const cars = Array.from({ length: 6 }, (_, index) => projectPreviewEvent(event({
+  const motorcycles = Array.from({ length: 4 }, (_, index) => projectPreviewEvent(event({
     id: `bank-${index}`,
+    slug: `bank-${index}`,
     championship: "",
-    discipline: "",
+    discipline: "Concentraciones",
     tags: [],
-    title: "Cita de automovilismo",
-    vehicleType: "Coche",
+    title: `Concentración motera ${index}`,
+    vehicleType: "Moto",
   })));
-  const resolved = resolveRedesignEventImages(cars);
+  const resolved = resolveRedesignEventImages(motorcycles);
   assert.equal(resolved.every(({ kind, src }) => kind === "representative" && Boolean(src)), true);
-  assert.equal(new Set(resolved.map(({ src }) => src)).size, 5);
+  assert.equal(new Set(resolved.map(({ src }) => src)).size, 3);
 });
 
 test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan datos", () => {
@@ -295,7 +297,7 @@ test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan 
     championship: "",
     discipline: "",
     tags: [],
-    title: "Cita sobre dos ruedas",
+    title: "Concentración motera",
     vehicleType: "Moto",
   }));
   const unknown = projectPreviewEvent(event({
@@ -315,15 +317,8 @@ test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan 
     vehicleType: "",
   }));
   const motoImage = resolveRedesignEventImage(motorcycle);
-  assert.equal([
-    "/images/redesign-v2/disciplines/motorcycles.webp",
-    "/images/redesign-v2/disciplines/offroad.webp",
-    "/images/redesign-v2/disciplines/circuit.webp",
-  ].includes(motoImage.src ?? ""), true);
-  assert.equal([
-    "/images/redesign-v2/disciplines/motorcycles.webp",
-    "/images/redesign-v2/disciplines/offroad.webp",
-  ].includes(resolveRedesignEventImage(enduro).src ?? ""), true);
+  assert.match(motoImage.src ?? "", /^\/images\/disciplines\/fallbacks\/concentraciones\/concentraciones-0[235]-/);
+  assert.match(resolveRedesignEventImage(enduro).src ?? "", /\/offroad\/offroad-02-/);
   assert.deepEqual(resolveRedesignEventImage(unknown), { src: null, kind: "neutral", alt: "" });
 });
 
