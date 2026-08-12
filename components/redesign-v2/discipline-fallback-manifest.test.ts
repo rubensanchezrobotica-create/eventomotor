@@ -8,9 +8,9 @@ import {
 
 const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   rallyes: 5,
-  circuito: 7,
-  concentraciones: 5,
-  offroad: 6,
+  circuito: 12,
+  concentraciones: 8,
+  offroad: 15,
   clasicos: 5,
   karting: 5,
   rutas: 6,
@@ -53,10 +53,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 44 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 44);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 44);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 44);
+test("el manifiesto contiene exactamente los 61 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 61);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 61);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 61);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -90,4 +90,10 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("circuito-03")?.tags, ["circuito", "coche", "trackday", "frenada"]);
   assert.deepEqual(byId.get("clasicos-05")?.tags, ["clasicos", "regularidad", "rally-historico"]);
   assert.deepEqual(byId.get("ferias-05")?.tags, ["ferias", "general", "coche", "moto", "pabellon"]);
+  assert.deepEqual(byId.get("circuito-08")?.tags, ["circuito", "moto", "trackday", "tandas", "rodada", "rodadas", "amateur", "grupo", "motos"]);
+  assert.deepEqual(byId.get("circuito-09")?.tags, ["circuito", "moto", "pitbike", "minivelocidad", "mini-velocidad", "drpit", "ciclomotores", "minibike", "kartodromo"]);
+  assert.deepEqual(byId.get("circuito-10")?.tags, ["circuito", "moto", "supermotard", "supermoto", "minimotard", "trazado-mixto", "asfalto", "tierra"]);
+  assert.deepEqual(byId.get("concentraciones-07")?.tags, ["motoalmuerzo", "almuerzo-motero", "matinal", "matinal-motera", "encuentro-matinal", "terraza", "local"]);
+  assert.deepEqual(byId.get("offroad-08")?.tags, ["offroad", "moto", "enduro", "enduro-indoor", "superenduro", "obstaculos", "indoor"]);
+  assert.deepEqual(byId.get("offroad-15")?.tags, ["offroad", "moto", "cross-country", "crosscountry", "xc", "rapido", "terreno-abierto", "resistencia"]);
 });

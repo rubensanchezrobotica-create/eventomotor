@@ -139,7 +139,7 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["tramo de tierra", "tramo tierra"])) {
     return classification("offroad", "tramo-tierra", "tramo de tierra");
   }
-  if (includesAny(text, ["cross country", "cross-country"])) {
+  if (includesAny(text, ["cross country", "cross-country", "crosscountry", "xc"])) {
     return classification("offroad", "cross-country", "cross country");
   }
   if (includesAny(text, ["autocross"])) {
@@ -160,11 +160,14 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["hard enduro"])) {
     return classification("offroad", "hard-enduro", "hard enduro");
   }
-  if (includesAny(text, ["enduro indoor", "indoors enduro"])) {
+  if (includesAny(text, ["enduro indoor", "indoor enduro", "indoors enduro", "superenduro", "super enduro"])) {
     return classification("offroad", "enduro-indoor", "enduro indoor");
   }
   if (includesAny(text, ["enduro"])) {
     return classification("offroad", "enduro", "enduro");
+  }
+  if (includesAny(text, ["trial indoor", "indoor trial"])) {
+    return classification("offroad", "trial-indoor", "trial indoor");
   }
   if (includesAny(text, ["trial"])) {
     return classification("offroad", "trial", "trial");
@@ -176,7 +179,7 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["resistencia ciclomotores", "resistencia de ciclomotores", "resistencia ciclomotors"])) {
     return classification("circuito", "resistencia-ciclomotores", "resistencia de ciclomotores");
   }
-  if (includesAny(text, ["pitbike", "pit bike", "drpit"])) {
+  if (includesAny(text, ["pitbike", "pit bike", "drpit", "minibike", "mini bike"])) {
     return classification("circuito", "pitbike", "pitbike");
   }
   if (includesAny(text, ["minivelocidad", "mini velocidad"])) {
@@ -206,6 +209,9 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["trackday", "track day"])) {
     return classification("circuito", "trackday", "trackday");
   }
+  if (includesAny(text, ["rodada", "rodadas"])) {
+    return classification("circuito", "trackday", "rodada");
+  }
   if (includesAny(text, ["tandas"])) {
     return classification("circuito", "tandas", "tandas");
   }
@@ -215,10 +221,10 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["circuito", "circuit", "gt", "racing weekend"])) {
     return classification("circuito", "circuito", "circuito");
   }
-  if (includesAny(text, ["concentracion", "encuentro", "quedada", "motoalmuerzo", "festival motero", "bikers"])) {
-    const subtype = includesAny(text, ["motoalmuerzo"])
+  if (includesAny(text, ["concentracion", "encuentro", "quedada", "motoalmuerzo", "almuerzo motero", "matinal motera", "xuntanza", "festival motero", "biker", "bikers"])) {
+    const subtype = includesAny(text, ["motoalmuerzo", "almuerzo motero", "matinal motera"])
       ? "motoalmuerzo"
-      : includesAny(text, ["bikers", "custom"])
+      : includesAny(text, ["biker", "bikers", "custom", "nocturna"])
         ? "custom-biker"
         : "concentracion";
     return classification("concentraciones", subtype, "concentracion o encuentro");
@@ -276,9 +282,11 @@ function classifyVehicle(text: string, discipline: FallbackDiscipline): Fallback
   const hasMoto = includesAny(text, [
     "moto", "motos", "motocicleta", "motocicletas", "motociclismo", "motogp",
     "superbike", "motocross", "supercross", "enduro", "hard enduro", "trial",
-    "motoalmuerzo", "mototurismo", "bikers", "pitbike", "pit bike", "drpit",
+    "motoalmuerzo", "almuerzo motero", "matinal motera", "mototurismo", "biker", "bikers",
+    "motera", "motero", "pitbike", "pit bike", "drpit", "minibike", "mini bike",
     "minivelocidad", "mini velocidad", "minimotard", "mini motard", "supermotard",
-    "supermoto", "ciclomotor", "ciclomotores", "ciclomotors",
+    "supermoto", "superenduro", "super enduro", "cross country", "cross-country",
+    "crosscountry", "xc", "ciclomotor", "ciclomotores", "ciclomotors",
   ]);
   const hasCar = includesAny(text, [
     "coche", "coches", "automovil", "automoviles", "automovilismo", "turismo",
@@ -327,7 +335,100 @@ const GENERIC_TAGS = new Set([
   "mixto",
 ]);
 
-function matchesExactSubtype(event: V2FallbackEvent, candidate: V2FallbackImage): boolean {
+const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
+  "circuito:trackday": ["circuito-03", "circuito-08"],
+  "circuito:tandas": ["circuito-08"],
+  "circuito:pitbike": ["circuito-09"],
+  "circuito:minivelocidad": ["circuito-09"],
+  "circuito:resistencia-ciclomotores": ["circuito-09"],
+  "circuito:minimotard": ["circuito-10"],
+  "circuito:supermotard": ["circuito-10"],
+  "circuito:slalom": ["circuito-11", "circuito-12"],
+  "concentraciones:concentracion": ["concentraciones-06"],
+  "concentraciones:motoalmuerzo": ["concentraciones-07"],
+  "concentraciones:custom-biker": ["concentraciones-08"],
+  "offroad:enduro": ["offroad-02", "offroad-07"],
+  "offroad:hard-enduro": ["offroad-02", "offroad-07"],
+  "offroad:enduro-indoor": ["offroad-08"],
+  "offroad:motocross": ["offroad-03", "offroad-09", "offroad-10"],
+  "offroad:trial": ["offroad-05", "offroad-11", "offroad-12"],
+  "offroad:trial-indoor": ["offroad-12"],
+  "offroad:autocross": ["offroad-13", "offroad-14"],
+  "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
+  "offroad:cross-country": ["offroad-15"],
+};
+
+const CLOSED_SUBTYPE_KEYS = new Set([
+  "circuito:pitbike",
+  "circuito:minivelocidad",
+  "circuito:resistencia-ciclomotores",
+  "circuito:minimotard",
+  "circuito:supermotard",
+  "circuito:slalom",
+  "offroad:enduro",
+  "offroad:hard-enduro",
+  "offroad:enduro-indoor",
+  "offroad:motocross",
+  "offroad:trial",
+  "offroad:trial-indoor",
+  "offroad:autocross",
+  "offroad:tramo-tierra",
+  "offroad:cross-country",
+]);
+
+const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
+  "circuito-08": ["trackday", "tandas"],
+  "circuito-09": ["pitbike", "minivelocidad", "resistencia-ciclomotores"],
+  "circuito-10": ["minimotard", "supermotard"],
+  "circuito-11": ["slalom"],
+  "circuito-12": ["slalom"],
+  "concentraciones-06": ["concentracion"],
+  "concentraciones-07": ["motoalmuerzo"],
+  "concentraciones-08": ["custom-biker"],
+  "offroad-07": ["enduro", "hard-enduro"],
+  "offroad-08": ["enduro-indoor"],
+  "offroad-09": ["motocross"],
+  "offroad-10": ["motocross"],
+  "offroad-11": ["trial"],
+  "offroad-12": ["trial", "trial-indoor"],
+  "offroad-13": ["autocross", "tramo-tierra"],
+  "offroad-14": ["autocross", "tramo-tierra"],
+  "offroad-15": ["cross-country"],
+};
+
+function isR2SubtypeCompatible(
+  classification: V2FallbackClassification,
+  candidate: V2FallbackImage,
+): boolean {
+  const compatibleSubtypes = R2_SUBTYPE_COMPATIBILITY[candidate.id];
+  return !compatibleSubtypes || (
+    typeof classification.subtype === "string"
+    && compatibleSubtypes.includes(classification.subtype)
+  );
+}
+
+function closedSubtypeFallbackIds(
+  event: V2FallbackEvent,
+  classification: V2FallbackClassification,
+): readonly string[] | null {
+  const key = `${classification.discipline}:${classification.subtype ?? ""}`;
+  if (!CLOSED_SUBTYPE_KEYS.has(key)) return null;
+  if (key === "offroad:tramo-tierra" && includesPhrase(eventText(event), "individual")) {
+    return ["offroad-14"];
+  }
+  return EXACT_SUBTYPE_FALLBACK_IDS[key] ?? null;
+}
+
+function matchesExactSubtype(
+  event: V2FallbackEvent,
+  classification: V2FallbackClassification,
+  candidate: V2FallbackImage,
+): boolean {
+  if (classification.discipline === "offroad" && classification.subtype === "tramo-tierra" && includesPhrase(eventText(event), "individual")) {
+    return candidate.id === "offroad-14";
+  }
+  const exactIds = EXACT_SUBTYPE_FALLBACK_IDS[`${classification.discipline}:${classification.subtype ?? ""}`];
+  if (exactIds) return exactIds.includes(candidate.id);
   const text = eventText(event);
   return candidate.tags.some((tag) => !GENERIC_TAGS.has(normalize(tag)) && includesPhrase(text, tag));
 }
@@ -338,8 +439,11 @@ function candidateTier(
   candidate: V2FallbackImage,
 ): 1 | 2 | 3 | 4 | null {
   if (candidate.discipline !== classification.discipline) return null;
-  if (classification.vehicle === "karting") return candidate.vehicle === "karting" ? (matchesExactSubtype(event, candidate) ? 1 : 2) : null;
-  if (candidate.vehicle === classification.vehicle) return matchesExactSubtype(event, candidate) ? 1 : 2;
+  const closedFallbackIds = closedSubtypeFallbackIds(event, classification);
+  if (closedFallbackIds && !closedFallbackIds.includes(candidate.id)) return null;
+  if (!isR2SubtypeCompatible(classification, candidate)) return null;
+  if (classification.vehicle === "karting") return candidate.vehicle === "karting" ? (matchesExactSubtype(event, classification, candidate) ? 1 : 2) : null;
+  if (candidate.vehicle === classification.vehicle) return matchesExactSubtype(event, classification, candidate) ? 1 : 2;
   if ((classification.vehicle === "moto" || classification.vehicle === "coche") && candidate.vehicle === "mixto") return 3;
   if (classification.vehicle === "mixto" && candidate.vehicle !== "karting") return 4;
   return null;

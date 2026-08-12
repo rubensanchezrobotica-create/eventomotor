@@ -276,7 +276,7 @@ test("la asignación por lote es estable y no repite imágenes mientras hay alte
   assert.equal(motorcycles.every((candidate, index) => candidate.id === `moto-${index}`), true);
 });
 
-test("al agotarse el banco reutiliza una variante coherente y segura", () => {
+test("el banco R2 amplía concentraciones antes de reutilizar una variante coherente", () => {
   const motorcycles = Array.from({ length: 4 }, (_, index) => projectPreviewEvent(event({
     id: `bank-${index}`,
     slug: `bank-${index}`,
@@ -288,7 +288,7 @@ test("al agotarse el banco reutiliza una variante coherente y segura", () => {
   })));
   const resolved = resolveRedesignEventImages(motorcycles);
   assert.equal(resolved.every(({ kind, src }) => kind === "representative" && Boolean(src)), true);
-  assert.equal(new Set(resolved.map(({ src }) => src)).size, 3);
+  assert.equal(new Set(resolved.map(({ src }) => src)).size, 4);
 });
 
 test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan datos", () => {
@@ -317,8 +317,8 @@ test("mantiene coherencia entre vehículo y fallback y usa uno neutro si faltan 
     vehicleType: "",
   }));
   const motoImage = resolveRedesignEventImage(motorcycle);
-  assert.match(motoImage.src ?? "", /^\/images\/disciplines\/fallbacks\/concentraciones\/concentraciones-0[235]-/);
-  assert.match(resolveRedesignEventImage(enduro).src ?? "", /\/offroad\/offroad-02-/);
+  assert.match(motoImage.src ?? "", /\/images\/disciplines\/fallbacks\/concentraciones\/concentraciones-06-/);
+  assert.match(resolveRedesignEventImage(enduro).src ?? "", /\/offroad\/offroad-0[27]-/);
   assert.deepEqual(resolveRedesignEventImage(unknown), { src: null, kind: "neutral", alt: "" });
 });
 
