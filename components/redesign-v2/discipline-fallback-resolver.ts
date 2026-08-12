@@ -104,7 +104,26 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["kart", "karting", "kartodromo"])) {
     return classification("karting", "karting", "karting");
   }
-  if (includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "historico", "historica", "youngtimer", "youngtimers", "regularidad", "vintage", "retro"])) {
+  const hasClassicContext = includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "classic", "historico", "historica"]);
+  if (hasClassicContext && includesPhrase(text, "motocross")) {
+    return classification("offroad", "motocross", "motocross clasico");
+  }
+  if (hasClassicContext && includesPhrase(text, "hard enduro")) {
+    return classification("offroad", "hard-enduro", "hard enduro clasico");
+  }
+  if (hasClassicContext && includesAny(text, ["enduro indoor", "indoor enduro", "superenduro", "super enduro"])) {
+    return classification("offroad", "enduro-indoor", "enduro indoor clasico");
+  }
+  if (hasClassicContext && includesPhrase(text, "enduro")) {
+    return classification("offroad", "enduro", "enduro clasico");
+  }
+  if (hasClassicContext && includesAny(text, ["trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
+    return classification("offroad", "trial-indoor", "trial indoor clasico");
+  }
+  if (hasClassicContext && includesAny(text, ["trial", "trialgp", "trial gp"])) {
+    return classification("offroad", "trial", "trial clasico");
+  }
+  if (includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "classic", "historico", "historica", "youngtimer", "youngtimers", "regularidad", "vintage", "retro"])) {
     const subtype = includesAny(text, ["moto", "motos", "motocicleta", "motocicletas"])
       ? "motos-clasicas"
       : includesAny(text, ["rally", "rallye"])
@@ -166,10 +185,10 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["enduro"])) {
     return classification("offroad", "enduro", "enduro");
   }
-  if (includesAny(text, ["trial indoor", "indoor trial"])) {
+  if (includesAny(text, ["trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
     return classification("offroad", "trial-indoor", "trial indoor");
   }
-  if (includesAny(text, ["trial"])) {
+  if (includesAny(text, ["trial", "trialgp", "trial gp"])) {
     return classification("offroad", "trial", "trial");
   }
   if (includesAny(text, ["offroad", "off road", "todoterreno", "4x4", "overland", "buggy"])) {
@@ -351,7 +370,7 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "offroad:hard-enduro": ["offroad-02", "offroad-07"],
   "offroad:enduro-indoor": ["offroad-08"],
   "offroad:motocross": ["offroad-03", "offroad-09", "offroad-10"],
-  "offroad:trial": ["offroad-05", "offroad-11", "offroad-12"],
+  "offroad:trial": ["offroad-05", "offroad-11"],
   "offroad:trial-indoor": ["offroad-12"],
   "offroad:autocross": ["offroad-13", "offroad-14"],
   "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
@@ -382,7 +401,7 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "circuito-10": ["minimotard", "supermotard"],
   "circuito-11": ["slalom"],
   "circuito-12": ["slalom"],
-  "concentraciones-06": ["concentracion"],
+  "concentraciones-06": ["concentracion", "motoalmuerzo", "custom-biker"],
   "concentraciones-07": ["motoalmuerzo"],
   "concentraciones-08": ["custom-biker"],
   "offroad-07": ["enduro", "hard-enduro"],
@@ -390,7 +409,7 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "offroad-09": ["motocross"],
   "offroad-10": ["motocross"],
   "offroad-11": ["trial"],
-  "offroad-12": ["trial", "trial-indoor"],
+  "offroad-12": ["trial-indoor"],
   "offroad-13": ["autocross", "tramo-tierra"],
   "offroad-14": ["autocross", "tramo-tierra"],
   "offroad-15": ["cross-country"],
@@ -412,6 +431,11 @@ function closedSubtypeFallbackIds(
   classification: V2FallbackClassification,
 ): readonly string[] | null {
   const key = `${classification.discipline}:${classification.subtype ?? ""}`;
+  if (classification.discipline === "concentraciones" && classification.vehicle === "moto") {
+    if (classification.subtype === "motoalmuerzo") return ["concentraciones-07", "concentraciones-02", "concentraciones-06"];
+    if (classification.subtype === "custom-biker") return ["concentraciones-08", "concentraciones-02", "concentraciones-06"];
+    if (classification.subtype === "concentracion") return ["concentraciones-02", "concentraciones-06"];
+  }
   if (!CLOSED_SUBTYPE_KEYS.has(key)) return null;
   if (key === "offroad:tramo-tierra" && includesPhrase(eventText(event), "individual")) {
     return ["offroad-14"];

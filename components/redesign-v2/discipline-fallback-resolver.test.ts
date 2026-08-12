@@ -85,7 +85,7 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
   const motoMeet = resolveV2EventImageCandidates(event({ title: "Concentración motera", vehicleType: "Moto" }));
   assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 1).map(({ id }) => id)), new Set(["concentraciones-06"]));
   assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-02"]));
-  assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 3).map(({ id }) => id)), new Set(["concentraciones-03", "concentraciones-05"]));
+  assert.deepEqual(new Set(motoMeet.map(({ id }) => id)), new Set(["concentraciones-02", "concentraciones-06"]));
 
   const carMeet = resolveV2EventImageCandidates(event({ title: "Concentración de coches", vehicleType: "Coche" }));
   assert.deepEqual(new Set(carMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-01", "concentraciones-04"]));
@@ -98,7 +98,7 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
 test("los subtipos de alta confianza encabezan sus candidatos", () => {
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de motocross", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de enduro", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-02", "offroad-07"]));
-  assert.deepEqual(tierOneIds(event({ title: "Prueba de trial", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11", "offroad-12"]));
+  assert.deepEqual(tierOneIds(event({ title: "Prueba de trial", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
   assert.deepEqual(tierOneIds(event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" })), new Set(["circuito-03"]));
 
   const fourByFour = resolveV2EventImageCandidates(event({ title: "Encuentro 4x4 de barro y trialeras", discipline: "Offroad", vehicleType: "Coche" }));
@@ -150,7 +150,7 @@ test("R2 amplía los pools offroad sin mezclar subtipos", () => {
   assert.deepEqual(tierOneIds(event({ discipline: "Enduro Indoor", vehicleType: "Moto" })), new Set(["offroad-08"]));
   assert.deepEqual(tierOneIds(event({ discipline: "SuperEnduro", vehicleType: "Moto" })), new Set(["offroad-08"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Motocross", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
-  assert.deepEqual(tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11", "offroad-12"]));
+  assert.deepEqual(tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Trial Indoor", vehicleType: "Moto" })), new Set(["offroad-12"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Autocross", vehicleType: "Coche" })), new Set(["offroad-13", "offroad-14"]));
   assert.deepEqual(tierOneIds(event({ title: "Tramo de Tierra individual", vehicleType: "Coche" })), new Set(["offroad-14"]));
@@ -201,7 +201,76 @@ test("Motocross repite únicamente su pool cerrado", () => {
 test("Trial repite únicamente su pool cerrado", () => {
   assertClosedPool(
     assignedFallbackIds(8, { discipline: "Trial", vehicleType: "Moto" }),
-    ["offroad-05", "offroad-11", "offroad-12"],
+    ["offroad-05", "offroad-11"],
+  );
+});
+
+test("las competiciones clásicas conservan su modalidad deportiva principal", () => {
+  for (const candidate of [
+    event({ title: "Motocross Clásico Arceniega 2026", discipline: "Motocross", vehicleType: "Moto" }),
+    event({ title: "Motocross Classic", discipline: "Motocross Clásico", vehicleType: "Moto" }),
+  ]) {
+    assert.equal(classificationOf(candidate).discipline, "offroad");
+    assert.equal(classificationOf(candidate).subtype, "motocross");
+    assert.deepEqual(new Set(ids(candidate)), new Set(["offroad-03", "offroad-09", "offroad-10"]));
+  }
+  for (const candidate of [
+    event({ title: "Trial Clásico Catalunya", discipline: "Trial Clásicas", vehicleType: "Moto" }),
+    event({ title: "Trial de clásicas", vehicleType: "Moto" }),
+  ]) {
+    assert.equal(classificationOf(candidate).discipline, "offroad");
+    assert.equal(classificationOf(candidate).subtype, "trial");
+    assert.deepEqual(new Set(ids(candidate)), new Set(["offroad-05", "offroad-11"]));
+  }
+  const classicEnduro = event({ title: "Enduro Sprint y TT Clásico", discipline: "Enduro", vehicleType: "Moto" });
+  assert.equal(classificationOf(classicEnduro).subtype, "enduro");
+  assert.deepEqual(new Set(ids(classicEnduro)), new Set(["offroad-02", "offroad-07"]));
+});
+
+test("la taxonomía clásica no deportiva y la velocidad clásica permanecen intactas", () => {
+  for (const candidate of [
+    event({ title: "Encuentro de vehículos clásicos" }),
+    event({ discipline: "Velocidad Clásicas", vehicleType: "Moto" }),
+    event({ discipline: "Resistencia Clásicas Asfalto", vehicleType: "Moto" }),
+    event({ discipline: "Rally Histórico", vehicleType: "Coche" }),
+  ]) {
+    assert.equal(classificationOf(candidate).discipline, "clasicos");
+  }
+});
+
+test("las concentraciones inequívocamente moteras repiten sólo escenas de motos", () => {
+  const general = assignedFallbackIds(8, { title: "Concentración motera", vehicleType: "Moto" });
+  assertClosedPool(general, ["concentraciones-02", "concentraciones-06"]);
+  assert.equal(general.includes("concentraciones-03"), false);
+  assert.equal(general.includes("concentraciones-05"), false);
+
+  const motoBreakfast = assignedFallbackIds(6, { title: "Motoalmuerzo", vehicleType: "Moto" });
+  assertClosedPool(motoBreakfast, ["concentraciones-02", "concentraciones-06", "concentraciones-07"]);
+
+  const customNight = assignedFallbackIds(6, { title: "Concentración biker nocturna", vehicleType: "Moto" });
+  assertClosedPool(customNight, ["concentraciones-02", "concentraciones-06", "concentraciones-08"]);
+});
+
+test("las concentraciones mixtas conservan escenas de coches y motos", () => {
+  const mixedIds = new Set(ids(event({ title: "Concentración de coches y motos", vehicleType: "Mixto" })));
+  assert.equal(mixedIds.has("concentraciones-03"), true);
+  assert.equal(mixedIds.has("concentraciones-05"), true);
+});
+
+test("Trial general y TrialGP usan naturaleza mientras Trial Indoor conserva módulos", () => {
+  for (const discipline of ["Trial", "TrialGP"]) {
+    assertClosedPool(
+      assignedFallbackIds(8, { discipline, vehicleType: "Moto" }),
+      ["offroad-05", "offroad-11"],
+    );
+  }
+  assert.deepEqual(
+    assignedFallbackIds(5, { discipline: "Trial Indoor", vehicleType: "Moto" }),
+    Array(5).fill("offroad-12"),
+  );
+  assert.deepEqual(
+    assignedFallbackIds(5, { title: "Trial en pabellón sobre módulos artificiales", vehicleType: "Moto" }),
+    Array(5).fill("offroad-12"),
   );
 });
 
@@ -371,7 +440,7 @@ test("la precedencia mantiene las modalidades existentes por delante de reglas g
   }
 
   assert.equal(classificationOf(event({ discipline: "Rally Historico", tags: ["automovilismo"] })).discipline, "clasicos");
-  assert.equal(classificationOf(event({ discipline: "Motocross Clasico", tags: ["offroad"] })).discipline, "clasicos");
+  assert.equal(classificationOf(event({ discipline: "Motocross Clasico", tags: ["offroad"] })).discipline, "offroad");
   assert.equal(classificationOf(event({ title: "Rally Piston", discipline: "Concentracion", tags: ["motos"] })).discipline, "concentraciones");
   assert.equal(classificationOf(event({ title: "Rally nacional", discipline: "Automovilismo", vehicleType: "Coche" })).discipline, "rallyes");
 });
@@ -399,7 +468,9 @@ test("la asignación de lista es estable y sólo repite al agotar candidatos com
   const second = assignV2HomeEventImages(motoMeets);
   assert.deepEqual(first, second);
   assert.equal(first[0].fallbackId, "concentraciones-06");
-  assert.equal(new Set(first.map(({ fallbackId }) => fallbackId)).size, 4);
+  assert.deepEqual(new Set(first.map(({ fallbackId }) => fallbackId)), new Set(["concentraciones-02", "concentraciones-06"]));
+  assert.equal(new Set(first.map(({ fallbackId }) => fallbackId)).size, 2);
+  assert.equal(first.some(({ fallbackId }) => fallbackId === "concentraciones-03" || fallbackId === "concentraciones-05"), false);
 
   const circuitMotos = Array.from({ length: 3 }, (_, index) => event({
     id: `circuit-${index}`,
