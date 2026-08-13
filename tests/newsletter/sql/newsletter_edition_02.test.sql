@@ -463,17 +463,54 @@ select results_eq(
   $$values ('madrid'::text, 'edition02-madrid@example.invalid'::text)$$,
   'claim returns only the frozen variant and the still eligible recipient'
 );
+
+create temporary table edition02_acceptance as
+select outcome from public.record_newsletter_campaign_delivery_accepted(
+  (select delivery_id from edition02_claim),
+  (select claim_id from edition02_claim),
+  'resend-edition02-message-1',
+  now()
+);
+
+create temporary table edition02_post_freeze_claim as
+select * from public.claim_newsletter_campaign_delivery_v2(
+  (select id from public.newsletter_campaigns where edition_key = 'agenda_motor_2026_08_13'),
+  repeat('6', 64),
+  false
+);
+
 select results_eq(
   $$
-    select status, last_error_code
-    from public.newsletter_campaign_deliveries
-    where subscriber_id = '82000000-0000-4000-8000-000000000001'
-      and campaign_id = (
+    select
+      delivery.status,
+      delivery.last_error_code,
+      delivery.content_variant,
+      (select count(*)::integer from edition02_post_freeze_claim),
+      (
+        select count(*)::integer
+        from public.newsletter_campaign_unsubscribe_tokens
+        where token_hash = repeat('6', 64)
+      ),
+      (
+        select count(*)::integer
+        from public.newsletter_email_events
+        where subscriber_id = delivery.subscriber_id
+      )
+    from public.newsletter_campaign_deliveries as delivery
+    where delivery.subscriber_id = '82000000-0000-4000-8000-000000000001'
+      and delivery.campaign_id = (
         select id from public.newsletter_campaigns
         where edition_key = 'agenda_motor_2026_08_13'
       )
   $$,
-  $$values ('failed'::text, 'subscriber_ineligible'::text)$$,
+  $$values (
+    'failed'::text,
+    'subscriber_ineligible'::text,
+    'national'::text,
+    0,
+    0,
+    0
+  )$$,
   'claim revalidates eligibility after the audience freeze'
 );
 select is(
@@ -497,15 +534,7 @@ select is(
   'the database has no field for raw campaign token material'
 );
 select results_eq(
-  $$
-    select outcome
-    from public.record_newsletter_campaign_delivery_accepted(
-      (select delivery_id from edition02_claim),
-      (select claim_id from edition02_claim),
-      'resend-edition02-message-1',
-      now()
-    )
-  $$,
+  $$select outcome from edition02_acceptance$$,
   $$values ('recorded'::text)$$,
   'the existing acceptance RPC records an Edition 02 delivery'
 );
