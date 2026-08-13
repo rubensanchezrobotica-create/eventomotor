@@ -8,6 +8,7 @@ on:
       - "database/migrations/20260729120000_newsletter_launch_operations.sql"
       - "database/migrations/20260730100000_newsletter_canary_hardening.sql"
       - "database/migrations/20260804120000_newsletter_manual_campaign_sender.sql"
+      - "database/migrations/20260810120000_newsletter_edition_02_personalization.sql"
       - "tests/newsletter/sql/**"
       - "scripts/prepare-newsletter-supabase-ci.mjs"
       - "scripts/prepare-newsletter-supabase-ci.test.ts"
@@ -15,6 +16,7 @@ on:
       - "lib/newsletter/service-types.ts"
       - "lib/newsletter/campaign-repository.server.ts"
       - "lib/newsletter/edition-01-campaign.ts"
+      - "lib/newsletter/edition-02-*.ts"
       - "package.json"
       - "package-lock.json"
   push:
@@ -24,6 +26,7 @@ on:
       - "database/migrations/20260729120000_newsletter_launch_operations.sql"
       - "database/migrations/20260730100000_newsletter_canary_hardening.sql"
       - "database/migrations/20260804120000_newsletter_manual_campaign_sender.sql"
+      - "database/migrations/20260810120000_newsletter_edition_02_personalization.sql"
       - "tests/newsletter/sql/**"
       - "scripts/prepare-newsletter-supabase-ci.mjs"
       - "scripts/prepare-newsletter-supabase-ci.test.ts"
@@ -31,6 +34,7 @@ on:
       - "lib/newsletter/service-types.ts"
       - "lib/newsletter/campaign-repository.server.ts"
       - "lib/newsletter/edition-01-campaign.ts"
+      - "lib/newsletter/edition-02-*.ts"
       - "package.json"
       - "package-lock.json"
   workflow_dispatch:
@@ -90,7 +94,9 @@ jobs:
         run: supabase --workdir "$NEWSLETTER_CI_WORKDIR" test db --local
 
       - name: Run real concurrency tests
-        run: node tests/newsletter/sql/newsletter-concurrency.mjs
+        run: |
+          node tests/newsletter/sql/newsletter-concurrency.mjs
+          node tests/newsletter/sql/newsletter-edition-02-concurrency.mjs
 
       - name: Lint isolated newsletter schema
         run: >-
