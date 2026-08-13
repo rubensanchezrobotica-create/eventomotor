@@ -12,11 +12,11 @@ export const NEWSLETTER_EDITION_02_SENDER =
   "La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>";
 export const NEWSLETTER_EDITION_02_REPLY_TO = "info@eventomotor.com";
 export const NEWSLETTER_EDITION_02_HTML_SHA256 =
-  "b53612f67a2553b86dffcd1d90dd4670a40aa47de57180a09f855926c8423dda";
+  "27711333367d2bca7a2cf4be16eb7adc73882f78c383ad34a635b257f3a9336d";
 export const NEWSLETTER_EDITION_02_TEXT_SHA256 =
   "225984e08d5bbc4eef38c9fee1ebe7d8fb59bccdaea341ae937642a23b398a9c";
 export const NEWSLETTER_EDITION_02_CONTENT_MANIFEST_SHA256 =
-  "931950286b42cf46ac4ef95f6adb74f137fd2d9d090cb8377c358d3b2e973407";
+  "31bfb3be2b06f265dc3ad625a6ebfe00be467318ac0a58c3aab2d1b9c1f4e5dc";
 
 const ASSET_ORIGIN =
   "https://www.eventomotor.com/newsletter/2026-08-13/assets/";
@@ -149,11 +149,11 @@ export const NEWSLETTER_EDITION_02_ASSET_MANIFEST: readonly NewsletterEdition02A
     sha256: "d66d3437223316b1b422d8986c6e48318b223204941f76d10a68bcdeba4b0437",
   },
   {
-    file: "eventomotor-logo.png",
-    width: 520,
-    height: 56,
-    bytes: 26745,
-    sha256: "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc",
+    file: "eventomotor-header.png",
+    width: 1240,
+    height: 200,
+    bytes: 38388,
+    sha256: "65a06197b671ec948083e54b70400aa50716caf93f57bb02192c27c7c8c4f041",
   },
 ];
 

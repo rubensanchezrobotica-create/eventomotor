@@ -42,10 +42,10 @@
     "sha256": "d66d3437223316b1b422d8986c6e48318b223204941f76d10a68bcdeba4b0437"
   },
   {
-    "file": "eventomotor-logo.png",
-    "width": 520,
-    "height": 56,
-    "bytes": 26745,
-    "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc"
+    "file": "eventomotor-header.png",
+    "width": 1240,
+    "height": 200,
+    "bytes": 38388,
+    "sha256": "65a06197b671ec948083e54b70400aa50716caf93f57bb02192c27c7c8c4f041"
   }
 ]
