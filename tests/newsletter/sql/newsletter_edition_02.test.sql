@@ -30,19 +30,34 @@ select is(
   '''national''::text',
   'existing and legacy deliveries default safely to national'
 );
-select has_check(
-  'public', 'newsletter_campaigns',
-  'newsletter_campaigns_content_manifest_digest_check',
+select ok(
+  exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.newsletter_campaigns'::regclass
+      and conname = 'newsletter_campaigns_content_manifest_digest_check'
+      and contype = 'c'
+  ),
   'campaign content manifest digests are constrained to SHA-256'
 );
-select has_check(
-  'public', 'newsletter_campaigns',
-  'newsletter_campaigns_audience_frozen_at_check',
+select ok(
+  exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.newsletter_campaigns'::regclass
+      and conname = 'newsletter_campaigns_audience_frozen_at_check'
+      and contype = 'c'
+  ),
   'audience freeze timestamps cannot predate campaign creation'
 );
-select has_check(
-  'public', 'newsletter_campaign_deliveries',
-  'newsletter_campaign_deliveries_content_variant_check',
+select ok(
+  exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.newsletter_campaign_deliveries'::regclass
+      and conname = 'newsletter_campaign_deliveries_content_variant_check'
+      and contype = 'c'
+  ),
   'delivery content variants use the reviewed allowlist'
 );
 select has_function(
