@@ -445,7 +445,11 @@ select is(
 
 update public.newsletter_subscribers
 set status = 'suppressed', suppressed_at = now()
-where id = '82000000-0000-4000-8000-000000000001';
+where id in (
+  '82000000-0000-4000-8000-000000000001',
+  '82000000-0000-4000-8000-000000000003',
+  '82000000-0000-4000-8000-000000000004'
+);
 
 create temporary table edition02_claim as
 select * from public.claim_newsletter_campaign_delivery_v2(
@@ -516,22 +520,24 @@ select results_eq(
 );
 select results_eq(
   $$
-    select (parameter_name::text || ':' || data_type::text)::text
+    select parameter_name::text collate "C",
+           data_type::text collate "C"
     from information_schema.parameters
-    where specific_schema = 'public'
-      and specific_name like 'claim_newsletter_campaign_delivery_v2_%'
-      and parameter_mode = 'OUT'
+    where specific_schema::text collate "C" = 'public'::text collate "C"
+      and specific_name::text collate "C"
+        like 'claim_newsletter_campaign_delivery_v2_%'::text collate "C"
+      and parameter_mode::text collate "C" = 'OUT'::text collate "C"
     order by ordinal_position
   $$,
   $$values
-    ('delivery_id:uuid'::text),
-    ('campaign_id:uuid'::text),
-    ('subscriber_id:uuid'::text),
-    ('recipient_email:text'::text),
-    ('claim_id:uuid'::text),
-    ('attempt_count:integer'::text),
-    ('idempotency_key:text'::text),
-    ('content_variant:text'::text)
+    ('delivery_id'::text collate "C", 'uuid'::text collate "C"),
+    ('campaign_id'::text collate "C", 'uuid'::text collate "C"),
+    ('subscriber_id'::text collate "C", 'uuid'::text collate "C"),
+    ('recipient_email'::text collate "C", 'text'::text collate "C"),
+    ('claim_id'::text collate "C", 'uuid'::text collate "C"),
+    ('attempt_count'::text collate "C", 'integer'::text collate "C"),
+    ('idempotency_key'::text collate "C", 'text'::text collate "C"),
+    ('content_variant'::text collate "C", 'text'::text collate "C")
   $$,
   'v2 claim exposes the variant snapshot without province_slug or region_slug'
 );
