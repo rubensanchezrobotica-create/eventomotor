@@ -25,6 +25,72 @@ alter table public.newsletter_campaign_deliveries
     content_variant in ('national', 'madrid', 'a-coruna', 'barcelona')
   );
 
+-- A frozen recipient can become ineligible before any provider attempt. Keep
+-- the historical terminal states intact while representing that pre-send
+-- outcome truthfully as a narrow, non-retryable subscriber failure.
+alter table public.newsletter_campaign_deliveries
+  drop constraint newsletter_campaign_deliveries_state_check,
+  add constraint newsletter_campaign_deliveries_state_check check (
+    (status = 'prepared'
+      and attempt_count = 0
+      and claim_id is null
+      and idempotency_key is null
+      and provider_message_id is null
+      and last_attempt_at is null
+      and claimed_at is null
+      and accepted_at is null
+      and failed_at is null
+      and unknown_at is null)
+    or (status = 'sending'
+      and attempt_count > 0
+      and claim_id is not null
+      and idempotency_key is not null
+      and provider_message_id is null
+      and last_attempt_at is not null
+      and claimed_at is not null
+      and accepted_at is null
+      and failed_at is null
+      and unknown_at is null)
+    or (status = 'accepted'
+      and attempt_count > 0
+      and claim_id is null
+      and idempotency_key is not null
+      and provider_message_id is not null
+      and accepted_at is not null
+      and failed_at is null
+      and unknown_at is null
+      and not retryable)
+    or (status = 'failed'
+      and attempt_count > 0
+      and claim_id is null
+      and idempotency_key is not null
+      and provider_message_id is null
+      and failed_at is not null
+      and accepted_at is null
+      and unknown_at is null)
+    or (status = 'failed'
+      and attempt_count = 0
+      and not retryable
+      and claim_id is null
+      and idempotency_key is null
+      and provider_message_id is null
+      and last_error_code = 'subscriber_ineligible'
+      and last_attempt_at is null
+      and claimed_at is null
+      and accepted_at is null
+      and failed_at is not null
+      and unknown_at is null)
+    or (status = 'unknown'
+      and attempt_count > 0
+      and claim_id is null
+      and idempotency_key is not null
+      and provider_message_id is null
+      and unknown_at is not null
+      and accepted_at is null
+      and failed_at is null
+      and not retryable)
+  );
+
 comment on column public.newsletter_campaigns.audience_frozen_at is
   'First effective v2 preparation time. Once set, no later subscriber is added to this campaign.';
 comment on column public.newsletter_campaigns.content_manifest_digest is

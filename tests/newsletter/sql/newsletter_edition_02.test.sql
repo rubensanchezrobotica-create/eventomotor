@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
 
-select plan(42);
+select plan(46);
 
 select has_column(
   'public', 'newsletter_campaigns', 'audience_frozen_at',
@@ -484,6 +484,16 @@ select results_eq(
     select
       delivery.status,
       delivery.last_error_code,
+      delivery.attempt_count,
+      delivery.retryable,
+      delivery.claim_id is null,
+      delivery.idempotency_key is null,
+      delivery.provider_message_id is null,
+      delivery.last_attempt_at is null,
+      delivery.claimed_at is null,
+      delivery.accepted_at is null,
+      delivery.failed_at is not null,
+      delivery.unknown_at is null,
       delivery.content_variant,
       (select count(*)::integer from edition02_post_freeze_claim),
       (
@@ -506,6 +516,16 @@ select results_eq(
   $$values (
     'failed'::text,
     'subscriber_ineligible'::text,
+    0,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
     'national'::text,
     0,
     0,
@@ -569,6 +589,78 @@ select results_eq(
     ('content_variant'::text collate "C", 'text'::text collate "C")
   $$,
   'v2 claim exposes the variant snapshot without province_slug or region_slug'
+);
+
+select throws_ok(
+  $$
+    insert into public.newsletter_campaign_deliveries (
+      id, campaign_id, subscriber_id, status, attempt_count, retryable,
+      last_error_code, created_at, updated_at, prepared_at, failed_at
+    )
+    select
+      '83000000-0000-4000-8000-000000000001', campaign.id,
+      '82000000-0000-4000-8000-000000000005', 'failed', 0, false,
+      'provider_500', now(), now(), now(), now()
+    from public.newsletter_campaigns as campaign
+    where campaign.edition_key = 'agenda_motor_legacy_regression'
+  $$,
+  '23514',
+  'new row for relation "newsletter_campaign_deliveries" violates check constraint "newsletter_campaign_deliveries_state_check"',
+  'a zero-attempt failure cannot impersonate a provider failure'
+);
+select throws_ok(
+  $$
+    insert into public.newsletter_campaign_deliveries (
+      id, campaign_id, subscriber_id, status, attempt_count, retryable,
+      last_error_code, created_at, updated_at, prepared_at, failed_at
+    )
+    select
+      '83000000-0000-4000-8000-000000000002', campaign.id,
+      '82000000-0000-4000-8000-000000000005', 'failed', 0, true,
+      'subscriber_ineligible', now(), now(), now(), now()
+    from public.newsletter_campaigns as campaign
+    where campaign.edition_key = 'agenda_motor_legacy_regression'
+  $$,
+  '23514',
+  'new row for relation "newsletter_campaign_deliveries" violates check constraint "newsletter_campaign_deliveries_state_check"',
+  'a pre-send subscriber failure is never retryable'
+);
+select throws_ok(
+  $$
+    insert into public.newsletter_campaign_deliveries (
+      id, campaign_id, subscriber_id, status, attempt_count, retryable,
+      claim_id, idempotency_key, provider_message_id, last_error_code,
+      created_at, updated_at, prepared_at, last_attempt_at, claimed_at, failed_at
+    )
+    select
+      '83000000-0000-4000-8000-000000000003', campaign.id,
+      '82000000-0000-4000-8000-000000000005', 'failed', 0, false,
+      '83000000-0000-4000-8000-000000000013',
+      'newsletter/state-test/pre-send/1', 'unexpected-provider-message',
+      'subscriber_ineligible', now(), now(), now(), now(), now(), now()
+    from public.newsletter_campaigns as campaign
+    where campaign.edition_key = 'agenda_motor_legacy_regression'
+  $$,
+  '23514',
+  'new row for relation "newsletter_campaign_deliveries" violates check constraint "newsletter_campaign_deliveries_state_check"',
+  'a pre-send subscriber failure cannot contain claim or provider metadata'
+);
+select lives_ok(
+  $$
+    insert into public.newsletter_campaign_deliveries (
+      id, campaign_id, subscriber_id, status, attempt_count, retryable,
+      idempotency_key, last_error_code, created_at, updated_at, prepared_at,
+      last_attempt_at, claimed_at, failed_at
+    )
+    select
+      '83000000-0000-4000-8000-000000000004', campaign.id,
+      '82000000-0000-4000-8000-000000000005', 'failed', 1, true,
+      'newsletter/state-test/provider/1', 'provider_500',
+      now(), now(), now(), now(), now(), now()
+    from public.newsletter_campaigns as campaign
+    where campaign.edition_key = 'agenda_motor_legacy_regression'
+  $$,
+  'historical attempted provider failures remain valid and retryable'
 );
 
 select * from finish();

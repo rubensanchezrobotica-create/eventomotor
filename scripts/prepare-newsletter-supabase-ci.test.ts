@@ -157,7 +157,7 @@ test("cada test pgTAP permanente declara transacción, plan, finish y rollback",
     assert.match(source, /rollback;\s*$/i, `${sqlTest} must roll back`);
     assert.doesNotMatch(source, /@(?!example\.invalid)/i, `${sqlTest} must use reserved emails only`);
   }
-  assert.equal(plannedAssertions, 388);
+  assert.equal(plannedAssertions, 392);
 });
 
 test("la concurrencia conserva todos los escenarios y exige una rotación temporal coherente", async () => {
