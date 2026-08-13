@@ -26,6 +26,24 @@ export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   otros: "Otros",
 };
 
+const VEHICLE_TYPE_ALIASES: Record<string, VehicleType> = {
+  moto: "moto",
+  motos: "moto",
+  coche: "coche",
+  coches: "coche",
+  mixto: "mixto",
+  mixta: "mixto",
+  mixtos: "mixto",
+  mixtas: "mixto",
+  kart: "karting",
+  karts: "karting",
+  karting: "karting",
+  otro: "otros",
+  otra: "otros",
+  otros: "otros",
+  otras: "otros",
+};
+
 const MOTO_TERMS = [
   "fim",
   "fim world championship",
@@ -45,7 +63,17 @@ const MOTO_TERMS = [
   "enduro",
   "trial",
   "supermoto",
+  "supermotard",
   "minivelocidad",
+  "mini velocidad",
+  "drpit",
+  "dr pit",
+  "drpitbike",
+  "dr pitbike",
+  "pitbike",
+  "pit bike",
+  "minimotard",
+  "mini motard",
   "mototurismo",
   "motociclismo",
   "moto",
@@ -110,11 +138,14 @@ function normalizeText(value: string) {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_‐‑‒–—−]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function isVehicleType(value: string | null | undefined): value is VehicleType {
-  return Boolean(value && VEHICLE_TYPE_OPTIONS.includes(value as VehicleType));
+function normalizeVehicleType(value: string | null | undefined): VehicleType | null {
+  return VEHICLE_TYPE_ALIASES[normalizeText(String(value || ""))] ?? null;
 }
 
 function includesAny(text: string, terms: string[]) {
@@ -134,7 +165,7 @@ function hasAll(text: string, terms: string[]) {
 }
 
 export function getVehicleType(event: EventLike): VehicleType {
-  const explicitType = normalizeText(String(event.vehicleType || event.vehicle_type || "").trim());
+  const explicitType = normalizeVehicleType(event.vehicleType || event.vehicle_type);
   const titleText = normalizeText(String(event.title || ""));
   const tagsText = normalizeText(Array.isArray(event.tags) ? event.tags.join(" ") : "");
   const sourceText = normalizeText(String(event.source || ""));
@@ -151,9 +182,7 @@ export function getVehicleType(event: EventLike): VehicleType {
   const isMoto = includesAny(searchableText, MOTO_TERMS);
   const isCoche = includesAny(searchableText, COCHE_TERMS);
 
-  if (isVehicleType(explicitType)) {
-    if (explicitType === "moto" && isCoche && !isMoto) return "coche";
-    if (explicitType === "coche" && isMoto && !isCoche) return "moto";
+  if (explicitType && explicitType !== "otros") {
     return explicitType;
   }
 

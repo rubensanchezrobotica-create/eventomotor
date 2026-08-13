@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import test from "node:test";
+import { getVehicleType } from "@/lib/event-classification";
 import type { EventItem } from "@/types/event";
 import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
@@ -14,6 +15,7 @@ import {
   isEditoriallyComplete,
   isRedesignPreviewAvailable,
   previewEventDateLabel,
+  previewVehicleLabel,
   previewEventStatus,
   prioritizeEditorialEvents,
   projectPreviewEvent,
@@ -135,6 +137,102 @@ test("el pipeline real corrige Cross Country visible sin cambiar orden ni cantid
   assert.equal(baseVisibleImages.slice(1).some(({ fallbackId }, index) => fallbackId === baseVisibleImages[index].fallbackId), true);
   assert.equal(visibleImages.every(({ fallbackId }) => ["offroad-15", "offroad-16"].includes(String(fallbackId))), true);
   assert.equal(visibleImages.slice(1).some(({ fallbackId }, index) => fallbackId === visibleImages[index].fallbackId), false);
+});
+
+test("el pipeline visible clasifica como moto los tres eventos reales de DrPit y Minimotard", () => {
+  const fixtures = [
+    {
+      id: "copa-centro-drpit-fk1-villaverde-medina-2026-09-05",
+      title: "Copa Centro DrPit FK1 2026",
+      discipline: "Pitbike",
+      tags: ["pitbike", "minimotard", "minimoto", "minigp", "supermotard", "copa centro", "fk1"],
+      expectedFallbacks: new Set(["circuito-09", "circuito-13"]),
+    },
+    {
+      id: "copa-centro-drpit-f430-arapiles-2026-10-03",
+      title: "Copa Centro DrPit F430 2026",
+      discipline: "Pitbike",
+      tags: ["pitbike", "minimotard", "minimoto", "minigp", "supermotard", "copa centro", "f430"],
+      expectedFallbacks: new Set(["circuito-09", "circuito-13"]),
+    },
+    {
+      id: "iv-carrera-minimotard-challenge-alcarras-2026-09-13",
+      title: "IV Carrera Minimotard Challenge Alcarràs 2026",
+      discipline: "Minimotard",
+      tags: ["minimotard", "pitbike", "challenge", "alcarràs"],
+      expectedFallbacks: new Set(["circuito-10"]),
+    },
+  ];
+  const projected = fixtures.map((fixture) => {
+    const vehicleType = getVehicleType({
+      title: fixture.title,
+      discipline: fixture.discipline,
+      tags: fixture.tags,
+      vehicle_type: "Motos",
+    });
+    return projectPreviewEvent(event({
+      id: fixture.id,
+      slug: fixture.id,
+      title: fixture.title,
+      championship: "",
+      discipline: fixture.discipline,
+      tags: fixture.tags,
+      vehicleType,
+      vehicle_type: vehicleType,
+    }));
+  });
+  const assigned = assignV2HomeEventImages(projected);
+
+  assert.deepEqual(projected.map(previewVehicleLabel), ["moto", "moto", "moto"]);
+  assert.deepEqual(projected.map(({ discipline }) => discipline), ["Pitbike", "Pitbike", "Minimotard"]);
+  projected.forEach((_, index) => {
+    assert.equal(assigned[index]?.interpretedDiscipline, "circuito");
+    assert.equal(fixtures[index]?.expectedFallbacks.has(String(assigned[index]?.fallbackId)), true);
+  });
+  assert.deepEqual(
+    filterPreviewEvents(projected, { place: "pitbike", date: "", discipline: "", vehicle: "" }).map(({ id }) => id),
+    fixtures.map(({ id }) => id),
+  );
+});
+
+test("normaliza variantes inequívocas de pitbike y minimotard sin perder positivos existentes", () => {
+  const motorcycleFixtures = [
+    { title: "Copa Centro DrPit 2026" },
+    { title: "Copa Centro Dr Pit 2026" },
+    { title: "Rodada Nocturna DrPitBike 2026" },
+    { title: "Copa de Pitbike 2026" },
+    { title: "Copa de Pit Bike 2026" },
+    { title: "Copa de Pit-bike 2026" },
+    { title: "Challenge Minimotard 2026" },
+    { title: "Challenge Mini Motard 2026" },
+    { title: "Challenge Mini-motard 2026" },
+    { title: "GP Polini Motoscoot Cup Campillos", discipline: "MiniVelocidad" },
+    { title: "MiniVelocidad InterOpen Villena" },
+    { title: "Mini Velocidad InterOpen Chiva" },
+    { title: "GP J.Costa Motoscoot Cup DR7", tags: ["scooter"] },
+  ];
+
+  for (const fixture of motorcycleFixtures) {
+    assert.equal(getVehicleType(fixture), "moto", fixture.title);
+  }
+  assert.equal(getVehicleType({ title: "Cita sin clasificar", vehicle_type: "Motos" }), "moto");
+  assert.equal(getVehicleType({ title: "Pitbike sin tipo", vehicle_type: "otros" }), "moto");
+});
+
+test("preserva COCHE y MIXTO explícitos y evita falsos positivos en controles realistas", () => {
+  const controls = [
+    { title: "Autocross MotorLand", vehicle_type: "Coches", expected: "coche" },
+    { title: "Slalom de A Estrada", vehicle_type: "Coches", expected: "coche" },
+    { title: "Rallye Sierra Morena", vehicle_type: "Coches", expected: "coche" },
+    { title: "Encuentro de clásicos deportivos", tags: ["coches clasicos"], expected: "mixto" },
+    { title: "Feria del Motor de Galicia", expected: "otros" },
+    { title: "Exposición DrPit del equipo", vehicle_type: "Coches", expected: "coche" },
+    { title: "Feria Pitbike y automóviles", vehicle_type: "Mixto", expected: "mixto" },
+  ];
+
+  for (const fixture of controls) {
+    assert.equal(getVehicleType(fixture), fixture.expected, fixture.title);
+  }
 });
 
 test("limpiar la query restaura el mismo orden y cantidad de la Home", () => {
