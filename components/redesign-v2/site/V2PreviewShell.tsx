@@ -1,6 +1,6 @@
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
-import MobileNavigation from "../MobileNavigation.client";
+import InteriorMobileNavigation from "./InteriorMobileNavigation.client";
 import PreviewAwareLink from "./PreviewAwareLink";
 import {
   resolvePreviewNavigationItems,
@@ -23,10 +23,9 @@ type V2PreviewShellProps = {
   upcomingCount: number;
 };
 
-const desktopNavigation = ["home", "search", "weekend", "calendar", "disciplines", "territories"] as const;
+const desktopNavigation = ["home", "weekend", "calendar", "disciplines", "territories"] as const;
 const mobileNavigation = [
   "home",
-  "search",
   "weekend",
   "calendar",
   "disciplines",
@@ -69,7 +68,7 @@ export default function V2PreviewShell({
           <div className={styles.navActions}>
             <PreviewAwareLink className={styles.favoritesLink} navigationId="favorites" />
             <PreviewAwareLink className={styles.publishButton} navigationId="publish" />
-            <MobileNavigation items={resolvePreviewNavigationItems(mobileNavigation)} />
+            <InteriorMobileNavigation items={resolvePreviewNavigationItems(mobileNavigation)} />
           </div>
         </div>
       </header>
@@ -108,7 +107,6 @@ export default function V2PreviewShell({
           </div>
           <nav aria-label="Enlaces de agenda">
             <strong>Agenda</strong>
-            <PreviewAwareLink navigationId="search" />
             <PreviewAwareLink navigationId="calendar" />
             <PreviewAwareLink navigationId="disciplines" />
             <PreviewAwareLink navigationId="territories" />

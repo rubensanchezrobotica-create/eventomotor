@@ -1,6 +1,5 @@
 export type PreviewNavigationId =
   | "home"
-  | "search"
   | "weekend"
   | "calendar"
   | "disciplines"
@@ -29,7 +28,6 @@ export type ResolvedPreviewNavigationItem = {
 
 export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNavigationDefinition>> = {
   home: { id: "home", label: "Inicio", productionHref: "/", previewHref: "/preview/redesign-v2" },
-  search: { id: "search", label: "Buscar", productionHref: "/", previewHref: "/preview/redesign-v2/buscar" },
   weekend: { id: "weekend", label: "Este fin de semana", productionHref: "/eventos-motor-este-fin-de-semana" },
   calendar: { id: "calendar", label: "Calendario", productionHref: "/calendario" },
   disciplines: { id: "disciplines", label: "Disciplinas", productionHref: "/disciplinas" },
