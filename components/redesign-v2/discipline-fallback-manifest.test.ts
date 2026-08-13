@@ -8,9 +8,9 @@ import {
 
 const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   rallyes: 5,
-  circuito: 12,
-  concentraciones: 8,
-  offroad: 15,
+  circuito: 13,
+  concentraciones: 9,
+  offroad: 17,
   clasicos: 5,
   karting: 5,
   rutas: 6,
@@ -53,10 +53,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 61 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 61);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 61);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 61);
+test("el manifiesto contiene exactamente los 65 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 65);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 65);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 65);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -96,4 +96,8 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("concentraciones-07")?.tags, ["motoalmuerzo", "almuerzo-motero", "matinal", "matinal-motera", "encuentro-matinal", "terraza", "local"]);
   assert.deepEqual(byId.get("offroad-08")?.tags, ["offroad", "moto", "enduro", "enduro-indoor", "superenduro", "obstaculos", "indoor"]);
   assert.deepEqual(byId.get("offroad-15")?.tags, ["offroad", "moto", "cross-country", "crosscountry", "xc", "rapido", "terreno-abierto", "resistencia"]);
+  assert.deepEqual(byId.get("circuito-13")?.tags, ["pitbike", "pit-bike", "minivelocidad", "kartodromo", "horquilla", "frenada", "accion-proxima"]);
+  assert.deepEqual(byId.get("concentraciones-09")?.tags, ["motoalmuerzo", "almuerzo-motero", "matinal", "zona-rural", "encuentro-matinal", "motos", "social"]);
+  assert.deepEqual(byId.get("offroad-16")?.tags, ["cross-country", "crosscountry", "xc", "terreno-verde", "dos-motos", "pista-rapida", "resistencia", "campo-abierto"]);
+  assert.deepEqual(byId.get("offroad-17")?.tags, ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"]);
 });

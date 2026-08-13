@@ -121,7 +121,7 @@ test("R2 mantiene en Tier 1 los subtipos exactos de circuito", () => {
     event({ title: "MiniVelocidad", vehicleType: "Moto" }),
     event({ title: "Resistencia Ciclomotores", vehicleType: "Moto" }),
   ]) {
-    assert.deepEqual(tierOneIds(candidate), new Set(["circuito-09"]));
+    assert.deepEqual(tierOneIds(candidate), new Set(["circuito-09", "circuito-13"]));
   }
 
   for (const discipline of ["Supermotard", "Supermoto", "Minimotard"]) {
@@ -134,7 +134,7 @@ test("R2 diferencia concentraciones generales, matinales y custom nocturnas", ()
   assert.deepEqual(tierOneIds(event({ title: "Gran concentración motera", vehicleType: "Moto" })), new Set(["concentraciones-06"]));
   assert.deepEqual(tierOneIds(event({ title: "Xuntanza motera", vehicleType: "Moto" })), new Set(["concentraciones-06"]));
   for (const title of ["Motoalmuerzo", "Almuerzo motero", "Matinal motera"]) {
-    assert.deepEqual(tierOneIds(event({ title, vehicleType: "Moto" })), new Set(["concentraciones-07"]));
+    assert.deepEqual(tierOneIds(event({ title, vehicleType: "Moto" })), new Set(["concentraciones-07", "concentraciones-09"]));
   }
   for (const title of ["Concentración custom", "Encuentro biker", "Concentración motera nocturna"]) {
     assert.deepEqual(tierOneIds(event({ title, vehicleType: "Moto" })), new Set(["concentraciones-08"]));
@@ -147,15 +147,15 @@ test("R2 diferencia concentraciones generales, matinales y custom nocturnas", ()
 
 test("R2 amplía los pools offroad sin mezclar subtipos", () => {
   assert.deepEqual(tierOneIds(event({ discipline: "Enduro", vehicleType: "Moto" })), new Set(["offroad-02", "offroad-07"]));
-  assert.deepEqual(tierOneIds(event({ discipline: "Enduro Indoor", vehicleType: "Moto" })), new Set(["offroad-08"]));
-  assert.deepEqual(tierOneIds(event({ discipline: "SuperEnduro", vehicleType: "Moto" })), new Set(["offroad-08"]));
+  assert.deepEqual(tierOneIds(event({ discipline: "Enduro Indoor", vehicleType: "Moto" })), new Set(["offroad-08", "offroad-17"]));
+  assert.deepEqual(tierOneIds(event({ discipline: "SuperEnduro", vehicleType: "Moto" })), new Set(["offroad-08", "offroad-17"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Motocross", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Trial Indoor", vehicleType: "Moto" })), new Set(["offroad-12"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Autocross", vehicleType: "Coche" })), new Set(["offroad-13", "offroad-14"]));
   assert.deepEqual(tierOneIds(event({ title: "Tramo de Tierra individual", vehicleType: "Coche" })), new Set(["offroad-14"]));
   for (const discipline of ["Cross Country", "Cross-Country", "CrossCountry", "XC"]) {
-    assert.deepEqual(tierOneIds(event({ discipline, vehicleType: "Moto" })), new Set(["offroad-15"]));
+    assert.deepEqual(tierOneIds(event({ discipline, vehicleType: "Moto" })), new Set(["offroad-15", "offroad-16"]));
   }
   assert.equal(tierOneIds(event({ discipline: "Enduro", vehicleType: "Moto" })).has("offroad-15"), false);
 });
@@ -163,15 +163,19 @@ test("R2 amplía los pools offroad sin mezclar subtipos", () => {
 test("R2 no usa escenas de subtipo específico como diversidad genérica", () => {
   const trackdayIds = new Set(ids(event({ title: "Trackday de motos grandes", vehicleType: "Moto" })));
   assert.equal(trackdayIds.has("circuito-09"), false);
+  assert.equal(trackdayIds.has("circuito-13"), false);
   assert.equal(trackdayIds.has("circuito-10"), false);
 
   const generalMeetIds = new Set(ids(event({ title: "Concentración motera", vehicleType: "Moto" })));
   assert.equal(generalMeetIds.has("concentraciones-07"), false);
   assert.equal(generalMeetIds.has("concentraciones-08"), false);
+  assert.equal(generalMeetIds.has("concentraciones-09"), false);
 
   const enduroIds = new Set(ids(event({ discipline: "Enduro", vehicleType: "Moto" })));
   assert.equal(enduroIds.has("offroad-08"), false);
   assert.equal(enduroIds.has("offroad-15"), false);
+  assert.equal(enduroIds.has("offroad-16"), false);
+  assert.equal(enduroIds.has("offroad-17"), false);
 
   const hardEnduro = tierOneIds(event({ discipline: "Hard Enduro", vehicleType: "Moto" }));
   assert.deepEqual(hardEnduro, new Set(["offroad-02", "offroad-07"]));
@@ -185,9 +189,9 @@ test("Enduro exterior repite únicamente su pool cerrado", () => {
 });
 
 test("Enduro Indoor no utiliza Trial Indoor", () => {
-  assert.deepEqual(
-    assignedFallbackIds(5, { discipline: "Enduro Indoor", vehicleType: "Moto" }),
-    Array(5).fill("offroad-08"),
+  assertClosedPool(
+    assignedFallbackIds(8, { discipline: "Enduro Indoor", vehicleType: "Moto" }),
+    ["offroad-08", "offroad-17"],
   );
 });
 
@@ -245,7 +249,7 @@ test("las concentraciones inequívocamente moteras repiten sólo escenas de moto
   assert.equal(general.includes("concentraciones-05"), false);
 
   const motoBreakfast = assignedFallbackIds(6, { title: "Motoalmuerzo", vehicleType: "Moto" });
-  assertClosedPool(motoBreakfast, ["concentraciones-02", "concentraciones-06", "concentraciones-07"]);
+  assertClosedPool(motoBreakfast, ["concentraciones-02", "concentraciones-06", "concentraciones-07", "concentraciones-09"]);
 
   const customNight = assignedFallbackIds(6, { title: "Concentración biker nocturna", vehicleType: "Moto" });
   assertClosedPool(customNight, ["concentraciones-02", "concentraciones-06", "concentraciones-08"]);
@@ -274,10 +278,10 @@ test("Trial general y TrialGP usan naturaleza mientras Trial Indoor conserva mó
   );
 });
 
-test("Cross Country repite su único fallback especializado", () => {
-  assert.deepEqual(
-    assignedFallbackIds(6, { discipline: "Cross Country", vehicleType: "Moto" }),
-    Array(6).fill("offroad-15"),
+test("Cross Country reparte y repite únicamente sus dos fallbacks especializados", () => {
+  assertClosedPool(
+    assignedFallbackIds(10, { discipline: "Cross Country", vehicleType: "Moto" }),
+    ["offroad-15", "offroad-16"],
   );
 });
 
@@ -288,17 +292,17 @@ test("Autocross repite únicamente su pool cerrado", () => {
   );
 });
 
-test("Pitbike repite su único fallback de moto pequeña", () => {
-  assert.deepEqual(
-    assignedFallbackIds(6, { discipline: "Pitbike", vehicleType: "Moto" }),
-    Array(6).fill("circuito-09"),
+test("Pitbike reparte y repite únicamente sus dos fallbacks de moto pequeña", () => {
+  assertClosedPool(
+    assignedFallbackIds(8, { discipline: "Pitbike", vehicleType: "Moto" }),
+    ["circuito-09", "circuito-13"],
   );
 });
 
-test("Minivelocidad repite su único fallback de moto pequeña", () => {
-  assert.deepEqual(
-    assignedFallbackIds(6, { discipline: "Minivelocidad", vehicleType: "Moto" }),
-    Array(6).fill("circuito-09"),
+test("Minivelocidad reparte y repite únicamente sus dos fallbacks de moto pequeña", () => {
+  assertClosedPool(
+    assignedFallbackIds(8, { discipline: "Minivelocidad", vehicleType: "Moto" }),
+    ["circuito-09", "circuito-13"],
   );
 });
 
@@ -334,9 +338,9 @@ test("los demás subtipos cerrados conservan sus pools editoriales explícitos",
     assignedFallbackIds(4, { discipline: "Trial Indoor", vehicleType: "Moto" }),
     Array(4).fill("offroad-12"),
   );
-  assert.deepEqual(
+  assertClosedPool(
     assignedFallbackIds(4, { discipline: "Resistencia Ciclomotores", vehicleType: "Moto" }),
-    Array(4).fill("circuito-09"),
+    ["circuito-09", "circuito-13"],
   );
   assert.deepEqual(
     assignedFallbackIds(4, { discipline: "Minimotard", vehicleType: "Moto" }),

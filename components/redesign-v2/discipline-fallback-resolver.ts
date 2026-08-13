@@ -357,24 +357,24 @@ const GENERIC_TAGS = new Set([
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
   "circuito:trackday": ["circuito-03", "circuito-08"],
   "circuito:tandas": ["circuito-08"],
-  "circuito:pitbike": ["circuito-09"],
-  "circuito:minivelocidad": ["circuito-09"],
-  "circuito:resistencia-ciclomotores": ["circuito-09"],
+  "circuito:pitbike": ["circuito-09", "circuito-13"],
+  "circuito:minivelocidad": ["circuito-09", "circuito-13"],
+  "circuito:resistencia-ciclomotores": ["circuito-09", "circuito-13"],
   "circuito:minimotard": ["circuito-10"],
   "circuito:supermotard": ["circuito-10"],
   "circuito:slalom": ["circuito-11", "circuito-12"],
   "concentraciones:concentracion": ["concentraciones-06"],
-  "concentraciones:motoalmuerzo": ["concentraciones-07"],
+  "concentraciones:motoalmuerzo": ["concentraciones-07", "concentraciones-09"],
   "concentraciones:custom-biker": ["concentraciones-08"],
   "offroad:enduro": ["offroad-02", "offroad-07"],
   "offroad:hard-enduro": ["offroad-02", "offroad-07"],
-  "offroad:enduro-indoor": ["offroad-08"],
+  "offroad:enduro-indoor": ["offroad-08", "offroad-17"],
   "offroad:motocross": ["offroad-03", "offroad-09", "offroad-10"],
   "offroad:trial": ["offroad-05", "offroad-11"],
   "offroad:trial-indoor": ["offroad-12"],
   "offroad:autocross": ["offroad-13", "offroad-14"],
   "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
-  "offroad:cross-country": ["offroad-15"],
+  "offroad:cross-country": ["offroad-15", "offroad-16"],
 };
 
 const CLOSED_SUBTYPE_KEYS = new Set([
@@ -398,12 +398,14 @@ const CLOSED_SUBTYPE_KEYS = new Set([
 const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "circuito-08": ["trackday", "tandas"],
   "circuito-09": ["pitbike", "minivelocidad", "resistencia-ciclomotores"],
+  "circuito-13": ["pitbike", "minivelocidad", "resistencia-ciclomotores"],
   "circuito-10": ["minimotard", "supermotard"],
   "circuito-11": ["slalom"],
   "circuito-12": ["slalom"],
   "concentraciones-06": ["concentracion", "motoalmuerzo", "custom-biker"],
   "concentraciones-07": ["motoalmuerzo"],
   "concentraciones-08": ["custom-biker"],
+  "concentraciones-09": ["motoalmuerzo"],
   "offroad-07": ["enduro", "hard-enduro"],
   "offroad-08": ["enduro-indoor"],
   "offroad-09": ["motocross"],
@@ -413,6 +415,8 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "offroad-13": ["autocross", "tramo-tierra"],
   "offroad-14": ["autocross", "tramo-tierra"],
   "offroad-15": ["cross-country"],
+  "offroad-16": ["cross-country"],
+  "offroad-17": ["enduro-indoor"],
 };
 
 function isR2SubtypeCompatible(
@@ -432,7 +436,7 @@ function closedSubtypeFallbackIds(
 ): readonly string[] | null {
   const key = `${classification.discipline}:${classification.subtype ?? ""}`;
   if (classification.discipline === "concentraciones" && classification.vehicle === "moto") {
-    if (classification.subtype === "motoalmuerzo") return ["concentraciones-07", "concentraciones-02", "concentraciones-06"];
+    if (classification.subtype === "motoalmuerzo") return ["concentraciones-07", "concentraciones-09", "concentraciones-02", "concentraciones-06"];
     if (classification.subtype === "custom-biker") return ["concentraciones-08", "concentraciones-02", "concentraciones-06"];
     if (classification.subtype === "concentracion") return ["concentraciones-02", "concentraciones-06"];
   }

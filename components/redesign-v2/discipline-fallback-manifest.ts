@@ -51,6 +51,7 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("circuito-10", "circuito", "moto", ["circuito", "moto", "supermotard", "supermoto", "minimotard", "trazado-mixto", "asfalto", "tierra"], "circuito-10-supermotard-trazado-mixto-asfalto-tierra.webp"),
   fallback("circuito-11", "circuito", "coche", ["circuito", "coche", "slalom", "conos", "trazado-amplio", "cambio-direccion"], "circuito-11-slalom-trazado-amplio-conos-cambio-direccion.webp"),
   fallback("circuito-12", "circuito", "coche", ["circuito", "coche", "slalom", "conos", "cambio-apoyo", "atardecer"], "circuito-12-slalom-atardecer-cambio-apoyo.webp"),
+  fallback("circuito-13", "circuito", "moto", ["pitbike", "pit-bike", "minivelocidad", "kartodromo", "horquilla", "frenada", "accion-proxima"], "circuito-13-pitbike-horquilla-accion-proxima-kartodromo.webp"),
 
   fallback("concentraciones-01", "concentraciones", "coche", ["concentracion", "coche", "encuentro", "exterior"], "concentraciones-01-coches-encuentro-exterior.webp"),
   fallback("concentraciones-02", "concentraciones", "moto", ["concentracion", "moto", "encuentro"], "concentraciones-02-motos-encuentro-paseo-maritimo.webp"),
@@ -60,6 +61,7 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("concentraciones-06", "concentraciones", "moto", ["concentracion-motera", "gran-concentracion", "alta-participacion", "diurna"], "concentraciones-06-gran-concentracion-motera-diurna-alta-participacion.webp"),
   fallback("concentraciones-07", "concentraciones", "moto", ["motoalmuerzo", "almuerzo-motero", "matinal", "matinal-motera", "encuentro-matinal", "terraza", "local"], "concentraciones-07-motoalmuerzo-encuentro-matinal-terraza-motos.webp"),
   fallback("concentraciones-08", "concentraciones", "moto", ["nocturna", "custom", "biker", "concentracion-motera", "social"], "concentraciones-08-motera-nocturna-custom-ambiente-social.webp"),
+  fallback("concentraciones-09", "concentraciones", "moto", ["motoalmuerzo", "almuerzo-motero", "matinal", "zona-rural", "encuentro-matinal", "motos", "social"], "concentraciones-09-motoalmuerzo-zona-rural-encuentro-matinal-motos.webp"),
 
   fallback("offroad-01", "offroad", "coche", ["offroad", "4x4", "trialera", "roca"], "offroad-01-4x4-trialera-roca.webp"),
   fallback("offroad-02", "offroad", "moto", ["offroad", "enduro", "moto", "bosque"], "offroad-02-enduro-sendero-tecnico-bosque.webp"),
@@ -76,6 +78,8 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("offroad-13", "offroad", "coche", ["offroad", "coche", "autocross", "tierra", "grupo", "carrera", "compacto"], "offroad-13-autocross-grupo-compacto-circuito-tierra-polvo.webp"),
   fallback("offroad-14", "offroad", "coche", ["offroad", "coche", "autocross", "tierra", "individual", "curva", "polvo"], "offroad-14-autocross-coche-individual-curva-tierra-polvo.webp"),
   fallback("offroad-15", "offroad", "moto", ["offroad", "moto", "cross-country", "crosscountry", "xc", "rapido", "terreno-abierto", "resistencia"], "offroad-15-cross-country-moto-pista-rapida-terreno-abierto.webp"),
+  fallback("offroad-16", "offroad", "moto", ["cross-country", "crosscountry", "xc", "terreno-verde", "dos-motos", "pista-rapida", "resistencia", "campo-abierto"], "offroad-16-cross-country-moto-terreno-verde-dos-motos-pista-rapida.webp"),
+  fallback("offroad-17", "offroad", "moto", ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"], "offroad-17-enduro-indoor-neumaticos-escalones-recinto-luminoso.webp"),
 
   fallback("clasicos-01", "clasicos", "coche", ["clasicos", "coche", "carretera"], "clasicos-01-coche-clasico-carretera-secundaria.webp"),
   fallback("clasicos-02", "clasicos", "coche", ["clasicos", "concentracion", "coche"], "clasicos-02-concentracion-plaza-historica.webp"),
