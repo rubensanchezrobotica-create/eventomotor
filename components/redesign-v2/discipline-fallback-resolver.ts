@@ -613,3 +613,65 @@ export function assignV2HomeEventImages(events: readonly V2FallbackEvent[]): V2A
     return assigned;
   });
 }
+
+export function rebalanceVisibleV2EventImages(
+  events: readonly V2FallbackEvent[],
+  assignedImages: readonly V2AssignedEventImage[],
+): V2AssignedEventImage[] {
+  const assignedByEvent = new Map<string, V2AssignedEventImage>();
+  let previousVisibleImage: V2AssignedEventImage | null = null;
+
+  return events.map((event, index) => {
+    const stableKey = stableV2EventKey(event);
+    const existing = assignedByEvent.get(stableKey);
+    if (existing) {
+      previousVisibleImage = existing;
+      return existing;
+    }
+
+    const baseImage = assignedImages[index] ?? { src: null, kind: "neutral", alt: "" } as const;
+    if (
+      baseImage.kind !== "representative"
+      || !baseImage.fallbackId
+      || previousVisibleImage?.kind !== "representative"
+      || previousVisibleImage.fallbackId !== baseImage.fallbackId
+      || previousVisibleImage.fallbackTier !== baseImage.fallbackTier
+      || previousVisibleImage.interpretedDiscipline !== baseImage.interpretedDiscipline
+      || previousVisibleImage.interpretedVehicle !== baseImage.interpretedVehicle
+      || previousVisibleImage.interpretedSubtype !== baseImage.interpretedSubtype
+    ) {
+      assignedByEvent.set(stableKey, baseImage);
+      previousVisibleImage = baseImage;
+      return baseImage;
+    }
+
+    const classification = classifyV2FallbackEvent(event);
+    const candidates = resolveV2EventImageCandidates(event);
+    const baseCandidate = candidates.find(({ id }) => id === baseImage.fallbackId);
+    const alternative = classification
+      && baseCandidate
+      && classification.discipline === baseImage.interpretedDiscipline
+      && classification.vehicle === baseImage.interpretedVehicle
+      && classification.subtype === baseImage.interpretedSubtype
+      ? candidates.find((candidate) => (
+          candidate.id !== baseImage.fallbackId
+          && candidate.tier === baseImage.fallbackTier
+          && candidate.discipline === baseImage.interpretedDiscipline
+          && candidate.vehicle === baseCandidate.vehicle
+        ))
+      : null;
+    const visibleImage = alternative
+      ? {
+          ...baseImage,
+          src: alternative.src,
+          fallbackId: alternative.id,
+          fallbackTier: alternative.tier,
+          fallbackReason: alternative.reason,
+        }
+      : baseImage;
+
+    assignedByEvent.set(stableKey, visibleImage);
+    previousVisibleImage = visibleImage;
+    return visibleImage;
+  });
+}

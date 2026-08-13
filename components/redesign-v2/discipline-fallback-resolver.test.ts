@@ -6,6 +6,7 @@ import {
   assignV2HomeEventImages,
   classifyV2FallbackEvent,
   isValidV2EventImageSource,
+  rebalanceVisibleV2EventImages,
   resolveV2EventImageCandidates,
   stableV2EventKey,
   type V2FallbackEvent,
@@ -64,6 +65,45 @@ function assertClosedPool(actual: readonly string[], expected: readonly string[]
 
 function assertNoAdjacentDuplicates(actual: readonly string[]) {
   assert.equal(actual.slice(1).some((id, index) => id === actual[index]), false);
+}
+
+function visiblePipelineFallbacks(events: readonly V2FallbackEvent[], query: string) {
+  const assigned = assignV2HomeEventImages(events);
+  const normalizedQuery = query.toLocaleLowerCase("es-ES");
+  const visibleIndexes = events
+    .map((candidate, index) => ({ candidate, index }))
+    .filter(({ candidate }) => String(candidate.title).toLocaleLowerCase("es-ES").includes(normalizedQuery));
+  const visibleEvents = visibleIndexes.map(({ candidate }) => candidate);
+  const visibleAssigned = visibleIndexes.map(({ index }) => assigned[index]);
+  return {
+    before: visibleAssigned.map(({ fallbackId, kind }) => fallbackId ?? kind),
+    after: rebalanceVisibleV2EventImages(visibleEvents, visibleAssigned).map(({ fallbackId, kind }) => fallbackId ?? kind),
+  };
+}
+
+function mixedSubtypeEvents(
+  prefix: string,
+  discipline: string,
+  vehicleType: string,
+  title: string,
+  count = 3,
+): V2FallbackEvent[] {
+  const matching = Array.from({ length: count }, (_, index) => event({
+    id: `${prefix}-${index}`,
+    slug: `${prefix}-${index}`,
+    title: `${title} ${index}`,
+    discipline,
+    vehicleType,
+  }));
+  return matching.flatMap((candidate, index) => index === matching.length - 1
+    ? [candidate]
+    : [candidate, event({
+        id: `${prefix}-separator-${index}`,
+        slug: `${prefix}-separator-${index}`,
+        title: index % 2 === 0 ? "Rally intermedio" : "Ruta intermedia",
+        discipline: index % 2 === 0 ? "Rally" : "Ruta",
+        vehicleType: index % 2 === 0 ? "Coche" : "Moto",
+      })]);
 }
 
 test("clasifica las ocho familias visuales sin convertir motos en disciplina", () => {
@@ -679,4 +719,94 @@ test("un cambio de subtipo entre tarjetas no contamina la seleccion siguiente", 
   assert.equal(assigned[2].fallbackId, "offroad-12");
   assert.equal(["offroad-15", "offroad-16"].includes(String(assigned[3].fallbackId)), true);
   assert.equal(assigned[3].interpretedSubtype, "cross-country");
+});
+
+test("corrige la secuencia visible real de Super Enduro tras buscar en un dataset mixto", () => {
+  const events = [
+    event({ id: "hidden-indoor", slug: "hidden-indoor", title: "Copa Indoor", discipline: "Enduro Indoor", vehicleType: "Moto" }),
+    event({ id: "super-enduro-lanzahita-2026-09-05", slug: "super-enduro-lanzahita-2026-09-05", title: "Super Enduro Lanzahita 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+    event({ id: "super-rally", slug: "super-rally", title: "Rally intermedio", discipline: "Rally", vehicleType: "Coche" }),
+    event({ id: "super-enduro-de-potes-2026-09-13", slug: "super-enduro-de-potes-2026-09-13", title: "Super Enduro de Potes 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+    event({ id: "super-route", slug: "super-route", title: "Ruta intermedia", discipline: "Ruta", vehicleType: "Moto" }),
+    event({ id: "super-enduro-de-reinosa-2026-09-26", slug: "super-enduro-de-reinosa-2026-09-26", title: "Super Enduro de Reinosa 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+  ];
+  const sequences = visiblePipelineFallbacks(events, "super enduro");
+  assert.deepEqual(sequences.before, ["offroad-17", "offroad-17", "offroad-08"]);
+  assert.deepEqual(sequences.after, ["offroad-17", "offroad-08", "offroad-17"]);
+});
+
+test("corrige Cross Country visible y mantiene Pitbike, Slalom y Autocross en su pool exacto", () => {
+  for (const scenario of [
+    ["cross", "Cross Country", "Moto", "Cross Country", ["offroad-15", "offroad-16"]],
+    ["pitbike", "Pitbike", "Moto", "Pitbike", ["circuito-09", "circuito-13"]],
+    ["slalom", "Slalom", "Coche", "Slalom", ["circuito-11", "circuito-12"]],
+    ["autocross", "Autocross", "Coche", "Autocross", ["offroad-13", "offroad-14"]],
+  ] as const) {
+    const [prefix, discipline, vehicle, query, pool] = scenario;
+    const sequences = visiblePipelineFallbacks(mixedSubtypeEvents(prefix, discipline, vehicle, query), query);
+    if (query === "Cross Country") {
+      assert.equal(sequences.before.slice(1).some((id, index) => id === sequences.before[index]), true, `${query} reproduce la colision visible`);
+    }
+    assert.equal(sequences.after.every((id) => pool.includes(id as never)), true, `${query} conserva el pool exacto`);
+    assertNoAdjacentDuplicates(sequences.after);
+  }
+});
+
+test("un filtro que reduce A-X-A produce A-B si hay alternativa equivalentemente valida", () => {
+  const events = [
+    event({ id: "reduced-a", slug: "reduced-a", title: "Objetivo Slalom A", discipline: "Slalom", vehicleType: "Coche" }),
+    event({ id: "reduced-x", slug: "reduced-x", title: "Copa de conos", discipline: "Slalom", vehicleType: "Coche" }),
+    event({ id: "reduced-b", slug: "reduced-b", title: "Objetivo Slalom B", discipline: "Slalom", vehicleType: "Coche" }),
+  ];
+  const sequences = visiblePipelineFallbacks(events, "objetivo");
+  assert.equal(sequences.before[0], sequences.before[1]);
+  assert.notEqual(sequences.after[0], sequences.after[1]);
+  assertClosedPool(sequences.after, ["circuito-11", "circuito-12"]);
+});
+
+test("una imagen real visible rompe la adyacencia y no se reequilibra", () => {
+  const first = event({ id: "real-break-a", slug: "real-break-a", title: "Super Enduro A", discipline: "Super Enduro", vehicleType: "Moto" });
+  const real = event({ id: "real-break-image", slug: "real-break-image", title: "Super Enduro con imagen real", discipline: "Super Enduro", vehicleType: "Moto", imageUrl: "https://images.example.com/super-enduro.webp" });
+  const third = event({ id: "real-break-b", slug: "real-break-b", title: "Super Enduro B", discipline: "Super Enduro", vehicleType: "Moto" });
+  const assigned = assignV2HomeEventImages([first, real, third]);
+  const visible = rebalanceVisibleV2EventImages([first, real, third], assigned);
+  assert.deepEqual(visible, assigned);
+  assert.equal(visible[1].kind, "event");
+});
+
+test("Trial Indoor visible conserva su unico candidato aunque quede adyacente", () => {
+  const sequences = visiblePipelineFallbacks(mixedSubtypeEvents("trial-filter", "Trial Indoor", "Moto", "Trial Indoor"), "trial indoor");
+  assert.deepEqual(sequences.before, ["offroad-12", "offroad-12", "offroad-12"]);
+  assert.deepEqual(sequences.after, sequences.before);
+});
+
+test("cambiar query A-B-A conserva exactamente el resultado determinista de A", () => {
+  const events = [
+    ...mixedSubtypeEvents("query-super", "Super Enduro", "Moto", "Super Enduro"),
+    ...mixedSubtypeEvents("query-cross", "Cross Country", "Moto", "Cross Country"),
+  ];
+  const firstA = visiblePipelineFallbacks(events, "super enduro").after;
+  const queryB = visiblePipelineFallbacks(events, "cross country").after;
+  const secondA = visiblePipelineFallbacks(events, "super enduro").after;
+  assert.deepEqual(secondA, firstA);
+  assertNoAdjacentDuplicates(queryB);
+});
+
+test("el rebalanceo visible preserva assignedByEvent para una stableKey repetida", () => {
+  const repeated = event({ id: "same-visible-event", slug: "same-visible-event", title: "Super Enduro repetido", discipline: "Super Enduro", vehicleType: "Moto" });
+  const other = event({ id: "other-visible-event", slug: "other-visible-event", title: "Super Enduro distinto", discipline: "Super Enduro", vehicleType: "Moto" });
+  const assigned = assignV2HomeEventImages([repeated, other, repeated]);
+  const visible = rebalanceVisibleV2EventImages([repeated, other, repeated], assigned);
+  assert.deepEqual(visible[2], visible[0]);
+});
+
+test("Motoalmuerzo visible no baja de tier para obtener diversidad", () => {
+  const events = mixedSubtypeEvents("motoalmuerzo-filter", "Concentraciones", "Moto", "Motoalmuerzo", 6);
+  const assigned = assignV2HomeEventImages(events);
+  const visibleEvents = events.filter(({ title }) => String(title).includes("Motoalmuerzo"));
+  const visibleAssigned = events.map((candidate, index) => ({ candidate, image: assigned[index] }))
+    .filter(({ candidate }) => String(candidate.title).includes("Motoalmuerzo"))
+    .map(({ image }) => image);
+  const rebalanced = rebalanceVisibleV2EventImages(visibleEvents, visibleAssigned);
+  assert.deepEqual(rebalanced.map(({ fallbackTier }) => fallbackTier), visibleAssigned.map(({ fallbackTier }) => fallbackTier));
 });

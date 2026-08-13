@@ -11,9 +11,9 @@ import {
 import EventCard from "./EventCard";
 import styles from "./RedesignV2.module.css";
 import {
+  buildVisiblePreviewResults,
   clearAppliedDateFilter,
   excludePreviewEventById,
-  filterPreviewEvents,
   formatPreviewSelectedDate,
   reconcileAppliedTextFilter,
   type PreviewEvent,
@@ -52,10 +52,12 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const gridEvents = useMemo(() => excludePreviewEventById(events, excludeEventId), [events, excludeEventId]);
   const suggestions = useMemo(() => buildPreviewSuggestions(gridEvents, draft.place), [gridEvents, draft.place]);
-  const filtered = useMemo(() => filterPreviewEvents(gridEvents, filters), [gridEvents, filters]);
+  const { filtered, visible, visibleImages } = useMemo(
+    () => buildVisiblePreviewResults(gridEvents, filters, imageByEventId),
+    [gridEvents, filters, imageByEventId],
+  );
   const hasActiveFilters = Object.values(filters).some(Boolean);
   const advancedFilterCount = [draft.date, draft.discipline, draft.vehicle].filter(Boolean).length;
-  const visible = filtered.slice(0, 9);
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
   const selectedDateLabel = formatPreviewSelectedDate(draft.date);
 
@@ -277,8 +279,8 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
 
       {visible.length ? (
         <div className={styles.eventGrid}>
-          {visible.map((event) => (
-            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={imageByEventId[event.id]} />
+          {visible.map((event, index) => (
+            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={visibleImages[index]} />
           ))}
         </div>
       ) : (

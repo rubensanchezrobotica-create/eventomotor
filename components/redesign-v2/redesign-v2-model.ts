@@ -1,5 +1,9 @@
 import type { EventItem } from "@/types/event";
-import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
+import {
+  assignV2HomeEventImages,
+  rebalanceVisibleV2EventImages,
+  type V2AssignedEventImage,
+} from "./discipline-fallback-resolver";
 
 export type PreviewEvent = Pick<
   EventItem,
@@ -20,14 +24,7 @@ export type PreviewEvent = Pick<
   | "imageUrl"
 >;
 
-export type ImageKind = "event" | "representative" | "neutral";
-
-export type ResolvedEventImage = {
-  src: string | null;
-  kind: ImageKind;
-  alt: string;
-  label?: "Imagen representativa";
-};
+export type ResolvedEventImage = V2AssignedEventImage;
 
 export type PreviewEventStatus = "Hoy" | "En curso" | "Próximamente";
 
@@ -313,6 +310,21 @@ export function filterPreviewEvents(events: readonly PreviewEvent[], filters: Se
     }
     return true;
   });
+}
+
+export function buildVisiblePreviewResults(
+  events: readonly PreviewEvent[],
+  filters: SearchFilters,
+  imageByEventId: Readonly<Record<string, ResolvedEventImage>>,
+  limit = 9,
+) {
+  const filtered = filterPreviewEvents(events, filters);
+  const visible = filtered.slice(0, limit);
+  const visibleImages = rebalanceVisibleV2EventImages(
+    visible,
+    visible.map((event) => imageByEventId[event.id]),
+  );
+  return { filtered, visible, visibleImages };
 }
 
 export function previewEventHref(event: PreviewEvent): string {

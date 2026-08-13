@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
+import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
+  buildVisiblePreviewResults,
   buildDisciplineCards,
   buildTerritoryCards,
   clearAppliedDateFilter,
@@ -46,6 +48,21 @@ function event(overrides: Partial<EventItem> = {}): EventItem {
   };
 }
 
+function mixedVisibleResults(events: readonly EventItem[], place: string) {
+  const projected = events.map(projectPreviewEvent);
+  const assigned = assignV2HomeEventImages(projected);
+  const imageByEventId = Object.fromEntries(projected.map((candidate, index) => [candidate.id, assigned[index]]));
+  const results = buildVisiblePreviewResults(
+    projected,
+    { place, date: "", discipline: "", vehicle: "" },
+    imageByEventId,
+  );
+  return {
+    ...results,
+    baseVisibleImages: results.visible.map((candidate) => imageByEventId[candidate.id]),
+  };
+}
+
 test("prioriza la imagen real y no la etiqueta como representativa", () => {
   const resolved = resolveRedesignEventImage(projectPreviewEvent(event({ imageUrl: "/event-images/rally.webp" })));
   assert.deepEqual(resolved, {
@@ -82,6 +99,57 @@ test("excluye de la parrilla únicamente el evento destacado por su identificado
   assert.deepEqual(excludePreviewEventById(original, featured.id).map(({ id }) => id), [sameTitle.id, regular.id]);
   assert.deepEqual(excludePreviewEventById(original, null).map(({ id }) => id), [featured.id, sameTitle.id, regular.id]);
   assert.equal(original.length, 3);
+});
+
+test("el pipeline real reequilibra Super Enduro despues de filtrar un dataset mixto", () => {
+  const events = [
+    event({ id: "hidden-indoor", slug: "hidden-indoor", title: "Copa Indoor", discipline: "Enduro Indoor", vehicleType: "Moto" }),
+    event({ id: "super-enduro-lanzahita-2026-09-05", slug: "super-enduro-lanzahita-2026-09-05", title: "Super Enduro Lanzahita 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+    event({ id: "super-rally", slug: "super-rally", title: "Rally intermedio", discipline: "Rally", vehicleType: "Coche" }),
+    event({ id: "super-enduro-de-potes-2026-09-13", slug: "super-enduro-de-potes-2026-09-13", title: "Super Enduro de Potes 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+    event({ id: "super-route", slug: "super-route", title: "Ruta intermedia", discipline: "Ruta", vehicleType: "Moto" }),
+    event({ id: "super-enduro-de-reinosa-2026-09-26", slug: "super-enduro-de-reinosa-2026-09-26", title: "Super Enduro de Reinosa 2026", discipline: "Super Enduro", vehicleType: "Moto" }),
+  ];
+  const { baseVisibleImages, filtered, visible, visibleImages } = mixedVisibleResults(events, "super enduro");
+  assert.deepEqual(filtered.map(({ id }) => id), [
+    "super-enduro-lanzahita-2026-09-05",
+    "super-enduro-de-potes-2026-09-13",
+    "super-enduro-de-reinosa-2026-09-26",
+  ]);
+  assert.deepEqual(visible, filtered);
+  assert.deepEqual(baseVisibleImages.map(({ fallbackId }) => fallbackId), ["offroad-17", "offroad-17", "offroad-08"]);
+  assert.deepEqual(visibleImages.map(({ fallbackId }) => fallbackId), ["offroad-17", "offroad-08", "offroad-17"]);
+});
+
+test("el pipeline real corrige Cross Country visible sin cambiar orden ni cantidad", () => {
+  const events = [
+    event({ id: "cross-a", slug: "cross-a", title: "Cross Country A", discipline: "Cross Country", vehicleType: "Moto" }),
+    event({ id: "cross-rally", slug: "cross-rally", title: "Rally intermedio", discipline: "Rally", vehicleType: "Coche" }),
+    event({ id: "cross-b", slug: "cross-b", title: "Cross Country B", discipline: "Cross Country", vehicleType: "Moto" }),
+    event({ id: "cross-route", slug: "cross-route", title: "Ruta intermedia", discipline: "Ruta", vehicleType: "Moto" }),
+    event({ id: "cross-c", slug: "cross-c", title: "Cross Country C", discipline: "Cross Country", vehicleType: "Moto" }),
+  ];
+  const { baseVisibleImages, filtered, visible, visibleImages } = mixedVisibleResults(events, "cross country");
+  assert.deepEqual(visible.map(({ id }) => id), filtered.map(({ id }) => id));
+  assert.equal(visible.length, 3);
+  assert.equal(baseVisibleImages.slice(1).some(({ fallbackId }, index) => fallbackId === baseVisibleImages[index].fallbackId), true);
+  assert.equal(visibleImages.every(({ fallbackId }) => ["offroad-15", "offroad-16"].includes(String(fallbackId))), true);
+  assert.equal(visibleImages.slice(1).some(({ fallbackId }, index) => fallbackId === visibleImages[index].fallbackId), false);
+});
+
+test("limpiar la query restaura el mismo orden y cantidad de la Home", () => {
+  const events = [
+    event({ id: "reset-super", slug: "reset-super", title: "Super Enduro reset", discipline: "Super Enduro", vehicleType: "Moto" }),
+    event({ id: "reset-rally", slug: "reset-rally", title: "Rally reset", discipline: "Rally", vehicleType: "Coche" }),
+    event({ id: "reset-route", slug: "reset-route", title: "Ruta reset", discipline: "Ruta", vehicleType: "Moto" }),
+  ];
+  const projected = events.map(projectPreviewEvent);
+  const assigned = assignV2HomeEventImages(projected);
+  const imageByEventId = Object.fromEntries(projected.map((candidate, index) => [candidate.id, assigned[index]]));
+  const filtered = buildVisiblePreviewResults(projected, { place: "super enduro", date: "", discipline: "", vehicle: "" }, imageByEventId);
+  const restored = buildVisiblePreviewResults(projected, { place: "", date: "", discipline: "", vehicle: "" }, imageByEventId);
+  assert.equal(filtered.visible.length, 1);
+  assert.deepEqual(restored.visible.map(({ id }) => id), projected.map(({ id }) => id));
 });
 
 test("ordena próximos eventos y excluye los ya finalizados", () => {
