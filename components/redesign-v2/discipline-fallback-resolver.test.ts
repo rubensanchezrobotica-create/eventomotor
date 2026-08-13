@@ -62,6 +62,10 @@ function assertClosedPool(actual: readonly string[], expected: readonly string[]
   assert.deepEqual(new Set(actual), new Set(expected));
 }
 
+function assertNoAdjacentDuplicates(actual: readonly string[]) {
+  assert.equal(actual.slice(1).some((id, index) => id === actual[index]), false);
+}
+
 test("clasifica las ocho familias visuales sin convertir motos en disciplina", () => {
   assert.equal(classifyV2FallbackEvent(event({ title: "Rallye de montaña", discipline: "Rally" }))?.discipline, "rallyes");
   assert.equal(classifyV2FallbackEvent(event({ title: "Tandas en circuito", discipline: "Velocidad" }))?.discipline, "circuito");
@@ -534,4 +538,145 @@ test("el ranking no depende del orden físico del manifiesto", () => {
   const natural = resolveV2EventImageCandidates(candidate).map(({ id }) => id);
   const reversed = resolveV2EventImageCandidates(candidate, [...V2_DISCIPLINE_FALLBACKS].reverse()).map(({ id }) => id);
   assert.deepEqual(reversed, natural);
+});
+
+test("evita un fallback adyacente identico cuando existe una alternativa same-tier", () => {
+  const sequence = assignedFallbackIds(8, { discipline: "Slalom", vehicleType: "Coche" });
+  assertClosedPool(sequence, ["circuito-11", "circuito-12"]);
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("agota los candidatos no usados antes de reutilizar una alternativa adyacente", () => {
+  const sequence = assignedFallbackIds(4, { discipline: "Motocross", vehicleType: "Moto" });
+  assert.deepEqual(new Set(sequence.slice(0, 3)), new Set(["offroad-03", "offroad-09", "offroad-10"]));
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("la proteccion adyacente no baja de tier para ganar variedad", () => {
+  const assigned = assignV2HomeEventImages(Array.from({ length: 8 }, (_, index) => event({
+    id: `motoalmuerzo-tier-${index}`,
+    slug: `motoalmuerzo-tier-${index}`,
+    title: `Motoalmuerzo ${index}`,
+    discipline: "Concentraciones",
+    vehicleType: "Moto",
+  })));
+  assert.deepEqual(new Set(assigned.filter(({ fallbackTier }) => fallbackTier === 1).map(({ fallbackId }) => fallbackId)), new Set([
+    "concentraciones-07",
+    "concentraciones-09",
+  ]));
+  assert.equal(assigned.slice(4).every(({ fallbackTier }) => fallbackTier === 1), true);
+  assertNoAdjacentDuplicates(assigned.slice(4).map(({ fallbackId }) => String(fallbackId)));
+});
+
+test("conserva la repeticion del mejor tier si la unica alternativa es inferior", () => {
+  const assigned = assignV2HomeEventImages(Array.from({ length: 4 }, (_, index) => event({
+    id: `generic-meet-tier-${index}`,
+    slug: `generic-meet-tier-${index}`,
+    title: `Concentracion motera ${index}`,
+    discipline: "Concentraciones",
+    vehicleType: "Moto",
+  })));
+  assert.deepEqual(assigned.map(({ fallbackTier }) => fallbackTier), [1, 2, 1, 1]);
+  assert.deepEqual(assigned.slice(2).map(({ fallbackId }) => fallbackId), [
+    "concentraciones-06",
+    "concentraciones-06",
+  ]);
+});
+
+test("permite la repeticion cuando el pool efectivo tiene un unico candidato", () => {
+  assert.deepEqual(
+    assignedFallbackIds(5, { discipline: "Supermotard", vehicleType: "Moto" }),
+    Array(5).fill("circuito-10"),
+  );
+});
+
+test("la proteccion adyacente mantiene el determinismo para el mismo dataset y orden", () => {
+  const events = Array.from({ length: 10 }, (_, index) => event({
+    id: `deterministic-cross-country-${index}`,
+    slug: `deterministic-cross-country-${index}`,
+    discipline: "Cross Country",
+    vehicleType: "Moto",
+  }));
+  assert.deepEqual(assignV2HomeEventImages(events), assignV2HomeEventImages(events));
+});
+
+test("una imagen real conserva prioridad y separa la comparacion entre fallbacks", () => {
+  const fallbackBefore = event({
+    id: "fallback-before-real",
+    slug: "fallback-before-real",
+    discipline: "Supermotard",
+    vehicleType: "Moto",
+  });
+  const fallbackAfter = event({
+    id: "fallback-after-real",
+    slug: "fallback-after-real",
+    discipline: "Supermotard",
+    vehicleType: "Moto",
+  });
+  const assigned = assignV2HomeEventImages([
+    fallbackBefore,
+    event({ id: "real-between", slug: "real-between", imageUrl: "https://images.example.com/real-between.webp" }),
+    fallbackAfter,
+  ]);
+  assert.equal(assigned[1].kind, "event");
+  assert.equal(assigned[1].src, "https://images.example.com/real-between.webp");
+  assert.equal(assigned[0].fallbackId, assigned[2].fallbackId);
+});
+
+test("Super Enduro alterna exclusivamente sus dos candidatos equivalentes", () => {
+  const sequence = assignedFallbackIds(8, { discipline: "SuperEnduro", vehicleType: "Moto" });
+  assertClosedPool(sequence, ["offroad-08", "offroad-17"]);
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("Cross Country evita duplicados adyacentes dentro de su pool cerrado", () => {
+  const sequence = assignedFallbackIds(10, { discipline: "Cross Country", vehicleType: "Moto" });
+  assertClosedPool(sequence, ["offroad-15", "offroad-16"]);
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("Pitbike evita duplicados adyacentes dentro de su pool cerrado", () => {
+  const sequence = assignedFallbackIds(8, { discipline: "Pitbike", vehicleType: "Moto" });
+  assertClosedPool(sequence, ["circuito-09", "circuito-13"]);
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("Trial Indoor conserva correctamente su unico fallback aunque se repita", () => {
+  assert.deepEqual(
+    assignedFallbackIds(8, { discipline: "Trial Indoor", vehicleType: "Moto" }),
+    Array(8).fill("offroad-12"),
+  );
+});
+
+test("Motoalmuerzo no promociona secundarios para corregir una repeticion exacta", () => {
+  const assigned = assignV2HomeEventImages(Array.from({ length: 8 }, (_, index) => event({
+    id: `motoalmuerzo-adjacent-${index}`,
+    slug: `motoalmuerzo-adjacent-${index}`,
+    title: `Motoalmuerzo ${index}`,
+    discipline: "Concentraciones",
+    vehicleType: "Moto",
+  })));
+  const tail = assigned.slice(4);
+  assert.equal(tail.every(({ fallbackTier }) => fallbackTier === 1), true);
+  assert.equal(tail.every(({ fallbackId }) => ["concentraciones-07", "concentraciones-09"].includes(String(fallbackId))), true);
+  assertNoAdjacentDuplicates(tail.map(({ fallbackId }) => String(fallbackId)));
+});
+
+test("Autocross evita duplicados adyacentes sin salir de su pool", () => {
+  const sequence = assignedFallbackIds(8, { discipline: "Autocross", vehicleType: "Coche" });
+  assertClosedPool(sequence, ["offroad-13", "offroad-14"]);
+  assertNoAdjacentDuplicates(sequence);
+});
+
+test("un cambio de subtipo entre tarjetas no contamina la seleccion siguiente", () => {
+  const events = [
+    event({ id: "cross-1", slug: "cross-1", discipline: "Cross Country", vehicleType: "Moto" }),
+    event({ id: "cross-2", slug: "cross-2", discipline: "Cross Country", vehicleType: "Moto" }),
+    event({ id: "trial-indoor", slug: "trial-indoor", discipline: "Trial Indoor", vehicleType: "Moto" }),
+    event({ id: "cross-3", slug: "cross-3", discipline: "Cross Country", vehicleType: "Moto" }),
+  ];
+  const assigned = assignV2HomeEventImages(events);
+  assert.equal(assigned[2].fallbackId, "offroad-12");
+  assert.equal(["offroad-15", "offroad-16"].includes(String(assigned[3].fallbackId)), true);
+  assert.equal(assigned[3].interpretedSubtype, "cross-country");
 });

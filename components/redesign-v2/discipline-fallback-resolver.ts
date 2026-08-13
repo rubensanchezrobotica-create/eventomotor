@@ -546,29 +546,54 @@ function realEventImage(event: V2FallbackEvent): V2AssignedEventImage | null {
   };
 }
 
+function equivalentAdjacentAlternative(
+  candidates: readonly V2EventImageCandidate[],
+  selected: V2EventImageCandidate,
+  previous: V2AssignedEventImage | null,
+  usedFallbackIds: ReadonlySet<string>,
+): V2EventImageCandidate | null {
+  if (previous?.kind !== "representative" || previous.fallbackId !== selected.id) return null;
+  const hasUnusedCandidate = candidates.some(({ id }) => !usedFallbackIds.has(id));
+  return candidates.find((candidate) => (
+    candidate.id !== selected.id
+    && candidate.tier === selected.tier
+    && candidate.discipline === selected.discipline
+    && candidate.vehicle === selected.vehicle
+    && (!hasUnusedCandidate || !usedFallbackIds.has(candidate.id))
+  )) ?? null;
+}
+
 export function assignV2HomeEventImages(events: readonly V2FallbackEvent[]): V2AssignedEventImage[] {
   const usedFallbackIds = new Set<string>();
   const assignedByEvent = new Map<string, V2AssignedEventImage>();
+  let previousAssignedImage: V2AssignedEventImage | null = null;
 
   return events.map((event) => {
     const stableKey = stableV2EventKey(event);
     const existing = assignedByEvent.get(stableKey);
-    if (existing) return existing;
+    if (existing) {
+      previousAssignedImage = existing;
+      return existing;
+    }
 
     const ownImage = realEventImage(event);
     if (ownImage) {
       assignedByEvent.set(stableKey, ownImage);
+      previousAssignedImage = ownImage;
       return ownImage;
     }
 
     const classification = classifyV2FallbackEvent(event);
     const candidates = resolveV2EventImageCandidates(event);
-    const selected = candidates.find(({ id }) => !usedFallbackIds.has(id)) ?? candidates[0];
-    if (!selected || !classification) {
+    const normalSelection = candidates.find(({ id }) => !usedFallbackIds.has(id)) ?? candidates[0];
+    if (!normalSelection || !classification) {
       const neutral = { src: null, kind: "neutral", alt: "" } as const;
       assignedByEvent.set(stableKey, neutral);
+      previousAssignedImage = neutral;
       return neutral;
     }
+    const selected = equivalentAdjacentAlternative(candidates, normalSelection, previousAssignedImage, usedFallbackIds)
+      ?? normalSelection;
 
     usedFallbackIds.add(selected.id);
     const assigned: V2AssignedEventImage = {
@@ -584,6 +609,7 @@ export function assignV2HomeEventImages(events: readonly V2FallbackEvent[]): V2A
       interpretedSubtype: classification.subtype,
     };
     assignedByEvent.set(stableKey, assigned);
+    previousAssignedImage = assigned;
     return assigned;
   });
 }
