@@ -50,6 +50,8 @@ const EDITION_DIRECTORY = "docs/newsletter/ediciones/2026-08-13";
 const UNSUBSCRIBE_URL =
   "https://www.eventomotor.com/newsletter/unsubscribe?token=edition02-preview-token-fixture-000000000000";
 const CAMPAIGN_ID = "12000000-0000-4000-8000-000000000001";
+const EDITION_02_HEADER_ASSET_SHA256 =
+  "65a06197b671ec948083e54b70400aa50716caf93f57bb02192c27c7c8c4f041";
 
 async function sourceFixture(): Promise<NewsletterEdition02Source> {
   const [html, text, assetManifest, entries] = await Promise.all([
@@ -274,6 +276,35 @@ test("production HTML keeps exactly seven absolute production asset URLs", async
     ),
   );
   assert.doesNotMatch(html, /src=["']assets\//i);
+});
+
+test("the fixed opaque header follows the Edition 01 email-safe pattern", async () => {
+  const source = await sourceFixture();
+  const docsHeader = source.assets["eventomotor-header.png"];
+  const publicHeader = await readFile(
+    resolve(
+      ROOT,
+      "public/newsletter/2026-08-13/assets/eventomotor-header.png",
+    ),
+  );
+
+  assert.ok(docsHeader);
+  for (const header of [docsHeader, publicHeader]) {
+    assert.equal(
+      createHash("sha256").update(header).digest("hex"),
+      EDITION_02_HEADER_ASSET_SHA256,
+    );
+  }
+  assert.deepEqual(Buffer.from(docsHeader), publicHeader);
+  assert.match(
+    source.html,
+    /class="email-header"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?class="email-header-table"[^>]+bgcolor="#050608"[^>]*>[\s\S]*?<img[^>]+eventomotor-header\.png[^>]+width="620"/,
+  );
+  assert.match(
+    source.html,
+    /alt="EventoMotor · La Agenda Motor · Edición 02 · 14–16 agosto 2026"/,
+  );
+  assert.doesNotMatch(source.html, /eventomotor-logo\.png/);
 });
 
 test("the national variant has six events and no territorial block", async () => {
