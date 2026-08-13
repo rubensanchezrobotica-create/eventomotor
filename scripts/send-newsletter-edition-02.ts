@@ -11,7 +11,9 @@ async function main(): Promise<void> {
   );
   await executeNewsletterEdition02Campaign({
     request,
-    environment: newsletterEdition02CampaignEnvironmentFromProcess(request.send),
+    environment: newsletterEdition02CampaignEnvironmentFromProcess(
+      request.send,
+    ),
     logger: (message) => console.log(message),
   });
 }

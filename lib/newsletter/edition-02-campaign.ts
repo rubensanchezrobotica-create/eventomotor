@@ -38,6 +38,7 @@ const SAFE_IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_./:-]{1,256}$/;
 
 export type NewsletterEdition02CampaignRequest = {
   send: boolean;
+  prepareOnly: boolean;
   resume: boolean;
   limit: number;
   confirmEdition?: string;
@@ -165,7 +166,7 @@ export type ExecuteNewsletterEdition02CampaignOptions = {
 };
 
 export type NewsletterEdition02CampaignResult = {
-  status: "dry_run" | "completed";
+  status: "dry_run" | "prepared" | "completed";
   identity: NewsletterEdition02CampaignIdentity;
   digest: string;
   processedCount: number;
@@ -221,10 +222,10 @@ function assertSafeEnvironment(
   if (environment.nodeEnv === "production") fail("production_runtime_blocked");
 }
 
-function assertSendGates(
+function assertMutationGates(
   request: NewsletterEdition02CampaignRequest,
   environment: NewsletterEdition02CampaignEnvironment,
-): string {
+): void {
   if (request.confirmEdition !== NEWSLETTER_EDITION_02_CAMPAIGN_KEY) {
     fail("edition_confirmation_invalid");
   }
@@ -239,6 +240,11 @@ function assertSendGates(
   if (environment.publicLaunchEnabled !== "public-newsletter-live") {
     fail("public_launch_not_armed");
   }
+}
+
+function requireResendApiKey(
+  environment: NewsletterEdition02CampaignEnvironment,
+): string {
   if (
     !environment.apiKey ||
     environment.apiKey.length < 20 ||
@@ -249,6 +255,11 @@ function assertSendGates(
     fail("api_key_unavailable");
   }
   return environment.apiKey;
+}
+
+function assertRequestMode(request: NewsletterEdition02CampaignRequest): void {
+  if (request.send && request.prepareOnly) fail("send_prepare_only_conflict");
+  if (request.resume && !request.send) fail("resume_requires_send");
 }
 
 function assertSummary(summary: NewsletterEdition02CampaignSummary): void {
@@ -354,6 +365,8 @@ function logSummary(
   summary: NewsletterEdition02CampaignSummary,
 ): void {
   logger(`Campaign: ${identity.editionKey}`);
+  logger(`Campaign ID: ${summary.campaignId ?? "not-created"}`);
+  logger(`Campaign status: ${summary.campaignStatus}`);
   logger(`Digest: ${digest}`);
   logger(`Content manifest: ${identity.contentManifestDigest}`);
   logger(`Subject: ${identity.subject}`);
@@ -365,7 +378,7 @@ function logSummary(
   logger(`Excluded: ${summary.excludedCount}`);
   logger(`Duplicates: ${summary.duplicateCount}`);
   logger(`Invalid: ${summary.invalidCount}`);
-  logger(`Audience frozen: ${summary.audienceFrozenAt ? "yes" : "no"}`);
+  logger(`Audience frozen at: ${summary.audienceFrozenAt ?? "not-frozen"}`);
   logger(`Prepared: ${summary.preparedCount}`);
   logger(`Previously accepted: ${summary.acceptedCount}`);
   logger(`Failed: ${summary.failedCount}`);
@@ -373,12 +386,12 @@ function logSummary(
   logger(`Pending claims: ${summary.preparedCount + summary.retryableCount}`);
 }
 
-async function recordUnknownSafely(
+async function recordUnknownAndStop(
   repository: NewsletterEdition02CampaignRepository,
   claim: NewsletterEdition02CampaignClaim,
   errorCode: string,
   occurredAt: string,
-): Promise<void> {
+): Promise<never> {
   try {
     await repository.recordUnknown({
       deliveryId: claim.deliveryId,
@@ -387,8 +400,9 @@ async function recordUnknownSafely(
       occurredAt,
     });
   } catch {
-    // The next claim converts a stale sending lease to unknown and does not retry it.
+    fail("unknown_persistence_failed");
   }
+  fail("provider_result_unknown");
 }
 
 export async function executeNewsletterEdition02Campaign(
@@ -398,6 +412,7 @@ export async function executeNewsletterEdition02Campaign(
   const logger = options.logger ?? (() => undefined);
   const identity = newsletterEdition02CampaignIdentity();
   const digest = newsletterEdition02CampaignDigest(identity);
+  assertRequestMode(options.request);
   assertSafeEnvironment(environment);
   if (
     options.sender !== NEWSLETTER_EDITION_02_SENDER ||
@@ -408,7 +423,7 @@ export async function executeNewsletterEdition02Campaign(
   validateEdition02SourceIntegrity(options.source);
   if (identity.subject.startsWith("[PRUEBA]")) fail("test_subject_blocked");
 
-  if (!options.request.send) {
+  if (!options.request.send && !options.request.prepareOnly) {
     const summary = await options.repository.previewCampaign(identity);
     assertSummary(summary);
     logSummary(logger, identity, digest, summary);
@@ -422,15 +437,36 @@ export async function executeNewsletterEdition02Campaign(
     };
   }
 
-  const apiKey = assertSendGates(options.request, environment);
-  if (!options.clientFactory || !options.tokenFactory || !options.tokenHasher) {
-    fail("server_dependencies_unavailable");
-  }
+  assertMutationGates(options.request, environment);
+  const apiKey = options.request.send ? requireResendApiKey(environment) : null;
   const preparedSummary = await options.repository.prepareCampaign(identity);
   assertSummary(preparedSummary);
   if (!preparedSummary.campaignId || !preparedSummary.audienceFrozenAt) {
     fail("campaign_not_frozen");
   }
+  logSummary(logger, identity, digest, preparedSummary);
+
+  if (options.request.prepareOnly) {
+    logger("Prepare-only complete. Audience frozen; no delivery was claimed and no email was sent.");
+    return {
+      status: "prepared",
+      identity,
+      digest,
+      processedCount: 0,
+      summary: preparedSummary,
+    };
+  }
+
+  if (
+    preparedSummary.campaignStatus === "paused" ||
+    preparedSummary.unknownCount > 0
+  ) {
+    fail("campaign_paused_unknown");
+  }
+  if (!options.clientFactory || !options.tokenFactory || !options.tokenHasher) {
+    fail("server_dependencies_unavailable");
+  }
+  if (!apiKey) fail("api_key_unavailable");
 
   const client = options.clientFactory(apiKey);
   const now = options.now ?? (() => new Date());
@@ -466,30 +502,27 @@ export async function executeNewsletterEdition02Campaign(
       idempotencyKey: claim.idempotencyKey,
     };
     const occurredAt = now().toISOString();
-    let providerResult: NewsletterEdition02CampaignClientResult;
+    let providerResult: NewsletterEdition02CampaignClientResult | null = null;
     try {
       providerResult = await client.sendEmail(payload);
     } catch {
-      await recordUnknownSafely(
+      await recordUnknownAndStop(
         options.repository,
         claim,
         "provider_connection_unknown",
         occurredAt,
       );
-      processedCount += 1;
-      continue;
     }
+    if (!providerResult) fail("provider_result_invalid");
 
     if (providerResult.status === "accepted") {
       if (!SAFE_PROVIDER_ID_PATTERN.test(providerResult.providerMessageId)) {
-        await recordUnknownSafely(
+        await recordUnknownAndStop(
           options.repository,
           claim,
           "provider_response_unknown",
           occurredAt,
         );
-        processedCount += 1;
-        continue;
       }
       try {
         await options.repository.recordAccepted({
@@ -499,23 +532,27 @@ export async function executeNewsletterEdition02Campaign(
           occurredAt,
         });
       } catch {
-        await recordUnknownSafely(
-          options.repository,
-          claim,
-          "accepted_persistence_unknown",
-          occurredAt,
-        );
+        try {
+          await options.repository.recordUnknown({
+            deliveryId: claim.deliveryId,
+            claimId: claim.claimId,
+            errorCode: "accepted_persistence_unknown",
+            occurredAt,
+          });
+        } catch {
+          fail("unknown_persistence_failed");
+        }
         fail("accepted_persistence_unknown");
       }
     } else {
       const failure = safeProviderFailure(providerResult);
       if (failure.unknown) {
-        await options.repository.recordUnknown({
-          deliveryId: claim.deliveryId,
-          claimId: claim.claimId,
-          errorCode: failure.errorCode,
+        await recordUnknownAndStop(
+          options.repository,
+          claim,
+          failure.errorCode,
           occurredAt,
-        });
+        );
       } else {
         await options.repository.recordFailed({
           deliveryId: claim.deliveryId,
@@ -547,16 +584,22 @@ export function parseNewsletterEdition02CampaignArguments(
 ): NewsletterEdition02CampaignRequest {
   const request: NewsletterEdition02CampaignRequest = {
     send: false,
+    prepareOnly: false,
     resume: false,
     limit: DEFAULT_LIMIT,
   };
   const seen = new Set<string>();
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument === "--send" || argument === "--resume") {
+    if (
+      argument === "--send" ||
+      argument === "--prepare-only" ||
+      argument === "--resume"
+    ) {
       if (seen.has(argument)) fail("duplicate_argument");
       seen.add(argument);
       if (argument === "--send") request.send = true;
+      if (argument === "--prepare-only") request.prepareOnly = true;
       if (argument === "--resume") request.resume = true;
       continue;
     }
@@ -582,6 +625,7 @@ export function parseNewsletterEdition02CampaignArguments(
     if (argument === "--confirm-edition") request.confirmEdition = value;
     if (argument === "--confirm-phrase") request.confirmPhrase = value;
   }
+  if (request.send && request.prepareOnly) fail("send_prepare_only_conflict");
   if (request.resume && !request.send) fail("resume_requires_send");
   return request;
 }
