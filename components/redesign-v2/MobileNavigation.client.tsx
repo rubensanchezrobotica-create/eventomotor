@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import styles from "./RedesignV2.module.css";
 
-const items = [
+const defaultItems = [
   { href: "/#calendario", label: "Calendario" },
   { href: "/disciplinas", label: "Disciplinas" },
   { href: "/zonas", label: "Zonas" },
@@ -12,7 +12,17 @@ const items = [
   { href: "/publicar-evento", label: "Publicar evento" },
 ] as const;
 
-export default function MobileNavigation() {
+export type MobileNavigationItem = {
+  href: string;
+  label: string;
+  previewFallback?: "production";
+};
+
+type MobileNavigationProps = {
+  items?: readonly MobileNavigationItem[];
+};
+
+export default function MobileNavigation({ items = defaultItems }: MobileNavigationProps) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -48,7 +58,12 @@ export default function MobileNavigation() {
       {open ? (
         <nav aria-label="Navegación móvil" className={styles.mobileMenu} id={panelId}>
           {items.map((item) => (
-            <Link href={item.href} key={item.href} onClick={() => setOpen(false)}>
+            <Link
+              data-preview-fallback={item.previewFallback}
+              href={item.href}
+              key={item.href}
+              onClick={() => setOpen(false)}
+            >
               {item.label}
             </Link>
           ))}
