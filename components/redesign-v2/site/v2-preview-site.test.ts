@@ -16,6 +16,7 @@ test("el shell interior conserva breadcrumbs, PageHero y footer configurables", 
 test("el registry no define Search como página y marca fallbacks de producción", () => {
   assert.doesNotMatch(navigation, /["']search["']|\/buscar/i);
   assert.match(navigation, /home:[\s\S]*?previewHref:\s*"\/preview\/redesign-v2"/);
+  assert.match(navigation, /calendar:[\s\S]*?previewHref:\s*"\/preview\/redesign-v2\/calendario"/);
   assert.match(navigation, /previewFallback:\s*"production"/);
 });
 

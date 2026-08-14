@@ -29,7 +29,7 @@ export type ResolvedPreviewNavigationItem = {
 export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNavigationDefinition>> = {
   home: { id: "home", label: "Inicio", productionHref: "/", previewHref: "/preview/redesign-v2" },
   weekend: { id: "weekend", label: "Este fin de semana", productionHref: "/eventos-motor-este-fin-de-semana" },
-  calendar: { id: "calendar", label: "Calendario", productionHref: "/calendario" },
+  calendar: { id: "calendar", label: "Calendario", productionHref: "/calendario", previewHref: "/preview/redesign-v2/calendario" },
   disciplines: { id: "disciplines", label: "Disciplinas", productionHref: "/disciplinas" },
   territories: { id: "territories", label: "Territorios", productionHref: "/zonas" },
   newsletter: { id: "newsletter", label: "Newsletter", productionHref: "/newsletter" },
