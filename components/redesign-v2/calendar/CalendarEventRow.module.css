@@ -1,0 +1,227 @@
+.row {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) 124px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #2d343e;
+  border-radius: 10px;
+  background: #10151b;
+}
+
+.imageLink {
+  position: relative;
+  min-height: 132px;
+  overflow: hidden;
+  background: #171c22;
+}
+
+.image,
+.imageFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  object-fit: cover;
+}
+
+.imageFallback {
+  align-items: center;
+  justify-content: center;
+  color: #ff6200;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  font-style: normal;
+}
+
+.imageLabel {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgba(5, 7, 10, 0.82);
+  color: #d8dbe0;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.content {
+  min-width: 0;
+  padding: 17px 20px;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badges span {
+  padding: 3px 7px;
+  border: 1px solid #3b434e;
+  border-radius: 999px;
+  color: #b9bec5;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badges .status {
+  border-color: rgba(255, 98, 0, 0.48);
+  color: #ff7a27;
+}
+
+.content h3 {
+  margin: 10px 0 7px;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.08rem, 1.8vw, 1.38rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.content h3 a:hover {
+  color: #ff7a27;
+}
+
+.date,
+.location {
+  margin: 0;
+  color: #aeb4bc;
+  font-size: 0.78rem;
+}
+
+.location {
+  margin-top: 4px;
+  color: #858d97;
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 15px;
+  border-left: 1px solid #2d343e;
+}
+
+.actions :global(.emc-btn),
+.actions :global(.emc-link-button) {
+  width: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #414a56;
+  border-radius: 6px;
+  background: #171d24;
+  color: #f5f5f2;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.actions :global(.emc-btn:hover),
+.actions :global(.emc-link-button:hover) {
+  border-color: #ff6200;
+  color: #ff7a27;
+}
+
+.actions :global(.emc-saved-event-button) {
+  border-color: #ff6200;
+  color: #ff7a27;
+}
+
+.actions :global(.emc-icon-action-saved) {
+  border-color: #ff6200;
+  color: #ff7a27;
+}
+
+.actions :global(.emc-icon-action svg) {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 128px minmax(0, 1fr);
+  }
+
+  .imageLink {
+    min-height: 128px;
+  }
+
+  .image {
+    object-position: center 45%;
+  }
+
+  .content {
+    padding: 13px 14px;
+  }
+
+  .content h3 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 1.03rem;
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding: 10px;
+    border-top: 1px solid #2d343e;
+    border-left: 0;
+  }
+
+  .actions :global(.emc-btn),
+  .actions :global(.emc-link-button) {
+    flex: 0 0 46px;
+  }
+}
+
+@media (max-width: 360px) {
+  .row {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .imageLink {
+    min-height: 112px;
+  }
+
+  .content {
+    padding: 12px 10px;
+  }
+
+  .content h3 {
+    font-size: 0.96rem;
+  }
+
+  .badges {
+    gap: 4px;
+  }
+
+  .badges span {
+    padding-inline: 5px;
+    font-size: 0.57rem;
+  }
+
+  .badges span:nth-child(n + 3) {
+    display: none;
+  }
+
+  .actions :global(.emc-btn),
+  .actions :global(.emc-link-button) {
+    padding: 0;
+  }
+}

@@ -19,19 +19,17 @@ type V2PreviewShellProps = {
   currentNavigationId?: PreviewNavigationId;
   description: string;
   eyebrow: string;
+  heroImageSrc?: string;
   title: string;
   upcomingCount: number;
 };
 
-const desktopNavigation = ["home", "weekend", "calendar", "disciplines", "territories"] as const;
+const desktopNavigation = ["calendar", "disciplines", "territories", "contact"] as const;
 const mobileNavigation = [
-  "home",
-  "weekend",
   "calendar",
   "disciplines",
   "territories",
-  "newsletter",
-  "favorites",
+  "contact",
   "publish",
 ] as const;
 
@@ -41,6 +39,7 @@ export default function V2PreviewShell({
   currentNavigationId,
   description,
   eyebrow,
+  heroImageSrc,
   title,
   upcomingCount,
 }: V2PreviewShellProps) {
@@ -66,7 +65,6 @@ export default function V2PreviewShell({
             ))}
           </nav>
           <div className={styles.navActions}>
-            <PreviewAwareLink className={styles.favoritesLink} navigationId="favorites" />
             <PreviewAwareLink className={styles.publishButton} navigationId="publish" />
             <InteriorMobileNavigation items={resolvePreviewNavigationItems(mobileNavigation)} />
           </div>
@@ -74,26 +72,25 @@ export default function V2PreviewShell({
       </header>
 
       <main id="contenido-redesign-v2-interior">
-        <div className={`${styles.shell} ${styles.breadcrumbWrap}`}>
-          <nav aria-label="Migas de pan">
-            <ol className={styles.breadcrumbs}>
-              {breadcrumbs.map((item, index) => (
-                <li key={`${item.label}-${index}`}>
-                  {item.navigationId ? (
-                    <PreviewAwareLink navigationId={item.navigationId}>{item.label}</PreviewAwareLink>
-                  ) : (
-                    <span aria-current="page">{item.label}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </nav>
-        </div>
-
-        <section className={`${styles.shell} ${styles.pageHero}`} aria-labelledby="redesign-v2-interior-title">
-          <span className={styles.eyebrow}>{eyebrow}</span>
-          <h1 id="redesign-v2-interior-title">{title}</h1>
-          <p>{description}</p>
+        <section
+          className={styles.pageHero}
+          aria-labelledby="redesign-v2-interior-title"
+          style={heroImageSrc ? { backgroundImage: `linear-gradient(90deg, rgba(5, 7, 10, 0.96) 0%, rgba(5, 7, 10, 0.8) 48%, rgba(5, 7, 10, 0.28) 100%), url(${heroImageSrc})` } : undefined}
+        >
+          <div className={`${styles.shell} ${styles.pageHeroInner}`}>
+            <nav aria-label="Migas de pan" className={styles.breadcrumbWrap}>
+              <ol className={styles.breadcrumbs}>
+                {breadcrumbs.map((item, index) => (
+                  <li key={`${item.label}-${index}`}>
+                    {item.navigationId ? <PreviewAwareLink navigationId={item.navigationId}>{item.label}</PreviewAwareLink> : <span aria-current="page">{item.label}</span>}
+                  </li>
+                ))}
+              </ol>
+            </nav>
+            <span className={styles.eyebrow}>{eyebrow}</span>
+            <h1 id="redesign-v2-interior-title">{title}</h1>
+            <p>{description}</p>
+          </div>
         </section>
 
         {children}

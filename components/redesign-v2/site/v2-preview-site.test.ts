@@ -6,11 +6,19 @@ const shell = readFileSync(new URL("./V2PreviewShell.tsx", import.meta.url), "ut
 const navigation = readFileSync(new URL("./preview-navigation.ts", import.meta.url), "utf8");
 const mobileNavigation = readFileSync(new URL("./InteriorMobileNavigation.client.tsx", import.meta.url), "utf8");
 
-test("el shell interior conserva breadcrumbs, PageHero y footer configurables", () => {
+test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer configurables", () => {
   assert.match(shell, /breadcrumbs\.map/);
   assert.match(shell, /<h1 id="redesign-v2-interior-title">\{title\}<\/h1>/);
   assert.match(shell, /<p>\{description\}<\/p>/);
+  assert.match(shell, /heroImageSrc/);
   assert.match(shell, /<footer className=\{styles\.footer\}>/);
+});
+
+test("la navegación primaria interior contiene sólo Calendario, Disciplinas, Zonas y Contacto", () => {
+  assert.match(shell, /const desktopNavigation = \["calendar", "disciplines", "territories", "contact"\]/);
+  assert.match(navigation, /territories:[\s\S]*?label:\s*"Zonas"[\s\S]*?productionHref:\s*"\/zonas"/);
+  assert.doesNotMatch(shell, /const desktopNavigation = \[[^\]]*"home"/);
+  assert.doesNotMatch(shell, /const desktopNavigation = \[[^\]]*"weekend"/);
 });
 
 test("el registry no define Search como página y marca fallbacks de producción", () => {

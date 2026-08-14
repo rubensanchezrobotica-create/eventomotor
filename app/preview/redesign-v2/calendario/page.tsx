@@ -41,9 +41,10 @@ export default async function CalendarPreviewPage({ searchParams }: CalendarPrev
     <V2PreviewShell
       breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Calendario" }]}
       currentNavigationId="calendar"
-      description="Elige un día y descubre qué eventos de motor se celebran en toda España."
+      description="Descubre todos los eventos de motor en España por fecha."
       eyebrow="Agenda motor"
-      title="Calendario de eventos de motor"
+      heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
+      title="Calendario de eventos"
       upcomingCount={upcomingCount}
     >
       <CalendarPageExperience events={events} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} today={today} />

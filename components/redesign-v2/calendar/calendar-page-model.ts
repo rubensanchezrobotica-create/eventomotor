@@ -1,13 +1,14 @@
 import type { PreviewEvent } from "../redesign-v2-model";
 
 export const CALENDAR_PAGE_SIZE = 12;
+export const CALENDAR_LIST_PAGE_SIZE = 20;
 export const CALENDAR_ROUTE = "/preview/redesign-v2/calendario";
 
 export const CALENDAR_DISCIPLINES = [
   { value: "rallyes", label: "Rallyes", terms: ["rally", "rallye", "rallysprint", "subida", "montana"] },
   { value: "circuito", label: "Circuito", terms: ["circuito", "trackday", "tandas", "velocidad", "motogp", "superbike"] },
   { value: "concentraciones", label: "Concentraciones", terms: ["concentracion", "motoalmuerzo", "bikers", "motero"] },
-  { value: "offroad", label: "Offroad", terms: ["offroad", "motocross", "enduro", "trial", "cross country", "raid"] },
+  { value: "offroad", label: "Offroad", terms: ["offroad", "motocross", "supercross", "enduro", "trial", "cross country", "raid"] },
   { value: "clasicos", label: "Clásicos", terms: ["clasico", "clasica", "historico", "retro"] },
   { value: "karting", label: "Karting", terms: ["kart", "karting"] },
   { value: "rutas", label: "Rutas", terms: ["ruta", "mototurismo", "touring", "road trip"] },
@@ -21,12 +22,15 @@ export const CALENDAR_VEHICLES = [
   { value: "otros", label: "Otros" },
 ] as const;
 
+export type CalendarView = "month" | "week" | "list";
+
 export type CalendarUrlState = {
   date: string;
   place: string;
   discipline: string;
   vehicle: string;
   page: number;
+  view: CalendarView;
 };
 
 export type CalendarQueryRecord = Record<string, string | string[] | undefined>;
@@ -35,6 +39,8 @@ export type CalendarMonthCell = { date: string; day: number };
 const dateFormatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Madrid" });
 const dayHeadingFormatter = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Madrid" });
 const monthFormatter = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric", timeZone: "Europe/Madrid" });
+const shortMonthFormatter = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric", timeZone: "Europe/Madrid" });
+const weekMonthFormatter = new Intl.DateTimeFormat("es-ES", { month: "short", timeZone: "Europe/Madrid" });
 
 function firstQueryValue(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -90,6 +96,7 @@ export function parseCalendarUrlState(query: CalendarQueryRecord | URLSearchPara
     discipline: normalizeAllowedValue(read("discipline"), CALENDAR_DISCIPLINES.map((item) => item.value)),
     vehicle: normalizeAllowedValue(read("vehicle"), CALENDAR_VEHICLES.map((item) => item.value)),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
+    view: normalizeAllowedValue(read("view"), ["month", "week", "list"]) as CalendarView || "month",
   };
 }
 
@@ -100,6 +107,7 @@ export function serializeCalendarUrlState(state: CalendarUrlState): string {
   if (state.discipline) params.set("discipline", state.discipline);
   if (state.vehicle) params.set("vehicle", state.vehicle);
   if (state.page > 1) params.set("page", String(state.page));
+  if (state.view !== "month") params.set("view", state.view);
   return params.toString();
 }
 
@@ -133,6 +141,24 @@ function eventRange(event: PreviewEvent) {
   if (!isCalendarDateKey(event.start)) return null;
   const end = isCalendarDateKey(event.end) && event.end >= event.start ? event.end : event.start;
   return { start: event.start, end };
+}
+
+export function calendarMonthRange(value: string): { start: string; end: string } {
+  const { year, month } = calendarDateParts(value);
+  return {
+    start: calendarDateKey(year, month, 1),
+    end: calendarDateKey(year, month, new Date(Date.UTC(year, month, 0, 12)).getUTCDate()),
+  };
+}
+
+export function calendarDateForMonth(monthValue: string, selectedDate: string): string {
+  if (!/^\d{4}-\d{2}$/.test(monthValue)) return selectedDate;
+  const candidate = `${monthValue}-01`;
+  if (!isCalendarDateKey(candidate)) return selectedDate;
+  const { day } = calendarDateParts(selectedDate);
+  const { year, month } = calendarDateParts(candidate);
+  const lastDay = new Date(Date.UTC(year, month, 0, 12)).getUTCDate();
+  return calendarDateKey(year, month, Math.min(day, lastDay));
 }
 
 export function calendarEventMatchesDate(event: PreviewEvent, date: string): boolean {
@@ -172,6 +198,71 @@ export function calendarEventsForSelectedDate(events: readonly PreviewEvent[], s
   return filterCalendarEvents(events, state).filter((event) => calendarEventMatchesDate(event, state.date)).sort((left, right) => left.start.localeCompare(right.start) || left.title.localeCompare(right.title, "es"));
 }
 
+function stableCalendarSort(left: PreviewEvent, right: PreviewEvent): number {
+  return left.start.localeCompare(right.start)
+    || left.title.localeCompare(right.title, "es")
+    || left.id.localeCompare(right.id);
+}
+
+export function calendarEventsForMonth(events: readonly PreviewEvent[], state: CalendarUrlState): PreviewEvent[] {
+  const range = calendarMonthRange(state.date);
+  return filterCalendarEvents(events, state)
+    .filter((event) => {
+      const eventDates = eventRange(event);
+      return Boolean(eventDates && eventDates.start <= range.end && eventDates.end >= range.start);
+    })
+    .sort(stableCalendarSort);
+}
+
+export function calendarWeekDates(value: string): string[] {
+  const date = dateFromKey(value);
+  const mondayOffset = -((date.getUTCDay() + 6) % 7);
+  const monday = addCalendarDays(value, mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => addCalendarDays(monday, index));
+}
+
+export function calendarEventsForWeek(events: readonly PreviewEvent[], state: CalendarUrlState): Record<string, PreviewEvent[]> {
+  const filtered = filterCalendarEvents(events, state);
+  return Object.fromEntries(calendarWeekDates(state.date).map((date) => [
+    date,
+    filtered.filter((event) => calendarEventMatchesDate(event, date)).sort(stableCalendarSort),
+  ]));
+}
+
+export type CalendarMonthSummary = {
+  events: number;
+  activeDays: number;
+  provinces: number;
+};
+
+export function buildCalendarMonthSummary(events: readonly PreviewEvent[], state: CalendarUrlState): CalendarMonthSummary {
+  const monthEvents = calendarEventsForMonth(events, state);
+  const range = calendarMonthRange(state.date);
+  const activeDays = new Set<string>();
+  const provinces = new Set<string>();
+
+  for (const event of monthEvents) {
+    const dates = eventRange(event);
+    if (!dates) continue;
+    const start = dates.start < range.start ? range.start : dates.start;
+    const end = dates.end > range.end ? range.end : dates.end;
+    for (let date = start; date <= end; date = addCalendarDays(date, 1)) activeDays.add(date);
+    const province = normalizeCalendarText(event.province);
+    if (province) provinces.add(province);
+  }
+
+  return { events: monthEvents.length, activeDays: activeDays.size, provinces: provinces.size };
+}
+
+export function buildCalendarMonthOptions(events: readonly PreviewEvent[], selectedDate: string): Array<{ value: string; label: string }> {
+  const months = new Set<string>([selectedDate.slice(0, 7)]);
+  for (const event of events) {
+    if (isCalendarDateKey(event.start)) months.add(event.start.slice(0, 7));
+    if (isCalendarDateKey(event.end)) months.add(event.end.slice(0, 7));
+  }
+  return [...months].sort().map((value) => ({ value, label: shortMonthFormatter.format(dateFromKey(`${value}-01`)) }));
+}
+
 export function buildCalendarDayCounts(events: readonly PreviewEvent[], monthDate: string, filters: Pick<CalendarUrlState, "place" | "discipline" | "vehicle">): Record<string, number> {
   const filtered = filterCalendarEvents(events, filters);
   return Object.fromEntries(buildCalendarMonthCells(monthDate).filter((cell): cell is CalendarMonthCell => Boolean(cell)).map((cell) => [cell.date, filtered.filter((event) => calendarEventMatchesDate(event, cell.date)).length]));
@@ -179,6 +270,27 @@ export function buildCalendarDayCounts(events: readonly PreviewEvent[], monthDat
 
 export function formatCalendarMonth(value: string): string {
   return monthFormatter.format(dateFromKey(value)).toLocaleUpperCase("es-ES");
+}
+
+export function formatCalendarMonthCompact(value: string): string {
+  const { year, month } = calendarDateParts(value);
+  const monthName = new Intl.DateTimeFormat("es-ES", { month: "long", timeZone: "Europe/Madrid" })
+    .format(new Date(Date.UTC(year, month - 1, 1, 12)));
+  return `${monthName} ${year}`.toLocaleUpperCase("es-ES");
+}
+
+export function formatCalendarWeekCompact(start: string, end: string): string {
+  const startParts = calendarDateParts(start);
+  const endParts = calendarDateParts(end);
+  const startMonth = weekMonthFormatter.format(dateFromKey(start)).replace(".", "").toLocaleUpperCase("es-ES");
+  const endMonth = weekMonthFormatter.format(dateFromKey(end)).replace(".", "").toLocaleUpperCase("es-ES");
+  if (startParts.year === endParts.year && startParts.month === endParts.month) return `${startParts.day}–${endParts.day} ${endMonth} ${endParts.year}`;
+  if (startParts.year === endParts.year) return `${startParts.day} ${startMonth}–${endParts.day} ${endMonth} ${endParts.year}`;
+  return `${startParts.day} ${startMonth} ${startParts.year}–${endParts.day} ${endMonth} ${endParts.year}`;
+}
+
+export function formatCalendarCount(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 export function formatCalendarDayHeading(value: string): string {
