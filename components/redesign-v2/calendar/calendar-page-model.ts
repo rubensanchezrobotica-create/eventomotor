@@ -26,7 +26,7 @@ export type CalendarView = "month" | "week" | "list";
 
 export type CalendarUrlState = {
   date: string;
-  place: string;
+  q: string;
   discipline: string;
   vehicle: string;
   page: number;
@@ -90,9 +90,10 @@ export function parseCalendarUrlState(query: CalendarQueryRecord | URLSearchPara
   const read = (name: string) => query instanceof URLSearchParams ? query.get(name) ?? "" : firstQueryValue(query[name]);
   const rawPage = Number.parseInt(read("page"), 10);
   const requestedDate = read("date");
+  const requestedQuery = read("q") || read("place");
   return {
     date: isCalendarDateKey(requestedDate) ? requestedDate : today,
-    place: read("place").trim().slice(0, 80),
+    q: requestedQuery.trim().slice(0, 80),
     discipline: normalizeAllowedValue(read("discipline"), CALENDAR_DISCIPLINES.map((item) => item.value)),
     vehicle: normalizeAllowedValue(read("vehicle"), CALENDAR_VEHICLES.map((item) => item.value)),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
@@ -103,7 +104,7 @@ export function parseCalendarUrlState(query: CalendarQueryRecord | URLSearchPara
 export function serializeCalendarUrlState(state: CalendarUrlState): string {
   const params = new URLSearchParams();
   params.set("date", state.date);
-  if (state.place) params.set("place", state.place);
+  if (state.q) params.set("q", state.q);
   if (state.discipline) params.set("discipline", state.discipline);
   if (state.vehicle) params.set("vehicle", state.vehicle);
   if (state.page > 1) params.set("page", String(state.page));
@@ -184,10 +185,10 @@ function matchesDiscipline(event: PreviewEvent, discipline: string): boolean {
   return definition.terms.some((term) => text.includes(normalizeCalendarText(term)));
 }
 
-export function filterCalendarEvents(events: readonly PreviewEvent[], filters: Pick<CalendarUrlState, "place" | "discipline" | "vehicle">): PreviewEvent[] {
-  const place = normalizeCalendarText(filters.place);
+export function filterCalendarEvents(events: readonly PreviewEvent[], filters: Pick<CalendarUrlState, "q" | "discipline" | "vehicle">): PreviewEvent[] {
+  const query = normalizeCalendarText(filters.q);
   return events.filter((event) => {
-    if (place && !calendarEventText(event).includes(place)) return false;
+    if (query && !calendarEventText(event).includes(query)) return false;
     if (!matchesDiscipline(event, filters.discipline)) return false;
     if (filters.vehicle && normalizedVehicle(event) !== filters.vehicle) return false;
     return true;
@@ -263,7 +264,7 @@ export function buildCalendarMonthOptions(events: readonly PreviewEvent[], selec
   return [...months].sort().map((value) => ({ value, label: shortMonthFormatter.format(dateFromKey(`${value}-01`)) }));
 }
 
-export function buildCalendarDayCounts(events: readonly PreviewEvent[], monthDate: string, filters: Pick<CalendarUrlState, "place" | "discipline" | "vehicle">): Record<string, number> {
+export function buildCalendarDayCounts(events: readonly PreviewEvent[], monthDate: string, filters: Pick<CalendarUrlState, "q" | "discipline" | "vehicle">): Record<string, number> {
   const filtered = filterCalendarEvents(events, filters);
   return Object.fromEntries(buildCalendarMonthCells(monthDate).filter((cell): cell is CalendarMonthCell => Boolean(cell)).map((cell) => [cell.date, filtered.filter((event) => calendarEventMatchesDate(event, cell.date)).length]));
 }
@@ -291,6 +292,33 @@ export function formatCalendarWeekCompact(start: string, end: string): string {
 
 export function formatCalendarCount(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+const CALENDAR_DISCIPLINE_DISPLAY_LABELS: Readonly<Record<string, string>> = {
+  "clasico": "Clásico",
+  "clasicos": "Clásicos",
+  "clasica": "Clásica",
+  "clasicas": "Clásicas",
+  "cl?sicos": "Clásicos",
+  "competicion": "Competición",
+  "concentracion": "Concentración",
+  "concentraciones": "Concentraciones",
+  "concentraci?n": "Concentración",
+  "enduro clasicas": "Enduro Clásicas",
+  "exhibicion": "Exhibición",
+  "montana": "Montaña",
+  "motocross clasico": "Motocross Clásico",
+  "rally historico": "Rally Histórico",
+  "resistencia clasicas asfalto": "Resistencia Clásicas Asfalto",
+  "todo terreno clasico": "Todo Terreno Clásico",
+  "trial clasicas": "Trial Clásicas",
+  "velocidad clasicas": "Velocidad Clásicas",
+};
+
+export function formatCalendarDisciplineLabel(value: string | null | undefined): string {
+  const label = String(value ?? "").trim();
+  if (!label) return "Motor";
+  return CALENDAR_DISCIPLINE_DISPLAY_LABELS[normalizeCalendarText(label)] ?? label;
 }
 
 export function formatCalendarDayHeading(value: string): string {

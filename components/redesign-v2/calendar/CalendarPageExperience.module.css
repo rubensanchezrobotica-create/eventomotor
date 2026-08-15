@@ -33,21 +33,39 @@
   align-items: end;
 }
 
-.placeFilter,
+.queryFilter,
 .secondaryFilterFields label {
-  display: grid;
+  display: block;
+  width: 100%;
   min-width: 0;
-  gap: 5px;
   color: #bdc2c9;
   font-size: 0.72rem;
   font-weight: 850;
   letter-spacing: 0.04em;
 }
 
-.placeFilter input,
-.secondaryFilterFields select {
+.queryFilter > label,
+.dateFilter > label {
+  display: block;
+  margin: 0 0 5px 2px;
+}
+
+.secondaryFilterFields label {
+  display: grid;
+  gap: 5px;
+}
+
+.autocompleteControl {
+  position: relative;
+}
+
+.filterBar .queryFilter input,
+.filterBar .selectedDatePicker input,
+.filterBar .secondaryFilterFields select {
+  display: block;
   box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   min-height: 49px;
   padding: 0 13px;
@@ -59,12 +77,70 @@
   font-size: 16px;
 }
 
-.placeFilter input::placeholder {
+.filterBar .queryFilter input {
+  min-height: 54px;
+  padding-inline: 16px;
+}
+
+.queryFilter input::placeholder {
   color: #737983;
 }
 
+.suggestions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  border: 1px solid #414a55;
+  border-radius: 10px;
+  background: #0b1016;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.64);
+}
+
+.suggestionGroup {
+  display: grid;
+  padding: 8px;
+}
+
+.suggestionGroup + .suggestionGroup {
+  border-top: 1px solid #252d36;
+}
+
+.suggestionGroupLabel {
+  padding: 5px 9px 4px;
+  color: #8d949e;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.suggestions button {
+  width: 100%;
+  min-height: 46px;
+  padding: 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #f1f2ef;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+}
+
+.suggestions button:hover,
+.suggestions button.suggestionActive,
+.suggestions button[aria-selected="true"] {
+  background: rgba(255, 98, 0, 0.14);
+  color: #fff;
+}
+
 .advancedFilterToggle {
-  min-width: 148px;
+  min-width: 142px;
   min-height: 49px;
   display: inline-flex;
   align-items: center;
@@ -87,7 +163,7 @@
 
 .secondaryFilterFields {
   display: none;
-  grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+  grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 0.85fr)) auto;
   gap: 10px;
   align-items: end;
   margin-top: 13px;
@@ -97,6 +173,68 @@
 
 .secondaryFilterFields[data-open="true"] {
   display: grid;
+}
+
+.dateFilter {
+  min-width: 0;
+}
+
+.selectedDatePicker {
+  position: relative;
+  min-width: 0;
+}
+
+.selectedDatePicker[data-selected="true"] {
+  display: flex;
+  min-height: 49px;
+  align-items: center;
+  padding: 0 13px;
+  border: 1px solid #3a424d;
+  border-radius: 7px;
+  background: #090d12;
+}
+
+.selectedDatePicker time {
+  display: none;
+  overflow: hidden;
+  color: #f2f2f0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedDatePicker[data-selected="true"] time {
+  display: block;
+}
+
+.selectedDatePicker[data-selected="true"] input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.selectedDatePicker[data-selected="true"]:focus-within {
+  outline: 3px solid #ff9d5d;
+  outline-offset: 3px;
+}
+
+.dateHint {
+  display: block;
+  min-height: 16px;
+  margin: 4px 0 0 2px;
+  color: #7f8690;
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .primaryButton,
@@ -110,7 +248,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #414a56;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #171d24;
   color: #f7f7f4;
   cursor: pointer;
@@ -118,7 +256,7 @@
 }
 
 .primaryButton {
-  min-width: 128px;
+  min-width: 164px;
   min-height: 49px;
   gap: 8px;
   padding: 0 18px;
@@ -670,12 +808,12 @@
   }
 
   .primaryFilterRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
-  .placeFilter {
-    grid-column: 1 / -1;
+  .queryFilter {
+    grid-row: 1;
   }
 
   .advancedFilterToggle,
@@ -683,6 +821,14 @@
     width: 100%;
     min-width: 0;
     min-height: 46px;
+  }
+
+  .primaryButton {
+    grid-row: 2;
+  }
+
+  .advancedFilterToggle {
+    grid-row: 3;
   }
 
   .secondaryFilterFields {
@@ -854,7 +1000,7 @@
   }
 
   .resultsSection {
-    scroll-margin-top: 20px;
+    scroll-margin-top: 84px;
     padding-top: 38px;
   }
 
@@ -868,6 +1014,14 @@
 }
 
 @media (max-width: 480px) {
+  .secondaryFilterFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .secondaryFilterFields .secondaryButton {
+    grid-column: auto;
+  }
+
   .weekTitleFull {
     display: none;
   }
@@ -880,14 +1034,6 @@
 @media (max-width: 350px) {
   .calendarSection {
     width: calc(100% - 28px);
-  }
-
-  .primaryFilterRow {
-    grid-template-columns: 1fr;
-  }
-
-  .placeFilter {
-    grid-column: auto;
   }
 
   .toolbar {

@@ -56,6 +56,39 @@ test("usa todos los fallbacks semánticamente compatibles antes de repetir", () 
   assert.ok(images.every((image) => ["offroad-03", "offroad-09", "offroad-10"].includes(image.fallbackId ?? "")));
 });
 
+test("seis eventos distintos agotan tres imágenes compatibles antes de reutilizarlas", () => {
+  const events = Array.from({ length: 6 }, (_, index) => event(index + 1));
+  const images = diversifyCalendarVisibleImages(events, events.map(() => representative("offroad-03", "motocross", 1)));
+  const ids = images.map((image) => image.fallbackId);
+
+  assert.equal(new Set(ids.slice(0, 3)).size, 3);
+  assert.equal(new Set(ids).size, 3);
+  assert.equal(ids.some((id, index) => index > 0 && id === ids[index - 1]), false);
+  assert.ok(ids.every((id) => ["offroad-03", "offroad-09", "offroad-10"].includes(id ?? "")));
+});
+
+test("un pool compatible de una sola imagen permite repetición sin bajar de tier", () => {
+  const events = [1, 2, 3].map((index) => event(index, {
+    title: `Trial Indoor ${index}`,
+    discipline: "Trial Indoor",
+    tags: ["trial-indoor"],
+  }));
+  const images = diversifyCalendarVisibleImages(events, events.map(() => representative("offroad-12", "trial-indoor", 1)));
+
+  assert.deepEqual(images.map((image) => image.fallbackId), ["offroad-12", "offroad-12", "offroad-12"]);
+  assert.ok(images.every((image) => image.fallbackTier === 1));
+});
+
+test("el mismo evento conserva su fallback cuando reaparece en la secuencia", () => {
+  const repeated = event(1);
+  const images = diversifyCalendarVisibleImages(
+    [repeated, event(2), repeated],
+    [representative("offroad-03", "motocross", 1), representative("offroad-09", "motocross", 1), representative("offroad-10", "motocross", 1)],
+  );
+
+  assert.equal(images[0].fallbackId, images[2].fallbackId);
+});
+
 test("seis concentraciones distribuyen determinísticamente al menos tres escenas compatibles", () => {
   const events = [
     event(1, { title: "Gran concentración motera", discipline: "Concentraciones", tags: ["concentracion"], vehicleType: "Moto" }),

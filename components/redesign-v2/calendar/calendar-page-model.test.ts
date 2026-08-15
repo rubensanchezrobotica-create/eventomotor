@@ -3,7 +3,7 @@ import test from "node:test";
 import { assignV2HomeEventImages } from "../discipline-fallback-resolver";
 import type { PreviewEvent } from "../redesign-v2-model";
 import { paginateVisibleEvents } from "../listing/paginate-visible-events";
-import { addCalendarDays, buildCalendarDayCounts, buildCalendarMonthCells, buildCalendarMonthSummary, calendarEventMatchesDate, calendarEventsForMonth, calendarEventsForSelectedDate, calendarEventsForWeek, calendarWeekDates, filterCalendarEvents, formatCalendarCount, formatCalendarMonthCompact, formatCalendarWeekCompact, isCalendarDateKey, madridCalendarDateKey, parseCalendarUrlState, serializeCalendarUrlState, shiftCalendarMonth } from "./calendar-page-model";
+import { addCalendarDays, buildCalendarDayCounts, buildCalendarMonthCells, buildCalendarMonthSummary, calendarEventMatchesDate, calendarEventsForMonth, calendarEventsForSelectedDate, calendarEventsForWeek, calendarWeekDates, filterCalendarEvents, formatCalendarCount, formatCalendarDisciplineLabel, formatCalendarMonthCompact, formatCalendarWeekCompact, isCalendarDateKey, madridCalendarDateKey, parseCalendarUrlState, serializeCalendarUrlState, shiftCalendarMonth } from "./calendar-page-model";
 
 function fixture(overrides: Partial<PreviewEvent> = {}): PreviewEvent {
   return { id: "event-1", slug: "event-1", title: "Rallye de prueba", championship: "Regional", discipline: "Rallyes", start: "2026-08-03", end: "2026-08-18", venue: "Circuito", city: "Oviedo", province: "Asturias", region: "Asturias", tags: ["rally"], vehicleType: "coche", featured: false, ...overrides };
@@ -22,7 +22,7 @@ test("sin date selecciona el hoy determinista de Europe/Madrid", () => {
   assert.equal(today, "2026-08-14");
   assert.deepEqual(parseCalendarUrlState({}, today), {
     date: "2026-08-14",
-    place: "",
+    q: "",
     discipline: "",
     vehicle: "",
     page: 1,
@@ -61,27 +61,33 @@ test("navega meses manteniendo día y hace clamp al final del mes", () => {
 });
 
 test("parsea, normaliza y serializa el estado URL sin parámetros vacíos", () => {
-  const state = parseCalendarUrlState({ date: "2026-08-15", place: " Asturias ", discipline: "RALLYES", vehicle: "coche", page: "2", view: "week" }, "2026-08-13");
-  assert.deepEqual(state, { date: "2026-08-15", place: "Asturias", discipline: "rallyes", vehicle: "coche", page: 2, view: "week" });
-  assert.equal(serializeCalendarUrlState(state), "date=2026-08-15&place=Asturias&discipline=rallyes&vehicle=coche&page=2&view=week");
+  const state = parseCalendarUrlState({ date: "2026-08-15", q: " Asturias ", discipline: "RALLYES", vehicle: "coche", page: "2", view: "week" }, "2026-08-13");
+  assert.deepEqual(state, { date: "2026-08-15", q: "Asturias", discipline: "rallyes", vehicle: "coche", page: 2, view: "week" });
+  assert.equal(serializeCalendarUrlState(state), "date=2026-08-15&q=Asturias&discipline=rallyes&vehicle=coche&page=2&view=week");
 });
 
-test("una fecha, taxonomía, vista o página inválida falla de forma segura", () => assert.deepEqual(parseCalendarUrlState({ date: "2026-02-30", discipline: "inventada", vehicle: "avion", page: "-8", view: "year" }, "2026-08-13"), { date: "2026-08-13", place: "", discipline: "", vehicle: "", page: 1, view: "month" }));
+test("el parámetro place histórico migra de forma segura al estado q", () => {
+  const state = parseCalendarUrlState({ date: "2026-08-15", place: "Barcelona" }, "2026-08-13");
+  assert.equal(state.q, "Barcelona");
+  assert.equal(serializeCalendarUrlState(state), "date=2026-08-15&q=Barcelona");
+});
+
+test("una fecha, taxonomía, vista o página inválida falla de forma segura", () => assert.deepEqual(parseCalendarUrlState({ date: "2026-02-30", discipline: "inventada", vehicle: "avion", page: "-8", view: "year" }, "2026-08-13"), { date: "2026-08-13", q: "", discipline: "", vehicle: "", page: 1, view: "month" }));
 
 test("los counts filtrados incluyen cada día activo de un evento multidía", () => {
-  const counts = buildCalendarDayCounts([fixture()], "2026-08-15", { place: "", discipline: "rallyes", vehicle: "coche" });
+  const counts = buildCalendarDayCounts([fixture()], "2026-08-15", { q: "", discipline: "rallyes", vehicle: "coche" });
   assert.deepEqual([counts["2026-08-02"], counts["2026-08-03"], counts["2026-08-10"], counts["2026-08-18"], counts["2026-08-19"]], [0, 1, 1, 1, 0]);
 });
 
-test("lugar, disciplina y vehículo filtran tanto lista como indicadores", () => {
+test("la búsqueda, disciplina y vehículo filtran tanto lista como indicadores", () => {
   const events = [fixture(), fixture({ id: "event-2", title: "Trial indoor", discipline: "Trial", tags: ["trial"], city: "Madrid", province: "Madrid", region: "Madrid", vehicleType: "moto" })];
-  const state = { date: "2026-08-10", place: "Madrid", discipline: "offroad", vehicle: "moto", page: 1, view: "month" as const };
+  const state = { date: "2026-08-10", q: "Madrid", discipline: "offroad", vehicle: "moto", page: 1, view: "month" as const };
   assert.deepEqual(calendarEventsForSelectedDate(events, state).map((event) => event.id), ["event-2"]);
   assert.equal(buildCalendarDayCounts(events, state.date, state)["2026-08-10"], 1);
 });
 
 test("el round trip conserva un estado compartible", () => {
-  const original = { date: "2026-08-22", place: "A Coruña", discipline: "rutas", vehicle: "moto", page: 3, view: "list" as const };
+  const original = { date: "2026-08-22", q: "A Coruña", discipline: "rutas", vehicle: "moto", page: 3, view: "list" as const };
   assert.deepEqual(parseCalendarUrlState(new URLSearchParams(serializeCalendarUrlState(original)), "2026-08-13"), original);
 });
 
@@ -92,13 +98,13 @@ test("month es la vista por defecto y se omite de la URL", () => {
 });
 
 test("la vista mensual incluye cada evento una sola vez aunque sea multidía", () => {
-  const state = { date: "2026-08-15", place: "", discipline: "", vehicle: "", page: 1, view: "list" as const };
+  const state = { date: "2026-08-15", q: "", discipline: "", vehicle: "", page: 1, view: "list" as const };
   const events = [fixture(), fixture({ id: "event-2", slug: "event-2", start: "2026-07-30", end: "2026-08-02" })];
   assert.deepEqual(calendarEventsForMonth(events, state).map((event) => event.id), ["event-2", "event-1"]);
 });
 
 test("el rail semanal conserva siete días y sus counts diarios", () => {
-  const state = { date: "2026-08-15", place: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
+  const state = { date: "2026-08-15", q: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
   assert.deepEqual(calendarWeekDates(state.date), ["2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16"]);
   const week = calendarEventsForWeek([fixture()], state);
   assert.equal(Object.keys(week).length, 7);
@@ -111,7 +117,7 @@ test("la agenda semanal usa sólo selectedDate y no duplica un multidía", () =>
     fixture({ id: "only-15", slug: "only-15", title: "Evento del sábado", start: "2026-08-15", end: "2026-08-15" }),
     fixture({ id: "only-16", slug: "only-16", title: "Evento del domingo", start: "2026-08-16", end: "2026-08-16" }),
   ];
-  const state = { date: "2026-08-14", place: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
+  const state = { date: "2026-08-14", q: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
   const selectedIds = (date: string) => calendarEventsForSelectedDate(events, { ...state, date }).map((event) => event.id);
 
   assert.deepEqual(selectedIds("2026-08-14"), ["multi"]);
@@ -122,7 +128,7 @@ test("la agenda semanal usa sólo selectedDate y no duplica un multidía", () =>
 });
 
 test("el resumen mensual cuenta eventos únicos, días activos y provincias filtradas", () => {
-  const state = { date: "2026-08-15", place: "", discipline: "rallyes", vehicle: "coche", page: 1, view: "month" as const };
+  const state = { date: "2026-08-15", q: "", discipline: "rallyes", vehicle: "coche", page: 1, view: "month" as const };
   const events = [fixture(), fixture({ id: "event-2", slug: "event-2", start: "2026-08-18", end: "2026-08-20", province: "León" }), fixture({ id: "moto", slug: "moto", discipline: "Trial", vehicleType: "moto" })];
   assert.deepEqual(buildCalendarMonthSummary(events, state), { events: 2, activeDays: 18, provinces: 2 });
 });
@@ -142,10 +148,30 @@ test("el toolbar usa mes compacto y la semana móvil conserva rango y año", () 
 
 test("Supercross se filtra con Offroad y Moto usando el mismo contrato visible", () => {
   const supercross = fixture({ id: "supercross", slug: "supercross", title: "Supercross Castrojeriz 2026", discipline: "Supercross", championship: "Castilla y León", tags: ["Supercross"], vehicleType: "Moto" });
-  assert.deepEqual(filterCalendarEvents([supercross], { place: "", discipline: "", vehicle: "" }).map(({ id }) => id), ["supercross"]);
-  assert.deepEqual(filterCalendarEvents([supercross], { place: "", discipline: "", vehicle: "moto" }).map(({ id }) => id), ["supercross"]);
-  assert.deepEqual(filterCalendarEvents([supercross], { place: "", discipline: "offroad", vehicle: "" }).map(({ id }) => id), ["supercross"]);
-  assert.deepEqual(filterCalendarEvents([supercross], { place: "", discipline: "offroad", vehicle: "moto" }).map(({ id }) => id), ["supercross"]);
+  assert.deepEqual(filterCalendarEvents([supercross], { q: "", discipline: "", vehicle: "" }).map(({ id }) => id), ["supercross"]);
+  assert.deepEqual(filterCalendarEvents([supercross], { q: "", discipline: "", vehicle: "moto" }).map(({ id }) => id), ["supercross"]);
+  assert.deepEqual(filterCalendarEvents([supercross], { q: "", discipline: "offroad", vehicle: "" }).map(({ id }) => id), ["supercross"]);
+  assert.deepEqual(filterCalendarEvents([supercross], { q: "", discipline: "offroad", vehicle: "moto" }).map(({ id }) => id), ["supercross"]);
+});
+
+test("la búsqueda textual comparte semántica de evento, ubicación, disciplina y términos sin acento", () => {
+  const events = [
+    fixture({ id: "mountain", title: "Subida al Fito", discipline: "Montaña", city: "Arriondas", province: "Asturias", tags: ["subida"] }),
+    fixture({ id: "barcelona", title: "Trackday", discipline: "Circuito", city: "Montmeló", province: "Barcelona", tags: ["velocidad"] }),
+  ];
+
+  assert.deepEqual(filterCalendarEvents(events, { q: "montana", discipline: "", vehicle: "" }).map(({ id }) => id), ["mountain"]);
+  assert.deepEqual(filterCalendarEvents(events, { q: "Barcelona", discipline: "", vehicle: "" }).map(({ id }) => id), ["barcelona"]);
+  assert.deepEqual(filterCalendarEvents(events, { q: "Subida al Fito", discipline: "", vehicle: "" }).map(({ id }) => id), ["mountain"]);
+});
+
+test("las disciplinas visibles conservan la ortografía española sin cambiar canonicales", () => {
+  assert.equal(formatCalendarDisciplineLabel("montana"), "Montaña");
+  assert.equal(formatCalendarDisciplineLabel("Concentracion"), "Concentración");
+  assert.equal(formatCalendarDisciplineLabel("Clasicos"), "Clásicos");
+  assert.equal(formatCalendarDisciplineLabel("Exhibicion"), "Exhibición");
+  assert.equal(formatCalendarDisciplineLabel("Competicion"), "Competición");
+  assert.equal(formatCalendarDisciplineLabel("Trial"), "Trial");
 });
 
 test("26 eventos del mismo día se paginan 12, 12 y 2 sin reasignar antes del slice", () => {

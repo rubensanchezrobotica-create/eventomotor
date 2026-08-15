@@ -8,6 +8,7 @@ import {
   type PreviewEvent,
   type ResolvedEventImage,
 } from "../redesign-v2-model";
+import { formatCalendarDisciplineLabel } from "./calendar-page-model";
 import styles from "./CalendarEventRow.module.css";
 
 type CalendarEventRowProps = {
@@ -46,29 +47,35 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
 
   return (
     <article className={styles.row}>
-      <Link aria-label={image.label ? `Ver ${event.title}. ${image.label}` : `Ver ${event.title}`} className={styles.imageLink} href={href}>
-        {image.src ? (
-          <Image
-            alt={image.alt}
-            className={styles.image}
-            height={800}
-            sizes="(max-width: 360px) 112px, (max-width: 720px) 128px, 176px"
-            src={image.src}
-            unoptimized={isRemoteImage(image.src)}
-            width={1200}
-          />
-        ) : <span aria-hidden="true" className={styles.imageFallback}>EM</span>}
-        {image.label ? (
-          <span aria-hidden="true" className={styles.imageLabel} title={image.label}>
-            <span aria-hidden="true" className={styles.imageLabelDesktop}>{image.label}</span>
-            <span aria-hidden="true" className={styles.imageLabelMobile}>Representativa</span>
-          </span>
-        ) : null}
-      </Link>
+      <div className={styles.mediaColumn}>
+        <Link aria-label={image.label ? `Ver ${event.title}. ${image.label}` : `Ver ${event.title}`} className={styles.imageLink} href={href}>
+          {image.src ? (
+            <Image
+              alt={image.alt}
+              className={styles.image}
+              height={800}
+              sizes="(max-width: 720px) 40vw, 176px"
+              src={image.src}
+              unoptimized={isRemoteImage(image.src)}
+              width={1200}
+            />
+          ) : <span aria-hidden="true" className={styles.imageFallback}>EM</span>}
+          {image.label ? (
+            <span aria-hidden="true" className={styles.imageLabel} title={image.label}>
+              <span aria-hidden="true" className={styles.imageLabelDesktop}>{image.label}</span>
+              <span aria-hidden="true" className={styles.imageLabelMobile}>Representativa</span>
+            </span>
+          ) : null}
+        </Link>
+
+        <div aria-label={`Acciones para ${event.title}`} className={styles.actions}>
+          <EventRetentionActions calendarLabel="Añadir al calendario" compactIcons directChildren event={savedEvent} source="redesign_v2_calendar" />
+        </div>
+      </div>
 
       <div className={styles.content}>
         <div className={styles.badges}>
-          <span>{event.discipline || "Motor"}</span>
+          <span>{formatCalendarDisciplineLabel(event.discipline)}</span>
           <span className={styles.status}>{previewEventStatus(event, nowIso)}</span>
           {event.vehicleType ? <span>{event.vehicleType}</span> : null}
         </div>
@@ -77,9 +84,6 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
         {location ? <p className={styles.location}>{location}</p> : null}
       </div>
 
-      <div aria-label={`Acciones para ${event.title}`} className={styles.actions}>
-        <EventRetentionActions calendarLabel="Añadir al calendario" compactIcons directChildren event={savedEvent} source="redesign_v2_calendar" />
-      </div>
     </article>
   );
 }

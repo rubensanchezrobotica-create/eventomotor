@@ -1,6 +1,7 @@
 import {
   classifyV2FallbackEvent,
   resolveV2EventImageCandidates,
+  stableV2EventKey,
   stableV2Hash,
 } from "../discipline-fallback-resolver";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
@@ -41,15 +42,25 @@ export function diversifyCalendarVisibleImages(
   events: readonly PreviewEvent[],
   assignedImages: readonly ResolvedEventImage[],
 ): ResolvedEventImage[] {
-  const usedByPool = new Map<string, Set<string>>();
-  const previousByPool = new Map<string, string>();
+  const assignedByEvent = new Map<string, ResolvedEventImage>();
+  const lastUsedAt = new Map<string, number>();
 
   return events.map((event, index) => {
+    const stableKey = stableV2EventKey(event);
+    const existing = assignedByEvent.get(stableKey);
+    if (existing) return existing;
+
     const base = assignedImages[index] ?? { src: null, kind: "neutral", alt: "" } as const;
-    if (base.kind !== "representative" || !base.fallbackId || !base.fallbackTier) return base;
+    if (base.kind !== "representative" || !base.fallbackId || !base.fallbackTier) {
+      assignedByEvent.set(stableKey, base);
+      return base;
+    }
 
     const classification = classifyV2FallbackEvent(event);
-    if (!classification) return base;
+    if (!classification) {
+      assignedByEvent.set(stableKey, base);
+      return base;
+    }
 
     const compatible = resolveV2EventImageCandidates(event).filter((candidate) => (
       candidate.tier === base.fallbackTier
@@ -57,21 +68,25 @@ export function diversifyCalendarVisibleImages(
       && candidate.vehicle === classification.vehicle
       && candidateMatchesSubtype(classification.subtype, candidate.tags)
     ));
-    if (!compatible.length) return base;
+    if (!compatible.length) {
+      assignedByEvent.set(stableKey, base);
+      return base;
+    }
 
     const poolKey = [classification.discipline, classification.vehicle, classification.subtype ?? "generic", base.fallbackTier].join(":");
-    const used = usedByPool.get(poolKey) ?? new Set<string>();
-    const unused = compatible.filter((candidate) => !used.has(candidate.id));
-    const cycleChoices = unused.length ? unused : compatible;
-    const previous = previousByPool.get(poolKey);
-    const nonRepeatingChoices = cycleChoices.length > 1 ? cycleChoices.filter((candidate) => candidate.id !== previous) : cycleChoices;
-    const choices = nonRepeatingChoices.length ? nonRepeatingChoices : cycleChoices;
-    const selected = choices[stableV2Hash(`${event.id}:${event.slug}:${poolKey}`) % choices.length];
-    used.add(selected.id);
-    usedByPool.set(poolKey, used);
-    previousByPool.set(poolKey, selected.id);
+    const baseCandidate = compatible.find((candidate) => candidate.id === base.fallbackId);
+    const unused = compatible.filter((candidate) => !lastUsedAt.has(candidate.id));
+    let choices = unused;
 
-    return {
+    if (!choices.length) {
+      const oldestUse = Math.min(...compatible.map((candidate) => lastUsedAt.get(candidate.id) ?? -1));
+      choices = compatible.filter((candidate) => (lastUsedAt.get(candidate.id) ?? -1) === oldestUse);
+    }
+
+    const selected = baseCandidate && !lastUsedAt.has(baseCandidate.id)
+      ? baseCandidate
+      : choices[stableV2Hash(`${stableKey}:${poolKey}`) % choices.length];
+    const resolved: ResolvedEventImage = {
       src: selected.src,
       kind: "representative",
       alt: "",
@@ -83,5 +98,8 @@ export function diversifyCalendarVisibleImages(
       interpretedVehicle: classification.vehicle,
       interpretedSubtype: classification.subtype,
     };
+    assignedByEvent.set(stableKey, resolved);
+    lastUsedAt.set(selected.id, index);
+    return resolved;
   });
 }

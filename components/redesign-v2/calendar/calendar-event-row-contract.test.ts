@@ -50,14 +50,21 @@ test("la etiqueta representativa es condicional, accesible y secundaria", () => 
   assert.match(styles, /@media \(max-width: 720px\)[\s\S]*?\.imageLabel\s*\{[\s\S]*?font-size:\s*8px/);
 });
 
-test("mobile integra las acciones en contenido y elimina la banda inferior", () => {
+test("mobile coloca imagen y acciones en la columna media sin banda inferior", () => {
   const styles = readFileSync(new URL("./CalendarEventRow.module.css", import.meta.url), "utf8");
   const mobile = styles.slice(styles.indexOf("@media (max-width: 720px)"), styles.indexOf("@media (max-width: 360px)"));
 
-  assert.match(mobile, /grid-template-columns:\s*minmax\(0, 39%\) minmax\(0, 61%\)/);
-  assert.match(mobile, /\.imageLink\s*\{[\s\S]*?grid-column:\s*1[\s\S]*?aspect-ratio:\s*4 \/ 3/);
+  assert.match(row, /className=\{styles\.mediaColumn\}[\s\S]*?className=\{styles\.imageLink\}[\s\S]*?className=\{styles\.actions\}/);
+  assert.match(mobile, /grid-template-columns:\s*minmax\(0, 40%\) minmax\(0, 60%\)/);
+  assert.match(mobile, /\.mediaColumn\s*\{[\s\S]*?grid-column:\s*1[\s\S]*?grid-template-rows:\s*auto auto/);
+  assert.match(mobile, /\.imageLink\s*\{[\s\S]*?grid-row:\s*1[\s\S]*?aspect-ratio:\s*4 \/ 3/);
   assert.match(styles, /\.image,[\s\S]*?object-fit:\s*cover/);
   assert.match(mobile, /\.content\s*\{[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1/);
-  assert.match(mobile, /\.actions\s*\{[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1[\s\S]*?align-self:\s*end/);
+  assert.match(mobile, /\.actions\s*\{[\s\S]*?grid-row:\s*2[\s\S]*?justify-content:\s*center/);
   assert.doesNotMatch(mobile, /grid-column:\s*1\s*\/\s*-1|border-top:/);
+});
+
+test("la disciplina visible usa el mapa ortográfico sin alterar el dato guardado", () => {
+  assert.match(row, /formatCalendarDisciplineLabel\(event\.discipline\)/);
+  assert.match(row, /discipline:\s*event\.discipline/);
 });

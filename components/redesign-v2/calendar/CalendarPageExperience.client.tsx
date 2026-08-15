@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
 import { paginateVisibleEvents } from "../listing/paginate-visible-events";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
 import CalendarEventRow from "./CalendarEventRow";
+import CalendarSearchExperience, { type CalendarSearchValues } from "./CalendarSearchExperience.client";
 import {
   addCalendarDays,
   buildCalendarDayCounts,
@@ -16,15 +17,14 @@ import {
   calendarEventsForSelectedDate,
   calendarEventsForWeek,
   calendarWeekDates,
-  CALENDAR_DISCIPLINES,
   CALENDAR_LIST_PAGE_SIZE,
   CALENDAR_PAGE_SIZE,
-  CALENDAR_VEHICLES,
   formatCalendarCount,
   formatCalendarDayHeading,
   formatCalendarMonth,
   formatCalendarMonthCompact,
   formatCalendarWeekCompact,
+  isCalendarDateKey,
   parseCalendarUrlState,
   serializeCalendarUrlState,
   shiftCalendarMonth,
@@ -70,10 +70,10 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const dayButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const pendingFocusDate = useRef<string | null>(null);
   const pendingAgendaScroll = useRef(false);
+  const pendingPaginationScroll = useRef(false);
   const agendaRef = useRef<HTMLElement | null>(null);
   const state = useMemo(() => searchParams.toString() ? parseCalendarUrlState(searchParams, today) : initialState, [initialState, searchParams, today]);
 
@@ -90,8 +90,7 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   );
   const monthSummary = useMemo(() => buildCalendarMonthSummary(events, state), [events, state]);
   const selectedDay = useMemo(() => formatSelectedDay(state.date), [state.date]);
-  const secondaryFilterCount = [state.discipline, state.vehicle].filter(Boolean).length;
-  const hasFilters = Boolean(state.place || state.discipline || state.vehicle);
+  const hasFilters = Boolean(state.q || state.discipline || state.vehicle);
 
   const paginatedEvents = state.view === "list" ? monthEvents : selectedEvents;
   const pageSize = state.view === "list" ? CALENDAR_LIST_PAGE_SIZE : CALENDAR_PAGE_SIZE;
@@ -117,6 +116,12 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
     pendingAgendaScroll.current = false;
     scrollToAgenda();
   }, [state.date]);
+
+  useEffect(() => {
+    if (!pendingPaginationScroll.current) return;
+    pendingPaginationScroll.current = false;
+    scrollToAgenda();
+  }, [state.page]);
 
   useEffect(() => {
     const currentQuery = searchParams.toString();
@@ -163,25 +168,27 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
     navigate({ ...state, date: nextDate, page: 1 });
   }
 
-  function applyFilters(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  function applySearch(values: CalendarSearchValues) {
     const next = {
       ...state,
-      place: String(form.get("place") ?? "").trim(),
-      discipline: String(form.get("discipline") ?? ""),
-      vehicle: String(form.get("vehicle") ?? ""),
+      q: values.q.trim().slice(0, 80),
+      date: isCalendarDateKey(values.date) ? values.date : state.date,
+      discipline: values.discipline,
+      vehicle: values.vehicle,
       page: 1,
     };
     navigate(next);
-    setFiltersOpen(false);
     if (next.discipline !== state.discipline) trackEvent("filter_discipline", { discipline: next.discipline || "all", page_path: currentPagePath() });
     if (next.vehicle !== state.vehicle) trackEvent("filter_vehicle_type", { vehicle_type: next.vehicle || "all", page_path: currentPagePath() });
   }
 
   function clearFilters() {
-    navigate({ ...state, place: "", discipline: "", vehicle: "", page: 1 });
-    setFiltersOpen(false);
+    navigate({ ...state, q: "", discipline: "", vehicle: "", page: 1 });
+  }
+
+  function clearQuery() {
+    if (!state.q) return;
+    navigate({ ...state, q: "", page: 1 });
   }
 
   function changeView(view: CalendarView) {
@@ -191,6 +198,15 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   function shiftVisiblePeriod(delta: number) {
     const date = state.view === "week" ? addCalendarDays(state.date, delta * 7) : shiftCalendarMonth(state.date, delta);
     navigate({ ...state, date, page: 1 });
+  }
+
+  function changePage(page: number) {
+    if (page === pagination.page) {
+      scrollToAgenda();
+      return;
+    }
+    pendingPaginationScroll.current = true;
+    navigate({ ...normalizedState, page });
   }
 
   function renderRows(rowEvents: readonly PreviewEvent[], rowImages: readonly ResolvedEventImage[]) {
@@ -203,21 +219,7 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
 
   return (
     <section className={styles.calendarSection} aria-label="Calendario y agenda de eventos">
-      <form className={styles.filterBar} key={`${state.date.slice(0, 7)}|${state.place}|${state.discipline}|${state.vehicle}`} onSubmit={applyFilters}>
-        <div className={styles.primaryFilterRow}>
-          <label className={styles.placeFilter}><span>¿Dónde?</span><input autoComplete="address-level2" defaultValue={state.place} name="place" placeholder="Provincia, ciudad o localidad" /></label>
-          <button aria-controls="calendar-secondary-filters" aria-expanded={filtersOpen} className={styles.advancedFilterToggle} onClick={() => setFiltersOpen((open) => !open)} type="button">
-            <span>{secondaryFilterCount ? `Más filtros · ${secondaryFilterCount}` : "Más filtros"}</span>
-            <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
-          </button>
-          <button className={styles.primaryButton} type="submit">Aplicar <span aria-hidden="true">→</span></button>
-        </div>
-        <div className={styles.secondaryFilterFields} data-open={filtersOpen} id="calendar-secondary-filters">
-          <label>Disciplina<select defaultValue={state.discipline} name="discipline"><option value="">Todas</option>{CALENDAR_DISCIPLINES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label>Vehículo<select defaultValue={state.vehicle} name="vehicle"><option value="">Todos</option>{CALENDAR_VEHICLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <button className={styles.secondaryButton} onClick={clearFilters} type="button">Limpiar filtros</button>
-        </div>
-      </form>
+      <CalendarSearchExperience events={events} key={`${state.q}|${state.date}|${state.discipline}|${state.vehicle}`} onApply={applySearch} onClearAll={clearFilters} onClearQuery={clearQuery} state={state} />
 
       <div className={styles.calendarSurface}>
         <div className={styles.toolbar}>
@@ -270,7 +272,7 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
         {state.view === "week" ? (
           <div className={styles.weekView}>
             <div className={styles.weekStrip}>{weekDates.map((date) => <button aria-pressed={state.date === date} data-today={today === date} key={date} onClick={() => selectDate(date, false)} type="button"><span>{compactDateFormatter.format(dateFromKey(date)).split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><small>{formatCalendarCount(weekGroups[date].length, "evento", "eventos")}</small></button>)}</div>
-            <div className={styles.weekAgenda}>
+            <div className={styles.weekAgenda} ref={(element) => { agendaRef.current = element; }}>
               <div className={styles.weekAgendaHeader}>
                 <h3>{formatCalendarDayHeading(state.date)}</h3>
                 <p>{formatCalendarCount(selectedWeekEvents.length, "evento", "eventos")}</p>
@@ -286,10 +288,10 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
       </div>
 
       {state.view !== "week" ? (
-        <section className={styles.resultsSection} ref={agendaRef}>
+        <section className={styles.resultsSection} ref={(element) => { agendaRef.current = element; }}>
           <div className={styles.resultsHeader}><div><span className={styles.kicker}>{state.view === "list" ? "Agenda del mes" : "Agenda del día"}</span><h2>{state.view === "list" ? formatCalendarMonth(state.date) : formatCalendarDayHeading(state.date)}</h2></div><p>{formatCalendarCount(paginatedEvents.length, "evento", "eventos")}</p></div>
           {pagination.visible.length ? renderRows(pagination.visible, visibleImages) : <div className={styles.emptyState}><h3>No hay eventos en esta selección</h3><p>Prueba otra fecha o ajusta los filtros.</p>{hasFilters ? <button className={styles.secondaryButton} onClick={clearFilters} type="button">Limpiar filtros</button> : null}</div>}
-          {pagination.pageCount > 1 ? <nav aria-label="Paginación de eventos" className={styles.pagination}>{Array.from({ length: pagination.pageCount }, (_, index) => index + 1).map((page) => <a aria-current={page === pagination.page ? "page" : undefined} href={`?${serializeCalendarUrlState({ ...normalizedState, page })}`} key={page} onClick={(event) => { event.preventDefault(); navigate({ ...normalizedState, page }); }}>{page}</a>)}</nav> : null}
+          {pagination.pageCount > 1 ? <nav aria-label="Paginación de eventos" className={styles.pagination}>{Array.from({ length: pagination.pageCount }, (_, index) => index + 1).map((page) => <a aria-current={page === pagination.page ? "page" : undefined} href={`?${serializeCalendarUrlState({ ...normalizedState, page })}`} key={page} onClick={(event) => { event.preventDefault(); changePage(page); }}>{page}</a>)}</nav> : null}
         </section>
       ) : null}
       <p aria-live="polite" className={styles.visuallyHidden}>{formatCalendarCount(state.view === "list" ? monthEvents.length : selectedEvents.length, "evento", "eventos")} en la vista actual</p>
