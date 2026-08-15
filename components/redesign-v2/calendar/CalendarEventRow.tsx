@@ -47,11 +47,25 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
 
   return (
     <article className={styles.row}>
+      <div className={styles.content}>
+        <div className={styles.mainContent}>
+          <h3><Link className={styles.primaryLink} href={href}>{event.title}</Link></h3>
+          <p className={styles.date}>{formatEventDate(event)}</p>
+          {location ? <p className={styles.location}>{location}</p> : null}
+        </div>
+
+        <div className={styles.badges}>
+          <span>{formatCalendarDisciplineLabel(event.discipline)}</span>
+          <span className={styles.status}>{previewEventStatus(event, nowIso)}</span>
+          {event.vehicleType ? <span>{event.vehicleType}</span> : null}
+        </div>
+      </div>
+
       <div className={styles.mediaColumn}>
-        <Link aria-label={image.label ? `Ver ${event.title}. ${image.label}` : `Ver ${event.title}`} className={styles.imageLink} href={href}>
+        <div className={styles.imageSurface}>
           {image.src ? (
             <Image
-              alt={image.alt}
+              alt=""
               className={styles.image}
               height={800}
               sizes="(max-width: 720px) 40vw, 176px"
@@ -66,24 +80,12 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
               <span aria-hidden="true" className={styles.imageLabelMobile}>Representativa</span>
             </span>
           ) : null}
-        </Link>
+        </div>
 
         <div aria-label={`Acciones para ${event.title}`} className={styles.actions}>
           <EventRetentionActions calendarLabel="Añadir al calendario" compactIcons directChildren event={savedEvent} source="redesign_v2_calendar" />
         </div>
       </div>
-
-      <div className={styles.content}>
-        <div className={styles.badges}>
-          <span>{formatCalendarDisciplineLabel(event.discipline)}</span>
-          <span className={styles.status}>{previewEventStatus(event, nowIso)}</span>
-          {event.vehicleType ? <span>{event.vehicleType}</span> : null}
-        </div>
-        <h3><Link href={href}>{event.title}</Link></h3>
-        <p className={styles.date}>{formatEventDate(event)}</p>
-        {location ? <p className={styles.location}>{location}</p> : null}
-      </div>
-
     </article>
   );
 }

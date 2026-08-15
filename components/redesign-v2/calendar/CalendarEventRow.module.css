@@ -15,7 +15,7 @@
   display: contents;
 }
 
-.imageLink {
+.imageSurface {
   position: relative;
   grid-column: 1;
   grid-row: 1;
@@ -64,10 +64,17 @@
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
   padding: 17px 20px;
 }
 
+.mainContent {
+  min-width: 0;
+}
+
 .badges {
+  order: -1;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -171,27 +178,34 @@
 
 @media (max-width: 720px) {
   .row {
+    position: relative;
     grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    min-height: 172px;
   }
 
   .mediaColumn {
     display: grid;
     width: 128px;
+    height: 140px;
     max-width: 100%;
     box-sizing: border-box;
     min-width: 0;
     grid-column: 1;
     grid-row: 1;
-    grid-template-rows: auto auto;
-    gap: 8px;
+    grid-template-rows: 96px 44px;
+    gap: 0;
+    align-content: start;
     align-self: start;
   }
 
-  .imageLink {
+  .imageSurface {
+    width: 128px;
+    height: 96px;
     grid-column: auto;
     grid-row: 1;
     min-height: 0;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: auto;
   }
 
   .image {
@@ -199,47 +213,167 @@
   }
 
   .content {
+    display: contents;
+    padding: 0;
+  }
+
+  .mainContent {
+    box-sizing: border-box;
     grid-column: 2;
     grid-row: 1;
-    padding: 13px 14px;
+    min-width: 0;
+    align-self: start;
+    padding: 8px 14px 10px;
+  }
+
+  .badges {
+    box-sizing: border-box;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: initial;
+    min-height: 30px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    align-items: center;
+    align-self: end;
+    gap: 0;
+    padding: 6px 11px;
+    border-top: 1px solid #2d343e;
+    background: #10151b;
+  }
+
+  .badges span {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: #aeb4bc;
+    font-size: 10px;
+    line-height: 1.2;
+    letter-spacing: 0.055em;
+    overflow-wrap: break-word;
+  }
+
+  .badges span:not(:last-child)::after {
+    margin: 0 6px;
+    color: #59616c;
+    content: "·";
+  }
+
+  .badges .status {
+    color: #ff7a27;
+    font-weight: 900;
+  }
+
+  .content h3,
+  .date,
+  .location {
+    max-width: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .content h3 {
     display: -webkit-box;
+    margin-top: 0;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     font-size: 1.03rem;
   }
 
+  .primaryLink::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    border-radius: 9px;
+    content: "";
+    cursor: pointer;
+  }
+
+  .primaryLink:focus-visible {
+    outline: 0;
+  }
+
+  .primaryLink:focus-visible::after {
+    outline: 2px solid #ff7a27;
+    outline-offset: -2px;
+  }
+
+  .primaryLink:active::after {
+    background: rgba(255, 98, 0, 0.06);
+  }
+
   .actions {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 44px;
+    box-sizing: border-box;
     grid-column: auto;
     grid-row: 2;
     display: grid;
-    grid-template-columns: 44px 44px;
-    justify-content: center;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    justify-items: center;
+    align-self: start;
+    gap: 0;
     padding: 0;
+    border-top: 1px solid #2d343e;
     border-left: 0;
+    background: #171c22;
   }
 
   .actions :global(.emc-btn),
   .actions :global(.emc-link-button) {
-    width: 44px;
-    min-width: 44px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 44px;
+    max-height: 44px;
     min-height: 44px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .actions::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: #2d343e;
+    content: "";
+    pointer-events: none;
+  }
+
+  .actions :global(.emc-btn:active),
+  .actions :global(.emc-link-button:active) {
+    background: rgba(255, 98, 0, 0.1);
+  }
+
+  .actions :global(.emc-btn:focus-visible),
+  .actions :global(.emc-link-button:focus-visible) {
+    outline: 0;
+    box-shadow: inset 0 0 0 2px rgba(255, 122, 39, 0.9);
   }
 
   .actions :global(.emc-icon-action svg) {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 
   .imageLabel {
     right: 5px;
     bottom: 5px;
     padding: 2px 3px;
-    font-size: 8px;
+    background: rgba(0, 0, 0, 0.82);
+    font-size: 10px;
   }
 
   .imageLabelDesktop {
@@ -251,38 +385,71 @@
   }
 }
 
+@media (max-width: 720px) and (hover: hover) and (pointer: fine) {
+  .actions :global(.emc-btn:hover),
+  .actions :global(.emc-link-button:hover) {
+    border-color: transparent;
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+@media (max-width: 720px) and (hover: none) {
+  .actions :global(.emc-btn:hover),
+  .actions :global(.emc-link-button:hover) {
+    border-color: transparent;
+    background: transparent;
+    color: #f5f5f2;
+  }
+
+  .actions :global(.emc-saved-event-button:hover),
+  .actions :global(.emc-icon-action-saved:hover) {
+    color: #ff7a27;
+  }
+
+  .actions :global(.emc-btn:active),
+  .actions :global(.emc-link-button:active) {
+    background: rgba(255, 98, 0, 0.1);
+  }
+}
+
 @media (max-width: 360px) {
   .row {
     grid-template-columns: 110px minmax(0, 1fr);
+    min-height: 186px;
   }
 
   .mediaColumn {
     width: 110px;
+    height: 154px;
+    grid-template-rows: 110px 44px;
   }
 
-  .imageLink {
-    aspect-ratio: 1 / 1;
+  .imageSurface {
+    width: 110px;
+    height: 110px;
+    aspect-ratio: auto;
   }
 
-  .content {
-    padding: 12px 10px;
+  .mainContent {
+    padding-top: 6px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
   }
 
   .content h3 {
+    -webkit-line-clamp: 4;
     font-size: 0.96rem;
   }
 
   .badges {
-    gap: 4px;
+    min-height: 30px;
+    padding: 6px 10px;
   }
 
   .badges span {
-    padding-inline: 5px;
-    font-size: 0.57rem;
-  }
-
-  .badges span:nth-child(n + 3) {
-    display: none;
+    padding: 0;
+    font-size: 9px;
   }
 
   .actions :global(.emc-btn),
@@ -290,4 +457,13 @@
     padding: 0;
   }
 
+}
+
+@media (max-width: 260px) {
+  .content h3 {
+    display: block;
+    overflow: visible;
+    overflow-wrap: break-word;
+    -webkit-line-clamp: unset;
+  }
 }
