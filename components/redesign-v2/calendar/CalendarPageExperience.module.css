@@ -8,52 +8,95 @@
   position: relative;
   z-index: 3;
   margin-bottom: 28px;
+  padding: 16px;
   border: 1px solid #343b45;
-  border-radius: 10px;
-  background: #11161c;
+  border-radius: 4px 4px 12px 12px;
+  background: linear-gradient(180deg, rgba(15, 20, 26, 0.99), rgba(8, 12, 17, 0.99));
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.34);
 }
 
-.filterFields {
-  display: grid;
-  grid-template-columns: 1.4fr 0.9fr 0.9fr auto auto;
-  gap: 12px;
-  align-items: end;
-  padding: 17px;
+.filterBar::before {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 3px;
+  border-radius: 4px 4px 0 0;
+  content: "";
+  background: linear-gradient(90deg, rgba(255, 98, 0, 0.28), #ff6200 36%, rgba(255, 98, 0, 0.44) 78%, rgba(255, 98, 0, 0.16));
 }
 
-.filterFields label {
+.primaryFilterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.placeFilter,
+.secondaryFilterFields label {
   display: grid;
   min-width: 0;
-  gap: 6px;
+  gap: 5px;
   color: #bdc2c9;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 850;
   letter-spacing: 0.04em;
 }
 
-.filterFields input,
-.filterFields select {
+.placeFilter input,
+.secondaryFilterFields select {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 46px;
-  padding: 0 12px;
+  min-height: 49px;
+  padding: 0 13px;
   border: 1px solid #3a424d;
-  border-radius: 6px;
+  border-radius: 7px;
+  outline: none;
   background: #090d12;
   color: #f7f7f4;
   font-size: 16px;
 }
 
-.mobileFilterToggle {
-  display: none !important;
+.placeFilter input::placeholder {
+  color: #737983;
 }
 
-.mobileVehicleLabel { display: none; }
+.advancedFilterToggle {
+  min-width: 148px;
+  min-height: 49px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid #3a424d;
+  border-radius: 7px;
+  background: #0b1016;
+  color: #eef0f2;
+  cursor: pointer;
+  font-weight: 850;
+  white-space: nowrap;
+}
 
-.filterActions {
-  display: flex;
-  gap: 8px;
+.advancedFilterToggle span:last-child {
+  color: #ff7a27;
+  font-size: 0.8rem;
+}
+
+.secondaryFilterFields {
+  display: none;
+  grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #2b333d;
+}
+
+.secondaryFilterFields[data-open="true"] {
+  display: grid;
 }
 
 .primaryButton,
@@ -75,7 +118,9 @@
 }
 
 .primaryButton {
-  min-height: 46px;
+  min-width: 128px;
+  min-height: 49px;
+  gap: 8px;
   padding: 0 18px;
   border-color: #ff6200;
   background: #ff6200;
@@ -83,8 +128,10 @@
 }
 
 .secondaryButton {
+  min-height: 49px;
   padding: 0 14px;
   background: transparent;
+  white-space: nowrap;
 }
 
 .calendarSurface {
@@ -433,17 +480,30 @@
 
 .weekAgenda {
   display: grid;
-  gap: 28px;
+  gap: 14px;
   margin-top: 30px;
 }
 
-.weekAgenda section > h3 {
-  margin: 0 0 11px;
+.weekAgendaHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.weekAgendaHeader h3 {
+  margin: 0;
   font-family: "Arial Narrow", Arial, sans-serif;
   font-size: 1.35rem;
   font-style: normal;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.weekAgendaHeader p {
+  margin: 0;
+  color: #979ea7;
+  font-size: 0.76rem;
 }
 
 .listIntro h3 {
@@ -595,43 +655,6 @@
   .filterBar {
     margin-bottom: 18px;
   }
-
-  .mobileFilterToggle {
-    width: 100%;
-    min-height: 48px;
-    display: flex !important;
-    align-items: center;
-    padding: 0 15px;
-    border: 0;
-    background: transparent;
-    color: #f7f7f4;
-    cursor: pointer;
-    font-size: 0.82rem;
-    font-weight: 900;
-    text-align: left;
-  }
-
-  .filterFields {
-    display: none;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 14px 14px;
-  }
-
-  .filterFields[data-open="true"] {
-    display: grid;
-  }
-
-  .filterActions {
-    grid-column: 1 / -1;
-    justify-content: stretch;
-  }
-
-  .filterActions button {
-    flex: 1;
-  }
-
-  .desktopVehicleLabel { display: none; }
-  .mobileVehicleLabel { display: inline; }
 }
 
 @media (max-width: 760px) {
@@ -641,12 +664,34 @@
     padding-bottom: 64px;
   }
 
-  .filterFields {
-    grid-template-columns: 1fr;
+  .filterBar {
+    padding: 14px;
+    border-radius: 10px;
   }
 
-  .filterActions {
-    grid-column: auto;
+  .primaryFilterRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .placeFilter {
+    grid-column: 1 / -1;
+  }
+
+  .advancedFilterToggle,
+  .primaryButton {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+  }
+
+  .secondaryFilterFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .secondaryFilterFields .secondaryButton {
+    grid-column: 1 / -1;
+    min-height: 46px;
   }
 
   .toolbar {
@@ -796,6 +841,18 @@
     white-space: normal;
   }
 
+  .weekAgenda {
+    margin-top: 20px;
+  }
+
+  .weekAgendaHeader {
+    display: block;
+  }
+
+  .weekAgendaHeader p {
+    margin-top: 5px;
+  }
+
   .resultsSection {
     scroll-margin-top: 20px;
     padding-top: 38px;
@@ -823,6 +880,14 @@
 @media (max-width: 350px) {
   .calendarSection {
     width: calc(100% - 28px);
+  }
+
+  .primaryFilterRow {
+    grid-template-columns: 1fr;
+  }
+
+  .placeFilter {
+    grid-column: auto;
   }
 
   .toolbar {

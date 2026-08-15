@@ -10,9 +10,7 @@ import {
   addCalendarDays,
   buildCalendarDayCounts,
   buildCalendarMonthCells,
-  buildCalendarMonthOptions,
   buildCalendarMonthSummary,
-  calendarDateForMonth,
   calendarDayAriaLabel,
   calendarEventsForMonth,
   calendarEventsForSelectedDate,
@@ -85,11 +83,15 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   const monthEvents = useMemo(() => calendarEventsForMonth(events, state), [events, state]);
   const weekGroups = useMemo(() => calendarEventsForWeek(events, state), [events, state]);
   const weekDates = useMemo(() => calendarWeekDates(state.date), [state.date]);
+  const selectedWeekEvents = useMemo(() => weekGroups[state.date] ?? [], [state.date, weekGroups]);
+  const selectedWeekImages = useMemo(
+    () => diversifyCalendarVisibleImages(selectedWeekEvents, selectedWeekEvents.map((event) => imageByEventId[event.id])),
+    [imageByEventId, selectedWeekEvents],
+  );
   const monthSummary = useMemo(() => buildCalendarMonthSummary(events, state), [events, state]);
-  const monthOptions = useMemo(() => buildCalendarMonthOptions(events, state.date), [events, state.date]);
   const selectedDay = useMemo(() => formatSelectedDay(state.date), [state.date]);
-  const activeFilterCount = [state.place, state.discipline, state.vehicle].filter(Boolean).length;
-  const hasFilters = activeFilterCount > 0;
+  const secondaryFilterCount = [state.discipline, state.vehicle].filter(Boolean).length;
+  const hasFilters = Boolean(state.place || state.discipline || state.vehicle);
 
   const paginatedEvents = state.view === "list" ? monthEvents : selectedEvents;
   const pageSize = state.view === "list" ? CALENDAR_LIST_PAGE_SIZE : CALENDAR_PAGE_SIZE;
@@ -166,7 +168,6 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
     const form = new FormData(event.currentTarget);
     const next = {
       ...state,
-      date: calendarDateForMonth(String(form.get("month") ?? ""), state.date),
       place: String(form.get("place") ?? "").trim(),
       discipline: String(form.get("discipline") ?? ""),
       vehicle: String(form.get("vehicle") ?? ""),
@@ -203,18 +204,18 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   return (
     <section className={styles.calendarSection} aria-label="Calendario y agenda de eventos">
       <form className={styles.filterBar} key={`${state.date.slice(0, 7)}|${state.place}|${state.discipline}|${state.vehicle}`} onSubmit={applyFilters}>
-        <button aria-controls="calendar-filter-fields" aria-expanded={filtersOpen} className={styles.mobileFilterToggle} onClick={() => setFiltersOpen((open) => !open)} type="button">
-          {activeFilterCount ? `Filtros · ${formatCalendarCount(activeFilterCount, "activo", "activos")}` : "Filtros"}
-        </button>
-        <div className={styles.filterFields} data-open={filtersOpen} id="calendar-filter-fields">
-          <label>¿Dónde?<input autoComplete="address-level2" defaultValue={state.place} name="place" placeholder="Provincia, ciudad o localidad" /></label>
-          <label>¿Cuándo?<select defaultValue={state.date.slice(0, 7)} name="month">{monthOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        <div className={styles.primaryFilterRow}>
+          <label className={styles.placeFilter}><span>¿Dónde?</span><input autoComplete="address-level2" defaultValue={state.place} name="place" placeholder="Provincia, ciudad o localidad" /></label>
+          <button aria-controls="calendar-secondary-filters" aria-expanded={filtersOpen} className={styles.advancedFilterToggle} onClick={() => setFiltersOpen((open) => !open)} type="button">
+            <span>{secondaryFilterCount ? `Más filtros · ${secondaryFilterCount}` : "Más filtros"}</span>
+            <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
+          </button>
+          <button className={styles.primaryButton} type="submit">Aplicar <span aria-hidden="true">→</span></button>
+        </div>
+        <div className={styles.secondaryFilterFields} data-open={filtersOpen} id="calendar-secondary-filters">
           <label>Disciplina<select defaultValue={state.discipline} name="discipline"><option value="">Todas</option>{CALENDAR_DISCIPLINES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className={styles.vehicleFilter}><span className={styles.desktopVehicleLabel}>Más filtros · Vehículo</span><span className={styles.mobileVehicleLabel}>Vehículo</span><select defaultValue={state.vehicle} name="vehicle"><option value="">Todos</option>{CALENDAR_VEHICLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <div className={styles.filterActions}>
-            <button className={styles.primaryButton} type="submit">Aplicar</button>
-            <button className={styles.secondaryButton} onClick={clearFilters} type="button">Limpiar</button>
-          </div>
+          <label>Vehículo<select defaultValue={state.vehicle} name="vehicle"><option value="">Todos</option>{CALENDAR_VEHICLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+          <button className={styles.secondaryButton} onClick={clearFilters} type="button">Limpiar filtros</button>
         </div>
       </form>
 
@@ -268,14 +269,15 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
 
         {state.view === "week" ? (
           <div className={styles.weekView}>
-            <div className={styles.weekStrip}>{weekDates.map((date) => <button aria-pressed={state.date === date} data-today={today === date} key={date} onClick={() => selectDate(date)} type="button"><span>{compactDateFormatter.format(dateFromKey(date)).split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><small>{formatCalendarCount(weekGroups[date].length, "evento", "eventos")}</small></button>)}</div>
+            <div className={styles.weekStrip}>{weekDates.map((date) => <button aria-pressed={state.date === date} data-today={today === date} key={date} onClick={() => selectDate(date, false)} type="button"><span>{compactDateFormatter.format(dateFromKey(date)).split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><small>{formatCalendarCount(weekGroups[date].length, "evento", "eventos")}</small></button>)}</div>
             <div className={styles.weekAgenda}>
-              {weekDates.map((date) => {
-                const dayEvents = weekGroups[date];
-                const dayImages = diversifyCalendarVisibleImages(dayEvents, dayEvents.map((event) => imageByEventId[event.id]));
-                return dayEvents.length ? <section key={date}><h3>{formatCalendarDayHeading(date)}</h3>{renderRows(dayEvents, dayImages)}</section> : null;
-              })}
-              {!weekDates.some((date) => weekGroups[date].length) ? <div className={styles.emptyState}><h3>No hay eventos esta semana</h3><p>Prueba otra semana o ajusta los filtros.</p></div> : null}
+              <div className={styles.weekAgendaHeader}>
+                <h3>{formatCalendarDayHeading(state.date)}</h3>
+                <p>{formatCalendarCount(selectedWeekEvents.length, "evento", "eventos")}</p>
+              </div>
+              {selectedWeekEvents.length
+                ? renderRows(selectedWeekEvents, selectedWeekImages)
+                : <div className={styles.emptyState}><h3>No hay eventos para este día</h3><p>Selecciona otro día o ajusta los filtros.</p></div>}
             </div>
           </div>
         ) : null}

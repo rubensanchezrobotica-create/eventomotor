@@ -60,6 +60,19 @@ test("Mes, Semana y Lista son vistas reales persistidas en URL", () => {
   assert.match(experience, /state\.view === "list"/);
 });
 
+test("Semana conserva siete counts pero la agenda renderiza sólo selectedDate", () => {
+  const weekView = experience.slice(experience.indexOf("<div className={styles.weekView}>"), experience.indexOf('{state.view === "list" ?'));
+
+  assert.match(experience, /const selectedWeekEvents = useMemo\(\(\) => weekGroups\[state\.date\] \?\? \[\]/);
+  assert.match(weekView, /weekDates\.map/);
+  assert.match(weekView, /weekGroups\[date\]\.length/);
+  assert.match(weekView, /selectDate\(date, false\)/);
+  assert.match(weekView, /renderRows\(selectedWeekEvents, selectedWeekImages\)/);
+  assert.match(weekView, /formatCalendarDayHeading\(state\.date\)/);
+  assert.match(weekView, /No hay eventos para este día/);
+  assert.doesNotMatch(weekView, /const dayEvents = weekGroups\[date\]|renderRows\(dayEvents/);
+});
+
 test("la selección explícita respeta autoscroll y movimiento reducido", () => {
   assert.match(experience, /scrollIntoView/);
   assert.match(experience, /prefers-reduced-motion: reduce/);
@@ -68,13 +81,36 @@ test("la selección explícita respeta autoscroll y movimiento reducido", () => 
   assert.match(experience, /date === state\.date/);
 });
 
-test("tablet colapsa filtros y coloca la sidebar bajo el calendario", () => {
-  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*?\.mobileFilterToggle[\s\S]*?display: flex !important/);
+test("tablet coloca la sidebar bajo el calendario", () => {
   assert.match(styles, /@media \(max-width: 1024px\)[\s\S]*?\.monthLayout[\s\S]*?display: block/);
 });
 
-test("el disclosure móvil conserva el contrato Filtros, Aplicar y Limpiar", () => {
-  assert.match(experience, /Filtros ·/);
-  assert.match(experience, />Aplicar<\/button>/);
-  assert.match(experience, />Limpiar<\/button>/);
+test("el filtro usa Lugar como campo principal y elimina el selector de mes duplicado", () => {
+  assert.match(experience, /name="place"/);
+  assert.match(experience, /name="discipline"/);
+  assert.match(experience, /name="vehicle"/);
+  assert.match(experience, /Más filtros/);
+  assert.match(experience, /Aplicar <span aria-hidden="true">→<\/span>/);
+  assert.match(experience, /Limpiar filtros/);
+  assert.doesNotMatch(experience, /name="month"|¿Cuándo\?|buildCalendarMonthOptions|calendarDateForMonth/);
+});
+
+test("aplicar y limpiar filtros preservan date y view mientras reinician la página", () => {
+  const applyBody = experience.slice(experience.indexOf("function applyFilters"), experience.indexOf("function clearFilters"));
+  const clearBody = experience.slice(experience.indexOf("function clearFilters"), experience.indexOf("function changeView"));
+  const shiftBody = experience.slice(experience.indexOf("function shiftVisiblePeriod"), experience.indexOf("function renderRows"));
+
+  assert.match(applyBody, /\.\.\.state/);
+  assert.match(applyBody, /place:[\s\S]*discipline:[\s\S]*vehicle:[\s\S]*page: 1/);
+  assert.doesNotMatch(applyBody, /date:|view:/);
+  assert.match(clearBody, /\.\.\.state, place: "", discipline: "", vehicle: "", page: 1/);
+  assert.doesNotMatch(clearBody, /date:|view:/);
+  assert.match(shiftBody, /navigate\(\{ \.\.\.state, date, page: 1 \}\)/);
+});
+
+test("el disclosure compacto cuenta sólo disciplina y vehículo", () => {
+  assert.match(experience, /const secondaryFilterCount = \[state\.discipline, state\.vehicle\]\.filter\(Boolean\)\.length/);
+  assert.match(experience, /aria-controls="calendar-secondary-filters"/);
+  assert.match(experience, /secondaryFilterCount \? `Más filtros · \$\{secondaryFilterCount\}`/);
+  assert.match(styles, /\.secondaryFilterFields\[data-open="true"\][\s\S]*?display: grid/);
 });

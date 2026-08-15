@@ -97,12 +97,28 @@ test("la vista mensual incluye cada evento una sola vez aunque sea multidía", (
   assert.deepEqual(calendarEventsForMonth(events, state).map((event) => event.id), ["event-2", "event-1"]);
 });
 
-test("la semana es lunes a domingo y replica un multidía una vez por día", () => {
+test("el rail semanal conserva siete días y sus counts diarios", () => {
   const state = { date: "2026-08-15", place: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
   assert.deepEqual(calendarWeekDates(state.date), ["2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16"]);
   const week = calendarEventsForWeek([fixture()], state);
-  assert.equal(Object.values(week).flat().length, 7);
-  assert.equal(new Set(week["2026-08-15"].map((event) => event.id)).size, 1);
+  assert.equal(Object.keys(week).length, 7);
+  assert.deepEqual(Object.values(week).map((events) => events.length), [1, 1, 1, 1, 1, 1, 1]);
+});
+
+test("la agenda semanal usa sólo selectedDate y no duplica un multidía", () => {
+  const events = [
+    fixture({ id: "multi", slug: "multi", title: "Evento multidía", start: "2026-08-14", end: "2026-08-16" }),
+    fixture({ id: "only-15", slug: "only-15", title: "Evento del sábado", start: "2026-08-15", end: "2026-08-15" }),
+    fixture({ id: "only-16", slug: "only-16", title: "Evento del domingo", start: "2026-08-16", end: "2026-08-16" }),
+  ];
+  const state = { date: "2026-08-14", place: "", discipline: "", vehicle: "", page: 1, view: "week" as const };
+  const selectedIds = (date: string) => calendarEventsForSelectedDate(events, { ...state, date }).map((event) => event.id);
+
+  assert.deepEqual(selectedIds("2026-08-14"), ["multi"]);
+  assert.deepEqual(selectedIds("2026-08-15"), ["multi", "only-15"]);
+  assert.deepEqual(selectedIds("2026-08-16"), ["multi", "only-16"]);
+  assert.deepEqual(selectedIds("2026-08-17"), []);
+  assert.equal(selectedIds("2026-08-15").filter((id) => id === "multi").length, 1);
 });
 
 test("el resumen mensual cuenta eventos únicos, días activos y provincias filtradas", () => {

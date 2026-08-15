@@ -35,15 +35,20 @@
 
 .imageLabel {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 3px 6px;
+  right: 6px;
+  bottom: 6px;
+  padding: 2px 4px;
   border-radius: 3px;
-  background: rgba(5, 7, 10, 0.82);
+  background: rgba(5, 7, 10, 0.74);
   color: #d8dbe0;
-  font-size: 0.58rem;
-  letter-spacing: 0.04em;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.imageLabelMobile {
+  display: none;
 }
 
 .content {
@@ -153,11 +158,15 @@
 
 @media (max-width: 720px) {
   .row {
-    grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 39%) minmax(0, 61%);
   }
 
   .imageLink {
-    min-height: 128px;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
   }
 
   .image {
@@ -165,7 +174,9 @@
   }
 
   .content {
-    padding: 13px 14px;
+    grid-column: 2;
+    grid-row: 1;
+    padding: 13px 14px 70px;
   }
 
   .content h3 {
@@ -177,10 +188,12 @@
   }
 
   .actions {
-    grid-column: 1 / -1;
+    z-index: 1;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
     justify-content: flex-end;
-    padding: 10px;
-    border-top: 1px solid #2d343e;
+    padding: 0 14px 13px;
     border-left: 0;
   }
 
@@ -188,19 +201,34 @@
   .actions :global(.emc-link-button) {
     flex: 0 0 46px;
   }
+
+  .imageLabel {
+    right: 5px;
+    bottom: 5px;
+    padding: 2px 3px;
+    font-size: 8px;
+  }
+
+  .imageLabelDesktop {
+    display: none;
+  }
+
+  .imageLabelMobile {
+    display: inline;
+  }
 }
 
 @media (max-width: 360px) {
   .row {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 37%) minmax(0, 63%);
   }
 
   .imageLink {
-    min-height: 112px;
+    aspect-ratio: 1 / 1;
   }
 
   .content {
-    padding: 12px 10px;
+    padding: 12px 10px 68px;
   }
 
   .content h3 {
@@ -223,5 +251,9 @@
   .actions :global(.emc-btn),
   .actions :global(.emc-link-button) {
     padding: 0;
+  }
+
+  .actions {
+    padding: 0 10px 11px;
   }
 }

@@ -37,3 +37,27 @@ test("la presentación compacta conserva handlers, etiquetas y objetivos táctil
   assert.match(styles, /width:\s*46px/);
   assert.match(styles, /min-height:\s*46px/);
 });
+
+test("la etiqueta representativa es condicional, accesible y secundaria", () => {
+  const styles = readFileSync(new URL("./CalendarEventRow.module.css", import.meta.url), "utf8");
+
+  assert.match(row, /image\.label \? \(/);
+  assert.match(row, /aria-label=\{image\.label \? `Ver \$\{event\.title\}\. \$\{image\.label\}`/);
+  assert.match(row, /aria-hidden="true" className=\{styles\.imageLabel\}/);
+  assert.match(row, /title=\{image\.label\}/);
+  assert.match(row, /className=\{styles\.imageLabelMobile\}>Representativa/);
+  assert.match(styles, /\.imageLabel\s*\{[\s\S]*?right:\s*6px[\s\S]*?bottom:\s*6px[\s\S]*?font-size:\s*9px[\s\S]*?line-height:\s*1/);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*?\.imageLabel\s*\{[\s\S]*?font-size:\s*8px/);
+});
+
+test("mobile integra las acciones en contenido y elimina la banda inferior", () => {
+  const styles = readFileSync(new URL("./CalendarEventRow.module.css", import.meta.url), "utf8");
+  const mobile = styles.slice(styles.indexOf("@media (max-width: 720px)"), styles.indexOf("@media (max-width: 360px)"));
+
+  assert.match(mobile, /grid-template-columns:\s*minmax\(0, 39%\) minmax\(0, 61%\)/);
+  assert.match(mobile, /\.imageLink\s*\{[\s\S]*?grid-column:\s*1[\s\S]*?aspect-ratio:\s*4 \/ 3/);
+  assert.match(styles, /\.image,[\s\S]*?object-fit:\s*cover/);
+  assert.match(mobile, /\.content\s*\{[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1/);
+  assert.match(mobile, /\.actions\s*\{[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1[\s\S]*?align-self:\s*end/);
+  assert.doesNotMatch(mobile, /grid-column:\s*1\s*\/\s*-1|border-top:/);
+});

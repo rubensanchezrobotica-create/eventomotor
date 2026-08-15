@@ -46,7 +46,7 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
 
   return (
     <article className={styles.row}>
-      <Link aria-label={`Ver ${event.title}`} className={styles.imageLink} href={href}>
+      <Link aria-label={image.label ? `Ver ${event.title}. ${image.label}` : `Ver ${event.title}`} className={styles.imageLink} href={href}>
         {image.src ? (
           <Image
             alt={image.alt}
@@ -58,7 +58,12 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
             width={1200}
           />
         ) : <span aria-hidden="true" className={styles.imageFallback}>EM</span>}
-        {image.label ? <span className={styles.imageLabel}>{image.label}</span> : null}
+        {image.label ? (
+          <span aria-hidden="true" className={styles.imageLabel} title={image.label}>
+            <span aria-hidden="true" className={styles.imageLabelDesktop}>{image.label}</span>
+            <span aria-hidden="true" className={styles.imageLabelMobile}>Representativa</span>
+          </span>
+        ) : null}
       </Link>
 
       <div className={styles.content}>
