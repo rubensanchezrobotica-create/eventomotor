@@ -3,7 +3,7 @@ import test from "node:test";
 import { assignV2HomeEventImages } from "../discipline-fallback-resolver";
 import type { PreviewEvent } from "../redesign-v2-model";
 import { paginateVisibleEvents } from "../listing/paginate-visible-events";
-import { addCalendarDays, buildCalendarDayCounts, buildCalendarMonthCells, buildCalendarMonthSummary, calendarEventMatchesDate, calendarEventsForMonth, calendarEventsForSelectedDate, calendarEventsForWeek, calendarWeekDates, filterCalendarEvents, formatCalendarCount, formatCalendarDisciplineLabel, formatCalendarMonthCompact, formatCalendarWeekCompact, isCalendarDateKey, madridCalendarDateKey, parseCalendarUrlState, serializeCalendarUrlState, shiftCalendarMonth } from "./calendar-page-model";
+import { addCalendarDays, buildCalendarDayCounts, buildCalendarMonthCells, buildCalendarMonthSummary, calendarEventMatchesDate, calendarEventsForMonth, calendarEventsForSelectedDate, calendarEventsForWeek, calendarWeekDates, countCalendarSecondaryFilters, filterCalendarEvents, formatCalendarCount, formatCalendarDisciplineLabel, formatCalendarMonthCompact, formatCalendarWeekCompact, isCalendarDateKey, madridCalendarDateKey, parseCalendarUrlState, serializeCalendarUrlState, shiftCalendarMonth } from "./calendar-page-model";
 
 function fixture(overrides: Partial<PreviewEvent> = {}): PreviewEvent {
   return { id: "event-1", slug: "event-1", title: "Rallye de prueba", championship: "Regional", discipline: "Rallyes", start: "2026-08-03", end: "2026-08-18", venue: "Circuito", city: "Oviedo", province: "Asturias", region: "Asturias", tags: ["rally"], vehicleType: "coche", featured: false, ...overrides };
@@ -28,6 +28,15 @@ test("sin date selecciona el hoy determinista de Europe/Madrid", () => {
     page: 1,
     view: "month",
   });
+});
+
+test("Más filtros cuenta sólo disciplina y vehículo, nunca fecha ni búsqueda", () => {
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-08-15", discipline: "", vehicle: "" }), 0, "date only");
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-08-15", discipline: "rallyes", vehicle: "" }), 1, "discipline only");
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-08-15", discipline: "", vehicle: "moto" }), 1, "vehicle only");
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-08-15", discipline: "rallyes", vehicle: "moto" }), 2, "discipline + vehicle");
+  assert.equal(countCalendarSecondaryFilters({ q: "Enduro", date: "2026-09-20", discipline: "", vehicle: "" }), 0, "q + date");
+  assert.equal(countCalendarSecondaryFilters({ q: "Enduro", date: "2026-09-20", discipline: "offroad", vehicle: "" }), 1, "q + discipline");
 });
 
 test("el contrato multidía incluye inicio, interior y final", () => {

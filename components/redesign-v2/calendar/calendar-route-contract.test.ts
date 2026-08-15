@@ -113,8 +113,9 @@ test("aplicar y limpiar filtros preservan date y view mientras reinician la pág
   assert.match(shiftBody, /navigate\(\{ \.\.\.state, date, page: 1 \}\)/);
 });
 
-test("el disclosure Home-like cuenta fecha, disciplina y vehículo", () => {
-  assert.match(search, /advancedFilterCount = \[draft\.date, draft\.discipline, draft\.vehicle\]\.filter\(Boolean\)\.length/);
+test("el disclosure Home-like cuenta sólo disciplina y vehículo", () => {
+  assert.match(search, /advancedFilterCount = countCalendarSecondaryFilters\(draft\)/);
+  assert.doesNotMatch(search, /advancedFilterCount = \[draft\.date/);
   assert.match(search, /aria-controls="calendar-v2-advanced-filters"/);
   assert.match(search, /advancedFilterCount \? `\$\{advancedFilterCount\} \$\{advancedFilterCount === 1 \? "activo" : "activos"\}`/);
   assert.match(styles, /\.secondaryFilterFields\[data-open="true"\][\s\S]*?display: grid/);

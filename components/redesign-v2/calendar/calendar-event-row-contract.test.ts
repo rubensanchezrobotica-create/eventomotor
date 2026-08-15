@@ -34,8 +34,8 @@ test("la presentación compacta conserva handlers, etiquetas y objetivos táctil
   assert.match(actions, /title="Añadir al calendario"/);
   assert.match(actions, /height="20"/);
   assert.match(actions, /width="20"/);
-  assert.match(styles, /width:\s*46px/);
-  assert.match(styles, /min-height:\s*46px/);
+  assert.match(styles, /width:\s*44px/);
+  assert.match(styles, /min-height:\s*44px/);
 });
 
 test("la etiqueta representativa es condicional, accesible y secundaria", () => {
@@ -55,13 +55,35 @@ test("mobile coloca imagen y acciones en la columna media sin banda inferior", (
   const mobile = styles.slice(styles.indexOf("@media (max-width: 720px)"), styles.indexOf("@media (max-width: 360px)"));
 
   assert.match(row, /className=\{styles\.mediaColumn\}[\s\S]*?className=\{styles\.imageLink\}[\s\S]*?className=\{styles\.actions\}/);
-  assert.match(mobile, /grid-template-columns:\s*minmax\(0, 40%\) minmax\(0, 60%\)/);
+  assert.match(mobile, /grid-template-columns:\s*128px minmax\(0, 1fr\)/);
   assert.match(mobile, /\.mediaColumn\s*\{[\s\S]*?grid-column:\s*1[\s\S]*?grid-template-rows:\s*auto auto/);
   assert.match(mobile, /\.imageLink\s*\{[\s\S]*?grid-row:\s*1[\s\S]*?aspect-ratio:\s*4 \/ 3/);
   assert.match(styles, /\.image,[\s\S]*?object-fit:\s*cover/);
   assert.match(mobile, /\.content\s*\{[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1/);
   assert.match(mobile, /\.actions\s*\{[\s\S]*?grid-row:\s*2[\s\S]*?justify-content:\s*center/);
   assert.doesNotMatch(mobile, /grid-column:\s*1\s*\/\s*-1|border-top:/);
+});
+
+test("las filas móviles normalizan ancho, media y acciones para contenido corto o extremo", () => {
+  const styles = readFileSync(new URL("./CalendarEventRow.module.css", import.meta.url), "utf8");
+  const fixtures = [
+    { title: "Rally", location: "León", badges: 1 },
+    { title: "Campeonato de Motociclismo CEF Interopen de Velocidad Circuito de Navarra 2026", location: "Navarra", badges: 2 },
+    { title: "Subida nacional", location: "Circuito permanente de alta montaña, San Sebastián de los Reyes", badges: 2 },
+    { title: "Evento con tres distintivos", location: "Madrid", badges: 3 },
+    { title: "Clásicos de Montaña", location: "A Coruña", badges: 2 },
+  ];
+
+  assert.equal(fixtures.length, 5);
+  assert.equal(fixtures.some(({ title }) => title.includes("CEF Interopen")), true);
+  assert.equal(fixtures.some(({ location }) => location.length > 50), true);
+  assert.equal(fixtures.some(({ badges }) => badges === 3), true);
+  assert.equal(fixtures.some(({ title, location }) => /[áéíóúñ]/i.test(`${title} ${location}`)), true);
+  assert.match(styles, /\.row\s*\{[\s\S]*?box-sizing:\s*border-box[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*100%/);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*?\.mediaColumn\s*\{[\s\S]*?width:\s*128px/);
+  assert.match(styles, /\.actions\s*\{[\s\S]*?grid-template-columns:\s*44px 44px/);
+  assert.match(styles, /\.actions :global\(\.emc-icon-action svg\)\s*\{[\s\S]*?width:\s*18px[\s\S]*?height:\s*18px/);
+  assert.match(styles, /@media \(max-width: 360px\)[\s\S]*?grid-template-columns:\s*110px minmax\(0, 1fr\)/);
 });
 
 test("la disciplina visible usa el mapa ortográfico sin alterar el dato guardado", () => {

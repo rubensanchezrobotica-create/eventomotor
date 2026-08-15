@@ -11,6 +11,7 @@ import { formatPreviewSelectedDate, type PreviewEvent } from "../redesign-v2-mod
 import {
   CALENDAR_DISCIPLINES,
   CALENDAR_VEHICLES,
+  countCalendarSecondaryFilters,
   formatCalendarDisciplineLabel,
   type CalendarUrlState,
 } from "./calendar-page-model";
@@ -61,7 +62,7 @@ export default function CalendarSearchExperience({ events, onApply, onClearAll, 
     [draft.q, events],
   );
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
-  const advancedFilterCount = [draft.date, draft.discipline, draft.vehicle].filter(Boolean).length;
+  const advancedFilterCount = countCalendarSecondaryFilters(draft);
   const selectedDateLabel = formatPreviewSelectedDate(draft.date);
 
   function updateDraft<K extends keyof CalendarSearchValues>(key: K, value: CalendarSearchValues[K]) {

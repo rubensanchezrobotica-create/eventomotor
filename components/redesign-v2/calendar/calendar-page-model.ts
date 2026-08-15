@@ -36,6 +36,12 @@ export type CalendarUrlState = {
 export type CalendarQueryRecord = Record<string, string | string[] | undefined>;
 export type CalendarMonthCell = { date: string; day: number };
 
+export function countCalendarSecondaryFilters(
+  filters: Pick<CalendarUrlState, "q" | "date" | "discipline" | "vehicle">,
+): number {
+  return [filters.discipline, filters.vehicle].filter(Boolean).length;
+}
+
 const dateFormatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Madrid" });
 const dayHeadingFormatter = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Madrid" });
 const monthFormatter = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric", timeZone: "Europe/Madrid" });

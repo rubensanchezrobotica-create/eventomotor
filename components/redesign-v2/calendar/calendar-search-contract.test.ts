@@ -63,12 +63,15 @@ test("el teclado, selección, clear y submit conservan el contrato Home", () => 
 });
 
 test("Más filtros sincroniza fecha, disciplina y vehículo con targets táctiles", () => {
-  assert.match(calendarSearch, /advancedFilterCount = \[draft\.date, draft\.discipline, draft\.vehicle\]/);
+  assert.match(calendarSearch, /advancedFilterCount = countCalendarSecondaryFilters\(draft\)/);
   assert.match(calendarSearch, /type="date"/);
   assert.match(calendarSearch, /value=\{draft\.date\}/);
   assert.match(calendarSearch, /name="discipline"/);
   assert.match(calendarSearch, /name="vehicle"/);
-  assert.match(styles, /\.queryFilter input[\s\S]*?min-height:\s*54px/);
+  assert.match(styles, /\.queryFilter input[\s\S]*?min-height:\s*49px/);
   assert.match(styles, /\.primaryButton[\s\S]*?min-height:\s*49px/);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.primaryButton[\s\S]*?min-height:\s*46px/);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?grid-template-columns:\s*minmax\(0, 0\.82fr\) minmax\(0, 1\.18fr\)/);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.suggestions\s*\{[\s\S]*?position:\s*static[\s\S]*?margin-top:\s*8px/);
+  assert.match(styles, /\.dateHint\s*\{[\s\S]*?position:\s*absolute[\s\S]*?clip:\s*rect\(0, 0, 0, 0\)/);
 });
