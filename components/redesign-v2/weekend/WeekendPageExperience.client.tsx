@@ -172,49 +172,35 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
         state={state}
       />
 
-      <section aria-labelledby="weekend-v2-days-title" className={styles.daySelector}>
-        <div className={styles.daySelectorIntro}>
-          <span>Tu agenda de motor</span>
-          <h2 id="weekend-v2-days-title">{formatWeekendRangeLabel(range)}</h2>
-          <p>Elige un día o explora el fin de semana completo.</p>
-        </div>
-        <div aria-label="Filtrar por día" className={styles.dayButtons}>
-          {dayOptions.map(({ day, label }) => {
-            const date = dayDate(day, range);
-            const countLabel = formatEventCount(dayCounts[day]);
-            const isToday = todayDay === day;
-            const mobileLabel = day === "all" || !date
-              ? mobileDayLabels[day]
-              : `${mobileDayLabels[day]} ${Number(date.slice(-2))}`;
-            const accessibleLabel = `${label}, ${date ? formatWeekendDayDate(date) : "fin de semana"}, ${countLabel}${isToday ? ", hoy" : ""}.`;
-            return (
-              <button aria-current={isToday ? "date" : undefined} aria-label={accessibleLabel} aria-pressed={state.day === day} key={day} onClick={() => selectDay(day)} type="button">
-                <span>
-                  <span className={styles.desktopDayLabel}>{label}</span>
-                  <span aria-hidden="true" className={styles.mobileDayLabel}>{mobileLabel}</span>
-                  {isToday ? <em className={styles.desktopToday}>Hoy</em> : null}
-                </span>
-                <strong className={styles.desktopDayDate}>{date ? formatWeekendDayDate(date) : "Fin de semana"}</strong>
-                <small className={styles.desktopDayCount}>{countLabel}</small>
-                <small aria-hidden="true" className={styles.mobileDayCount}>
-                  {dayCounts[day]}{isToday ? <span> · Hoy</span> : null}
-                </small>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className={styles.resultsSection} ref={(element) => { resultsRef.current = element; }}>
+      <section aria-labelledby="weekend-v2-results-title" className={styles.resultsSection} ref={(element) => { resultsRef.current = element; }}>
         <div className={styles.resultsHeader}>
-          <div>
+          <div className={styles.resultsMeta}>
             <span>Agenda seleccionada</span>
-            <h2>
-              <span className={styles.desktopResultsTitle}>Eventos para vivir el motor</span>
-              <span className={styles.mobileResultsTitle}>{formatWeekendResultHeading(pagination.total, state.day)}</span>
-            </h2>
+            <div aria-label="Filtrar eventos por día del fin de semana" className={styles.dayButtons} role="group">
+              {dayOptions.map(({ day, label }) => {
+                const date = dayDate(day, range);
+                const countLabel = formatEventCount(dayCounts[day]);
+                const isToday = todayDay === day;
+                const compactLabel = day === "all" || !date
+                  ? mobileDayLabels[day]
+                  : `${mobileDayLabels[day]} ${Number(date.slice(-2))}`;
+                const accessibleLabel = `${label}, ${date ? formatWeekendDayDate(date) : "fin de semana"}, ${countLabel}${isToday ? ", hoy" : ""}.`;
+                return (
+                  <button aria-current={isToday ? "date" : undefined} aria-label={accessibleLabel} aria-pressed={state.day === day} key={day} onClick={() => selectDay(day)} type="button">
+                    <span aria-hidden="true" className={styles.dayLabel}>{compactLabel}</span>
+                    <small aria-hidden="true" className={styles.dayMeta}>
+                      {dayCounts[day]}{isToday ? <span> · Hoy</span> : null}
+                    </small>
+                  </button>
+                );
+              })}
+            </div>
+            <strong>{formatWeekendRangeLabel(range)}</strong>
           </div>
-          <p>{formatEventCount(pagination.total)}</p>
+          <h2 id="weekend-v2-results-title">
+            <span className={styles.desktopResultsTitle}>Eventos para vivir el motor</span>
+            <span className={styles.mobileResultsTitle}>{formatWeekendResultHeading(pagination.total, state.day)}</span>
+          </h2>
         </div>
 
         {pagination.visible.length ? (

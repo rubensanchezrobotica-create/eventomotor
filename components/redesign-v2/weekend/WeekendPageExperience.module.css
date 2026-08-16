@@ -189,27 +189,8 @@
   display: grid;
 }
 
-.daySelector {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.76fr) minmax(0, 2.24fr);
-  gap: 22px;
-  align-items: stretch;
-  margin-bottom: 58px;
-  padding: 24px;
-  border: 1px solid #2d343e;
-  border-radius: 10px;
-  background: #0c1015;
-}
-
-.daySelectorIntro {
-  display: grid;
-  align-content: center;
-  padding: 5px 10px 5px 2px;
-}
-
-.daySelectorIntro > span,
-.resultsHeader span,
-.calendarCta span {
+.resultsMeta > span,
+.calendarCta > div > span {
   color: #ff7a27;
   font-size: 0.66rem;
   font-weight: 900;
@@ -217,7 +198,6 @@
   text-transform: uppercase;
 }
 
-.daySelectorIntro h2,
 .resultsHeader h2,
 .calendarCta h2 {
   margin: 7px 0 0;
@@ -229,11 +209,6 @@
   text-transform: uppercase;
 }
 
-.daySelectorIntro h2 {
-  font-size: clamp(1.75rem, 3vw, 2.55rem);
-}
-
-.daySelectorIntro p,
 .calendarCta p {
   margin: 10px 0 0;
   color: #969da6;
@@ -242,93 +217,121 @@
 }
 
 .dayButtons {
+  width: min(440px, 100%);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #333b45;
+  border-radius: 6px;
+  background: #333b45;
 }
 
 .dayButtons button {
   min-width: 0;
-  min-height: 112px;
+  height: 48px;
   display: grid;
+  grid-template-rows: repeat(2, minmax(0, auto));
+  place-items: center;
   align-content: center;
-  gap: 8px;
-  padding: 14px 12px;
-  border: 1px solid #333b45;
-  border-radius: 8px;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 0;
   background: #121820;
   color: #edf0f2;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
+}
+
+.dayButtons button + button {
+  border-left: 1px solid #333b45;
 }
 
 .dayButtons button:hover {
-  border-color: #59616b;
   background: #171e26;
 }
 
 .dayButtons button[aria-pressed="true"] {
-  border-color: #ff6200;
   background: #ff6200;
   color: #090b0e;
 }
 
-.dayButtons > button > span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  font-size: 0.7rem;
+.dayButtons button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 0;
+  box-shadow: inset 0 0 0 3px #ff9d5d;
+}
+
+.dayButtons button[aria-pressed="true"]:focus-visible {
+  box-shadow: inset 0 0 0 3px #090b0e;
+}
+
+.dayLabel,
+.dayMeta {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dayLabel {
+  font-size: 0.66rem;
   font-weight: 900;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.035em;
   text-transform: uppercase;
 }
 
-.mobileDayLabel,
-.mobileDayCount,
+.dayMeta {
+  color: #8f97a1;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dayButtons button[aria-pressed="true"] .dayMeta {
+  color: #303238;
+}
+
 .mobileResultsTitle {
   display: none;
 }
 
-.dayButtons em {
-  padding: 3px 5px;
-  border-radius: 999px;
-  background: #f4f4f0;
-  color: #090b0e;
-  font-size: 0.53rem;
-  font-style: normal;
-}
-
-.dayButtons strong {
-  overflow: hidden;
-  font-size: 0.76rem;
-  font-weight: 780;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dayButtons small {
-  color: #8f97a1;
-  font-size: 0.66rem;
-}
-
-.dayButtons button[aria-pressed="true"] small {
-  color: #303238;
-}
-
 .resultsSection {
   scroll-margin-top: 100px;
+  padding-top: 8px;
 }
 
 .resultsHeader {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
+  display: grid;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
+.resultsMeta {
+  display: grid;
+  grid-template-columns: auto minmax(360px, 440px) auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #2b333d;
+}
+
+.resultsMeta > strong {
+  color: #e8ebed;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .resultsHeader h2 {
+  min-width: 0;
   font-size: clamp(2rem, 4vw, 3.25rem);
 }
 
@@ -338,12 +341,6 @@
   font: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
-}
-
-.resultsHeader p {
-  margin: 0;
-  color: #979ea7;
-  font-size: 0.82rem;
 }
 
 .eventGrid {
@@ -597,6 +594,13 @@
   text-decoration: none;
 }
 
+.calendarCta a span {
+  color: currentColor;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 .visuallyHidden {
   position: absolute !important;
   width: 1px !important;
@@ -608,12 +612,21 @@
 }
 
 @media (max-width: 1024px) {
-  .daySelector {
-    grid-template-columns: 1fr;
+  .resultsMeta {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 20px;
   }
 
-  .daySelectorIntro {
-    display: block;
+  .resultsMeta > strong {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+
+  .dayButtons {
+    width: min(520px, 100%);
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .eventGrid {
@@ -622,30 +635,8 @@
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .daySelector {
-    padding: 20px;
-  }
-
   .dayButtons button {
-    min-height: 98px;
-    gap: 6px;
-    padding-block: 10px;
-  }
-}
-
-@media (min-width: 1025px) {
-  .daySelector {
-    padding-block: 18px;
-  }
-
-  .dayButtons {
-    align-items: center;
-  }
-
-  .dayButtons button {
-    min-height: 144px;
-    gap: 6px;
-    padding-block: 10px;
+    height: 48px;
   }
 }
 
@@ -693,80 +684,43 @@
     min-height: 46px;
   }
 
-  .daySelector {
-    gap: 9px;
-    margin-bottom: 20px;
-    padding: 14px;
-  }
-
-  .daySelectorIntro {
-    padding: 0;
-  }
-
-  .daySelectorIntro > span {
-    display: none;
-  }
-
-  .daySelectorIntro h2 {
-    margin-top: 0;
-    font-size: clamp(1.375rem, 5.8vw, 1.5rem);
-  }
-
-  .daySelectorIntro p {
-    display: none;
-  }
-
   .dayButtons {
+    width: 100%;
+    grid-column: 1;
+    grid-row: 3;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    margin-top: 3px;
   }
 
   .dayButtons button {
-    position: relative;
-    min-height: 56px;
+    height: 56px;
     align-content: center;
     gap: 2px;
     padding: 6px 4px;
-    border-radius: 5px;
     text-align: center;
   }
 
-  .dayButtons > button > span {
-    justify-content: center;
-    font-size: 0.66rem;
-  }
-
-  .desktopDayLabel,
-  .desktopDayDate,
-  .desktopDayCount,
-  .desktopToday {
-    display: none;
-  }
-
-  .mobileDayLabel,
-  .mobileDayCount {
-    display: inline;
-  }
-
-  .mobileDayCount {
-    font-size: 0.625rem;
-    font-weight: 800;
-    letter-spacing: 0.025em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .mobileDayCount span {
-    position: static;
-    font: inherit;
-  }
-
   .resultsHeader {
-    display: block;
+    gap: 9px;
+    margin-bottom: 16px;
   }
 
-  .resultsHeader p {
-    display: none;
+  .resultsMeta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+    padding-bottom: 8px;
+  }
+
+  .resultsMeta > span {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .resultsMeta > strong {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: clamp(1.375rem, 5.8vw, 1.5rem);
+    text-align: left;
   }
 
   .resultsHeader h2 {
@@ -824,25 +778,16 @@
     grid-column: 1;
   }
 
-  .daySelector {
-    gap: 8px;
-    padding: 12px;
-  }
-
-  .dayButtons {
-    gap: 3px;
-  }
-
   .dayButtons button {
     padding-inline: 0;
   }
 
-  .dayButtons > button > span {
+  .dayLabel {
     font-size: 0.625rem;
   }
 
-  .mobileDayCount {
-    font-size: 0.625rem;
+  .dayMeta {
+    font-size: 0.6rem;
     letter-spacing: 0;
   }
 

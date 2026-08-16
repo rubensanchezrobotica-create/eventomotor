@@ -112,48 +112,78 @@ test("A3.1 muestra limpiar sólo con filtros de búsqueda y conserva el día", (
   assert.doesNotMatch(clearEmpty, /day:/);
 });
 
-test("A3.2 conserva desktop y convierte sólo mobile en un selector segmentado de una fila", () => {
-  assert.match(styles, /@media \(min-width: 1025px\)[\s\S]*?min-height:\s*144px/);
-  assert.match(styles, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?min-height:\s*98px/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons button\s*\{[\s\S]*?min-height:\s*56px/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.daySelectorIntro p\s*\{[\s\S]*?display:\s*none/);
+test("A3.3 integra el selector en resultados y elimina el panel editorial independiente", () => {
+  const resultsHeader = experience.slice(experience.indexOf('<div className={styles.resultsHeader}>'), experience.indexOf('{pagination.visible.length'));
+  assert.doesNotMatch(experience, /className=\{styles\.daySelector\}|Tu agenda de motor|Elige un día o explora el fin de semana completo/);
+  assert.match(resultsHeader, /Agenda seleccionada/);
+  assert.match(resultsHeader, /formatWeekendRangeLabel\(range\)/);
+  assert.match(resultsHeader, /className=\{styles\.dayButtons\}/);
+  assert.equal((experience.match(/className=\{styles\.dayButtons\}/g) ?? []).length, 1);
+  assert.match(experience, /aria-labelledby="weekend-v2-results-title"/);
+});
+
+test("A3.3.1 presenta un único control segmentado con cuatro celdas iguales", () => {
+  assert.match(styles, /\.dayButtons\s*\{[\s\S]*?width:\s*min\(440px, 100%\)[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)[\s\S]*?gap:\s*0[\s\S]*?overflow:\s*hidden[\s\S]*?border:\s*1px solid #333b45/);
+  assert.match(styles, /\.dayButtons button\s*\{[\s\S]*?height:\s*48px[\s\S]*?grid-template-rows:\s*repeat\(2, minmax\(0, auto\)\)[\s\S]*?border:\s*0[\s\S]*?border-radius:\s*0/);
+  assert.match(styles, /\.dayButtons button \+ button\s*\{[\s\S]*?border-left:\s*1px solid #333b45/);
+  assert.match(styles, /\.dayButtons button:focus-visible\s*\{[\s\S]*?box-shadow:\s*inset 0 0 0 3px #ff9d5d/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons button\s*\{[\s\S]*?height:\s*56px/);
 });
 
 test("A3.2 conserva botones reales con aria-pressed y nombres accesibles completos", () => {
   assert.match(experience, /<button aria-current=\{isToday \? "date" : undefined\} aria-label=\{accessibleLabel\} aria-pressed=\{state\.day === day\}/);
   assert.match(experience, /const accessibleLabel = `\$\{label\}, \$\{date \? formatWeekendDayDate\(date\) : "fin de semana"\}, \$\{countLabel\}\$\{isToday \? ", hoy" : ""\}\.`/);
+  assert.match(experience, /aria-label="Filtrar eventos por día del fin de semana"[^>]+role="group"/);
   assert.match(experience, /all:\s*"Todos"/);
   assert.match(experience, /fri:\s*"Vie"/);
   assert.match(experience, /sat:\s*"Sáb"/);
   assert.match(experience, /sun:\s*"Dom"/);
-  assert.match(experience, /aria-hidden="true" className=\{styles\.mobileDayLabel\}/);
+  assert.match(experience, /aria-hidden="true" className=\{styles\.dayLabel\}>\{compactLabel\}<\/span>/);
+  assert.match(experience, /aria-hidden="true" className=\{styles\.dayMeta\}/);
 });
 
-test("A3.2.1 convierte el módulo móvil en un control compacto con Hoy dentro del flujo", () => {
+test("A3.3.1 reserva dos líneas y mantiene Hoy dentro de la metadata", () => {
   const mobile = styles.slice(styles.indexOf("@media (max-width: 700px)"), styles.indexOf("@media (max-width: 350px)"));
-  assert.match(mobile, /\.daySelectorIntro > span\s*\{[\s\S]*?display:\s*none/);
-  assert.match(mobile, /\.daySelectorIntro h2\s*\{[\s\S]*?font-size:\s*clamp\(1\.375rem, 5\.8vw, 1\.5rem\)/);
-  assert.match(mobile, /\.daySelector\s*\{[\s\S]*?gap:\s*9px[\s\S]*?padding:\s*14px/);
-  assert.match(mobile, /\.mobileDayCount\s*\{[\s\S]*?font-size:\s*0\.625rem/);
-  assert.match(mobile, /\.mobileDayCount span\s*\{[\s\S]*?position:\s*static/);
-  assert.doesNotMatch(mobile, /\.dayButtons em\s*\{[\s\S]*?position:\s*absolute/);
+  assert.match(mobile, /\.resultsMeta > strong\s*\{[\s\S]*?font-size:\s*clamp\(1\.375rem, 5\.8vw, 1\.5rem\)/);
+  assert.doesNotMatch(mobile, /position:\s*absolute/);
   assert.match(experience, /\{dayCounts\[day\]\}\{isToday \? <span> · Hoy<\/span> : null\}/);
   assert.match(experience, /aria-current=\{isToday \? "date" : undefined\}/);
+  assert.doesNotMatch(
+    experience,
+    /styles\.(?:desktopDaySummary|mobileDayLabel|mobileDayCount)/,
+  );
+  assert.match(styles, /\.dayLabel,\s*\.dayMeta\s*\{[\s\S]*?font-variant-numeric:\s*tabular-nums/);
+});
+
+test("A3.3.1 libera el H2 en desktop y ordena meta, selector y rango por breakpoint", () => {
+  const resultsHeader = experience.slice(experience.indexOf('<div className={styles.resultsHeader}>'), experience.indexOf('{pagination.visible.length'));
+  const meta = resultsHeader.slice(resultsHeader.indexOf('<div className={styles.resultsMeta}>'), resultsHeader.indexOf('<h2 id="weekend-v2-results-title">'));
+  assert.match(meta, /Agenda seleccionada[\s\S]*?className=\{styles\.dayButtons\}[\s\S]*?formatWeekendRangeLabel\(range\)/);
+  assert.doesNotMatch(meta, /<h2/);
+  assert.match(styles, /\.resultsMeta\s*\{[\s\S]*?grid-template-columns:\s*auto minmax\(360px, 440px\) auto/);
+  assert.match(styles, /@media \(max-width: 1024px\)[\s\S]*?\.resultsMeta\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) auto[\s\S]*?\.dayButtons\s*\{[\s\S]*?grid-column:\s*1 \/ -1[\s\S]*?grid-row:\s*2/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons\s*\{[\s\S]*?grid-row:\s*3[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
 });
 
 test("A3.2 presenta un único H2 contextual con pluralización y sin count móvil duplicado", () => {
   const resultHeader = experience.slice(experience.indexOf('<div className={styles.resultsHeader}>'), experience.indexOf('{pagination.visible.length'));
-  assert.equal((resultHeader.match(/<h2>/g) ?? []).length, 1);
+  assert.equal((resultHeader.match(/<h2(?:\s[^>]*)?>/g) ?? []).length, 1);
   assert.match(experience, /total === 1 \? "evento" : "eventos"/);
   assert.match(experience, /all:\s*"este fin de semana"/);
   assert.match(experience, /fri:\s*"este viernes"/);
   assert.match(experience, /sat:\s*"este sábado"/);
   assert.match(experience, /sun:\s*"este domingo"/);
   assert.match(experience, /formatWeekendResultHeading\(pagination\.total, state\.day\)/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.resultsHeader p\s*\{[\s\S]*?display:\s*none/);
+  assert.doesNotMatch(resultHeader, /<p>\{formatEventCount\(pagination\.total\)\}<\/p>/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.desktopResultsTitle\s*\{[\s\S]*?display:\s*none/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.mobileResultsTitle\s*\{[\s\S]*?display:\s*inline/);
+});
+
+test("A3.3 mantiene Calendar y hace visible su flecha mediante currentColor", () => {
+  assert.match(experience, /href="\/preview\/redesign-v2\/calendario">Abrir calendario <span aria-hidden="true">→<\/span>/);
+  assert.match(styles, /\.calendarCta a span\s*\{[\s\S]*?color:\s*currentColor/);
+  assert.match(styles, /\.eventDetailLink span\s*\{\s*color:\s*#ff6200;\s*\}/);
+  assert.match(card, /Ver evento <span aria-hidden="true">→<\/span>/);
 });
 
 test("A3.2 documenta los seis resultados contextuales singular y plural", () => {
