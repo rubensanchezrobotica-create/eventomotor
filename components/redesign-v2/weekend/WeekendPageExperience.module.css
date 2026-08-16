@@ -273,7 +273,7 @@
   color: #090b0e;
 }
 
-.dayButtons span {
+.dayButtons > button > span {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -282,6 +282,12 @@
   font-weight: 900;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.mobileDayLabel,
+.mobileDayCount,
+.mobileResultsTitle {
+  display: none;
 }
 
 .dayButtons em {
@@ -324,6 +330,14 @@
 
 .resultsHeader h2 {
   font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+.resultsHeader h2 .desktopResultsTitle,
+.resultsHeader h2 .mobileResultsTitle {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
 }
 
 .resultsHeader p {
@@ -680,21 +694,71 @@
   }
 
   .daySelector {
-    gap: 17px;
-    margin-bottom: 42px;
-    padding: 18px;
+    gap: 9px;
+    margin-bottom: 20px;
+    padding: 14px;
+  }
+
+  .daySelectorIntro {
+    padding: 0;
+  }
+
+  .daySelectorIntro > span {
+    display: none;
   }
 
   .daySelectorIntro h2 {
-    font-size: 1.8rem;
+    margin-top: 0;
+    font-size: clamp(1.375rem, 5.8vw, 1.5rem);
+  }
+
+  .daySelectorIntro p {
+    display: none;
   }
 
   .dayButtons {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .dayButtons button {
-    min-height: 98px;
+    position: relative;
+    min-height: 56px;
+    align-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border-radius: 5px;
+    text-align: center;
+  }
+
+  .dayButtons > button > span {
+    justify-content: center;
+    font-size: 0.66rem;
+  }
+
+  .desktopDayLabel,
+  .desktopDayDate,
+  .desktopDayCount,
+  .desktopToday {
+    display: none;
+  }
+
+  .mobileDayLabel,
+  .mobileDayCount {
+    display: inline;
+  }
+
+  .mobileDayCount {
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .mobileDayCount span {
+    position: static;
+    font: inherit;
   }
 
   .resultsHeader {
@@ -702,11 +766,20 @@
   }
 
   .resultsHeader p {
-    margin-top: 8px;
+    display: none;
   }
 
   .resultsHeader h2 {
-    font-size: clamp(1.7rem, 7.2vw, 1.82rem);
+    font-size: clamp(1.65rem, 7.2vw, 1.9rem);
+    line-height: 1.02;
+  }
+
+  .desktopResultsTitle {
+    display: none;
+  }
+
+  .mobileResultsTitle {
+    display: inline;
   }
 
   .eventGrid {
@@ -752,15 +825,25 @@
   }
 
   .daySelector {
-    padding: 15px;
+    gap: 8px;
+    padding: 12px;
   }
 
   .dayButtons {
-    gap: 7px;
+    gap: 3px;
   }
 
   .dayButtons button {
-    padding-inline: 9px;
+    padding-inline: 0;
+  }
+
+  .dayButtons > button > span {
+    font-size: 0.625rem;
+  }
+
+  .mobileDayCount {
+    font-size: 0.625rem;
+    letter-spacing: 0;
   }
 
   .eventCardActions {

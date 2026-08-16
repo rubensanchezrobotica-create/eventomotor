@@ -112,11 +112,64 @@ test("A3.1 muestra limpiar sólo con filtros de búsqueda y conserva el día", (
   assert.doesNotMatch(clearEmpty, /day:/);
 });
 
-test("A3.1 reduce sólo la densidad desktop y conserva el selector móvil 2 por 2", () => {
+test("A3.2 conserva desktop y convierte sólo mobile en un selector segmentado de una fila", () => {
   assert.match(styles, /@media \(min-width: 1025px\)[\s\S]*?min-height:\s*144px/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons button\s*\{[\s\S]*?min-height:\s*98px/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.resultsHeader h2\s*\{[\s\S]*?font-size:\s*clamp\(1\.7rem, 7\.2vw, 1\.82rem\)/);
+  assert.match(styles, /@media \(min-width: 769px\) and \(max-width: 1024px\)[\s\S]*?min-height:\s*98px/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.dayButtons button\s*\{[\s\S]*?min-height:\s*56px/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.daySelectorIntro p\s*\{[\s\S]*?display:\s*none/);
+});
+
+test("A3.2 conserva botones reales con aria-pressed y nombres accesibles completos", () => {
+  assert.match(experience, /<button aria-current=\{isToday \? "date" : undefined\} aria-label=\{accessibleLabel\} aria-pressed=\{state\.day === day\}/);
+  assert.match(experience, /const accessibleLabel = `\$\{label\}, \$\{date \? formatWeekendDayDate\(date\) : "fin de semana"\}, \$\{countLabel\}\$\{isToday \? ", hoy" : ""\}\.`/);
+  assert.match(experience, /all:\s*"Todos"/);
+  assert.match(experience, /fri:\s*"Vie"/);
+  assert.match(experience, /sat:\s*"Sáb"/);
+  assert.match(experience, /sun:\s*"Dom"/);
+  assert.match(experience, /aria-hidden="true" className=\{styles\.mobileDayLabel\}/);
+});
+
+test("A3.2.1 convierte el módulo móvil en un control compacto con Hoy dentro del flujo", () => {
+  const mobile = styles.slice(styles.indexOf("@media (max-width: 700px)"), styles.indexOf("@media (max-width: 350px)"));
+  assert.match(mobile, /\.daySelectorIntro > span\s*\{[\s\S]*?display:\s*none/);
+  assert.match(mobile, /\.daySelectorIntro h2\s*\{[\s\S]*?font-size:\s*clamp\(1\.375rem, 5\.8vw, 1\.5rem\)/);
+  assert.match(mobile, /\.daySelector\s*\{[\s\S]*?gap:\s*9px[\s\S]*?padding:\s*14px/);
+  assert.match(mobile, /\.mobileDayCount\s*\{[\s\S]*?font-size:\s*0\.625rem/);
+  assert.match(mobile, /\.mobileDayCount span\s*\{[\s\S]*?position:\s*static/);
+  assert.doesNotMatch(mobile, /\.dayButtons em\s*\{[\s\S]*?position:\s*absolute/);
+  assert.match(experience, /\{dayCounts\[day\]\}\{isToday \? <span> · Hoy<\/span> : null\}/);
+  assert.match(experience, /aria-current=\{isToday \? "date" : undefined\}/);
+});
+
+test("A3.2 presenta un único H2 contextual con pluralización y sin count móvil duplicado", () => {
+  const resultHeader = experience.slice(experience.indexOf('<div className={styles.resultsHeader}>'), experience.indexOf('{pagination.visible.length'));
+  assert.equal((resultHeader.match(/<h2>/g) ?? []).length, 1);
+  assert.match(experience, /total === 1 \? "evento" : "eventos"/);
+  assert.match(experience, /all:\s*"este fin de semana"/);
+  assert.match(experience, /fri:\s*"este viernes"/);
+  assert.match(experience, /sat:\s*"este sábado"/);
+  assert.match(experience, /sun:\s*"este domingo"/);
+  assert.match(experience, /formatWeekendResultHeading\(pagination\.total, state\.day\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.resultsHeader p\s*\{[\s\S]*?display:\s*none/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.desktopResultsTitle\s*\{[\s\S]*?display:\s*none/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.mobileResultsTitle\s*\{[\s\S]*?display:\s*inline/);
+});
+
+test("A3.2 documenta los seis resultados contextuales singular y plural", () => {
+  const contexts = {
+    all: "este fin de semana",
+    fri: "este viernes",
+    sat: "este sábado",
+    sun: "este domingo",
+  } as const;
+  const heading = (total: number, day: keyof typeof contexts) => `${total} ${total === 1 ? "evento" : "eventos"} ${contexts[day]}`;
+  assert.equal(heading(18, "all"), "18 eventos este fin de semana");
+  assert.equal(heading(1, "all"), "1 evento este fin de semana");
+  assert.equal(heading(4, "fri"), "4 eventos este viernes");
+  assert.equal(heading(1, "fri"), "1 evento este viernes");
+  assert.equal(heading(14, "sat"), "14 eventos este sábado");
+  assert.equal(heading(10, "sun"), "10 eventos este domingo");
 });
 
 test("las métricas no contienen la consulta ni datos personales", () => {

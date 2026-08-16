@@ -40,6 +40,28 @@ const dayOptions: ReadonlyArray<{ day: WeekendDay; label: string }> = [
   { day: "sun", label: "Domingo" },
 ];
 
+const mobileDayLabels: Readonly<Record<WeekendDay, string>> = {
+  all: "Todos",
+  fri: "Vie",
+  sat: "Sáb",
+  sun: "Dom",
+};
+
+const resultHeadingContexts: Readonly<Record<WeekendDay, string>> = {
+  all: "este fin de semana",
+  fri: "este viernes",
+  sat: "este sábado",
+  sun: "este domingo",
+};
+
+function formatEventCount(total: number) {
+  return `${total} ${total === 1 ? "evento" : "eventos"}`;
+}
+
+function formatWeekendResultHeading(total: number, day: WeekendDay) {
+  return `${formatEventCount(total)} ${resultHeadingContexts[day]}`;
+}
+
 function dayDate(day: WeekendDay, range: WeekendRange) {
   if (day === "fri") return range.friday;
   if (day === "sat") return range.saturday;
@@ -159,11 +181,24 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
         <div aria-label="Filtrar por día" className={styles.dayButtons}>
           {dayOptions.map(({ day, label }) => {
             const date = dayDate(day, range);
+            const countLabel = formatEventCount(dayCounts[day]);
+            const isToday = todayDay === day;
+            const mobileLabel = day === "all" || !date
+              ? mobileDayLabels[day]
+              : `${mobileDayLabels[day]} ${Number(date.slice(-2))}`;
+            const accessibleLabel = `${label}, ${date ? formatWeekendDayDate(date) : "fin de semana"}, ${countLabel}${isToday ? ", hoy" : ""}.`;
             return (
-              <button aria-pressed={state.day === day} key={day} onClick={() => selectDay(day)} type="button">
-                <span>{label}{todayDay === day ? <em>Hoy</em> : null}</span>
-                <strong>{date ? formatWeekendDayDate(date) : "Fin de semana"}</strong>
-                <small>{dayCounts[day]} {dayCounts[day] === 1 ? "evento" : "eventos"}</small>
+              <button aria-current={isToday ? "date" : undefined} aria-label={accessibleLabel} aria-pressed={state.day === day} key={day} onClick={() => selectDay(day)} type="button">
+                <span>
+                  <span className={styles.desktopDayLabel}>{label}</span>
+                  <span aria-hidden="true" className={styles.mobileDayLabel}>{mobileLabel}</span>
+                  {isToday ? <em className={styles.desktopToday}>Hoy</em> : null}
+                </span>
+                <strong className={styles.desktopDayDate}>{date ? formatWeekendDayDate(date) : "Fin de semana"}</strong>
+                <small className={styles.desktopDayCount}>{countLabel}</small>
+                <small aria-hidden="true" className={styles.mobileDayCount}>
+                  {dayCounts[day]}{isToday ? <span> · Hoy</span> : null}
+                </small>
               </button>
             );
           })}
@@ -172,8 +207,14 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
 
       <section className={styles.resultsSection} ref={(element) => { resultsRef.current = element; }}>
         <div className={styles.resultsHeader}>
-          <div><span>Agenda seleccionada</span><h2>Eventos para vivir el motor</h2></div>
-          <p>{pagination.total} {pagination.total === 1 ? "evento" : "eventos"}</p>
+          <div>
+            <span>Agenda seleccionada</span>
+            <h2>
+              <span className={styles.desktopResultsTitle}>Eventos para vivir el motor</span>
+              <span className={styles.mobileResultsTitle}>{formatWeekendResultHeading(pagination.total, state.day)}</span>
+            </h2>
+          </div>
+          <p>{formatEventCount(pagination.total)}</p>
         </div>
 
         {pagination.visible.length ? (
@@ -202,7 +243,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
         <div><span>Más allá del domingo</span><h2>Planifica todo el mes</h2><p>Consulta la agenda completa por fecha, disciplina y vehículo.</p></div>
         <Link href="/preview/redesign-v2/calendario">Abrir calendario <span aria-hidden="true">→</span></Link>
       </aside>
-      <p aria-live="polite" className={styles.visuallyHidden}>{pagination.total} {pagination.total === 1 ? "evento" : "eventos"} en la selección actual</p>
+      <p aria-live="polite" className={styles.visuallyHidden}>{formatEventCount(pagination.total)} en la selección actual</p>
     </section>
   );
 }
