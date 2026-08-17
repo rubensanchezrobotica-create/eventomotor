@@ -13,6 +13,9 @@ import {
   buildEventBreadcrumbJsonLd,
   buildEventJsonLd,
   buildEventMetadata,
+  buildEventSeoTitle,
+  buildMetadataDescription,
+  isJaramaTrackdayEvent,
 } from "@/lib/event-page-seo";
 
 const CANONICAL = `${SITE_URL}/evento/${LA_BANEZA_EVENT_SLUG}`;
@@ -57,6 +60,155 @@ function absoluteTitle(metadata: ReturnType<typeof buildEventMetadata>) {
   assert.equal(typeof metadata.title, "object");
   return (metadata.title as { absolute: string }).absolute;
 }
+
+function jaramaFixture(overrides: Partial<EventItem> = {}): EventItem {
+  return eventFixture({
+    id: "jarama-fixture",
+    slug: "jarama-fixture-2026-08-22",
+    title: "Evento Jarama 2026",
+    championship: "",
+    discipline: "Automovilismo",
+    start: "2026-08-22",
+    end: "2026-08-23",
+    venue: "Circuito de Madrid Jarama - RACE",
+    city: "San Sebastián de los Reyes",
+    province: "Madrid",
+    region: "Comunidad de Madrid",
+    source: "Organizador oficial",
+    sourceUrl: "https://example.com/evento",
+    officialUrl: "https://example.com/evento",
+    organizerName: "Organizador oficial",
+    organizerUrl: "https://example.com/",
+    tags: [],
+    vehicleType: "coche",
+    featured: false,
+    ...overrides,
+  });
+}
+
+const JARAMA_CLASSIFICATION_CASES: Array<{
+  label: string;
+  event: EventItem;
+  expectedTrackday: boolean;
+}> = [
+  {
+    label: "Hot Wheels",
+    event: jaramaFixture({
+      slug: "hot-wheels-legends-tour-espana-jarama-2026-09-19",
+      title: "Hot Wheels Legends Tour España 2026",
+      championship: "Exposición",
+      discipline: "Ferias",
+      tags: ["familiar", "exposición"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "F4",
+    event: jaramaFixture({
+      slug: "f4-spanish-championship-jarama-2026",
+      title: "F4 Spain Jarama 2026",
+      championship: "F4 Spanish Championship",
+      discipline: "Monoplazas",
+      tags: ["F4", "campeonato"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "Drift Masters",
+    event: jaramaFixture({
+      slug: "drift-masters-round-2-spain-2026-san-sebastian-de-los-reyes-2026-05-16",
+      title: "Drift Masters Round 2 Spain 2026",
+      championship: "Drift Masters",
+      discipline: "Drift",
+      tags: ["drift"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "test de Fórmula E",
+    event: jaramaFixture({
+      slug: "test-pretemporada-formula-e-jarama-2026-11-16",
+      title: "Test de pretemporada Formula E Jarama 2026",
+      championship: "Formula E",
+      discipline: "Monoplazas eléctricos",
+      tags: ["test", "Formula E"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "GP Camión",
+    event: jaramaFixture({
+      slug: "gran-premio-del-camion-jarama-2026-10-03",
+      title: "Gran Premio del Camion Jarama 2026",
+      championship: "FIA European Truck Racing Championship",
+      discipline: "Camiones",
+      tags: ["camiones", "gran premio"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "Jarama Classic",
+    event: jaramaFixture({
+      slug: "jarama-classic-2026",
+      title: "Jarama Classic 2026",
+      discipline: "Vehículos clásicos",
+      tags: ["clásicos"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "trackday fuera de Jarama",
+    event: jaramaFixture({
+      slug: "tandas-libres-motorland-2026",
+      title: "Tandas libres MotorLand Aragón 2026",
+      discipline: "Track day",
+      venue: "MotorLand Aragón",
+      city: "Alcañiz",
+      province: "Teruel",
+      region: "Aragón",
+      tags: ["rodada"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "venue genérico Circuito",
+    event: jaramaFixture({
+      slug: "campeonato-turismos-catalunya-2026",
+      title: "Campeonato de Turismos Catalunya 2026",
+      championship: "Campeonato de Turismos",
+      discipline: "Turismos",
+      venue: "Circuito de Barcelona-Catalunya",
+      city: "Montmeló",
+      province: "Barcelona",
+      region: "Cataluña",
+      tags: ["campeonato"],
+    }),
+    expectedTrackday: false,
+  },
+  {
+    label: "EasyRace con tandas",
+    event: jaramaFixture({
+      slug: "tandas-libres-curso-jarama-easyrace-2026-09-04",
+      title: "Tandas libres y curso Jarama Easyrace septiembre 2026",
+      championship: "Tandas libres",
+      discipline: "Tandas",
+      start: "2026-09-04",
+      end: "2026-09-04",
+      tags: ["trackday"],
+    }),
+    expectedTrackday: true,
+  },
+  {
+    label: "Tandas privadas Jarama",
+    event: jaramaFixture({
+      slug: "tandas-privadas-jarama-2026",
+      title: "Tandas Privadas Jarama 2026",
+      discipline: "Tandas privadas",
+      tags: ["tandas", "rodada"],
+    }),
+    expectedTrackday: true,
+  },
+];
 
 test("La Bañeza usa el title editorial con una sola aparición de EventoMotor", () => {
   const metadata = buildEventMetadata(eventFixture(), SITE_URL, LA_BANEZA_EVENT_SLUG, {
@@ -185,3 +337,29 @@ test("los títulos editoriales preexistentes ignoran la plantilla sin duplicar l
   assert.equal(typeof metadata.title, "object");
   assert.equal((metadata.title as { absolute: string }).absolute.split(SITE_NAME).length - 1, 1);
 });
+
+for (const fixture of JARAMA_CLASSIFICATION_CASES) {
+  test(`Jarama clasifica ${fixture.label} sin perder la identidad del evento`, () => {
+    const { event, expectedTrackday } = fixture;
+    const title = buildEventSeoTitle(event);
+    const description = buildMetadataDescription(event);
+    const canonical = `${SITE_URL}/evento/${event.slug}`;
+    const metadata = buildEventMetadata(event, SITE_URL, event.slug!, { title, description });
+    const jsonLd = buildEventJsonLd(event, canonical, IMAGE, description);
+    const genericJaramaTitle = "Tandas Privadas Jarama 2026";
+
+    assert.equal(isJaramaTrackdayEvent(event), expectedTrackday);
+    assert.ok(title.startsWith(event.title), `title sin identidad para ${fixture.label}`);
+    assert.ok(description.includes(event.title), `description sin identidad para ${fixture.label}`);
+    assert.ok(absoluteTitle(metadata).startsWith(event.title));
+    assert.equal((metadata.openGraph as { description?: string }).description, description);
+    assert.equal((metadata.twitter as { description?: string }).description, description);
+    assert.equal(jsonLd.name, event.title);
+    assert.equal(jsonLd.description, description);
+
+    if (!expectedTrackday || event.title !== genericJaramaTitle) {
+      assert.equal(title.includes(genericJaramaTitle), false);
+      assert.equal(description.includes(genericJaramaTitle), false);
+    }
+  });
+}
