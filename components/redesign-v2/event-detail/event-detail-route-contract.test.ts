@@ -84,6 +84,17 @@ test("A4.3 usa acciones compactas existentes sin degradar Share ni el CTA", () =
   assert.match(styles, /\.actions :global\(\.emc-icon-action\)[\s\S]*?width: 48px/);
 });
 
+test("A4.3.1 usa un SVG decorativo currentColor para enlaces externos sin glifos Unicode", () => {
+  assert.match(component, /function ExternalLinkIcon\(\)/);
+  assert.match(component, /<svg[\s\S]*?aria-hidden="true"[\s\S]*?fill="none"[\s\S]*?focusable="false"/);
+  assert.match(component, /stroke="currentColor"/);
+  assert.match(component, /width="15"[\s\S]*?height="15"|height="15"[\s\S]*?width="15"/);
+  assert.equal((`${component}\n${styles}`.match(/↗️?/gu) || []).length, 0);
+  assert.match(actionPanel, /model\.organizerContext\.label[\s\S]*?<ExternalLinkIcon \/>/);
+  assert.match(actionPanel, /model\.primaryAction\.label[\s\S]*?<ExternalLinkIcon \/>/);
+  assert.match(actionPanel, /Fuente: \{model\.source\.label\}[\s\S]*?<ExternalLinkIcon \/>/);
+});
+
 test("A4.3 presenta el programa largo una vez y conserva Practical condicional", () => {
   assert.equal((component.match(/model\.programSection \? \(/g) || []).length, 1);
   assert.match(component, /<h2>Horarios y programa<\/h2>/);

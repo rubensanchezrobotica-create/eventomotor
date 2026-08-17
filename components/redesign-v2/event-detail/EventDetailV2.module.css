@@ -224,10 +224,19 @@
 }
 
 .contextList a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: inherit;
   text-decoration: underline;
   text-decoration-color: #ff6200;
   text-underline-offset: 4px;
+}
+
+.externalLinkIcon {
+  width: 0.9em;
+  height: 0.9em;
+  flex: 0 0 auto;
 }
 
 .actions {

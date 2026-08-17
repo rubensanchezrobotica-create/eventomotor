@@ -11,8 +11,20 @@ type EventDetailV2Props = {
   model: EventDetailV2Model;
 };
 
-function ExternalArrow() {
-  return <span aria-hidden="true">↗</span>;
+function ExternalLinkIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={styles.externalLinkIcon}
+      fill="none"
+      focusable="false"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path d="M6 4h6v6M12 4 4 12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+    </svg>
+  );
 }
 
 export default function EventDetailV2({ model }: EventDetailV2Props) {
@@ -112,7 +124,7 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                         <dd>
                           {model.organizerContext.href ? (
                             <a href={model.organizerContext.href} rel="noopener noreferrer" target="_blank">
-                              {model.organizerContext.label} <ExternalArrow />
+                              {model.organizerContext.label} <ExternalLinkIcon />
                             </a>
                           ) : model.organizerContext.label}
                         </dd>
@@ -134,13 +146,13 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
 
                 {model.primaryAction ? (
                   <a className={styles.primaryAction} href={model.primaryAction.href} rel="noopener noreferrer" target="_blank">
-                    {model.primaryAction.label} <ExternalArrow />
+                    {model.primaryAction.label} <ExternalLinkIcon />
                   </a>
                 ) : null}
 
                 {model.source ? (
                   <a className={styles.sourceLink} href={model.source.href} rel="noopener noreferrer" target="_blank">
-                    Fuente: {model.source.label} <ExternalArrow />
+                    Fuente: {model.source.label} <ExternalLinkIcon />
                   </a>
                 ) : null}
               </aside>
