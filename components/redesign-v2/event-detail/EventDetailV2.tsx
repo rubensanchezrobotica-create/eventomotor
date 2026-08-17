@@ -28,6 +28,16 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
       <small className={styles.heroVenue}>{model.venue}</small>
     </>
   ) : model.heroDescription;
+  const hasContext = Boolean(
+    model.distinctChampionship
+    || model.countryContext
+    || model.organizerContext,
+  );
+  const contentGridClassName = [
+    styles.contentGrid,
+    !model.practicalItems.length ? styles.contentGridEditorialOnly : "",
+    !model.description && !model.programSection ? styles.contentGridPracticalOnly : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <div className={styles.shellScope}>
@@ -67,6 +77,13 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
               </figure>
 
               <aside className={styles.summary} aria-label={`Acciones y contexto de ${model.title}`}>
+                {model.exceptionalStatus ? (
+                  <div className={styles.statusAlert} data-status={model.exceptionalStatus.kind}>
+                    <span>Estado del evento</span>
+                    <strong>{model.exceptionalStatus.label}</strong>
+                  </div>
+                ) : null}
+
                 {model.vehicle ? (
                   <div className={styles.chips}>
                     <span>{model.vehicle}</span>
@@ -75,9 +92,39 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
 
                 {model.intro ? <p className={styles.intro}>{model.intro}</p> : null}
 
+                {hasContext ? (
+                  <dl className={styles.contextList}>
+                    {model.distinctChampionship ? (
+                      <div>
+                        <dt>Campeonato</dt>
+                        <dd>{model.distinctChampionship}</dd>
+                      </div>
+                    ) : null}
+                    {model.countryContext ? (
+                      <div>
+                        <dt>País</dt>
+                        <dd>{model.countryContext}</dd>
+                      </div>
+                    ) : null}
+                    {model.organizerContext ? (
+                      <div>
+                        <dt>Organizador</dt>
+                        <dd>
+                          {model.organizerContext.href ? (
+                            <a href={model.organizerContext.href} rel="noopener noreferrer" target="_blank">
+                              {model.organizerContext.label} <ExternalArrow />
+                            </a>
+                          ) : model.organizerContext.label}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                ) : null}
+
                 <div aria-label="Acciones del evento" className={styles.actions}>
                   <EventRetentionActions
                     calendarLabel="Añadir al calendario"
+                    compactIcons
                     directChildren
                     event={model.savedEvent}
                     source="redesign_v2_event_detail"
@@ -99,8 +146,8 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
               </aside>
             </section>
 
-            {model.description || model.practicalItems.length ? (
-              <div className={styles.contentGrid}>
+            {model.description || model.programSection || model.practicalItems.length ? (
+              <div className={contentGridClassName}>
                 {model.description ? (
                   <section className={styles.description}>
                     <span className={styles.eyebrow}>Sobre el evento</span>
@@ -110,6 +157,14 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                         <p key={paragraph}>{paragraph}</p>
                       ))}
                     </div>
+                  </section>
+                ) : null}
+
+                {model.programSection ? (
+                  <section className={styles.program}>
+                    <span className={styles.eyebrow}>Programa</span>
+                    <h2>Horarios y programa</h2>
+                    <p>{model.programSection}</p>
                   </section>
                 ) : null}
 
@@ -131,7 +186,7 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
             ) : null}
 
             {model.related.length ? (
-              <section className={styles.related}>
+              <section className={`${styles.related} ${model.compactRelatedFlow ? styles.relatedCompact : ""}`}>
                 <div className={styles.sectionHeading}>
                   <span className={styles.eyebrow}>Sigue explorando</span>
                   <h2>También te puede interesar</h2>

@@ -135,6 +135,31 @@
   background: #0d1116;
 }
 
+.statusAlert {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 13px 14px;
+  border: 1px solid #8d3f24;
+  border-left: 4px solid #ff6200;
+  border-radius: 7px;
+  background: #21110d;
+  color: #fff2e8;
+}
+
+.statusAlert span {
+  color: #ffad78;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.statusAlert strong {
+  font-size: 0.98rem;
+  line-height: 1.3;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -171,6 +196,40 @@
   line-height: 1.65;
 }
 
+.contextList {
+  display: grid;
+  gap: 13px;
+  margin: 0 0 20px;
+}
+
+.contextList div {
+  min-width: 0;
+}
+
+.contextList dt {
+  color: #8f969f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.contextList dd {
+  margin: 4px 0 0;
+  color: #e7e8e5;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.contextList a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #ff6200;
+  text-underline-offset: 4px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -191,6 +250,12 @@
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.actions :global(.emc-icon-action) {
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
 }
 
 .actions :global(.emc-saved-event-button) {
@@ -253,8 +318,28 @@
   margin-top: clamp(54px, 7vw, 88px);
 }
 
-.contentGrid:has(.practical:only-child) {
-  grid-template-columns: 1fr;
+.description,
+.program {
+  grid-column: 1;
+}
+
+.program {
+  margin-top: 6px;
+}
+
+.practical {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.contentGridEditorialOnly,
+.contentGridPracticalOnly {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.contentGridPracticalOnly .practical {
+  grid-column: 1;
+  grid-row: auto;
 }
 
 .eyebrow {
@@ -276,6 +361,7 @@
 }
 
 .description h2,
+.program h2,
 .practical h2,
 .sectionHeading h2 {
   margin: 12px 0 0;
@@ -299,6 +385,16 @@
 
 .prose p {
   margin: 0 0 18px;
+}
+
+.program > p {
+  max-width: 780px;
+  margin: 24px 0 0;
+  color: #c1c5ca;
+  font-size: clamp(0.96rem, 1.18vw, 1.05rem);
+  line-height: 1.72;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .practical {
@@ -336,6 +432,11 @@
   margin-top: clamp(66px, 9vw, 108px);
   padding-top: clamp(38px, 5vw, 58px);
   border-top: 1px solid #292f37;
+}
+
+.relatedCompact {
+  margin-top: clamp(36px, 5vw, 58px);
+  padding-top: clamp(26px, 3.5vw, 40px);
 }
 
 .sectionHeading {
@@ -450,6 +551,13 @@
     justify-content: flex-start;
   }
 
+  .description,
+  .program,
+  .practical {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
   .relatedGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -506,11 +614,11 @@
 
   .actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 48px 48px minmax(0, 1fr);
     margin-top: 16px;
   }
 
-  .actions :global(.emc-btn),
+  .actions :global(.emc-btn:not(.emc-icon-action)),
   .primaryAction {
     width: 100%;
   }
@@ -523,6 +631,11 @@
   .contentGrid {
     gap: 32px;
     margin-top: 52px;
+  }
+
+  .relatedCompact {
+    margin-top: 34px;
+    padding-top: 24px;
   }
 
   .practical {
@@ -551,10 +664,6 @@
 @media (max-width: 430px) {
   .shellScope > div > main > section:first-child h1 {
     font-size: clamp(1.9rem, 10vw, 2.55rem);
-  }
-
-  .actions {
-    grid-template-columns: 1fr;
   }
 
   .actions :global(.emc-link-button),

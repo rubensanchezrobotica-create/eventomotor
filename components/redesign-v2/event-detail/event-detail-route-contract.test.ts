@@ -34,6 +34,7 @@ test("A4 reutiliza el shell, favorito, ICS y compartir existentes", () => {
   assert.match(component, /V2PreviewShell/);
   assert.match(component, /EventRetentionActions/);
   assert.match(component, /calendarLabel="Añadir al calendario"/);
+  assert.match(component, /compactIcons/);
   assert.match(component, /ShareEventButton/);
   assert.match(component, /url=\{model\.publicUrl\}/);
 });
@@ -55,10 +56,45 @@ test("A4.1 convierte el panel en contexto de acción sin repetir hero metadata",
 });
 
 test("A4.1 renderiza Practical sólo con items adicionales", () => {
-  assert.match(component, /model\.description \|\| model\.practicalItems\.length/);
+  assert.match(component, /model\.description \|\| model\.programSection \|\| model\.practicalItems\.length/);
   assert.match(component, /model\.practicalItems\.length \? \(/);
   assert.match(component, /<h2>Información útil<\/h2>/);
   assert.doesNotMatch(component, /model\.info|<h2>Datos del evento<\/h2>/);
+});
+
+test("A4.3 presenta estados excepcionales y oculta los estados ordinarios desde el modelo", () => {
+  assert.match(actionPanel, /model\.exceptionalStatus/);
+  assert.match(actionPanel, /Estado del evento/);
+  assert.match(actionPanel, /data-status=\{model\.exceptionalStatus\.kind\}/);
+  assert.doesNotMatch(actionPanel, /role="alert"|aria-live/);
+});
+
+test("A4.3 añade sólo contexto útil resuelto por el view model", () => {
+  assert.match(actionPanel, /model\.distinctChampionship/);
+  assert.match(actionPanel, /model\.countryContext/);
+  assert.match(actionPanel, /model\.organizerContext/);
+  assert.match(actionPanel, /rel="noopener noreferrer" target="_blank"/);
+  assert.doesNotMatch(component, /needsReview|confidenceScore|verifiedAt|model\.tags|model\.latitude|model\.longitude|Precio/);
+});
+
+test("A4.3 usa acciones compactas existentes sin degradar Share ni el CTA", () => {
+  assert.match(actionPanel, /<EventRetentionActions[\s\S]*?compactIcons[\s\S]*?directChildren/);
+  assert.match(actionPanel, /ShareEventButton/);
+  assert.match(actionPanel, /model\.primaryAction/);
+  assert.match(styles, /\.actions :global\(\.emc-icon-action\)[\s\S]*?width: 48px/);
+});
+
+test("A4.3 presenta el programa largo una vez y conserva Practical condicional", () => {
+  assert.equal((component.match(/model\.programSection \? \(/g) || []).length, 1);
+  assert.match(component, /<h2>Horarios y programa<\/h2>/);
+  assert.match(styles, /\.program > p[\s\S]*?white-space: pre-line/);
+  assert.match(component, /model\.practicalItems\.length \? \(/);
+});
+
+test("A4.3 aplica ritmo Related explícito sólo a fichas sin contenido intermedio", () => {
+  assert.match(component, /model\.compactRelatedFlow \? styles\.relatedCompact/);
+  assert.match(styles, /\.relatedCompact\s*\{[\s\S]*?margin-top/);
+  assert.doesNotMatch(styles, /\.media(?:Real|Fallback)?\s*\{[^}]*height:\s*auto/);
 });
 
 test("A4.2 muestra venue como metadata secundaria del hero y no dentro de Practical", () => {

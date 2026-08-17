@@ -2,8 +2,10 @@ import type { SavedEvent } from "@/lib/saved-events";
 import type { EventItem } from "@/types/event";
 import {
   buildRelatedEventDetails,
+  eventStatusLabel,
   getAboutText,
   getEventPrimaryAction,
+  getEventStatusStyle,
   getOfficialSource,
 } from "@/components/events/detail/event-detail-model";
 import { formatCalendarDisciplineLabel } from "@/components/redesign-v2/calendar/calendar-page-model";
@@ -27,6 +29,16 @@ export type EventDetailInfo = {
   value: string;
 };
 
+export type EventDetailExceptionalStatus = {
+  kind: "cancelled" | "postponed";
+  label: string;
+};
+
+export type EventDetailOrganizerContext = {
+  href: string | null;
+  label: string;
+};
+
 export type EventDetailRelated = {
   context: string;
   date: EventDetailDate;
@@ -40,15 +52,21 @@ export type EventDetailRelated = {
 };
 
 export type EventDetailV2Model = {
+  compactRelatedFlow: boolean;
+  countryContext: string;
   date: EventDetailDate;
   description: string;
   discipline: string;
+  distinctChampionship: string;
+  exceptionalStatus: EventDetailExceptionalStatus | null;
   heroDescription: string;
   image: V2AssignedEventImage;
   intro: string;
   location: string;
+  organizerContext: EventDetailOrganizerContext | null;
   practicalItems: EventDetailInfo[];
   primaryAction: EventDetailLink | null;
+  programSection: string;
   publicUrl: string;
   related: EventDetailRelated[];
   savedEvent: SavedEvent;
@@ -85,6 +103,7 @@ function cleanText(value: string | null | undefined) {
 
 function normalize(value: string | null | undefined) {
   return cleanText(value)
+    .replace(/\s+/g, " ")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
@@ -187,6 +206,64 @@ function safeExternalHref(value: string | null | undefined) {
   } catch {
     return "";
   }
+}
+
+function comparableExternalHref(value: string | null | undefined) {
+  const href = safeExternalHref(value);
+  if (!href) return "";
+  const url = new URL(href);
+  const hostname = url.hostname.replace(/^www\./i, "").toLowerCase();
+  const pathname = url.pathname.replace(/\/+$/, "") || "/";
+  return `${hostname}${url.port ? `:${url.port}` : ""}${pathname}${url.search}${url.hash}`;
+}
+
+export function distinctChampionship(
+  championship: string | null | undefined,
+  discipline: string | null | undefined,
+) {
+  const value = isUseful(championship) ? cleanText(championship).replace(/\s+/g, " ") : "";
+  return value && normalize(value) !== normalize(discipline) ? value : "";
+}
+
+export function nonSpanishCountryLabel(country: string | null | undefined) {
+  const value = isUseful(country) ? cleanText(country).replace(/\s+/g, " ") : "";
+  const key = normalize(value);
+  if (!key || ["es", "espana", "spain"].includes(key)) return "";
+  if (["pt", "portugal"].includes(key)) return "Portugal";
+  if (["fr", "francia", "france"].includes(key)) return "Francia";
+  return value;
+}
+
+export function exceptionalEventStatus(event: EventItem): EventDetailExceptionalStatus | null {
+  const kind = getEventStatusStyle(event.eventStatus);
+  if (kind !== "cancelled" && kind !== "postponed") return null;
+  const label = eventStatusLabel(event);
+  return label ? { kind, label } : null;
+}
+
+export function organizerContext(
+  event: EventItem,
+  effectiveSourceHref: string | null | undefined,
+): EventDetailOrganizerContext | null {
+  const label = isUseful(event.organizerName)
+    ? cleanText(event.organizerName).replace(/\s+/g, " ")
+    : "";
+  if (!label) return null;
+  const href = safeExternalHref(event.organizerUrl);
+  const isDuplicate = href
+    && comparableExternalHref(href) === comparableExternalHref(effectiveSourceHref);
+  return { href: href && !isDuplicate ? href : null, label };
+}
+
+export const LONG_SCHEDULE_CHARACTER_THRESHOLD = 300;
+export const LONG_SCHEDULE_LINE_THRESHOLD = 4;
+
+export function isLongEventSchedule(value: string | null | undefined) {
+  const schedule = cleanText(value);
+  if (!schedule) return false;
+  const lineCount = schedule.split(/\r?\n/).filter((line) => line.trim()).length;
+  return schedule.length > LONG_SCHEDULE_CHARACTER_THRESHOLD
+    || lineCount >= LONG_SCHEDULE_LINE_THRESHOLD;
 }
 
 function vehicleLabel(event: EventItem) {
@@ -293,27 +370,34 @@ export function buildEventDetailV2Model(
   const image = assignV2HomeEventImages([event])[0];
   const publicUrl = `${options.siteUrl.replace(/\/$/, "")}/evento/${slug}`;
   const schedule = distinctPracticalValue(event.scheduleText, []);
+  const programSection = isLongEventSchedule(schedule) ? schedule : "";
+  const shortSchedule = programSection ? "" : schedule;
   const address = distinctPracticalValue(event.address, [location, venue]);
-  const organizer = distinctPracticalValue(event.organizerName, []);
   const practicalItems: EventDetailInfo[] = [
-    schedule ? { label: "Horario", value: schedule } : null,
+    shortSchedule ? { label: "Horario", value: shortSchedule } : null,
     address ? { label: "Dirección", value: address } : null,
-    organizer ? { label: "Organizador", value: organizer } : null,
   ].filter((item): item is EventDetailInfo => item !== null);
+  const hasEditorialContent = Boolean(description || programSection || practicalItems.length);
 
   return {
+    compactRelatedFlow: !hasEditorialContent,
+    countryContext: nonSpanishCountryLabel(event.country),
     date,
     description,
     discipline,
+    distinctChampionship: distinctChampionship(event.championship, event.discipline),
+    exceptionalStatus: exceptionalEventStatus(event),
     heroDescription: [date.label, location].filter(Boolean).join(" · "),
     image,
     intro,
     location,
+    organizerContext: organizerContext(event, sourceHref),
     practicalItems,
     primaryAction: rawPrimaryAction && primaryHref
       ? { href: primaryHref, label: rawPrimaryAction.type === "official" ? "Más información" : rawPrimaryAction.label }
       : null,
     publicUrl,
+    programSection,
     related: buildRelated(event, events, options.today),
     savedEvent: {
       slug,
