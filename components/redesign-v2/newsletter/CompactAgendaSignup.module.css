@@ -1,0 +1,295 @@
+.panel {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 58px);
+  margin-top: clamp(38px, 5vw, 58px);
+  padding: clamp(26px, 3.5vw, 35px);
+  border: 1px solid #303741;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 13% 18%, rgba(255, 98, 0, 0.12), transparent 18rem),
+    #10151b;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #ff6200;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 24px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+}
+
+.copy h2 {
+  max-width: 470px;
+  margin: 12px 0 0;
+  color: #f7f7f4;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.95rem, 3vw, 2.8rem);
+  font-style: italic;
+  font-stretch: condensed;
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.copy > p {
+  max-width: 440px;
+  margin: 14px 0 0;
+  color: #aeb4bc;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.form {
+  min-width: 0;
+}
+
+.emailField {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.emailField > span {
+  color: #d8dbe0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emailField input,
+.submit {
+  min-height: 48px;
+  border-radius: 7px;
+}
+
+.emailField input {
+  min-width: 0;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid #4a535f;
+  background: #080b0f;
+  color: #f7f7f4;
+}
+
+.emailField input::placeholder {
+  color: #7f8790;
+}
+
+.emailField input[aria-invalid="true"],
+.consent input[aria-invalid="true"] {
+  border-color: #ff8a54;
+}
+
+.submit {
+  width: min(100%, 220px);
+  margin-top: 11px;
+  padding: 0 18px;
+  border: 1px solid #ff6200;
+  background: #ff6200;
+  color: #090909;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.consent {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin-top: 10px;
+  color: #d2d6dc;
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.consent input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #ff6200;
+}
+
+.privacy,
+.ageNotice,
+.microcopy {
+  margin: 0;
+  color: #939aa3;
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.legal {
+  display: grid;
+  gap: 4px;
+  margin-top: 9px;
+}
+
+.privacy a,
+.ageNotice a {
+  color: #d8dbe0;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 98, 0, 0.72);
+  text-underline-offset: 2px;
+}
+
+.microcopy {
+  color: #aeb4bc;
+}
+
+.fieldError {
+  margin: 7px 0 0;
+  color: #ffb08b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.result {
+  min-width: 0;
+  margin-top: 9px;
+  color: #d8dbe0;
+  font-size: 0.78rem;
+}
+
+.result strong,
+.result p {
+  margin: 0;
+}
+
+.result p {
+  margin-top: 4px;
+  color: #aeb4bc;
+}
+
+.result button {
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ff8a54;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.accepted {
+  min-width: 0;
+  min-height: 156px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  padding: 22px;
+  border: 1px solid #3d4752;
+  border-radius: 8px;
+  background: #0b0f14;
+}
+
+.accepted > span {
+  color: #ff6200;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.accepted strong {
+  color: #f7f7f4;
+}
+
+.accepted p,
+.accepted small {
+  margin: 0;
+  color: #aeb4bc;
+  line-height: 1.5;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .copy h2,
+  .copy > p {
+    max-width: 620px;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel {
+    gap: 10px;
+    margin-top: 28px;
+    padding: 14px;
+  }
+
+  .copy h2 {
+    margin-top: 6px;
+    font-size: clamp(1.6rem, 6.5vw, 1.8rem);
+    text-wrap: wrap;
+  }
+
+  .copy > p {
+    margin-top: 5px;
+  }
+
+  .consent {
+    gap: 8px;
+    margin-top: 9px;
+    font-size: 0.76rem;
+    line-height: 1.38;
+  }
+
+  .submit {
+    width: 100%;
+    margin-top: 9px;
+  }
+
+  .legal {
+    gap: 3px;
+    margin-top: 7px;
+  }
+
+  .privacy,
+  .ageNotice,
+  .microcopy {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+}
