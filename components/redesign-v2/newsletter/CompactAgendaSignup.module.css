@@ -1,4 +1,6 @@
 .panel {
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
@@ -6,11 +8,29 @@
   gap: clamp(28px, 4vw, 58px);
   margin-top: clamp(38px, 5vw, 58px);
   padding: clamp(26px, 3.5vw, 35px);
+  overflow: hidden;
   border: 1px solid #303741;
   border-radius: 10px;
   background:
     radial-gradient(circle at 13% 18%, rgba(255, 98, 0, 0.12), transparent 18rem),
-    #10151b;
+    linear-gradient(135deg, #10151b, #080b10);
+}
+
+.panel::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  background:
+    radial-gradient(circle at 86% 76%, rgba(255, 98, 0, 0.16), transparent 34%),
+    linear-gradient(90deg, rgba(16, 21, 27, 0.94), rgba(8, 11, 16, 0.82)),
+    url("/images/redesign-v2/newsletter-phone.webp") center 56% / cover no-repeat;
+  pointer-events: none;
+}
+
+.panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .copy {
@@ -244,6 +264,13 @@
   .panel {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
+  }
+
+  .panel::before {
+    background:
+      radial-gradient(circle at 86% 18%, rgba(255, 98, 0, 0.14), transparent 28%),
+      linear-gradient(180deg, rgba(16, 21, 27, 0.86), rgba(16, 21, 27, 0.97) 48%, #10151b 100%),
+      url("/images/redesign-v2/newsletter-phone.webp") center top / auto 54% no-repeat;
   }
 
   .copy h2,
