@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
+import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
 import { isRemoteImage } from "@/components/redesign-v2/redesign-v2-model";
 import V2PreviewShell from "@/components/redesign-v2/site/V2PreviewShell";
 import type { EventDetailV2Model } from "./event-detail-model";
@@ -196,6 +197,12 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                 ) : null}
               </div>
             ) : null}
+
+            <CompactAgendaSignup
+              description="Una selección de próximos eventos para vivir el motor."
+              eyebrow="LA AGENDA MOTOR"
+              title="TU AGENDA DE MOTOR, CADA SEMANA"
+            />
 
             {model.related.length ? (
               <section className={`${styles.related} ${model.compactRelatedFlow ? styles.relatedCompact : ""}`}>

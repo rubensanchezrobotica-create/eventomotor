@@ -132,6 +132,23 @@ test("related usa la ruta A4 local y no construye un listado ficticio", () => {
   assert.doesNotMatch(component, /mock|fixture|lorem ipsum/i);
 });
 
+test("V2-CONVERSION-01 integra Compact Agenda una vez, después del contenido y antes de Related", () => {
+  const agendaIndex = component.indexOf("<CompactAgendaSignup");
+  const contentIndex = component.indexOf("model.description || model.programSection || model.practicalItems.length");
+  const relatedIndex = component.indexOf("model.related.length ?");
+
+  assert.match(component, /import CompactAgendaSignup from "@\/components\/redesign-v2\/newsletter\/CompactAgendaSignup\.client"/);
+  assert.equal((component.match(/<CompactAgendaSignup/g) || []).length, 1);
+  assert.notEqual(contentIndex, -1);
+  assert.notEqual(agendaIndex, -1);
+  assert.notEqual(relatedIndex, -1);
+  assert.ok(contentIndex < agendaIndex);
+  assert.ok(agendaIndex < relatedIndex);
+  assert.match(component, /description="Una selección de próximos eventos para vivir el motor\."/);
+  assert.match(component, /eyebrow="LA AGENDA MOTOR"/);
+  assert.match(component, /title="TU AGENDA DE MOTOR, CADA SEMANA"/);
+});
+
 test("el CSS local protege 44px, foco, responsive, wrapping y overflow", () => {
   assert.match(styles, /min-height: 44px/);
   assert.match(styles, /:focus-visible/);
