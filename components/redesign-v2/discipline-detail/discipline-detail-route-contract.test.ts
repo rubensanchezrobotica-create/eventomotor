@@ -89,6 +89,17 @@ test("A6 presenta hero compacto, jerarquía única y eventos antes de conversió
   assert.doesNotMatch(component, /precio|organizador|horario/i);
 });
 
+test("A6.1.1 compone la fotografía a la derecha sin cover ni cambios de geometría", () => {
+  assert.match(styles, /background-repeat:\s*no-repeat,\s*no-repeat/);
+  assert.match(styles, /background-position:\s*center,\s*right/);
+  assert.match(styles, /background-size:\s*100%\s+100%,\s*clamp\(/);
+  assert.match(
+    styles,
+    /@media \(max-width:\s*680px\)[\s\S]*background-size:\s*100%\s+100%,\s*auto\s+100%/,
+  );
+  assert.doesNotMatch(styles, /background-size:\s*cover/);
+});
+
 test("A6 usa enlaces server-side accesibles, empty state y Compact Agenda intacta", () => {
   assert.match(component, /Paginación de eventos de la disciplina/);
   assert.match(component, /aria-current=\{item === model\.page \? "page"/);
