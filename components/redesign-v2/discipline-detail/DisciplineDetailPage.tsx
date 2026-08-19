@@ -165,9 +165,6 @@ export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetail
             </h2>
             <p aria-live="polite">{resultsSummary(model, range)}</p>
           </div>
-          <Link className={styles.calendarLink} href="/preview/redesign-v2/calendario">
-            Ver calendario completo <span aria-hidden="true">→</span>
-          </Link>
         </header>
 
         <DisciplineSearchAssist
@@ -209,6 +206,12 @@ export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetail
         )}
 
         <Pagination model={model} />
+
+        {model.items.length ? (
+          <Link className={styles.calendarLink} href="/preview/redesign-v2/calendario">
+            Ver calendario completo <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
 
         <CompactAgendaSignup
           description="Una selección de próximos eventos para vivir el motor."

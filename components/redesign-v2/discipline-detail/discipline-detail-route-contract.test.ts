@@ -91,6 +91,25 @@ test("A6 presenta hero compacto, jerarquía única y eventos antes de conversió
   assert.doesNotMatch(component, /precio|organizador|horario/i);
 });
 
+test("A6.3.2 sitúa el CTA de Calendar después de paginación y antes de Compact Agenda", () => {
+  const paginationPosition = component.indexOf("<Pagination model={model} />");
+  const calendarCtaPosition = component.indexOf("className={styles.calendarLink}");
+  const compactAgendaPosition = component.indexOf("<CompactAgendaSignup");
+
+  assert.equal((component.match(/className=\{styles\.calendarLink\}/g) || []).length, 1);
+  assert.ok(paginationPosition < calendarCtaPosition);
+  assert.ok(calendarCtaPosition < compactAgendaPosition);
+  assert.match(
+    component,
+    /\{model\.items\.length \? \([\s\S]*className=\{styles\.calendarLink\}[\s\S]*href="\/preview\/redesign-v2\/calendario"[\s\S]*Ver calendario completo <span aria-hidden="true">→<\/span>[\s\S]*\) : null\}/,
+  );
+  assert.match(styles, /\.calendarLink\s*\{[\s\S]*margin-top:\s*32px/);
+  assert.doesNotMatch(
+    component,
+    /<header className=\{styles\.resultsHeader\}>[\s\S]*className=\{styles\.calendarLink\}[\s\S]*<\/header>/,
+  );
+});
+
 test("A6.1.3 mantiene la fotografía full-width y protege el encuadre responsive", () => {
   assert.match(styles, /background-repeat:\s*no-repeat,\s*no-repeat/);
   assert.match(styles, /background-position:\s*center,\s*center/);
