@@ -1,0 +1,10 @@
+[
+  { "file": "01-rallye-ferrol-hero.webp", "width": 1200, "height": 675, "bytes": 185830, "sha256": "489a8825ff6c0c47810534fc5af006cf232423d17e68030fd9e042668daf42bf" },
+  { "file": "02-f4-jarama.webp", "width": 800, "height": 500, "bytes": 101088, "sha256": "5e6a615a4213905845904068ceae580ede534ea3d609aaaffda9492c06f649ad" },
+  { "file": "03-sun-to-sun.webp", "width": 800, "height": 500, "bytes": 163340, "sha256": "e3c305c2e2911b847229ad55b1af14888fd7553dbe45de8f9255d6956e5e2840" },
+  { "file": "04-bien-aparecida.webp", "width": 800, "height": 500, "bytes": 116556, "sha256": "86389e6affa4c874b6d346eee1f0cffdac2a44424a41cac4bdfcbcd1eb5aa89e" },
+  { "file": "05-motogp-aragon.webp", "width": 800, "height": 500, "bytes": 69910, "sha256": "c2b21c9c93495b0f38a1cdc190067256e29b5ee93aadba567e9fe4e66207f9c6" },
+  { "file": "06-motor-extremo-montmelo.webp", "width": 800, "height": 500, "bytes": 76562, "sha256": "dc4dee52a38da8cadb69b0afda2880a2daf65b6abd11579c931bc7e60792e990" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 38716, "sha256": "8329dd2b1790c6a58b345ce1389d62cd5cccb32aeb154d65e8eb3e7f537d7124" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]
