@@ -6,7 +6,10 @@ import {
   DISCIPLINE_HERO_VISUALS,
   DISCIPLINE_DETAIL_PAGE_SIZE,
   DISCIPLINE_DETAIL_QUERY_MAX_LENGTH,
+  DISCIPLINE_SEARCH_MAX_SUGGESTIONS,
+  DISCIPLINE_SEARCH_MIN_CHARS,
   buildDisciplineDetailPageModel,
+  buildDisciplineSearchSuggestions,
   disciplineDetailPageHref,
   disciplineDetailPaginationItems,
   eventMatchesDisciplineSearch,
@@ -301,4 +304,107 @@ test("A6.2 distingue cero coincidencias de una disciplina sin próximos eventos"
   assert.equal(model.items.length, 0);
   assert.equal(model.page, 1);
   assert.equal(model.pageCount, 1);
+});
+
+test("A6.3 crea un índice cliente mínimo sólo con próximos eventos de la disciplina actual", () => {
+  const active = event("active", "Rally", "2026-08-16", {
+    end: "2026-08-19",
+    title: "Rallye Ferrol activo",
+    city: "Ferrol",
+    province: "A Coruña",
+    venue: "FIMO",
+  });
+  const duplicate = { ...active };
+  const future = event("future", "Rally", "2026-08-24", { title: "Subida Cantabria" });
+  const past = event("past", "Rally", "2026-08-10", { end: "2026-08-17" });
+  const circuit = event("circuit", "Circuito", "2026-08-22", { title: "Circuito Ferrol" });
+
+  const model = buildDisciplineDetailPageModel(
+    [duplicate, past, circuit, future, active],
+    "rallyes",
+    { now: NOW, page: 1 },
+  );
+
+  assert.deepEqual(model.suggestionIndex, [
+    {
+      slug: "evento-active",
+      title: "Rallye Ferrol activo",
+      city: "Ferrol",
+      province: "A Coruña",
+      venue: "FIMO",
+    },
+    {
+      slug: "evento-future",
+      title: "Subida Cantabria",
+      city: "Madrid",
+      province: "Madrid",
+      venue: "Recinto",
+    },
+  ]);
+  assert.deepEqual(Object.keys(model.suggestionIndex[0]), ["slug", "title", "city", "province", "venue"]);
+});
+
+test("A6.3 sugiere eventos y ubicaciones con ranking prefix y destinos distintos", () => {
+  const source = [
+    { slug: "rallye-ferrol", title: "Rallye Ferrol 2026", city: "Ferrol", province: "A Coruña", venue: "FIMO" },
+    { slug: "subida-bien-aparecida", title: "Subida a la Bien Aparecida", city: "Ampuero", province: "Cantabria" },
+  ];
+
+  const ferrol = buildDisciplineSearchSuggestions(source, "fer", "rallyes");
+  assert.deepEqual(ferrol.map(({ kind, label }) => ({ kind, label })), [
+    { kind: "event", label: "Rallye Ferrol 2026" },
+    { kind: "location", label: "Ferrol, A Coruña" },
+  ]);
+  assert.equal(ferrol[0].href, "/preview/redesign-v2/evento/rallye-ferrol");
+  assert.equal(ferrol[1].href, "/preview/redesign-v2/disciplinas/rallyes?q=Ferrol");
+
+  const cantabria = buildDisciplineSearchSuggestions(source, "CANT", "rallyes");
+  assert.equal(cantabria.some(({ label }) => label === "Cantabria"), true);
+});
+
+test("A6.3 comparte normalización sin acentos y conserva ubicación humana", () => {
+  const source = [
+    { slug: "la-baneza", title: "Rallye de La Bañeza", city: "La Bañeza", province: "León" },
+  ];
+
+  const suggestions = buildDisciplineSearchSuggestions(source, "banez", "rallyes");
+  assert.equal(suggestions[0].label, "Rallye de La Bañeza");
+  assert.equal(suggestions.some(({ label }) => label === "La Bañeza, León"), true);
+});
+
+test("A6.3 deduplica eventos y ubicaciones normalizadas", () => {
+  const source = [
+    { slug: "ferrol", title: "Rallye Ferrol", city: " Ferrol ", province: "A Coruña" },
+    { slug: "ferrol", title: "Rallye Ferrol duplicado", city: "FERROL", province: "A Coruña" },
+    { slug: "otro", title: "Otro Rally Ferrol", city: "Ferrol", province: "A Coruña" },
+  ];
+  const suggestions = buildDisciplineSearchSuggestions(source, "fer", "rallyes");
+
+  assert.equal(suggestions.filter(({ kind }) => kind === "event").length, 2);
+  assert.equal(suggestions.filter(({ kind }) => kind === "location").length, 1);
+});
+
+test("A6.3 no abre autocomplete antes del mínimo ni supera el cap móvil", () => {
+  const source = Array.from({ length: 12 }, (_, index) => ({
+    slug: `rally-${index}`,
+    title: `Rally Ferrol ${index}`,
+    city: `Ferrol ${index}`,
+    province: "A Coruña",
+  }));
+
+  assert.equal(DISCIPLINE_SEARCH_MIN_CHARS, 2);
+  assert.equal(buildDisciplineSearchSuggestions(source, "f", "rallyes").length, 0);
+  assert.equal(DISCIPLINE_SEARCH_MAX_SUGGESTIONS, 6);
+  assert.equal(buildDisciplineSearchSuggestions(source, "fer", "rallyes").length, 6);
+});
+
+test("A6.3 aplica la disciplina del modelo también a destinos de ubicación", () => {
+  const source = [{ slug: "trackday", title: "Trackday Jarama", city: "San Sebastián de los Reyes", province: "Madrid" }];
+  const suggestions = buildDisciplineSearchSuggestions(source, "madrid", "circuito");
+
+  assert.equal(suggestions.some(({ href }) => href.includes("/disciplinas/rallyes")), false);
+  assert.equal(
+    suggestions.find(({ kind }) => kind === "location")?.href,
+    "/preview/redesign-v2/disciplinas/circuito?q=Madrid",
+  );
 });

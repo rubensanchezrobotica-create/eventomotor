@@ -19,6 +19,10 @@ import type { EventItem } from "@/types/event";
 
 export const DISCIPLINE_DETAIL_PAGE_SIZE = 12;
 export const DISCIPLINE_DETAIL_QUERY_MAX_LENGTH = 120;
+export const DISCIPLINE_SEARCH_MIN_CHARS = 2;
+export const DISCIPLINE_SEARCH_MAX_SUGGESTIONS = 6;
+const DISCIPLINE_SEARCH_MAX_EVENT_SUGGESTIONS = 4;
+const DISCIPLINE_SEARCH_MAX_LOCATION_SUGGESTIONS = 2;
 
 export type DisciplineHeroVisual = {
   src: string;
@@ -35,6 +39,22 @@ export type DisciplineDetailPageItem = {
   image: ResolvedEventImage;
 };
 
+export type DisciplineSearchSuggestionSource = {
+  slug: string;
+  title: string;
+  city?: string;
+  province?: string;
+  venue?: string;
+};
+
+export type DisciplineSearchSuggestion = {
+  href: string;
+  id: string;
+  kind: "event" | "location";
+  label: string;
+  meta?: string;
+};
+
 export type DisciplineDetailPageModel = {
   definition: (typeof SEO_DISCIPLINES)[number];
   filteredCount: number;
@@ -43,6 +63,7 @@ export type DisciplineDetailPageModel = {
   pageCount: number;
   query: string;
   siteUpcomingCount: number;
+  suggestionIndex: DisciplineSearchSuggestionSource[];
   today: string;
   totalUpcomingCount: number;
 };
@@ -118,6 +139,123 @@ export function eventMatchesDisciplineSearch(event: EventItem, query: string) {
   return haystack.includes(normalizedQuery);
 }
 
+function compactSearchText(value: unknown) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ");
+  return text || undefined;
+}
+
+function locationLabel(city?: string, province?: string) {
+  if (!city) return province;
+  if (!province || normalizeDisciplineSearchText(city) === normalizeDisciplineSearchText(province)) {
+    return city;
+  }
+  return `${city}, ${province}`;
+}
+
+function suggestionMatchRank(values: Array<string | undefined>, normalizedQuery: string) {
+  const normalizedValues = values
+    .map(normalizeDisciplineSearchText)
+    .filter(Boolean);
+  if (!normalizedValues.some((value) => value.includes(normalizedQuery))) return null;
+  if (normalizedValues.some((value) => value.startsWith(normalizedQuery))) return 0;
+  if (normalizedValues.some((value) => value.split(" ").some((word) => word.startsWith(normalizedQuery)))) return 1;
+  return 2;
+}
+
+export function buildDisciplineSearchSuggestionIndex(
+  events: readonly EventItem[],
+): DisciplineSearchSuggestionSource[] {
+  const unique = new Map<string, DisciplineSearchSuggestionSource>();
+
+  for (const event of events) {
+    const slug = compactSearchText(event.slug || event.id);
+    const title = compactSearchText(event.title);
+    if (!slug || !title || unique.has(slug)) continue;
+    const city = compactSearchText(event.city);
+    const province = compactSearchText(event.province);
+    const venue = compactSearchText(event.venue);
+    unique.set(slug, {
+      slug,
+      title,
+      ...(city ? { city } : {}),
+      ...(province ? { province } : {}),
+      ...(venue ? { venue } : {}),
+    });
+  }
+
+  return [...unique.values()];
+}
+
+export function buildDisciplineSearchSuggestions(
+  source: readonly DisciplineSearchSuggestionSource[],
+  query: string,
+  disciplineSlug: DisciplineSlug,
+): DisciplineSearchSuggestion[] {
+  const normalizedQuery = normalizeDisciplineSearchText(query);
+  if (normalizedQuery.length < DISCIPLINE_SEARCH_MIN_CHARS) return [];
+
+  const uniqueSource = [...new Map(
+    source.map((event) => [normalizeDisciplineSearchText(event.slug), event]),
+  ).values()];
+
+  const eventSuggestions = uniqueSource
+    .map((event, index) => ({
+      event,
+      index,
+      rank: suggestionMatchRank(
+        [event.title, event.city, event.province, event.venue],
+        normalizedQuery,
+      ),
+    }))
+    .filter((candidate): candidate is typeof candidate & { rank: number } => candidate.rank !== null)
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .slice(0, DISCIPLINE_SEARCH_MAX_EVENT_SUGGESTIONS)
+    .map(({ event }) => ({
+      href: `/preview/redesign-v2/evento/${event.slug}`,
+      id: `event:${event.slug}`,
+      kind: "event" as const,
+      label: event.title,
+      meta: locationLabel(event.city, event.province) || event.venue,
+    }));
+
+  const locations = new Map<string, {
+    firstIndex: number;
+    label: string;
+    queryValue: string;
+    rank: number;
+  }>();
+
+  function addLocation(label: string | undefined, queryValue: string | undefined, index: number) {
+    if (!label || !queryValue) return;
+    const normalizedLabel = normalizeDisciplineSearchText(label);
+    const rank = suggestionMatchRank([label], normalizedQuery);
+    if (!normalizedLabel || rank === null || locations.has(normalizedLabel)) return;
+    locations.set(normalizedLabel, { firstIndex: index, label, queryValue, rank });
+  }
+
+  uniqueSource.forEach((event, index) => {
+    addLocation(locationLabel(event.city, event.province), event.city || event.province, index);
+    if (event.province && normalizeDisciplineSearchText(event.province) !== normalizeDisciplineSearchText(event.city)) {
+      addLocation(event.province, event.province, index);
+    }
+  });
+
+  const locationSuggestions = [...locations.values()]
+    .sort((left, right) => left.rank - right.rank
+      || left.firstIndex - right.firstIndex
+      || left.label.localeCompare(right.label, "es"))
+    .slice(0, DISCIPLINE_SEARCH_MAX_LOCATION_SUGGESTIONS)
+    .map((location) => ({
+      href: disciplineDetailPageHref(disciplineSlug, 1, location.queryValue),
+      id: `location:${normalizeDisciplineSearchText(location.label)}`,
+      kind: "location" as const,
+      label: location.label,
+    }));
+
+  return [...eventSuggestions, ...locationSuggestions]
+    .slice(0, DISCIPLINE_SEARCH_MAX_SUGGESTIONS);
+}
+
 export function disciplineDetailPageHref(slug: DisciplineSlug, page: number, query = "") {
   const base = `/preview/redesign-v2/disciplinas/${slug}`;
   const params = new URLSearchParams();
@@ -157,6 +295,7 @@ export function buildDisciplineDetailPageModel(
     .filter((event) => classifyEventDisciplinePage(event) === slug)
     .sort(chronologicalEventOrder);
   const projectedDisciplineEvents = disciplineEvents.map(projectPreviewEvent);
+  const suggestionIndex = buildDisciplineSearchSuggestionIndex(disciplineEvents);
   const resolvedImages = resolveRedesignEventImages(projectedDisciplineEvents);
   const imageByEventId = Object.fromEntries(
     projectedDisciplineEvents.map((event, index) => [event.id, resolvedImages[index]]),
@@ -182,6 +321,7 @@ export function buildDisciplineDetailPageModel(
     pageCount: pagination.pageCount,
     query,
     siteUpcomingCount: siteModel.totalUpcomingEventCount,
+    suggestionIndex,
     today: siteModel.today,
     totalUpcomingCount: disciplineEvents.length,
   };

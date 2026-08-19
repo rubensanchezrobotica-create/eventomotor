@@ -3,12 +3,12 @@ import Link from "next/link";
 import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
 import {
   DISCIPLINE_DETAIL_PAGE_SIZE,
-  DISCIPLINE_DETAIL_QUERY_MAX_LENGTH,
   disciplineDetailPageHref,
   disciplineDetailPaginationItems,
   type DisciplineDetailPageItem,
   type DisciplineDetailPageModel,
 } from "./discipline-detail-model";
+import DisciplineSearchAssist from "./DisciplineSearchAssist.client";
 import {
   isRemoteImage,
   previewEventDateLabel,
@@ -151,15 +151,6 @@ function resultsSummary(model: DisciplineDetailPageModel, range: string | null) 
     : "No hay próximos eventos publicados en esta disciplina.";
 }
 
-function SearchIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
-      <path d="m16 16 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-    </svg>
-  );
-}
-
 export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetailPageProps) {
   const range = visibleRange(model);
 
@@ -179,34 +170,13 @@ export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetail
           </Link>
         </header>
 
-        <form
+        <DisciplineSearchAssist
           action={disciplineDetailPageHref(model.definition.slug, 1)}
-          className={styles.searchForm}
-          method="get"
-          role="search"
-        >
-          <label className={styles.srOnly} htmlFor="discipline-detail-search">
-            Buscar eventos en esta disciplina
-          </label>
-          <div className={styles.searchControl}>
-            <SearchIcon />
-            <input
-              autoComplete="off"
-              defaultValue={model.query}
-              id="discipline-detail-search"
-              maxLength={DISCIPLINE_DETAIL_QUERY_MAX_LENGTH}
-              name="q"
-              placeholder="Busca por evento, localidad o provincia..."
-              type="search"
-            />
-          </div>
-          <button type="submit">Buscar</button>
-          {model.query ? (
-            <Link className={styles.clearSearch} href={disciplineDetailPageHref(model.definition.slug, 1)}>
-              Limpiar búsqueda
-            </Link>
-          ) : null}
-        </form>
+          disciplineSlug={model.definition.slug}
+          initialQuery={model.query}
+          key={model.query}
+          source={model.suggestionIndex}
+        />
 
         {model.items.length ? (
           <div aria-labelledby="discipline-detail-results" className={styles.eventGrid}>

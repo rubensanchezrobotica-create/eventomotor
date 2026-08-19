@@ -9,6 +9,7 @@ function source(path: string) {
 
 const route = source("app/preview/redesign-v2/disciplinas/[slug]/page.tsx");
 const component = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.tsx");
+const assist = source("components/redesign-v2/discipline-detail/DisciplineSearchAssist.client.tsx");
 const model = source("components/redesign-v2/discipline-detail/discipline-detail-model.ts");
 const styles = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.module.css");
 const compactSignup = source("components/redesign-v2/newsletter/CompactAgendaSignup.client.tsx");
@@ -30,6 +31,7 @@ test("A6 crea una sola ruta dinámica, server-first y con un único fetch visibl
   assert.doesNotMatch(route, /["']use client["']/);
   assert.doesNotMatch(component, /["']use client["']/);
   assert.doesNotMatch(model, /["']use client["']/);
+  assert.match(assist, /^["']use client["'];/);
 });
 
 test("A6 mantiene la Preview noindex, nofollow, nocache y fuera del sitemap", () => {
@@ -131,16 +133,17 @@ test("A6.2 incorpora q al modelo server-side sin crear ruta Search ni enviar eve
 });
 
 test("A6.2 usa un formulario GET accesible, resetea page y conserva la query visible", () => {
-  assert.match(component, /<form[\s\S]*method="get"[\s\S]*role="search"/);
-  assert.match(component, /Buscar eventos en esta disciplina/);
-  assert.match(component, /type="search"/);
-  assert.match(component, /name="q"/);
-  assert.match(component, /defaultValue=\{model\.query\}/);
-  assert.match(component, /Busca por evento, localidad o provincia\.\.\./);
-  assert.match(component, /<button type="submit">Buscar<\/button>/);
-  assert.doesNotMatch(component, /name="page"/);
-  assert.match(component, /Limpiar búsqueda/);
-  assert.match(component, /<svg aria-hidden="true"[\s\S]*currentColor/);
+  assert.match(assist, /<form[\s\S]*method="get"[\s\S]*role="search"/);
+  assert.match(assist, /Buscar eventos en esta disciplina/);
+  assert.match(assist, /type="search"/);
+  assert.match(assist, /name="q"/);
+  assert.match(component, /initialQuery=\{model\.query\}/);
+  assert.match(assist, /value=\{query\}/);
+  assert.match(assist, /Busca por evento, localidad o provincia\.\.\./);
+  assert.match(assist, /type="submit">Buscar<\/button>/);
+  assert.doesNotMatch(assist, /name="page"/);
+  assert.match(assist, /Limpiar búsqueda/);
+  assert.match(assist, /<svg aria-hidden="true"[\s\S]*currentColor/);
 });
 
 test("A6.2 preserva q sólo en paginación, mantiene fichas limpias y separa el empty filtrado", () => {
@@ -151,15 +154,69 @@ test("A6.2 preserva q sólo en paginación, mantiene fichas limpias y separa el 
   assert.match(component, /0 resultados para/);
   assert.match(component, /1 resultado para/);
   assert.match(component, /`\/preview\/redesign-v2\/evento\/\$\{event\.slug \|\| event\.id\}`/);
-  assert.ok(component.indexOf("className={styles.searchForm}") < component.indexOf("model.items.map"));
+  assert.ok(component.indexOf("<DisciplineSearchAssist") < component.indexOf("model.items.map"));
 });
 
 test("A6.2 mantiene targets táctiles, foco visible y composición móvil sin overflow", () => {
   assert.match(styles, /\.searchControl[\s\S]*min-height:\s*52px/);
-  assert.match(styles, /\.searchForm button[\s\S]*min-height:\s*52px/);
+  assert.match(styles, /\.searchSubmit[\s\S]*min-height:\s*52px/);
   assert.match(styles, /\.clearSearch[\s\S]*min-height:\s*44px/);
   assert.match(styles, /\.searchControl:focus-within/);
-  assert.match(styles, /\.searchForm button:focus-visible/);
+  assert.match(styles, /\.searchSubmit:focus-visible/);
   assert.match(styles, /@media \(max-width: 680px\)[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   assert.match(styles, /\.searchControl input[\s\S]*font-size:\s*16px/);
+});
+
+test("A6.3 mantiene la página servidor y entrega al island un índice mínimo de la disciplina", () => {
+  assert.doesNotMatch(component, /["']use client["']/);
+  assert.match(component, /<DisciplineSearchAssist/);
+  assert.match(component, /source=\{model\.suggestionIndex\}/);
+  assert.match(model, /buildDisciplineSearchSuggestionIndex\(disciplineEvents\)/);
+  assert.match(model, /type DisciplineSearchSuggestionSource = \{[\s\S]*slug: string;[\s\S]*title: string;[\s\S]*city\?: string;[\s\S]*province\?: string;[\s\S]*venue\?: string;/);
+  assert.doesNotMatch(assist, /EventItem|description|schedule|officialUrl|organizer|imageUrl|SEO/);
+  assert.equal((route.match(/getVisibleEvents\(\)/g) || []).length, 1);
+});
+
+test("A6.3 conserva GET progresivo y usa destinos V2 o query contextual según el tipo", () => {
+  assert.match(assist, /action=\{action\}[\s\S]*method="get"/);
+  assert.match(assist, /name="q"/);
+  assert.match(assist, /type="submit">Buscar<\/button>/);
+  assert.match(model, /`\/preview\/redesign-v2\/evento\/\$\{event\.slug\}`/);
+  assert.match(model, /disciplineDetailPageHref\(disciplineSlug, 1, location\.queryValue\)/);
+  assert.match(assist, /router\.push\(suggestion\.href\)/);
+  assert.doesNotMatch(assist, /window\.location|target="_blank"/);
+  assert.doesNotMatch(model, /kind:\s*["']discipline["']/);
+});
+
+test("A6.3 implementa el patrón combobox accesible de Home sin IDs globales", () => {
+  assert.match(assist, /useId\(\)/);
+  assert.match(assist, /role="combobox"/);
+  assert.match(assist, /aria-autocomplete="list"/);
+  assert.match(assist, /aria-expanded=\{showSuggestions\}/);
+  assert.match(assist, /aria-controls=\{listboxId\}/);
+  assert.match(assist, /aria-activedescendant=/);
+  assert.match(assist, /role="listbox"/);
+  assert.match(assist, /role="option"/);
+  assert.match(assist, /event\.key === "ArrowDown"/);
+  assert.match(assist, /event\.key === "ArrowUp"/);
+  assert.match(assist, /event\.key === "Enter"/);
+  assert.match(assist, /event\.key === "Escape"/);
+  assert.match(assist, /event\.key === "Tab"/);
+  assert.match(assist, /document\.addEventListener\("pointerdown"/);
+  assert.match(assist, /onMouseDown=\{preserveInputFocus\}/);
+});
+
+test("A6.3 limita el dropdown móvil sin cambiar la geometría base del buscador", () => {
+  assert.match(styles, /\.suggestions[\s\S]*z-index:\s*30/);
+  assert.match(styles, /\.suggestions button[\s\S]*min-height:\s*54px/);
+  assert.match(styles, /\.suggestions[\s\S]*overflow-x:\s*hidden/);
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*\.suggestions[\s\S]*max-height:\s*min\(330px, 46vh\)/);
+  assert.match(styles, /\.searchControl[\s\S]*min-height:\s*52px/);
+  assert.match(styles, /\.searchSubmit[\s\S]*min-height:\s*52px/);
+});
+
+test("A6.3 no crea endpoints ni rutas globales de búsqueda", () => {
+  assert.equal(existsSync(join(process.cwd(), "app/preview/redesign-v2/buscar")), false);
+  assert.equal(existsSync(join(process.cwd(), "app/api/autocomplete")), false);
+  assert.equal(existsSync(join(process.cwd(), "app/api/discipline-search")), false);
 });
