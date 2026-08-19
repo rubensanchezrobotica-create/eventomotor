@@ -89,15 +89,19 @@ test("A6 presenta hero compacto, jerarquía única y eventos antes de conversió
   assert.doesNotMatch(component, /precio|organizador|horario/i);
 });
 
-test("A6.1.1 compone la fotografía a la derecha sin cover ni cambios de geometría", () => {
+test("A6.1.3 mantiene la fotografía full-width y protege el encuadre responsive", () => {
   assert.match(styles, /background-repeat:\s*no-repeat,\s*no-repeat/);
-  assert.match(styles, /background-position:\s*center,\s*right/);
-  assert.match(styles, /background-size:\s*100%\s+100%,\s*clamp\(/);
+  assert.match(styles, /background-position:\s*center,\s*center/);
+  assert.match(styles, /background-size:\s*100%\s+100%,\s*cover/);
   assert.match(
     styles,
-    /@media \(max-width:\s*680px\)[\s\S]*background-size:\s*100%\s+100%,\s*auto\s+100%/,
+    /@media \(min-width:\s*681px\) and \(max-width:\s*1100px\)[\s\S]*background-position:\s*center,\s*\d+%\s+center/,
   );
-  assert.doesNotMatch(styles, /background-size:\s*cover/);
+  assert.match(
+    styles,
+    /@media \(max-width:\s*680px\)[\s\S]*background-size:\s*100%\s+100%,\s*cover/,
+  );
+  assert.doesNotMatch(styles, /clamp\(700px,\s*62vw,\s*1040px\)/);
 });
 
 test("A6 usa enlaces server-side accesibles, empty state y Compact Agenda intacta", () => {
