@@ -82,7 +82,7 @@ test("A6 presenta hero compacto, jerarquía única y eventos antes de conversió
   assert.equal((route.match(/<V2PreviewShell/g) || []).length, 1);
   assert.equal((component.match(/<CompactAgendaSignup/g) || []).length, 1);
   assert.ok(component.indexOf("model.items.map") < component.indexOf("<CompactAgendaSignup"));
-  assert.match(styles, /#redesign-v2-interior-title[\s\S]*font-style:\s*normal/);
+  assert.doesNotMatch(styles, /#redesign-v2-interior-title[^,{]*\{[^}]*font-style:\s*normal/);
   assert.match(styles, /#redesign-v2-interior-title[\s\S]*overflow-wrap:\s*anywhere/);
   assert.match(styles, /font-size:\s*clamp\(1\.625rem,\s*8vw,\s*2\.4rem\)/);
   assert.match(styles, /\.resultsHeader h2[\s\S]*overflow-wrap:\s*anywhere/);

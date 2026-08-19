@@ -390,7 +390,6 @@
 
 :global(body):has(.page) :global(#redesign-v2-interior-title) {
   max-width: 100%;
-  font-style: normal;
   overflow-wrap: anywhere;
 }
 
