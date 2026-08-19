@@ -9,11 +9,13 @@ function source(path: string) {
 
 const route = source("app/preview/redesign-v2/disciplinas/[slug]/page.tsx");
 const component = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.tsx");
+const fontConfig = source("components/redesign-v2/redesign-v2-fonts.ts");
 const assist = source("components/redesign-v2/discipline-detail/DisciplineSearchAssist.client.tsx");
 const model = source("components/redesign-v2/discipline-detail/discipline-detail-model.ts");
 const styles = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.module.css");
 const compactSignup = source("components/redesign-v2/newsletter/CompactAgendaSignup.client.tsx");
 const compactStyles = source("components/redesign-v2/newsletter/CompactAgendaSignup.module.css");
+const sharedShellStyles = source("components/redesign-v2/site/V2PreviewShell.module.css");
 const sitemap = source("app/sitemap.ts");
 const rallyHero = readFileSync(join(
   process.cwd(),
@@ -238,4 +240,37 @@ test("A6.3 no crea endpoints ni rutas globales de búsqueda", () => {
   assert.equal(existsSync(join(process.cwd(), "app/preview/redesign-v2/buscar")), false);
   assert.equal(existsSync(join(process.cwd(), "app/api/autocomplete")), false);
   assert.equal(existsSync(join(process.cwd(), "app/api/discipline-search")), false);
+});
+
+test("A6.3.3P carga Roboto Condensed variable con normal e italic sólo en Discipline Detail", () => {
+  assert.match(fontConfig, /import \{ Roboto_Condensed \} from "next\/font\/google"/);
+  assert.match(fontConfig, /weight:\s*"variable"/);
+  assert.match(fontConfig, /style:\s*\["normal",\s*"italic"\]/);
+  assert.match(fontConfig, /subsets:\s*\["latin"\]/);
+  assert.match(fontConfig, /display:\s*"swap"/);
+  assert.match(fontConfig, /variable:\s*"--font-v2-display-pilot"/);
+  assert.match(route, /className=\{redesignV2DisplayPilot\.variable\}/);
+  assert.match(route, /data-v2-display-font-pilot/);
+  assert.doesNotMatch(route, /["']use client["']/);
+  assert.doesNotMatch(component, /["']use client["']/);
+});
+
+test("A6.3.3P limita la variable al hero H1 y al Results H2 sin alterar sus contratos", () => {
+  assert.equal((styles.match(/var\(--font-v2-display-pilot\)/g) || []).length, 2);
+  assert.match(
+    sharedShellStyles,
+    /\.pageHero h1\s*\{[\s\S]*?font-style:\s*italic;[\s\S]*?font-weight:\s*900;/,
+  );
+  assert.match(
+    styles,
+    /\.resultsHeader h2\s*\{[\s\S]*?font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;[\s\S]*?font-style:\s*normal;[\s\S]*?font-weight:\s*900;/,
+  );
+  assert.match(
+    styles,
+    /#redesign-v2-interior-title\)\s*\{[\s\S]*?font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;[\s\S]*?overflow-wrap:\s*anywhere;/,
+  );
+  assert.doesNotMatch(assist, /font-v2-display-pilot/);
+  assert.doesNotMatch(component, /font-v2-display-pilot/);
+  assert.doesNotMatch(compactStyles, /font-v2-display-pilot/);
+  assert.doesNotMatch(sharedShellStyles, /font-v2-display-pilot/);
 });

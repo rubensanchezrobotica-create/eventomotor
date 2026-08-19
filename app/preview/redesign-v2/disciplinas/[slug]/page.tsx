@@ -9,6 +9,7 @@ import {
   resolveDisciplineDetailDefinition,
   resolveDisciplineHeroVisual,
 } from "@/components/redesign-v2/discipline-detail/discipline-detail-model";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import { isRedesignPreviewAvailable } from "@/components/redesign-v2/redesign-v2-model";
 import V2PreviewShell from "@/components/redesign-v2/site/V2PreviewShell";
 import { getVehicleType } from "@/lib/event-classification";
@@ -55,20 +56,22 @@ export default async function DisciplineDetailPreviewPage({
   });
 
   return (
-    <V2PreviewShell
-      breadcrumbs={[
-        { label: "Inicio", navigationId: "home" },
-        { label: "Disciplinas", navigationId: "disciplines" },
-        { label: definition.title },
-      ]}
-      currentNavigationId="disciplines"
-      description={definition.description}
-      eyebrow="Disciplina"
-      heroImageSrc={heroVisual?.src}
-      title={definition.title}
-      upcomingCount={model.siteUpcomingCount}
-    >
-      <DisciplineDetailPage model={model} nowIso={now.toISOString()} />
-    </V2PreviewShell>
+    <div className={redesignV2DisplayPilot.variable} data-v2-display-font-pilot>
+      <V2PreviewShell
+        breadcrumbs={[
+          { label: "Inicio", navigationId: "home" },
+          { label: "Disciplinas", navigationId: "disciplines" },
+          { label: definition.title },
+        ]}
+        currentNavigationId="disciplines"
+        description={definition.description}
+        eyebrow="Disciplina"
+        heroImageSrc={heroVisual?.src}
+        title={definition.title}
+        upcomingCount={model.siteUpcomingCount}
+      >
+        <DisciplineDetailPage model={model} nowIso={now.toISOString()} />
+      </V2PreviewShell>
+    </div>
   );
 }
