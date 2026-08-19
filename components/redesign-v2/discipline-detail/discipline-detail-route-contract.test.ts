@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -117,4 +117,49 @@ test("A6 usa enlaces server-side accesibles, empty state y Compact Agenda intact
   assert.match(styles, /overflow:\s*hidden/);
   assert.match(compactSignup, /requestNewsletterSubscription/);
   assert.match(compactStyles, /newsletter-phone\.webp/);
+});
+
+test("A6.2 incorpora q al modelo server-side sin crear ruta Search ni enviar eventos al cliente", () => {
+  assert.match(route, /q\?:\s*string\s*\|\s*string\[\]/);
+  assert.match(route, /query:\s*parseDisciplineDetailQuery\(query\.q\)/);
+  assert.equal((route.match(/getVisibleEvents\(\)/g) || []).length, 1);
+  assert.match(model, /classifyEventDisciplinePage[\s\S]*eventMatchesDisciplineSearch/);
+  assert.match(model, /event\.title[\s\S]*event\.city[\s\S]*event\.province[\s\S]*event\.venue/);
+  assert.doesNotMatch(component, /["']use client["']/);
+  assert.equal(existsSync(join(process.cwd(), "app/preview/redesign-v2/buscar")), false);
+  assert.equal(existsSync(join(process.cwd(), "app/buscar")), false);
+});
+
+test("A6.2 usa un formulario GET accesible, resetea page y conserva la query visible", () => {
+  assert.match(component, /<form[\s\S]*method="get"[\s\S]*role="search"/);
+  assert.match(component, /Buscar eventos en esta disciplina/);
+  assert.match(component, /type="search"/);
+  assert.match(component, /name="q"/);
+  assert.match(component, /defaultValue=\{model\.query\}/);
+  assert.match(component, /Busca por evento, localidad o provincia\.\.\./);
+  assert.match(component, /<button type="submit">Buscar<\/button>/);
+  assert.doesNotMatch(component, /name="page"/);
+  assert.match(component, /Limpiar búsqueda/);
+  assert.match(component, /<svg aria-hidden="true"[\s\S]*currentColor/);
+});
+
+test("A6.2 preserva q sólo en paginación, mantiene fichas limpias y separa el empty filtrado", () => {
+  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, model\.page - 1, model\.query\)/);
+  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, item, model\.query\)/);
+  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, model\.page \+ 1, model\.query\)/);
+  assert.match(component, /No hemos encontrado próximos eventos para/);
+  assert.match(component, /0 resultados para/);
+  assert.match(component, /1 resultado para/);
+  assert.match(component, /`\/preview\/redesign-v2\/evento\/\$\{event\.slug \|\| event\.id\}`/);
+  assert.ok(component.indexOf("className={styles.searchForm}") < component.indexOf("model.items.map"));
+});
+
+test("A6.2 mantiene targets táctiles, foco visible y composición móvil sin overflow", () => {
+  assert.match(styles, /\.searchControl[\s\S]*min-height:\s*52px/);
+  assert.match(styles, /\.searchForm button[\s\S]*min-height:\s*52px/);
+  assert.match(styles, /\.clearSearch[\s\S]*min-height:\s*44px/);
+  assert.match(styles, /\.searchControl:focus-within/);
+  assert.match(styles, /\.searchForm button:focus-visible/);
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(styles, /\.searchControl input[\s\S]*font-size:\s*16px/);
 });

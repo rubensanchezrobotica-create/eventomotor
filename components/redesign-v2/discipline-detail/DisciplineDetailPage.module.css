@@ -88,6 +88,109 @@
   color: #ff8a54;
 }
 
+.searchForm {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.searchControl {
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 16px;
+  border: 1px solid #343c46;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: #0a0e13;
+  color: #8e969f;
+}
+
+.searchControl:focus-within {
+  position: relative;
+  z-index: 1;
+  border-color: #ff6200;
+  outline: 3px solid rgba(255, 98, 0, 0.3);
+  outline-offset: 2px;
+}
+
+.searchControl svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.searchControl input {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f2f3f1;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.searchControl input::placeholder {
+  color: #737b85;
+}
+
+.searchForm button {
+  min-width: 118px;
+  min-height: 52px;
+  padding: 0 19px;
+  border: 1px solid #ff6200;
+  border-radius: 0 8px 8px 0;
+  background: #ff6200;
+  color: #090b0e;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.searchForm button:hover {
+  background: #ff7a2a;
+}
+
+.clearSearch {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 13px;
+  color: #bfc4ca;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: #626a73;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+
+.clearSearch:hover {
+  color: #ff8a54;
+  text-decoration-color: currentColor;
+}
+
 .eventGrid {
   min-width: 0;
   display: grid;
@@ -205,6 +308,8 @@
 }
 
 .calendarLink:focus-visible,
+.clearSearch:focus-visible,
+.searchForm button:focus-visible,
 .emptyState a:focus-visible,
 .pagination a:focus-visible {
   outline: 3px solid #ffffff;
@@ -249,6 +354,31 @@
 
   .calendarLink {
     width: fit-content;
+  }
+
+  .searchForm {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .searchControl {
+    border-right: 1px solid #343c46;
+    border-radius: 8px;
+  }
+
+  .searchControl input {
+    font-size: 16px;
+  }
+
+  .searchForm button {
+    width: 100%;
+    border-radius: 8px;
+  }
+
+  .clearSearch {
+    width: fit-content;
+    margin-left: 0;
   }
 
   .eventGrid {

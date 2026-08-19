@@ -18,6 +18,7 @@ import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
 
 export const DISCIPLINE_DETAIL_PAGE_SIZE = 12;
+export const DISCIPLINE_DETAIL_QUERY_MAX_LENGTH = 120;
 
 export type DisciplineHeroVisual = {
   src: string;
@@ -36,9 +37,11 @@ export type DisciplineDetailPageItem = {
 
 export type DisciplineDetailPageModel = {
   definition: (typeof SEO_DISCIPLINES)[number];
+  filteredCount: number;
   items: DisciplineDetailPageItem[];
   page: number;
   pageCount: number;
+  query: string;
   siteUpcomingCount: number;
   today: string;
   totalUpcomingCount: number;
@@ -84,9 +87,44 @@ export function parseDisciplineDetailPage(value: string | string[] | undefined) 
   return Number.isSafeInteger(page) && page >= 1 ? page : 1;
 }
 
-export function disciplineDetailPageHref(slug: DisciplineSlug, page: number) {
+export function parseDisciplineDetailQuery(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return String(candidate ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, DISCIPLINE_DETAIL_QUERY_MAX_LENGTH);
+}
+
+export function normalizeDisciplineSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-ES")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function eventMatchesDisciplineSearch(event: EventItem, query: string) {
+  const normalizedQuery = normalizeDisciplineSearchText(query);
+  if (!normalizedQuery) return true;
+
+  const haystack = normalizeDisciplineSearchText([
+    event.title,
+    event.city,
+    event.province,
+    event.venue,
+  ].filter((value) => typeof value === "string" && value.trim()).join(" "));
+
+  return haystack.includes(normalizedQuery);
+}
+
+export function disciplineDetailPageHref(slug: DisciplineSlug, page: number, query = "") {
   const base = `/preview/redesign-v2/disciplinas/${slug}`;
-  return page <= 1 ? base : `${base}?page=${page}`;
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (page > 1) params.set("page", String(page));
+  const search = params.toString();
+  return search ? `${base}?${search}` : base;
 }
 
 export function disciplineDetailPaginationItems(page: number, pageCount: number) {
@@ -107,23 +145,27 @@ export function disciplineDetailPaginationItems(page: number, pageCount: number)
 export function buildDisciplineDetailPageModel(
   events: readonly EventItem[],
   slug: DisciplineSlug,
-  options: { now: string | Date; page: number },
+  options: { now: string | Date; page: number; query?: string },
 ): DisciplineDetailPageModel {
   const definition = SEO_DISCIPLINES.find((discipline) => discipline.slug === slug);
   if (!definition) throw new Error(`Disciplina desconocida: ${slug}`);
 
   const siteModel = buildDisciplinesPageModel(events, options.now);
+  const query = parseDisciplineDetailQuery(options.query);
   const disciplineEvents = deduplicateVisibleEvents(events)
     .filter((event) => isUpcomingDisciplineEvent(event, siteModel.today))
     .filter((event) => classifyEventDisciplinePage(event) === slug)
-    .sort(chronologicalEventOrder)
-    .map(projectPreviewEvent);
-  const resolvedImages = resolveRedesignEventImages(disciplineEvents);
+    .sort(chronologicalEventOrder);
+  const projectedDisciplineEvents = disciplineEvents.map(projectPreviewEvent);
+  const resolvedImages = resolveRedesignEventImages(projectedDisciplineEvents);
   const imageByEventId = Object.fromEntries(
-    disciplineEvents.map((event, index) => [event.id, resolvedImages[index]]),
+    projectedDisciplineEvents.map((event, index) => [event.id, resolvedImages[index]]),
   );
+  const filteredEvents = disciplineEvents
+    .filter((event) => eventMatchesDisciplineSearch(event, query))
+    .map(projectPreviewEvent);
   const pagination = paginateVisibleEvents({
-    events: disciplineEvents,
+    events: filteredEvents,
     imageByEventId,
     page: options.page,
     pageSize: DISCIPLINE_DETAIL_PAGE_SIZE,
@@ -131,14 +173,16 @@ export function buildDisciplineDetailPageModel(
 
   return {
     definition,
+    filteredCount: pagination.total,
     items: pagination.visible.map((event, index) => ({
       event,
       image: pagination.visibleImages[index],
     })),
     page: pagination.page,
     pageCount: pagination.pageCount,
+    query,
     siteUpcomingCount: siteModel.totalUpcomingEventCount,
     today: siteModel.today,
-    totalUpcomingCount: pagination.total,
+    totalUpcomingCount: disciplineEvents.length,
   };
 }

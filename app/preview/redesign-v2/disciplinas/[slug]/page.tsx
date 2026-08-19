@@ -5,6 +5,7 @@ import DisciplineDetailPage from "@/components/redesign-v2/discipline-detail/Dis
 import {
   buildDisciplineDetailPageModel,
   parseDisciplineDetailPage,
+  parseDisciplineDetailQuery,
   resolveDisciplineDetailDefinition,
   resolveDisciplineHeroVisual,
 } from "@/components/redesign-v2/discipline-detail/discipline-detail-model";
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 
 type DisciplineDetailPreviewPageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string | string[] }>;
+  searchParams: Promise<{ page?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function DisciplineDetailPreviewPage({
@@ -50,6 +51,7 @@ export default async function DisciplineDetailPreviewPage({
   const model = buildDisciplineDetailPageModel(events, definition.slug, {
     now,
     page: parseDisciplineDetailPage(query.page),
+    query: parseDisciplineDetailQuery(query.q),
   });
 
   return (

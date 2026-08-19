@@ -3,6 +3,7 @@ import Link from "next/link";
 import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
 import {
   DISCIPLINE_DETAIL_PAGE_SIZE,
+  DISCIPLINE_DETAIL_QUERY_MAX_LENGTH,
   disciplineDetailPageHref,
   disciplineDetailPaginationItems,
   type DisciplineDetailPageItem,
@@ -105,7 +106,7 @@ function Pagination({ model }: { model: DisciplineDetailPageModel }) {
   return (
     <nav aria-label="Paginación de eventos de la disciplina" className={styles.pagination}>
       {model.page > 1 ? (
-        <Link href={disciplineDetailPageHref(model.definition.slug, model.page - 1)}>Anterior</Link>
+        <Link href={disciplineDetailPageHref(model.definition.slug, model.page - 1, model.query)}>Anterior</Link>
       ) : null}
       <span className={styles.pageNumbers}>
         {items.map((item, index) => item === "ellipsis" ? (
@@ -113,7 +114,7 @@ function Pagination({ model }: { model: DisciplineDetailPageModel }) {
         ) : (
           <Link
             aria-current={item === model.page ? "page" : undefined}
-            href={disciplineDetailPageHref(model.definition.slug, item)}
+            href={disciplineDetailPageHref(model.definition.slug, item, model.query)}
             key={item}
           >
             {item}
@@ -121,17 +122,42 @@ function Pagination({ model }: { model: DisciplineDetailPageModel }) {
         ))}
       </span>
       {model.page < model.pageCount ? (
-        <Link href={disciplineDetailPageHref(model.definition.slug, model.page + 1)}>Siguiente</Link>
+        <Link href={disciplineDetailPageHref(model.definition.slug, model.page + 1, model.query)}>Siguiente</Link>
       ) : null}
     </nav>
   );
 }
 
 function visibleRange(model: DisciplineDetailPageModel) {
-  if (!model.totalUpcomingCount) return null;
+  if (!model.filteredCount) return null;
   const first = (model.page - 1) * DISCIPLINE_DETAIL_PAGE_SIZE + 1;
   const last = first + model.items.length - 1;
   return `${first}–${last}`;
+}
+
+function resultsSummary(model: DisciplineDetailPageModel, range: string | null) {
+  if (model.query) {
+    if (model.filteredCount === 1) {
+      return `1 resultado para “${model.query}” en ${model.definition.title}.`;
+    }
+    if (range) {
+      return `Mostrando ${range} de ${model.filteredCount} resultados para “${model.query}” en ${model.definition.title}.`;
+    }
+    return `0 resultados para “${model.query}” en ${model.definition.title}.`;
+  }
+
+  return range
+    ? `Mostrando ${range} de ${model.totalUpcomingCount} eventos próximos, ordenados por fecha.`
+    : "No hay próximos eventos publicados en esta disciplina.";
+}
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
+      <path d="m16 16 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
 }
 
 export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetailPageProps) {
@@ -146,16 +172,41 @@ export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetail
             <h2 id="discipline-detail-results">
               Próximos eventos de {model.definition.title}
             </h2>
-            <p>
-              {range
-                ? `Mostrando ${range} de ${model.totalUpcomingCount} eventos próximos, ordenados por fecha.`
-                : "No hay próximos eventos publicados en esta disciplina."}
-            </p>
+            <p aria-live="polite">{resultsSummary(model, range)}</p>
           </div>
           <Link className={styles.calendarLink} href="/preview/redesign-v2/calendario">
             Ver calendario completo <span aria-hidden="true">→</span>
           </Link>
         </header>
+
+        <form
+          action={disciplineDetailPageHref(model.definition.slug, 1)}
+          className={styles.searchForm}
+          method="get"
+          role="search"
+        >
+          <label className={styles.srOnly} htmlFor="discipline-detail-search">
+            Buscar eventos en esta disciplina
+          </label>
+          <div className={styles.searchControl}>
+            <SearchIcon />
+            <input
+              autoComplete="off"
+              defaultValue={model.query}
+              id="discipline-detail-search"
+              maxLength={DISCIPLINE_DETAIL_QUERY_MAX_LENGTH}
+              name="q"
+              placeholder="Busca por evento, localidad o provincia..."
+              type="search"
+            />
+          </div>
+          <button type="submit">Buscar</button>
+          {model.query ? (
+            <Link className={styles.clearSearch} href={disciplineDetailPageHref(model.definition.slug, 1)}>
+              Limpiar búsqueda
+            </Link>
+          ) : null}
+        </form>
 
         {model.items.length ? (
           <div aria-labelledby="discipline-detail-results" className={styles.eventGrid}>
@@ -165,12 +216,25 @@ export default function DisciplineDetailPage({ model, nowIso }: DisciplineDetail
           </div>
         ) : (
           <div className={styles.emptyState} role="status">
-            <h3>No hay próximos eventos publicados en esta disciplina.</h3>
-            <p>Consulta el calendario completo o vuelve a explorar las disciplinas disponibles.</p>
-            <div>
-              <Link href="/preview/redesign-v2/calendario">Abrir calendario</Link>
-              <Link href="/preview/redesign-v2/disciplinas">Volver a Disciplinas</Link>
-            </div>
+            {model.query ? (
+              <>
+                <h3>No hemos encontrado próximos eventos para “{model.query}”.</h3>
+                <p>Prueba con otro evento, localidad o provincia.</p>
+                <div>
+                  <Link href={disciplineDetailPageHref(model.definition.slug, 1)}>Limpiar búsqueda</Link>
+                  <Link href="/preview/redesign-v2/calendario">Ver calendario completo</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>No hay próximos eventos publicados en esta disciplina.</h3>
+                <p>Consulta el calendario completo o vuelve a explorar las disciplinas disponibles.</p>
+                <div>
+                  <Link href="/preview/redesign-v2/calendario">Abrir calendario</Link>
+                  <Link href="/preview/redesign-v2/disciplinas">Volver a Disciplinas</Link>
+                </div>
+              </>
+            )}
           </div>
         )}
 
