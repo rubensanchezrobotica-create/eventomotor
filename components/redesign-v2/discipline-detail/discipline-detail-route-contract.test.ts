@@ -12,6 +12,8 @@ const component = source("components/redesign-v2/discipline-detail/DisciplineDet
 const assist = source("components/redesign-v2/discipline-detail/DisciplineSearchAssist.client.tsx");
 const model = source("components/redesign-v2/discipline-detail/discipline-detail-model.ts");
 const styles = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.module.css");
+const fontConfig = source("components/redesign-v2/redesign-v2-fonts.ts");
+const sharedShellStyles = source("components/redesign-v2/site/V2PreviewShell.module.css");
 const compactSignup = source("components/redesign-v2/newsletter/CompactAgendaSignup.client.tsx");
 const compactStyles = source("components/redesign-v2/newsletter/CompactAgendaSignup.module.css");
 const sitemap = source("app/sitemap.ts");
@@ -238,4 +240,52 @@ test("A6.3 no crea endpoints ni rutas globales de búsqueda", () => {
   assert.equal(existsSync(join(process.cwd(), "app/preview/redesign-v2/buscar")), false);
   assert.equal(existsSync(join(process.cwd(), "app/api/autocomplete")), false);
   assert.equal(existsSync(join(process.cwd(), "app/api/discipline-search")), false);
+});
+
+test("A6.3.3P2 configura Archivo estática 900 con normal e italic sin ejes variables", () => {
+  assert.match(fontConfig, /import\s*\{\s*Archivo\s*\}\s*from\s*["']next\/font\/google["']/);
+  assert.doesNotMatch(fontConfig, /Archivo_Narrow|Roboto_Condensed/);
+  assert.match(fontConfig, /weight:\s*["']900["']/);
+  assert.match(fontConfig, /style:\s*\[["']normal["'],\s*["']italic["']\]/);
+  assert.match(fontConfig, /subsets:\s*\[["']latin["']\]/);
+  assert.match(fontConfig, /display:\s*["']swap["']/);
+  assert.match(fontConfig, /variable:\s*["']--font-v2-display-pilot["']/);
+  assert.doesNotMatch(fontConfig, /axes|wdth|font-variation-settings/);
+});
+
+test("A6.3.3P2 limita el piloto tipográfico al wrapper servidor de Discipline Detail", () => {
+  assert.match(route, /redesignV2DisplayPilot/);
+  assert.match(route, /className=\{redesignV2DisplayPilot\.variable\}/);
+  assert.match(route, /data-v2-display-font-pilot="archivo"/);
+  assert.doesNotMatch(route, /["']use client["']/);
+  assert.doesNotMatch(component, /redesignV2DisplayPilot|font-v2-display-pilot/);
+  assert.doesNotMatch(assist, /redesignV2DisplayPilot|font-v2-display-pilot/);
+  assert.doesNotMatch(compactSignup, /redesignV2DisplayPilot|font-v2-display-pilot/);
+  assert.doesNotMatch(compactStyles, /font-v2-display-pilot/);
+  assert.doesNotMatch(sharedShellStyles, /font-v2-display-pilot/);
+});
+
+test("A6.3.3P2 aplica Archivo sólo al H1 compartido y al H2 de resultados", () => {
+  assert.equal((styles.match(/var\(--font-v2-display-pilot\)/g) || []).length, 2);
+  assert.match(
+    styles,
+    /\.resultsHeader h2\s*\{[\s\S]*font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;[\s\S]*font-style:\s*normal;[\s\S]*font-stretch:\s*condensed;[\s\S]*font-weight:\s*900;/,
+  );
+  assert.match(
+    styles,
+    /:global\(body\):has\(\.page\)\s*:global\(#redesign-v2-interior-title\)\s*\{[\s\S]*font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;/,
+  );
+  assert.doesNotMatch(styles, /font-variation-settings|wdth/);
+});
+
+test("A6.3.3P2 conserva wrapping natural y la geometría editorial aprobada", () => {
+  const resultsHeadingBlock = styles.match(/\.resultsHeader h2\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+
+  assert.match(resultsHeadingBlock, /max-width:\s*760px/);
+  assert.match(resultsHeadingBlock, /font-size:\s*clamp\(2rem, 4vw, 3\.35rem\)/);
+  assert.match(resultsHeadingBlock, /line-height:\s*0\.98/);
+  assert.match(resultsHeadingBlock, /letter-spacing:\s*-0\.05em/);
+  assert.match(resultsHeadingBlock, /text-wrap:\s*balance/);
+  assert.doesNotMatch(resultsHeadingBlock, /white-space:\s*nowrap|word-break/);
+  assert.doesNotMatch(component, /<br\s*\/?\s*>/);
 });
