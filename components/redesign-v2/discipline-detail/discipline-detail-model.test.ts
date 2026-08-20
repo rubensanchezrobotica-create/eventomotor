@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import type { EventItem } from "@/types/event";
+import { projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
 import {
   DISCIPLINE_HERO_VISUALS,
   DISCIPLINE_DETAIL_PAGE_SIZE,
@@ -16,6 +17,7 @@ import {
   normalizeDisciplineSearchText,
   parseDisciplineDetailPage,
   parseDisciplineDetailQuery,
+  resolveDisciplineDetailEventImage,
   resolveDisciplineDetailDefinition,
   resolveDisciplineHeroVisual,
 } from "./discipline-detail-model";
@@ -407,4 +409,88 @@ test("A6.3 aplica la disciplina del modelo también a destinos de ubicación", (
     suggestions.find(({ kind }) => kind === "location")?.href,
     "/preview/redesign-v2/disciplinas/circuito?q=Madrid",
   );
+});
+
+test("A6.3.3B mantiene el fallback de cada slug al cambiar query, página y orden", () => {
+  const target = event("campo-lopez", "Subida", "2026-09-12", {
+    slug: "subida-a-campo-lopez-2026-09-12",
+    title: "Subida a Campo López",
+    city: "Murcia",
+    province: "Murcia",
+    tags: ["coche", "subida", "montaña"],
+  });
+  const fillers = Array.from({ length: 13 }, (_, index) => event(
+    `filler-${index}`,
+    "Rally",
+    `2026-09-${String(index + 13).padStart(2, "0")}`,
+    { city: "Lugo", province: "Lugo" },
+  ));
+  const all = [target, ...fillers];
+  const unfiltered = buildDisciplineDetailPageModel(all, "rallyes", { now: NOW, page: 1 });
+  const filtered = buildDisciplineDetailPageModel(all, "rallyes", { now: NOW, page: 1, query: "Murcia" });
+  const reordered = buildDisciplineDetailPageModel([...all].reverse(), "rallyes", { now: NOW, page: 1, query: "Murcia" });
+  const shiftedToSecondPage = buildDisciplineDetailPageModel([
+    ...Array.from({ length: 12 }, (_, index) => event(
+      `earlier-${index}`,
+      "Rally",
+      `2026-08-${String(index + 19).padStart(2, "0")}`,
+    )),
+    target,
+  ], "rallyes", { now: NOW, page: 2 });
+
+  const expected = resolveDisciplineDetailEventImage(projectPreviewEvent(target));
+  const reloads = Array.from(
+    { length: 10 },
+    () => resolveDisciplineDetailEventImage(projectPreviewEvent(target)).src,
+  );
+  assert.deepEqual(unfiltered.items.find(({ event: item }) => item.slug === target.slug)?.image, expected);
+  assert.deepEqual(filtered.items[0].image, expected);
+  assert.deepEqual(reordered.items[0].image, expected);
+  assert.deepEqual(shiftedToSecondPage.items.find(({ event: item }) => item.slug === target.slug)?.image, expected);
+  assert.equal(new Set(reloads).size, 1);
+});
+
+test("A6.3.3B diversifica subidas similares sin salir del banco semántico de Rallyes", () => {
+  const subidas = [
+    event("aguilas", "Montana", "2026-09-05", {
+      slug: "subida-aguilas-2026-09-05",
+      title: "Subida Águilas 2026",
+      city: "Águilas",
+      province: "Murcia",
+      tags: ["coche", "montaña", "subida"],
+    }),
+    event("campo-lopez", "Subida", "2026-09-12", {
+      slug: "subida-a-campo-lopez-2026-09-12",
+      title: "Subida a Campo López",
+      city: "Murcia",
+      province: "Murcia",
+      tags: ["coche", "subida", "montaña"],
+    }),
+    event("la-santa", "Montana", "2026-11-07", {
+      slug: "subida-la-santa-2026-11-07",
+      title: "Subida a La Santa 2026",
+      city: "Totana",
+      province: "Murcia",
+      tags: ["coche", "montaña", "subida"],
+    }),
+  ];
+  const images = subidas.map((fixture) => resolveDisciplineDetailEventImage(projectPreviewEvent(fixture)));
+
+  assert.equal(new Set(images.map(({ src }) => src)).size, 3);
+  assert.equal(images.every(({ kind }) => kind === "representative"), true);
+  assert.equal(images.every(({ label }) => label === "Imagen representativa"), true);
+  assert.equal(images.every(({ src }) => /\/rallyes\/rallyes-0[1-5]-/.test(String(src))), true);
+});
+
+test("A6.3.3B conserva sin cambios la imagen real del evento", () => {
+  const real = event("real", "Rally", "2026-09-12", {
+    slug: "rally-con-imagen-real",
+    imageUrl: "https://images.example.com/rally-real.webp",
+  });
+
+  assert.deepEqual(resolveDisciplineDetailEventImage(projectPreviewEvent(real)), {
+    src: "https://images.example.com/rally-real.webp",
+    kind: "event",
+    alt: "Imagen del evento Evento real",
+  });
 });

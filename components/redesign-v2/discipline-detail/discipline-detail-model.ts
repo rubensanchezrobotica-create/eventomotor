@@ -7,6 +7,11 @@ import {
   buildDisciplinesPageModel,
   isUpcomingDisciplineEvent,
 } from "@/components/redesign-v2/disciplines/disciplines-model";
+import {
+  resolveV2EventImageCandidates,
+  stableV2EventKey,
+  stableV2Hash,
+} from "@/components/redesign-v2/discipline-fallback-resolver";
 import { paginateVisibleEvents } from "@/components/redesign-v2/listing/paginate-visible-events";
 import {
   projectPreviewEvent,
@@ -280,6 +285,24 @@ export function disciplineDetailPaginationItems(page: number, pageCount: number)
   return items;
 }
 
+export function resolveDisciplineDetailEventImage(event: PreviewEvent): ResolvedEventImage {
+  const [baseImage] = resolveRedesignEventImages([event]);
+  if (baseImage.kind !== "representative") return baseImage;
+
+  const compatibleCandidates = resolveV2EventImageCandidates(event)
+    .filter(({ tier }) => tier <= 2)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  if (!compatibleCandidates.length) return baseImage;
+
+  const stableHash = stableV2Hash(stableV2EventKey(event));
+  const selectedIndex = Math.floor(
+    (stableHash / 2 ** 32) * compatibleCandidates.length,
+  );
+  const selected = compatibleCandidates[selectedIndex];
+
+  return { ...baseImage, src: selected.src };
+}
+
 export function buildDisciplineDetailPageModel(
   events: readonly EventItem[],
   slug: DisciplineSlug,
@@ -296,7 +319,7 @@ export function buildDisciplineDetailPageModel(
     .sort(chronologicalEventOrder);
   const projectedDisciplineEvents = disciplineEvents.map(projectPreviewEvent);
   const suggestionIndex = buildDisciplineSearchSuggestionIndex(disciplineEvents);
-  const resolvedImages = resolveRedesignEventImages(projectedDisciplineEvents);
+  const resolvedImages = projectedDisciplineEvents.map(resolveDisciplineDetailEventImage);
   const imageByEventId = Object.fromEntries(
     projectedDisciplineEvents.map((event, index) => [event.id, resolvedImages[index]]),
   );
