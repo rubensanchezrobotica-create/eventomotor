@@ -43,7 +43,7 @@
   max-width: 760px;
   margin: 12px 0 0;
   color: #f7f7f4;
-  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-family: "Arial Narrow", Arial, sans-serif;
   font-size: clamp(2rem, 4vw, 3.35rem);
   font-style: normal;
   font-stretch: condensed;
@@ -391,7 +391,6 @@
 
 :global(body):has(.page) :global(#redesign-v2-interior-title) {
   max-width: 100%;
-  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   overflow-wrap: anywhere;
 }
 
