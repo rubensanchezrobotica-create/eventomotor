@@ -7,7 +7,7 @@ import {
 } from "./discipline-fallback-manifest";
 
 const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
-  rallyes: 5,
+  rallyes: 11,
   circuito: 13,
   concentraciones: 9,
   offroad: 17,
@@ -53,10 +53,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 65 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 65);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 65);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 65);
+test("el manifiesto contiene exactamente los 71 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 71);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 71);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 71);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -84,6 +84,12 @@ test("todos los fallbacks tienen rutas ASCII estables y WebP reales de 1200 por 
 
 test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   const byId = new Map(V2_DISCIPLINE_FALLBACKS.map((image) => [image.id, image]));
+  assert.deepEqual(byId.get("rallyes-06")?.tags, ["rally", "subida", "montana", "hillclimb", "asfalto", "seco", "mediterraneo", "horquilla"]);
+  assert.deepEqual(byId.get("rallyes-07")?.tags, ["rally", "subida", "montana", "hillclimb", "asfalto", "humedo", "atlantico", "ascenso"]);
+  assert.deepEqual(byId.get("rallyes-08")?.tags, ["rally", "subida", "montana", "hillclimb", "asfalto", "tramo-rapido", "roca", "ascenso"]);
+  assert.deepEqual(byId.get("rallyes-09")?.tags, ["rally", "asfalto", "mojado", "bosque", "tramo-rapido", "accion-trasera"]);
+  assert.deepEqual(byId.get("rallyes-10")?.tags, ["rally", "asfalto", "seco", "paisaje-abierto", "tramo-rapido", "lateral"]);
+  assert.deepEqual(byId.get("rallyes-11")?.tags, ["rally", "rallysprint", "asfalto", "tramo-corto", "curva", "accion-proxima"]);
   assert.deepEqual(byId.get("offroad-03")?.tags, ["offroad", "motocross", "moto", "salto"]);
   assert.deepEqual(byId.get("offroad-02")?.tags, ["offroad", "enduro", "moto", "bosque"]);
   assert.deepEqual(byId.get("offroad-05")?.tags, ["offroad", "trial", "moto", "roca"]);

@@ -479,7 +479,7 @@ test("A6.3.3B diversifica subidas similares sin salir del banco semántico de Ra
   assert.equal(new Set(images.map(({ src }) => src)).size, 3);
   assert.equal(images.every(({ kind }) => kind === "representative"), true);
   assert.equal(images.every(({ label }) => label === "Imagen representativa"), true);
-  assert.equal(images.every(({ src }) => /\/rallyes\/rallyes-0[1-5]-/.test(String(src))), true);
+  assert.equal(images.every(({ src }) => /\/rallyes\/rallyes-(?:0[1-9]|1[01])-/.test(String(src))), true);
 });
 
 test("A6.3.3B conserva sin cambios la imagen real del evento", () => {

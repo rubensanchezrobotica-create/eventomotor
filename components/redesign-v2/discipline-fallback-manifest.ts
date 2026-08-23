@@ -38,6 +38,12 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("rallyes-03", "rallyes", "coche", ["rally", "asfalto", "bosque"], "rallyes-03-asfalto-seco-bosque.webp"),
   fallback("rallyes-04", "rallyes", "coche", ["rally", "rasante", "salto", "paisaje-abierto"], "rallyes-04-cambio-rasante-paisaje-abierto.webp"),
   fallback("rallyes-05", "rallyes", "coche", ["rally", "horquilla", "asfalto", "lateral"], "rallyes-05-horquilla-accion-lateral.webp"),
+  fallback("rallyes-06", "rallyes", "coche", ["rally", "subida", "montana", "hillclimb", "asfalto", "seco", "mediterraneo", "horquilla"], "rallyes-06-subida-asfalto-seco-montana-mediterranea.webp"),
+  fallback("rallyes-07", "rallyes", "coche", ["rally", "subida", "montana", "hillclimb", "asfalto", "humedo", "atlantico", "ascenso"], "rallyes-07-subida-asfalto-humedo-paisaje-atlantico.webp"),
+  fallback("rallyes-08", "rallyes", "coche", ["rally", "subida", "montana", "hillclimb", "asfalto", "tramo-rapido", "roca", "ascenso"], "rallyes-08-subida-asfalto-rapida-montana-rocosa.webp"),
+  fallback("rallyes-09", "rallyes", "coche", ["rally", "asfalto", "mojado", "bosque", "tramo-rapido", "accion-trasera"], "rallyes-09-rally-asfalto-mojado-bosque-accion-trasera.webp"),
+  fallback("rallyes-10", "rallyes", "coche", ["rally", "asfalto", "seco", "paisaje-abierto", "tramo-rapido", "lateral"], "rallyes-10-rally-asfalto-seco-tramo-rapido-paisaje-abierto.webp"),
+  fallback("rallyes-11", "rallyes", "coche", ["rally", "rallysprint", "asfalto", "tramo-corto", "curva", "accion-proxima"], "rallyes-11-rallysprint-asfalto-tramo-corto-curva.webp"),
 
   fallback("circuito-01", "circuito", "coche", ["circuito", "coche", "curva", "piano"], "circuito-01-coches-curva-rapida-piano.webp"),
   fallback("circuito-02", "circuito", "moto", ["circuito", "moto", "inclinacion", "apice"], "circuito-02-motos-inclinacion-apice.webp"),
