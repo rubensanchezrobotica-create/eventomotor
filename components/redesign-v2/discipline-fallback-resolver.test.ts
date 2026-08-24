@@ -139,6 +139,94 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
   assert.deepEqual(new Set(mixedMeet.filter(({ tier }) => tier <= 2).map(({ id }) => id)), new Set(["concentraciones-03", "concentraciones-05"]));
 });
 
+test("un vehículo explícito nunca recibe el fallback del vehículo opuesto", () => {
+  const pina = event({
+    id: "batch-campeonato-espana-rally-raid-pina-ebro-2026-09-04",
+    slug: "campeonato-espana-rally-raid-pina-ebro-2026-09-04",
+    title: "Campeonato de Espana de Rally Raid Pina de Ebro 2026",
+    championship: "Campeonato de Espana de Rally Raid",
+    discipline: "Rally Raid",
+    tags: ["moto", "rally raid", "rfme"],
+    vehicleType: "moto",
+  });
+  assert.equal(classificationOf(pina).discipline, "rallyes");
+  assert.equal(resolveV2EventImageCandidates(pina).length, 0);
+  assert.deepEqual(assignV2HomeEventImages([pina]), [{ src: null, kind: "neutral", alt: "" }]);
+
+  const explicitCar = event({
+    title: "Feria de motos y coches",
+    discipline: "Ferias",
+    vehicleType: "coche",
+  });
+  const carCandidates = resolveV2EventImageCandidates(explicitCar);
+  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "moto"), false);
+  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "coche"), true);
+  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "mixto"), true);
+});
+
+test("mantiene mixto, inferencia de otros y la semántica especial de karting", () => {
+  const explicitMoto = resolveV2EventImageCandidates(event({
+    title: "Feria de coches y motos",
+    discipline: "Ferias",
+    vehicleType: "moto",
+  }));
+  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "coche"), false);
+  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "moto"), true);
+  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "mixto"), true);
+
+  const inferredOther = resolveV2EventImageCandidates(event({
+    title: "Salón de la moto",
+    discipline: "Ferias",
+    vehicleType: "otros",
+  }));
+  assert.equal(inferredOther.some(({ vehicle }) => vehicle === "moto"), true);
+
+  const mixed = resolveV2EventImageCandidates(event({
+    title: "Feria de coches y motos",
+    discipline: "Ferias",
+    vehicleType: "mixto",
+  }));
+  assert.deepEqual(new Set(mixed.map(({ vehicle }) => vehicle)), new Set(["coche", "moto", "mixto"]));
+
+  const karting = resolveV2EventImageCandidates(event({
+    title: "Karting FACYL Kotarr 2026",
+    discipline: "Karting",
+    vehicleType: "coche",
+  }));
+  assert.equal(karting.length > 0, true);
+  assert.equal(karting.every(({ vehicle }) => vehicle === "karting"), true);
+});
+
+test("corrige MotorLand y conserva Rally Pistón en su fallback mixto", () => {
+  const motorland = event({
+    id: "motorland-classic-festival-2026",
+    slug: "motorland-classic-festival-2026-10-24",
+    title: "MotorLand Classic Festival",
+    championship: "MotorLand Classic Festival",
+    discipline: "Clásicos",
+    tags: ["Clásicos", "Festival", "Coches", "Motos"],
+    vehicleType: "moto",
+  });
+  const [motorlandImage] = assignV2HomeEventImages([motorland]);
+  assert.equal(motorlandImage.fallbackId, "clasicos-03");
+  assert.equal(motorlandImage.interpretedVehicle, "mixto");
+
+  const rallyPiston = event({
+    id: "rally-piston-2026-09-24",
+    slug: "rally-piston-2026-09-24",
+    title: "Rally Pistón",
+    discipline: "Concentración",
+    tags: ["moto", "concentración"],
+    vehicleType: "moto",
+  });
+  const [rallyPistonImage] = assignV2HomeEventImages([rallyPiston]);
+  assert.equal(
+    V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === rallyPistonImage.fallbackId)?.vehicle,
+    "mixto",
+  );
+  assert.equal(rallyPistonImage.interpretedVehicle, "mixto");
+});
+
 test("los subtipos de alta confianza encabezan sus candidatos", () => {
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de motocross", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de enduro", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-02", "offroad-07"]));

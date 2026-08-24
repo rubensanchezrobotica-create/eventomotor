@@ -461,12 +461,25 @@ function matchesExactSubtype(
   return candidate.tags.some((tag) => !GENERIC_TAGS.has(normalize(tag)) && includesPhrase(text, tag));
 }
 
+function isExplicitVehicleCompatible(
+  event: V2FallbackEvent,
+  classification: V2FallbackClassification,
+  candidate: V2FallbackImage,
+): boolean {
+  if (classification.discipline === "karting") return true;
+  const explicitVehicle = normalize(event.vehicleType);
+  if (explicitVehicle === "moto") return candidate.vehicle !== "coche" && candidate.vehicle !== "karting";
+  if (explicitVehicle === "coche") return candidate.vehicle !== "moto" && candidate.vehicle !== "karting";
+  return true;
+}
+
 function candidateTier(
   event: V2FallbackEvent,
   classification: V2FallbackClassification,
   candidate: V2FallbackImage,
 ): 1 | 2 | 3 | 4 | null {
   if (candidate.discipline !== classification.discipline) return null;
+  if (!isExplicitVehicleCompatible(event, classification, candidate)) return null;
   const closedFallbackIds = closedSubtypeFallbackIds(event, classification);
   if (closedFallbackIds && !closedFallbackIds.includes(candidate.id)) return null;
   if (!isR2SubtypeCompatible(classification, candidate)) return null;
