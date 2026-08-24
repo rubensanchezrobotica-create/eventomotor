@@ -816,7 +816,9 @@
     "source_type": "federation",
     "confidence_score": 68,
     "needs_review": true,
-    "notes": "Sustituye a MotoMini Spain MotorLand por posible solape con MiniVelocidad ya presente en lote 002."
+    "notes": "Sustituye a MotoMini Spain MotorLand por posible solape con MiniVelocidad ya presente en lote 002.",
+    "duplicate_review_status": "rejected_duplicate",
+    "duplicate_review_note": "Duplicado confirmado de batch-rallysprint-villa-luarca-2026-10-25; coincide en prueba, fecha, localidad y categoría con el registro canónico de FAPA."
   },
   {
     "title": "Rotax Euro Trophy Chiva octubre 2026",

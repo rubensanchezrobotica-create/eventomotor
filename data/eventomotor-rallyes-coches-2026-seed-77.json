@@ -2084,33 +2084,6 @@
     "notes": "Calendario FAPA pendiente de aprobación final por asamblea según la propia publicación."
   },
   {
-    "id": "rallysprint-luarca-2026-10-25",
-    "title": "Rallysprint Luarca",
-    "championship": "Campeonato de Asturias de Rallysprint",
-    "discipline": "Rallysprint",
-    "vehicleType": "coche",
-    "start": "2026-10-25",
-    "end": "2026-10-25",
-    "venue": "Luarca",
-    "city": "Valdés",
-    "province": "Asturias",
-    "region": "Asturias",
-    "level": "Regional",
-    "source": "FAPA",
-    "sourceUrl": "https://fapaonline.es/calendario-rallysprint-2026/",
-    "ticketUrl": "",
-    "tags": [
-      "coche",
-      "rallysprint",
-      "asturias"
-    ],
-    "featured": false,
-    "visible": true,
-    "dataQuality": "needs_review",
-    "importMethod": "manual-web-research",
-    "notes": "Calendario FAPA pendiente de aprobación final por asamblea según la propia publicación."
-  },
-  {
     "id": "rallysprint-ribadesella-2026-11-07",
     "title": "Rallysprint Ribadesella",
     "championship": "Campeonato de Asturias de Rallysprint",
