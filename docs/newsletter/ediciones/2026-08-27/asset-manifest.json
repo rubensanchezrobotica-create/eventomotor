@@ -1,0 +1,9 @@
+[
+  { "file": "01-motogp-aragon-hero.webp", "width": 1200, "height": 675, "bytes": 136890, "sha256": "9db0fd01a66dc3dd578b1bc6a646e97c49f8a7045118d0f5248bf5e0d0436521" },
+  { "file": "02-duelo-traseras-navia.webp", "width": 800, "height": 500, "bytes": 103408, "sha256": "feae5f33dcc4e9a799221f412657e2a459745fb65b2dd70cd593a6f30aae9138" },
+  { "file": "03-bizkaia-rider.webp", "width": 800, "height": 500, "bytes": 114700, "sha256": "19ac23fa2467d2f9fe7b8be07f2eaf98373b18899db33151c65347d7f0e97dae" },
+  { "file": "04-rallysprint-penamayor.webp", "width": 800, "height": 500, "bytes": 147374, "sha256": "26823ee6aa237d1464bbcb54a2694111c6dcf73b8727e260aadda6a0c9fd2fbb" },
+  { "file": "05-fim-motojunior-cheste.webp", "width": 800, "height": 500, "bytes": 77314, "sha256": "1468592124936d7deceb404853675083b39db58dcba45465b1e31175e8633694" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 38798, "sha256": "eacaf0285945446a5a432ff83f28bac99cf9e046c895f9502adbd646288b806b" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]
