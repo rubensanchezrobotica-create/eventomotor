@@ -37,6 +37,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   rallyes: {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   },
+  circuito: {
+    src: "/images/redesign-v2/disciplines/hero-circuito.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {
