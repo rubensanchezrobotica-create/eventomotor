@@ -387,7 +387,9 @@
     "source_type": "federation",
     "confidence_score": 88,
     "needs_review": false,
-    "notes": "Importado en lote 005. Fuente RFEDA PDF calendario carretera 2026."
+    "notes": "Importado en lote 005. Fuente RFEDA PDF calendario carretera 2026.",
+    "duplicate_review_status": "rejected_duplicate",
+    "duplicate_review_note": "Duplicado confirmado de subida-a-campo-lopez-2026-09-12; coincide en prueba, fechas, provincia y categoría con el registro canónico de RFEDA / CopaEM."
   },
   {
     "title": "Rallye Villa de Llanes 2026",
