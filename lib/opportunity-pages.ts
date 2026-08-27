@@ -140,7 +140,50 @@ const extendedConcentrationTerms = [
 const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
 const motoCircuitTerms = ["moto", "motos", "motociclismo", "rodada moto", "rodadas moto", "tandas moto"];
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
-const feriaTerms = ["feria", "ferias", "salon", "salón", "automovil", "automóvil", "moto", "clasicos", "clásicos", "recambios", "exposicion", "exposición", "motor show", "expo"];
+const FAIR_DISCIPLINES = new Set(["feria", "ferias"]);
+const FAIR_EXACT_TAGS = new Set(["feria", "ferias", "exposicion"]);
+const FAIR_STRONG_PHRASES = [
+  "feria del motor",
+  "feria de motos",
+  "feria de motocicletas",
+  "feria de la moto",
+  "feria del automovil",
+  "feria de automoviles",
+  "feria de coches",
+  "feria del coche",
+  "feria de vehiculos de ocasion",
+  "feria del vehiculo de ocasion",
+  "feria profesional",
+  "salon del automovil",
+  "salon de la moto",
+  "salon de motos",
+  "salon del motor",
+  "motor show",
+  "auto show",
+  "expo motor",
+  "exposicion de vehiculos",
+];
+
+function normalizedPhraseText(values: Array<string | undefined>) {
+  const normalized = normalizeSeoText(values.filter(Boolean).join(" "))
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+  return ` ${normalized} `;
+}
+
+export function matchesFairOpportunity(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (FAIR_DISCIPLINES.has(discipline)) return true;
+
+  const tags = (event.tags || []).map((tag) => normalizeSeoText(tag).trim());
+  if (tags.some((tag) => FAIR_EXACT_TAGS.has(tag))) return true;
+
+  const semanticText = normalizedPhraseText([event.title, event.championship, ...tags]);
+  return FAIR_STRONG_PHRASES.some((phrase) =>
+    semanticText.includes(normalizedPhraseText([phrase])),
+  );
+}
 
 const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
@@ -1507,7 +1550,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, feriaTerms),
+    filter: (event) => isYear(event, 2026) && matchesFairOpportunity(event),
   },
 
 ];
