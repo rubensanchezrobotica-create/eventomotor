@@ -138,8 +138,27 @@ const extendedConcentrationTerms = [
   "yuncler",
 ];
 const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
-const motoCircuitTerms = ["moto", "motos", "motociclismo", "rodada moto", "rodadas moto", "tandas moto"];
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
+const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
+  "tandas libres",
+  "tandas de motos",
+  "tandas moto",
+  "tandas para motos",
+  "rodada",
+  "rodadas",
+  "rodada de motos",
+  "rodadas de motos",
+  "trackday",
+  "trackdays",
+  "track day",
+  "track days",
+  "trackday moto",
+  "trackdays motos",
+  "curso y tandas",
+  "curso tandas",
+  "curso de conduccion y tandas",
+  "curso de conduccion tandas",
+];
 const FAIR_DISCIPLINES = new Set(["feria", "ferias"]);
 const FAIR_EXACT_TAGS = new Set(["feria", "ferias", "exposicion"]);
 const FAIR_STRONG_PHRASES = [
@@ -170,6 +189,27 @@ function normalizedPhraseText(values: Array<string | undefined>) {
     .trim();
 
   return ` ${normalized} `;
+}
+
+export function matchesMotorcycleTrackdayOpportunity(event: EventItem) {
+  const hasMotorcycleVehicle = [event.vehicleType, event.vehicle_type]
+    .filter((vehicleType): vehicleType is string => Boolean(vehicleType))
+    .some((vehicleType) => normalizeSeoText(vehicleType).trim() === "moto");
+
+  if (!hasMotorcycleVehicle) return false;
+
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (discipline === "tandas") return true;
+
+  const activityText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES.some((phrase) =>
+    activityText.includes(normalizedPhraseText([phrase])),
+  );
 }
 
 export function matchesFairOpportunity(event: EventItem) {
@@ -1438,10 +1478,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) =>
-      isYear(event, 2026) &&
-      includesAny(event, circuitTerms) &&
-      includesAny(event, motoCircuitTerms),
+    filter: (event) => isYear(event, 2026) && matchesMotorcycleTrackdayOpportunity(event),
   },
   {
     slug: "trackdays-espana-2026",
