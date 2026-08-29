@@ -159,6 +159,64 @@ const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
   "curso de conduccion y tandas",
   "curso de conduccion tandas",
 ];
+const AUTOMOTIVE_RALLY_VEHICLES = new Set(["coche", "coches", "automovil", "automovilismo"]);
+const EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES = new Set([
+  "moto",
+  "motos",
+  "motocicleta",
+  "motocicletas",
+  "mixto",
+]);
+const AUTOMOTIVE_RALLY_STRUCTURED_TERMS = [
+  "automovil",
+  "automovilismo",
+  "automovilistico",
+  "coche",
+  "coches",
+];
+const COMPETITIVE_RALLY_DISCIPLINES = new Set([
+  "rally",
+  "rallye",
+  "rallyes",
+  "rallysprint",
+  "rally sprint",
+  "rally tierra",
+  "rally historico",
+  "rally tt",
+  "rallymix",
+  "rallycrono",
+  "eco rally",
+  "montana",
+  "subida",
+  "regularidad",
+  "regularidad clasicos",
+  "tramo cronometrado de subida",
+]);
+const GENERIC_RALLY_DISCIPLINES = new Set([
+  "",
+  "otro",
+  "otros",
+  "automovilismo",
+  "clasico",
+  "clasicos",
+  "competicion",
+  "motor",
+]);
+const COMPETITIVE_RALLY_FALLBACK_PHRASES = [
+  "rally",
+  "rallye",
+  "rallysprint",
+  "rally sprint",
+  "rally historico",
+  "rallye historico",
+  "rally de tierra",
+  "rallye de tierra",
+  "rally tt",
+  "baja",
+  "subida",
+  "montana",
+  "regularidad",
+];
 const FAIR_DISCIPLINES = new Set(["feria", "ferias"]);
 const FAIR_EXACT_TAGS = new Set(["feria", "ferias", "exposicion"]);
 const FAIR_STRONG_PHRASES = [
@@ -189,6 +247,50 @@ function normalizedPhraseText(values: Array<string | undefined>) {
     .trim();
 
   return ` ${normalized} `;
+}
+
+function includesNormalizedPhrase(text: string, phrase: string) {
+  return text.includes(normalizedPhraseText([phrase]));
+}
+
+function hasAutomotiveRallySignal(event: EventItem) {
+  const vehicles = [event.vehicleType, event.vehicle_type]
+    .filter((vehicle): vehicle is string => Boolean(vehicle))
+    .map((vehicle) => normalizeSeoText(vehicle).trim());
+
+  if (vehicles.some((vehicle) => EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES.has(vehicle))) {
+    return false;
+  }
+  if (vehicles.some((vehicle) => AUTOMOTIVE_RALLY_VEHICLES.has(vehicle))) return true;
+  if (vehicles.some((vehicle) => vehicle !== "otros" && vehicle !== "otro")) return false;
+
+  const structuredText = normalizedPhraseText([
+    event.discipline,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return AUTOMOTIVE_RALLY_STRUCTURED_TERMS.some((term) =>
+    includesNormalizedPhrase(structuredText, term),
+  );
+}
+
+export function matchesCompetitiveAutomotiveRallyOpportunity(event: EventItem) {
+  if (!hasAutomotiveRallySignal(event)) return false;
+
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (COMPETITIVE_RALLY_DISCIPLINES.has(discipline)) return true;
+  if (!GENERIC_RALLY_DISCIPLINES.has(discipline)) return false;
+
+  const fallbackText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return COMPETITIVE_RALLY_FALLBACK_PHRASES.some((phrase) =>
+    includesNormalizedPhrase(fallbackText, phrase),
+  );
 }
 
 export function matchesMotorcycleTrackdayOpportunity(event: EventItem) {
@@ -426,7 +528,8 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Eventos en el norte", href: "/zonas/norte" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, rallyTerms),
+    filter: (event) =>
+      isYear(event, 2026) && matchesCompetitiveAutomotiveRallyOpportunity(event),
   },
   {
     slug: "rallysprint-espana-2026",
