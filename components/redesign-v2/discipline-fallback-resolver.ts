@@ -354,9 +354,18 @@ const GENERIC_TAGS = new Set([
   "mixto",
 ]);
 
+const R2_EXACT_ONLY_FALLBACK_IDS: ReadonlySet<string> = new Set([
+  "circuito-14",
+  "circuito-15",
+  "circuito-16",
+  "circuito-17",
+  "circuito-18",
+  "circuito-19",
+]);
+
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
-  "circuito:trackday": ["circuito-03", "circuito-08"],
-  "circuito:tandas": ["circuito-08"],
+  "circuito:trackday": ["circuito-03", "circuito-08", "circuito-16"],
+  "circuito:tandas": ["circuito-08", "circuito-16"],
   "circuito:pitbike": ["circuito-09", "circuito-13"],
   "circuito:minivelocidad": ["circuito-09", "circuito-13"],
   "circuito:resistencia-ciclomotores": ["circuito-09", "circuito-13"],
@@ -483,8 +492,14 @@ function candidateTier(
   const closedFallbackIds = closedSubtypeFallbackIds(event, classification);
   if (closedFallbackIds && !closedFallbackIds.includes(candidate.id)) return null;
   if (!isR2SubtypeCompatible(classification, candidate)) return null;
-  if (classification.vehicle === "karting") return candidate.vehicle === "karting" ? (matchesExactSubtype(event, classification, candidate) ? 1 : 2) : null;
-  if (candidate.vehicle === classification.vehicle) return matchesExactSubtype(event, classification, candidate) ? 1 : 2;
+  const exactSubtypeMatch = matchesExactSubtype(event, classification, candidate);
+  if (R2_EXACT_ONLY_FALLBACK_IDS.has(candidate.id)) {
+    return candidate.vehicle === classification.vehicle && exactSubtypeMatch ? 1 : null;
+  }
+  if (classification.vehicle === "karting") return candidate.vehicle === "karting" ? (exactSubtypeMatch ? 1 : 2) : null;
+  if (candidate.vehicle === classification.vehicle) {
+    return exactSubtypeMatch ? 1 : 2;
+  }
   if ((classification.vehicle === "moto" || classification.vehicle === "coche") && candidate.vehicle === "mixto") return 3;
   if (classification.vehicle === "mixto" && candidate.vehicle !== "karting") return 4;
   return null;

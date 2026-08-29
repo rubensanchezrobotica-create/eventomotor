@@ -58,6 +58,12 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("circuito-11", "circuito", "coche", ["circuito", "coche", "slalom", "conos", "trazado-amplio", "cambio-direccion"], "circuito-11-slalom-trazado-amplio-conos-cambio-direccion.webp"),
   fallback("circuito-12", "circuito", "coche", ["circuito", "coche", "slalom", "conos", "cambio-apoyo", "atardecer"], "circuito-12-slalom-atardecer-cambio-apoyo.webp"),
   fallback("circuito-13", "circuito", "moto", ["pitbike", "pit-bike", "minivelocidad", "kartodromo", "horquilla", "frenada", "accion-proxima"], "circuito-13-pitbike-horquilla-accion-proxima-kartodromo.webp"),
+  fallback("circuito-14", "circuito", "coche", ["circuito", "coche", "drift"], "circuito-14-drift-curva-circuito-humo-controlado.webp"),
+  fallback("circuito-15", "circuito", "coche", ["circuito", "coche", "resistencia", "endurance"], "circuito-15-competicion-coches-resistencia-atardecer.webp"),
+  fallback("circuito-16", "circuito", "coche", ["circuito", "coche", "trackday", "tandas", "rodada", "rodadas", "curso-de-conduccion", "experiencia-de-conduccion", "entrenamiento-amateur"], "circuito-16-trackday-coches-amateur-pit-lane-instructor.webp"),
+  fallback("circuito-17", "circuito", "moto", ["circuito", "moto", "motogp", "juniorgp", "superbike", "worldsbk", "esbk", "velocidad", "competicion"], "circuito-17-competicion-motos-grupo-parrilla-curva.webp"),
+  fallback("circuito-18", "circuito", "moto", ["circuito", "moto", "resistencia", "endurance"], "circuito-18-resistencia-motos-atardecer-faros.webp"),
+  fallback("circuito-19", "circuito", "coche", ["circuito", "coche", "gt", "turismos"], "circuito-19-gt-turismos-carrera-grupo-curva.webp"),
 
   fallback("concentraciones-01", "concentraciones", "coche", ["concentracion", "coche", "encuentro", "exterior"], "concentraciones-01-coches-encuentro-exterior.webp"),
   fallback("concentraciones-02", "concentraciones", "moto", ["concentracion", "moto", "encuentro"], "concentraciones-02-motos-encuentro-paseo-maritimo.webp"),

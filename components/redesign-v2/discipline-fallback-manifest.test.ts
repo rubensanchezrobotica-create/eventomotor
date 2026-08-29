@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
+import sharp from "sharp";
 import {
   V2_DISCIPLINE_FALLBACKS,
   type FallbackDiscipline,
@@ -8,7 +9,7 @@ import {
 
 const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   rallyes: 11,
-  circuito: 13,
+  circuito: 19,
   concentraciones: 9,
   offroad: 17,
   clasicos: 5,
@@ -53,10 +54,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 71 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 71);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 71);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 71);
+test("el manifiesto contiene exactamente los 77 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 77);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 77);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 77);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -66,6 +67,32 @@ test("el manifiesto contiene exactamente los 71 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("los seis nuevos fallbacks de Circuito conservan rutas y metadatos técnicos aprobados", async () => {
+  const expected = new Map([
+    ["circuito-14", "/images/disciplines/fallbacks/circuito/circuito-14-drift-curva-circuito-humo-controlado.webp"],
+    ["circuito-15", "/images/disciplines/fallbacks/circuito/circuito-15-competicion-coches-resistencia-atardecer.webp"],
+    ["circuito-16", "/images/disciplines/fallbacks/circuito/circuito-16-trackday-coches-amateur-pit-lane-instructor.webp"],
+    ["circuito-17", "/images/disciplines/fallbacks/circuito/circuito-17-competicion-motos-grupo-parrilla-curva.webp"],
+    ["circuito-18", "/images/disciplines/fallbacks/circuito/circuito-18-resistencia-motos-atardecer-faros.webp"],
+    ["circuito-19", "/images/disciplines/fallbacks/circuito/circuito-19-gt-turismos-carrera-grupo-curva.webp"],
+  ]);
+
+  for (const [id, src] of expected) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    assert.equal(image.src, src);
+    const file = new URL(`../../public${src}`, import.meta.url);
+    const metadata = await sharp(readFileSync(file)).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 800);
+    assert.equal(metadata.space, "srgb");
+    assert.equal(metadata.channels, 3);
+    assert.equal(metadata.pages ?? 1, 1);
+    assert.equal(metadata.hasAlpha, false);
+  }
 });
 
 test("todos los fallbacks tienen rutas ASCII estables y WebP reales de 1200 por 800", () => {
@@ -103,6 +130,12 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("offroad-08")?.tags, ["offroad", "moto", "enduro", "enduro-indoor", "superenduro", "obstaculos", "indoor"]);
   assert.deepEqual(byId.get("offroad-15")?.tags, ["offroad", "moto", "cross-country", "crosscountry", "xc", "rapido", "terreno-abierto", "resistencia"]);
   assert.deepEqual(byId.get("circuito-13")?.tags, ["pitbike", "pit-bike", "minivelocidad", "kartodromo", "horquilla", "frenada", "accion-proxima"]);
+  assert.deepEqual(byId.get("circuito-14")?.tags, ["circuito", "coche", "drift"]);
+  assert.deepEqual(byId.get("circuito-15")?.tags, ["circuito", "coche", "resistencia", "endurance"]);
+  assert.deepEqual(byId.get("circuito-16")?.tags, ["circuito", "coche", "trackday", "tandas", "rodada", "rodadas", "curso-de-conduccion", "experiencia-de-conduccion", "entrenamiento-amateur"]);
+  assert.deepEqual(byId.get("circuito-17")?.tags, ["circuito", "moto", "motogp", "juniorgp", "superbike", "worldsbk", "esbk", "velocidad", "competicion"]);
+  assert.deepEqual(byId.get("circuito-18")?.tags, ["circuito", "moto", "resistencia", "endurance"]);
+  assert.deepEqual(byId.get("circuito-19")?.tags, ["circuito", "coche", "gt", "turismos"]);
   assert.deepEqual(byId.get("concentraciones-09")?.tags, ["motoalmuerzo", "almuerzo-motero", "matinal", "zona-rural", "encuentro-matinal", "motos", "social"]);
   assert.deepEqual(byId.get("offroad-16")?.tags, ["cross-country", "crosscountry", "xc", "terreno-verde", "dos-motos", "pista-rapida", "resistencia", "campo-abierto"]);
   assert.deepEqual(byId.get("offroad-17")?.tags, ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"]);

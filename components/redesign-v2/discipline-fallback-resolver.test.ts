@@ -231,7 +231,7 @@ test("los subtipos de alta confianza encabezan sus candidatos", () => {
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de motocross", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de enduro", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-02", "offroad-07"]));
   assert.deepEqual(tierOneIds(event({ title: "Prueba de trial", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
-  assert.deepEqual(tierOneIds(event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" })), new Set(["circuito-03"]));
+  assert.deepEqual(tierOneIds(event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" })), new Set(["circuito-03", "circuito-16"]));
 
   const fourByFour = resolveV2EventImageCandidates(event({ title: "Encuentro 4x4 de barro y trialeras", discipline: "Offroad", vehicleType: "Coche" }));
   assert.deepEqual(new Set(fourByFour.filter(({ tier }) => tier === 1).map(({ id }) => id)), new Set(["offroad-01", "offroad-06"]));
@@ -260,6 +260,112 @@ test("R2 mantiene en Tier 1 los subtipos exactos de circuito", () => {
     assert.deepEqual(tierOneIds(event({ discipline, vehicleType: "Moto" })), new Set(["circuito-10"]));
   }
   assert.deepEqual(tierOneIds(event({ discipline: "Slalom", vehicleType: "Coche" })), new Set(["circuito-11", "circuito-12"]));
+});
+
+test("Circuito 16 amplía únicamente el pool exacto de trackday y tandas de coche", () => {
+  const carTrackday = tierOneIds(event({ title: "Trackday de coches amateur", discipline: "Circuito", vehicleType: "Coche" }));
+  assert.deepEqual(carTrackday, new Set(["circuito-03", "circuito-16"]));
+  assert.equal(carTrackday.has("circuito-08"), false);
+
+  const carTandas = tierOneIds(event({ title: "Tandas de coches", discipline: "Circuito", vehicleType: "Coche" }));
+  assert.deepEqual(carTandas, new Set(["circuito-16"]));
+
+  const carRodadas = tierOneIds(event({ title: "Rodadas de coches", discipline: "Circuito", vehicleType: "Coche" }));
+  assert.equal(classificationOf(event({ title: "Rodadas de coches", discipline: "Circuito", vehicleType: "Coche" })).subtype, "trackday");
+  assert.deepEqual(carRodadas, new Set(["circuito-03", "circuito-16"]));
+
+  for (const title of ["Trackday de motos", "Tandas de motos", "Rodadas de motos"]) {
+    const exact = tierOneIds(event({ title, discipline: "Circuito", vehicleType: "Moto" }));
+    assert.deepEqual(exact, new Set(["circuito-08"]));
+    assert.equal(exact.has("circuito-16"), false);
+  }
+
+  for (const title of ["Campeonato profesional de coches", "Campeonato de Drift"]) {
+    assert.equal(tierOneIds(event({ title, discipline: "Circuito", vehicleType: "Coche" })).has("circuito-16"), false);
+  }
+});
+
+test("los seis nuevos Circuito entran sólo en su semántica y vehículo previstos", () => {
+  const cases = [
+    [event({ title: "Campeonato de Drift", discipline: "Circuito", vehicleType: "Coche" }), "circuito-14"],
+    [event({ title: "Resistencia de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-15"],
+    [event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-16"],
+    [event({ title: "Campeonato Superbike", discipline: "Circuito", vehicleType: "Moto" }), "circuito-17"],
+    [event({ title: "Resistencia de motos", discipline: "Circuito", vehicleType: "Moto" }), "circuito-18"],
+    [event({ title: "Campeonato GT de Turismos", discipline: "Circuito", vehicleType: "Coche" }), "circuito-19"],
+  ] as const;
+
+  for (const [candidate, expectedId] of cases) {
+    const exact = tierOneIds(candidate);
+    assert.equal(exact.has(expectedId), true);
+    const candidates = resolveV2EventImageCandidates(candidate);
+    assert.equal(candidates.some(({ vehicle }) => candidate.vehicleType === "Coche" ? vehicle === "moto" : vehicle === "coche"), false);
+  }
+
+  assert.equal(tierOneIds(event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" })).has("circuito-19"), false);
+  assert.equal(tierOneIds(event({ title: "Campeonato GT de Turismos", discipline: "Circuito", vehicleType: "Coche" })).has("circuito-14"), false);
+  assert.equal(tierOneIds(event({ title: "Resistencia de coches", discipline: "Circuito", vehicleType: "Coche" })).has("circuito-18"), false);
+  assert.equal(tierOneIds(event({ title: "Resistencia de motos", discipline: "Circuito", vehicleType: "Moto" })).has("circuito-15"), false);
+});
+
+test("Circuito 14 a 19 son exact-only y nunca degradan a Tier 2", () => {
+  const exactCases = [
+    [event({ title: "Duelo de Traseras Drift", discipline: "Drift", vehicleType: "Coche" }), "circuito-14"],
+    [event({ title: "Winter Endurance de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-15"],
+    [event({ title: "Navarra Trackday de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-16"],
+    [event({ title: "Tandas de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-16"],
+    [event({ title: "Rodadas de coches", discipline: "Circuito", vehicleType: "Coche" }), "circuito-16"],
+    [event({ title: "Gran Premio MotoGP", discipline: "Circuito", vehicleType: "Moto" }), "circuito-17"],
+    [event({ title: "FIM JuniorGP", discipline: "Circuito", vehicleType: "Moto" }), "circuito-17"],
+    [event({ title: "Campeonato Superbike", discipline: "Circuito", vehicleType: "Moto" }), "circuito-17"],
+    [event({ title: "Copa de velocidad de motos", discipline: "Circuito", vehicleType: "Moto" }), "circuito-17"],
+    [event({ title: "Resistencia de motos grandes", discipline: "Circuito", vehicleType: "Moto" }), "circuito-18"],
+    [event({ title: "GT World Challenge", discipline: "Circuito", vehicleType: "Coche" }), "circuito-19"],
+    [event({ title: "Campeonato de turismos", discipline: "Circuito", vehicleType: "Coche" }), "circuito-19"],
+  ] as const;
+
+  for (const [candidate, expectedId] of exactCases) {
+    const selected = resolveV2EventImageCandidates(candidate).find(({ id }) => id === expectedId);
+    assert.equal(selected?.tier, 1, `${expectedId} conserva su coincidencia exacta`);
+  }
+
+  const forbiddenByScenario = [
+    [event({ title: "Competición de coches", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-14", "circuito-15", "circuito-16", "circuito-19"]],
+    [event({ title: "Navarra Trackday de coches", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-14", "circuito-15", "circuito-19"]],
+    [event({ title: "Tandas deportivas de coches", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-14", "circuito-15", "circuito-19"]],
+    [event({ title: "Duelo de Traseras Drift", discipline: "Drift", vehicleType: "Coche" }), ["circuito-15", "circuito-16", "circuito-19"]],
+    [event({ title: "Test profesional Formula E", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-14", "circuito-15", "circuito-16", "circuito-19"]],
+    [event({ title: "Evento de circuito para motos", discipline: "Circuito", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Trackday de motos", discipline: "Circuito", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Tandas de motos", discipline: "Circuito", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Campeonato Superbike", discipline: "Circuito", vehicleType: "Moto" }), ["circuito-18"]],
+    [event({ title: "Carrera Pitbike", discipline: "Pitbike", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Minivelocidad", discipline: "Minivelocidad", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Supermotard", discipline: "Supermotard", vehicleType: "Moto" }), ["circuito-17", "circuito-18"]],
+    [event({ title: "Resistencia Ciclomotores", discipline: "Resistencia Ciclomotores", vehicleType: "Moto" }), ["circuito-18"]],
+    [event({ title: "Amazing Drives", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-19"]],
+    [event({ title: "Winter Endurance de coches", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-19"]],
+    [event({ title: "GT World Challenge", discipline: "Circuito", vehicleType: "Coche" }), ["circuito-14", "circuito-15", "circuito-16"]],
+    [event({ title: "Evento mixto de circuito", discipline: "Circuito", vehicleType: "Mixto" }), ["circuito-14", "circuito-15", "circuito-16", "circuito-17", "circuito-18", "circuito-19"]],
+  ] as const;
+
+  for (const [candidate, forbiddenIds] of forbiddenByScenario) {
+    const actualIds = new Set(ids(candidate));
+    for (const forbiddenId of forbiddenIds) {
+      assert.equal(actualIds.has(forbiddenId), false, `${forbiddenId} no participa como Tier 2 en ${candidate.title}`);
+    }
+  }
+
+  assert.deepEqual(
+    new Set(ids(event({ title: "Resistencia Ciclomotores", discipline: "Resistencia Ciclomotores", vehicleType: "Moto" }))),
+    new Set(["circuito-09", "circuito-13"]),
+  );
+
+  const genericCarIds = new Set(ids(event({ title: "Competición de coches", discipline: "Circuito", vehicleType: "Coche" })));
+  for (const id of ["circuito-01", "circuito-03", "circuito-04"]) assert.equal(genericCarIds.has(id), true);
+
+  const genericMotoIds = new Set(ids(event({ title: "Evento de circuito para motos", discipline: "Circuito", vehicleType: "Moto" })));
+  for (const id of ["circuito-02", "circuito-05", "circuito-06"]) assert.equal(genericMotoIds.has(id), true);
 });
 
 test("R2 diferencia concentraciones generales, matinales y custom nocturnas", () => {
