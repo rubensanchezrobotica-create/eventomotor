@@ -10,40 +10,38 @@ import {
   type RegionalRegionId,
 } from "@/lib/regions/regional-landing-model";
 import type { EventItem } from "@/types/event";
+import {
+  effectiveMotorcycleEventEnd,
+  isMotorcycleEvent,
+  isMotorcycleGatheringEvent,
+  isValidIsoDate,
+  madridIsoDate,
+  motorcycleWeekendRange,
+  MOTORCYCLE_TIME_ZONE,
+} from "@/lib/concentrations/motorcycle-event-core";
+
+export {
+  effectiveMotorcycleEventEnd,
+  isMotorcycleEvent,
+  isMotorcycleGatheringEvent,
+  isValidIsoDate,
+  madridIsoDate,
+  motorcycleWeekendRange,
+  MOTORCYCLE_TIME_ZONE,
+} from "@/lib/concentrations/motorcycle-event-core";
 
 export const MOTORCYCLE_DESKTOP_LIMIT = 8;
 export const MOTORCYCLE_MOBILE_LIMIT = 6;
-export const MOTORCYCLE_TIME_ZONE = "Europe/Madrid";
 
-const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
-const EXCLUDED_VEHICLES = new Set(["coche", "coches", "automovil", "automovilismo", "kart", "karting"]);
-const DIRECT_MOTORCYCLE_VEHICLES = new Set([
-  "moto",
-  "motos",
-  "motocicleta",
-  "motocicletas",
-  "motociclismo",
-]);
-const POSITIVE_MOTORCYCLE_SIGNAL = /(?:^| )(?:moto|motos|motera|moteras|motero|moteros|motocicleta|motocicletas|motociclismo|motoalmuerzo|motoalmuerzos|mototurismo|biker|bikers)(?: |$)/;
-const GATHERING_DISCIPLINES = new Set([
-  "concentracion",
-  "concentraciones",
-  "encuentro",
-  "encuentros",
-  "matinal",
-  "matinales",
-  "motoalmuerzo",
-  "motoalmuerzos",
-  "quedada",
-  "quedadas",
-  "reunion",
-  "reuniones",
-]);
-const STRONG_GATHERING_SIGNAL = /(?:^| )(?:concentracion(?:es)?|encuentro(?:s)?|reunion(?:es)?|quedada(?:s)?|matinal(?:es)?)(?: (?:biker|bikers|motera|moteras|motero|moteros)| de (?:las )?(?:moto|motos|motocicleta|motocicletas))(?: |$)|(?:^| )(?:almuerzo motero|convivencia motera|fiesta motera|meeting biker|moto ?almuerzo(?:s)?|moto ?asado(?:s)?|moto ?encuentro(?:s)?|xuntanza motera)(?: |$)/;
-const GENERIC_GATHERING_TITLE_SIGNAL = /(?:^| )(?:concentracion(?:es)?|encuentro(?:s)?|matinal(?:es)?|quedada(?:s)?|reunion(?:es)?)(?: |$)/;
-const JOINT_CAR_MOTORCYCLE_GATHERING_SIGNAL = /(?:^| )(?:concentracion(?:es)?|encuentro(?:s)?|matinal(?:es)?|quedada(?:s)?|reunion(?:es)?)[^.?!]{0,80}(?:moto|motos|motocicleta|motocicletas)(?: |$)/;
-const EXCLUDED_GATHERING_DISCIPLINE_SIGNAL = /(?:^| )(?:circuito|cross country|curso|enduret|enduro|entrenamiento|feria|ferias|freestyle|hard enduro|juniorgp|minivelocidad|motocross|motogp|off road|offroad|raid|rally raid|resistencia|rodada|rodadas|salon|salones|superbike|supercross|supermotard|supermoto|tanda|tandas|todo terreno|trackday|trial|velocidad)(?: |$)/;
-const EXCLUDED_GATHERING_PRIMARY_SIGNAL = /(?:^| )(?:campeonato|carrera|carreras|circuito|copa|curso de conduccion|enduro|entrenamiento|escuela de pilotaje|exhibicion comercial|feria|motocross|off road|offroad|raid|racing|rodada|rodadas|salon|supercross|tanda|tandas|track ?day|trackday|trial|trofeo|velocidad)(?: |$)/;
+function addIsoDays(value: string, amount: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + amount));
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
 
 export type MotorcycleTemporalStatus = "ongoing" | "future" | "past" | "invalid";
 
@@ -89,53 +87,6 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] || "" : value || "";
 }
 
-export function isValidIsoDate(value: string | null | undefined) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year
-    && date.getUTCMonth() === month - 1
-    && date.getUTCDate() === day;
-}
-
-export function effectiveMotorcycleEventEnd(event: EventItem) {
-  return isValidIsoDate(event.end) ? event.end : event.start;
-}
-
-export function madridIsoDate(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: MOTORCYCLE_TIME_ZONE,
-    year: "numeric",
-  }).formatToParts(now);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
-function addIsoDays(value: string, amount: number) {
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day + amount));
-  return [
-    date.getUTCFullYear(),
-    String(date.getUTCMonth() + 1).padStart(2, "0"),
-    String(date.getUTCDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-function isoWeekday(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-}
-
-export function motorcycleWeekendRange(now: Date) {
-  const current = madridIsoDate(now);
-  const weekday = isoWeekday(current);
-  const daysToFriday = weekday === 0 ? -2 : weekday === 6 ? -1 : weekday === 5 ? 0 : 5 - weekday;
-  const friday = addIsoDays(current, daysToFriday);
-  return { friday, sunday: addIsoDays(friday, 2) };
-}
-
 export function motorcycleTemporalStatus(
   event: EventItem,
   today: string,
@@ -146,96 +97,6 @@ export function motorcycleTemporalStatus(
   if (event.start <= today && end >= today) return "ongoing";
   if (event.start > today) return "future";
   return end < today ? "past" : "invalid";
-}
-
-function hasMotorcycleSignal(event: EventItem) {
-  const fields = [
-    event.discipline,
-    event.championship,
-    ...event.tags,
-    event.title,
-    event.shortDescription,
-    event.longDescription,
-  ];
-  return fields.some((field) => POSITIVE_MOTORCYCLE_SIGNAL.test(normalizeRegionalText(field)));
-}
-
-function optionalCategory(event: EventItem) {
-  return (event as EventItem & { category?: string }).category;
-}
-
-function hasStructuredMotorcycleSignal(event: EventItem) {
-  const vehicle = normalizeRegionalText(event.vehicleType || event.vehicle_type);
-  if (DIRECT_MOTORCYCLE_VEHICLES.has(vehicle)) return true;
-
-  return [
-    event.discipline,
-    event.championship,
-    optionalCategory(event),
-    ...event.tags,
-  ].some((field) => POSITIVE_MOTORCYCLE_SIGNAL.test(normalizeRegionalText(field)));
-}
-
-export function isMotorcycleEvent(event: EventItem) {
-  if (event.visible !== true) return false;
-  if (event.dataQuality === "cancelled" || event.dataQuality === "pending_date") return false;
-  if (CANCELLED_STATUSES.has(normalizeRegionalText(event.eventStatus))) return false;
-  if (!isValidIsoDate(event.start) || !event.start.startsWith("2026-")) return false;
-  if (isValidIsoDate(event.end) && event.end < event.start) return false;
-
-  const vehicle = normalizeRegionalText(event.vehicleType || event.vehicle_type);
-  if (DIRECT_MOTORCYCLE_VEHICLES.has(vehicle)) return true;
-  if (EXCLUDED_VEHICLES.has(vehicle)) return false;
-  return hasMotorcycleSignal(event);
-}
-
-/**
- * Classifies the event's primary intent independently from motorcycle affinity.
- * Quality/date/visibility and motorcycle checks stay in isMotorcycleEvent.
- */
-export function isMotorcycleGatheringEvent(event: EventItem) {
-  const discipline = normalizeRegionalText(event.discipline);
-  const title = normalizeRegionalText(event.title);
-  const championship = normalizeRegionalText(event.championship);
-  const category = normalizeRegionalText(optionalCategory(event));
-  const tags = event.tags.map(normalizeRegionalText);
-  const descriptions = [event.shortDescription, event.longDescription]
-    .map(normalizeRegionalText)
-    .filter(Boolean);
-
-  // A dedicated structured discipline is the strongest primary-intent signal.
-  if (GATHERING_DISCIPLINES.has(discipline)) return true;
-
-  // An explicit gathering phrase in the title remains primary even if the venue
-  // or event name contains words such as "circuito" or "rally".
-  if (
-    STRONG_GATHERING_SIGNAL.test(title)
-    || JOINT_CAR_MOTORCYCLE_GATHERING_SIGNAL.test(title)
-  ) return true;
-
-  const hasExcludedPrimaryIntent = EXCLUDED_GATHERING_DISCIPLINE_SIGNAL.test(discipline)
-    || EXCLUDED_GATHERING_PRIMARY_SIGNAL.test(title)
-    || EXCLUDED_GATHERING_PRIMARY_SIGNAL.test(championship)
-    || EXCLUDED_GATHERING_PRIMARY_SIGNAL.test(category);
-  if (hasExcludedPrimaryIntent) return false;
-
-  // Generic "matinal", "quedada" or "encuentro" only counts in the title
-  // when a separate structured field establishes motorcycle affinity.
-  if (
-    GENERIC_GATHERING_TITLE_SIGNAL.test(title)
-    && hasStructuredMotorcycleSignal(event)
-  ) return true;
-
-  const secondaryFields = [championship, category, ...tags];
-  if (secondaryFields.some((field) => STRONG_GATHERING_SIGNAL.test(field))) return true;
-
-  // Descriptions are deliberately last: they may confirm an explicit social
-  // gathering (including a joint car-and-motorcycle event), never override a
-  // primary racing, circuit, training, off-road or commercial intent.
-  return descriptions.some((field) => (
-    STRONG_GATHERING_SIGNAL.test(field)
-    || JOINT_CAR_MOTORCYCLE_GATHERING_SIGNAL.test(field)
-  ));
 }
 
 function eventKey(event: EventItem) {

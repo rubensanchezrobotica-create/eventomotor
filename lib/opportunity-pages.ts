@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import type { EventItem } from "@/types/event";
+import {
+  effectiveMotorcycleEventEnd,
+  isMotorcycleEvent,
+  isMotorcycleGatheringEvent,
+  motorcycleWeekendRange,
+} from "@/lib/concentrations/motorcycle-event-core";
 import { absoluteMetadataTitle, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { SEO_COMMUNITIES, matchesSeoCommunity } from "@/lib/seo-communities";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
@@ -137,6 +143,21 @@ const extendedConcentrationTerms = [
   "solidario",
   "yuncler",
 ];
+const RECREATIONAL_MOTORCYCLE_ROUTE_DISCIPLINES = new Set([
+  "ruta",
+  "rutas",
+  "ruta motera",
+  "rutas moteras",
+  "mototurismo",
+]);
+const EXPLICIT_RECREATIONAL_MOTORCYCLE_ROUTE_PHRASES = [
+  "ruta motera",
+  "rutas moteras",
+  "ruta de motos",
+  "rutas de motos",
+  "ruta en moto",
+  "rutas en moto",
+];
 const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
 const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
@@ -167,6 +188,30 @@ const EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES = new Set([
   "motocicletas",
   "mixto",
 ]);
+
+function isExplicitRecreationalMotorcycleRoute(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline);
+  if (!RECREATIONAL_MOTORCYCLE_ROUTE_DISCIPLINES.has(discipline)) return false;
+
+  const text = normalizeSeoText([
+    event.title,
+    event.championship,
+    ...event.tags,
+  ].join(" "));
+
+  return EXPLICIT_RECREATIONAL_MOTORCYCLE_ROUTE_PHRASES.some((phrase) => (
+    text.includes(normalizeSeoText(phrase))
+  ));
+}
+
+export function matchesMotorcycleWeekendOpportunity(event: EventItem, now: Date) {
+  if (!isMotorcycleEvent(event)) return false;
+
+  const { friday, sunday } = motorcycleWeekendRange(now);
+  if (event.start > sunday || effectiveMotorcycleEventEnd(event) < friday) return false;
+
+  return isMotorcycleGatheringEvent(event) || isExplicitRecreationalMotorcycleRoute(event);
+}
 const AUTOMOTIVE_RALLY_STRUCTURED_TERMS = [
   "automovil",
   "automovilismo",
@@ -404,7 +449,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event, now) => weekendOpportunity(event, now) && includesAny(event, concentrationTerms),
+    filter: matchesMotorcycleWeekendOpportunity,
   },
   {
     slug: "concentraciones-moteras-2026",
