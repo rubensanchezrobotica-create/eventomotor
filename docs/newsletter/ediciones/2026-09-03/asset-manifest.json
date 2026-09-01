@@ -1,0 +1,9 @@
+[
+  { "file": "01-fim-motojunior-cheste-hero.webp", "width": 1200, "height": 675, "bytes": 88860, "sha256": "268f1b5ff0bb4492878a4a59c8765e0c8993d3801124b142a96c6320e3251c42" },
+  { "file": "02-cierzo-rallye-ejercito-tierra.webp", "width": 800, "height": 500, "bytes": 129070, "sha256": "120fd38009072d4036df5a1b39989bdbcfd6d2b90fc3ac2dcac2ce1680b973dd" },
+  { "file": "03-rallye-orvecame-isla-tenerife.webp", "width": 800, "height": 500, "bytes": 74086, "sha256": "770352b4485404d3e8b2a07611cfe62be0295eeaeb4568c096f98039efdeb590" },
+  { "file": "04-race-monteblanco.webp", "width": 800, "height": 500, "bytes": 81120, "sha256": "75a2e814327404f567c4ccac55d16de1a1412738f4bd4327cc5cf4df9f863968" },
+  { "file": "05-f1-madring.webp", "width": 800, "height": 500, "bytes": 71110, "sha256": "b81deb9baa549ec13fd4e45087b401aed177f70ec426b9a07e89665c4c43d55e" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 37943, "sha256": "fb18ea36f163b24e10930c55b54662b40c1f509f195c1c9a5857a441c29386a9" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]

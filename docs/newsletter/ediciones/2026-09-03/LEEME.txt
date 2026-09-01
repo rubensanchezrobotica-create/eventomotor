@@ -1,0 +1,45 @@
+LA AGENDA MOTOR · EDICIÓN 05
+3 DE SEPTIEMBRE DE 2026
+
+Campaign key
+agenda_motor_2026_09_03
+
+Asunto
+Cheste, Tenerife y lo que viene este fin de semana
+
+Remitente
+La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>
+
+Reply-To
+info@eventomotor.com
+
+ARTEFACTOS CANÓNICOS
+
+- email-production.html: HTML de runtime con un {{territorial_block}} y un
+  {{unsubscribe_url}} para render por destinatario.
+- email-texto-plano.txt: equivalente text/plain con los mismos placeholders.
+- asset-manifest.json: identidad ordenada de los siete assets canónicos,
+  incluida la cabecera opaca compatible con Gmail iPhone.
+- assets/: copias documentales byte a byte de los assets públicos.
+
+PREVIEWS SIN ENVÍO
+
+- preview-national.html
+- preview-madrid.html
+- preview-a-coruna.html
+- preview-barcelona.html
+
+Las previews usan un token ficticio. Se generan desde los artefactos canónicos
+mediante el mismo renderer de campaña; no son plantillas alternativas.
+
+PERSONALIZACIÓN
+
+- national, madrid, a-coruna y barcelona: mismo contenido visible nacional.
+- No se inserta ningún módulo territorial en esta edición.
+
+SEGURIDAD OPERATIVA
+
+El runner scripts/send-newsletter-edition-05.ts es dry-run por defecto. Un futuro
+envío real conserva todas las puertas explícitas heredadas de Edition 04.
+
+Esta implementación de preview y QA no prepara campañas ni llama a Resend.
