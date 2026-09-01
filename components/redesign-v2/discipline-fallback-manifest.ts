@@ -74,6 +74,8 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("concentraciones-07", "concentraciones", "moto", ["motoalmuerzo", "almuerzo-motero", "matinal", "matinal-motera", "encuentro-matinal", "terraza", "local"], "concentraciones-07-motoalmuerzo-encuentro-matinal-terraza-motos.webp"),
   fallback("concentraciones-08", "concentraciones", "moto", ["nocturna", "custom", "biker", "concentracion-motera", "social"], "concentraciones-08-motera-nocturna-custom-ambiente-social.webp"),
   fallback("concentraciones-09", "concentraciones", "moto", ["motoalmuerzo", "almuerzo-motero", "matinal", "zona-rural", "encuentro-matinal", "motos", "social"], "concentraciones-09-motoalmuerzo-zona-rural-encuentro-matinal-motos.webp"),
+  fallback("concentraciones-10", "concentraciones", "moto", ["concentracion", "moto"], "concentraciones-10-concentracion-motera-pequena-rural-plaza-pueblo.webp"),
+  fallback("concentraciones-11", "concentraciones", "moto", ["concentracion", "moto"], "concentraciones-11-encuentro-urbano-club-motero-llegada-aparcamiento.webp"),
 
   fallback("offroad-01", "offroad", "coche", ["offroad", "4x4", "trialera", "roca"], "offroad-01-4x4-trialera-roca.webp"),
   fallback("offroad-02", "offroad", "moto", ["offroad", "enduro", "moto", "bosque"], "offroad-02-enduro-sendero-tecnico-bosque.webp"),

@@ -64,25 +64,29 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.4.2 asigna heroes propios sólo a Rallyes y Circuito mediante metadata visual", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito"]);
+test("A6.5.4A asigna heroes propios a Rallyes, Circuito y Concentraciones mediante metadata visual", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
   assert.deepEqual(resolveDisciplineHeroVisual("circuito"), {
     src: "/images/redesign-v2/disciplines/hero-circuito.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("concentraciones"), {
+    src: "/images/redesign-v2/disciplines/hero-concentraciones.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => slug !== "rallyes" && slug !== "circuito");
+    .filter((slug) => slug !== "rallyes" && slug !== "circuito" && slug !== "concentraciones");
 
-  assert.equal(otherDisciplines.length, 6);
+  assert.equal(otherDisciplines.length, 5);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.rallyes ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.circuito ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.concentraciones ?? {}), ["src"]);
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {

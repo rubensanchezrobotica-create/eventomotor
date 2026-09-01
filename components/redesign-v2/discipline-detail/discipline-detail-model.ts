@@ -40,6 +40,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   circuito: {
     src: "/images/redesign-v2/disciplines/hero-circuito.png",
   },
+  concentraciones: {
+    src: "/images/redesign-v2/disciplines/hero-concentraciones.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {

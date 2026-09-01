@@ -128,8 +128,8 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
 
   const motoMeet = resolveV2EventImageCandidates(event({ title: "Concentración motera", vehicleType: "Moto" }));
   assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 1).map(({ id }) => id)), new Set(["concentraciones-06"]));
-  assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-02"]));
-  assert.deepEqual(new Set(motoMeet.map(({ id }) => id)), new Set(["concentraciones-02", "concentraciones-06"]));
+  assert.deepEqual(new Set(motoMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-02", "concentraciones-10", "concentraciones-11"]));
+  assert.deepEqual(new Set(motoMeet.map(({ id }) => id)), new Set(["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]));
 
   const carMeet = resolveV2EventImageCandidates(event({ title: "Concentración de coches", vehicleType: "Coche" }));
   assert.deepEqual(new Set(carMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-01", "concentraciones-04"]));
@@ -405,6 +405,7 @@ test("R2 no usa escenas de subtipo específico como diversidad genérica", () =>
   assert.equal(trackdayIds.has("circuito-10"), false);
 
   const generalMeetIds = new Set(ids(event({ title: "Concentración motera", vehicleType: "Moto" })));
+  assert.deepEqual(generalMeetIds, new Set(["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]));
   assert.equal(generalMeetIds.has("concentraciones-07"), false);
   assert.equal(generalMeetIds.has("concentraciones-08"), false);
   assert.equal(generalMeetIds.has("concentraciones-09"), false);
@@ -482,7 +483,7 @@ test("la taxonomía clásica no deportiva y la velocidad clásica permanecen int
 
 test("las concentraciones inequívocamente moteras repiten sólo escenas de motos", () => {
   const general = assignedFallbackIds(8, { title: "Concentración motera", vehicleType: "Moto" });
-  assertClosedPool(general, ["concentraciones-02", "concentraciones-06"]);
+  assertClosedPool(general, ["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]);
   assert.equal(general.includes("concentraciones-03"), false);
   assert.equal(general.includes("concentraciones-05"), false);
 
@@ -710,8 +711,8 @@ test("la asignación de lista es estable y sólo repite al agotar candidatos com
   const second = assignV2HomeEventImages(motoMeets);
   assert.deepEqual(first, second);
   assert.equal(first[0].fallbackId, "concentraciones-06");
-  assert.deepEqual(new Set(first.map(({ fallbackId }) => fallbackId)), new Set(["concentraciones-02", "concentraciones-06"]));
-  assert.equal(new Set(first.map(({ fallbackId }) => fallbackId)).size, 2);
+  assert.deepEqual(new Set(first.map(({ fallbackId }) => fallbackId)), new Set(["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]));
+  assert.equal(new Set(first.map(({ fallbackId }) => fallbackId)).size, 4);
   assert.equal(first.some(({ fallbackId }) => fallbackId === "concentraciones-03" || fallbackId === "concentraciones-05"), false);
 
   const circuitMotos = Array.from({ length: 3 }, (_, index) => event({
@@ -802,7 +803,7 @@ test("la proteccion adyacente no baja de tier para ganar variedad", () => {
   assertNoAdjacentDuplicates(assigned.slice(4).map(({ fallbackId }) => String(fallbackId)));
 });
 
-test("conserva la repeticion del mejor tier si la unica alternativa es inferior", () => {
+test("agota el pool genérico Tier 2 de Concentraciones antes de repetir", () => {
   const assigned = assignV2HomeEventImages(Array.from({ length: 4 }, (_, index) => event({
     id: `generic-meet-tier-${index}`,
     slug: `generic-meet-tier-${index}`,
@@ -810,11 +811,11 @@ test("conserva la repeticion del mejor tier si la unica alternativa es inferior"
     discipline: "Concentraciones",
     vehicleType: "Moto",
   })));
-  assert.deepEqual(assigned.map(({ fallbackTier }) => fallbackTier), [1, 2, 1, 1]);
-  assert.deepEqual(assigned.slice(2).map(({ fallbackId }) => fallbackId), [
-    "concentraciones-06",
-    "concentraciones-06",
-  ]);
+  assert.deepEqual(assigned.map(({ fallbackTier }) => fallbackTier), [1, 2, 2, 2]);
+  assert.deepEqual(
+    new Set(assigned.slice(1).map(({ fallbackId }) => fallbackId)),
+    new Set(["concentraciones-02", "concentraciones-10", "concentraciones-11"]),
+  );
 });
 
 test("permite la repeticion cuando el pool efectivo tiene un unico candidato", () => {

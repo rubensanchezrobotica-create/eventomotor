@@ -442,7 +442,7 @@ test("la asignación por lote es estable y no repite imágenes mientras hay alte
   assert.equal(motorcycles.every((candidate, index) => candidate.id === `moto-${index}`), true);
 });
 
-test("las concentraciones moteras repiten sólo los dos fallbacks de motos protagonistas", () => {
+test("las concentraciones moteras repiten sólo los cuatro fallbacks genéricos de motos protagonistas", () => {
   const motorcycles = Array.from({ length: 4 }, (_, index) => projectPreviewEvent(event({
     id: `bank-${index}`,
     slug: `bank-${index}`,
@@ -457,10 +457,12 @@ test("las concentraciones moteras repiten sólo los dos fallbacks de motos prota
   const allowed = new Set([
     "/images/disciplines/fallbacks/concentraciones/concentraciones-02-motos-encuentro-paseo-maritimo.webp",
     "/images/disciplines/fallbacks/concentraciones/concentraciones-06-gran-concentracion-motera-diurna-alta-participacion.webp",
+    "/images/disciplines/fallbacks/concentraciones/concentraciones-10-concentracion-motera-pequena-rural-plaza-pueblo.webp",
+    "/images/disciplines/fallbacks/concentraciones/concentraciones-11-encuentro-urbano-club-motero-llegada-aparcamiento.webp",
   ]);
   assert.deepEqual(first, second);
   assert.equal(first.every(({ kind, src }) => kind === "representative" && Boolean(src) && allowed.has(String(src))), true);
-  assert.equal(new Set(first.map(({ src }) => src)).size, 2);
+  assert.equal(new Set(first.map(({ src }) => src)).size, 4);
   assert.equal(first.some(({ src }) => String(src).includes("concentraciones-03")), false);
   assert.equal(first.some(({ src }) => String(src).includes("concentraciones-05")), false);
 });

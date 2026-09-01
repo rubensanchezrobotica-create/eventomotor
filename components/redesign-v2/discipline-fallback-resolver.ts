@@ -447,7 +447,7 @@ function closedSubtypeFallbackIds(
   if (classification.discipline === "concentraciones" && classification.vehicle === "moto") {
     if (classification.subtype === "motoalmuerzo") return ["concentraciones-07", "concentraciones-09", "concentraciones-02", "concentraciones-06"];
     if (classification.subtype === "custom-biker") return ["concentraciones-08", "concentraciones-02", "concentraciones-06"];
-    if (classification.subtype === "concentracion") return ["concentraciones-02", "concentraciones-06"];
+    if (classification.subtype === "concentracion") return ["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"];
   }
   if (!CLOSED_SUBTYPE_KEYS.has(key)) return null;
   if (key === "offroad:tramo-tierra" && includesPhrase(eventText(event), "individual")) {

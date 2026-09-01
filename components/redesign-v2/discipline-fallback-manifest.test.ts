@@ -10,7 +10,7 @@ import {
 const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   rallyes: 11,
   circuito: 19,
-  concentraciones: 9,
+  concentraciones: 11,
   offroad: 17,
   clasicos: 5,
   karting: 5,
@@ -54,10 +54,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 77 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 77);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 77);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 77);
+test("el manifiesto contiene exactamente los 79 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 79);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 79);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 79);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -67,6 +67,31 @@ test("el manifiesto contiene exactamente los 77 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("los dos nuevos fallbacks genéricos de Concentraciones conservan rutas y metadatos técnicos aprobados", async () => {
+  const expected = new Map([
+    ["concentraciones-10", "/images/disciplines/fallbacks/concentraciones/concentraciones-10-concentracion-motera-pequena-rural-plaza-pueblo.webp"],
+    ["concentraciones-11", "/images/disciplines/fallbacks/concentraciones/concentraciones-11-encuentro-urbano-club-motero-llegada-aparcamiento.webp"],
+  ]);
+
+  for (const [id, src] of expected) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    assert.equal(image.src, src);
+    assert.equal(image.discipline, "concentraciones");
+    assert.equal(image.vehicle, "moto");
+    assert.deepEqual(image.tags, ["concentracion", "moto"]);
+    const file = new URL(`../../public${src}`, import.meta.url);
+    const metadata = await sharp(readFileSync(file)).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 800);
+    assert.equal(metadata.space, "srgb");
+    assert.equal(metadata.channels, 3);
+    assert.equal(metadata.pages ?? 1, 1);
+    assert.equal(metadata.hasAlpha, false);
+  }
 });
 
 test("los seis nuevos fallbacks de Circuito conservan rutas y metadatos técnicos aprobados", async () => {
