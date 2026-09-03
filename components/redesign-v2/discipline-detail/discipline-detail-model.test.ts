@@ -64,8 +64,8 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.5.4A asigna heroes propios a Rallyes, Circuito y Concentraciones mediante metadata visual", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones"]);
+test("A6.6.4A asigna heroes propios a Rallyes, Circuito, Concentraciones y Offroad mediante metadata visual", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
@@ -75,18 +75,22 @@ test("A6.5.4A asigna heroes propios a Rallyes, Circuito y Concentraciones median
   assert.deepEqual(resolveDisciplineHeroVisual("concentraciones"), {
     src: "/images/redesign-v2/disciplines/hero-concentraciones.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("offroad"), {
+    src: "/images/redesign-v2/disciplines/hero-offroad.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => slug !== "rallyes" && slug !== "circuito" && slug !== "concentraciones");
+    .filter((slug) => slug !== "rallyes" && slug !== "circuito" && slug !== "concentraciones" && slug !== "offroad");
 
-  assert.equal(otherDisciplines.length, 5);
+  assert.equal(otherDisciplines.length, 4);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.rallyes ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.circuito ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.concentraciones ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.offroad ?? {}), ["src"]);
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {

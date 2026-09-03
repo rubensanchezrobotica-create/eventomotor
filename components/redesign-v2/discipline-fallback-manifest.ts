@@ -94,6 +94,8 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("offroad-15", "offroad", "moto", ["offroad", "moto", "cross-country", "crosscountry", "xc", "rapido", "terreno-abierto", "resistencia"], "offroad-15-cross-country-moto-pista-rapida-terreno-abierto.webp"),
   fallback("offroad-16", "offroad", "moto", ["cross-country", "crosscountry", "xc", "terreno-verde", "dos-motos", "pista-rapida", "resistencia", "campo-abierto"], "offroad-16-cross-country-moto-terreno-verde-dos-motos-pista-rapida.webp"),
   fallback("offroad-17", "offroad", "moto", ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"], "offroad-17-enduro-indoor-neumaticos-escalones-recinto-luminoso.webp"),
+  fallback("offroad-18", "offroad", "moto", ["offroad", "moto", "resistencia-tierra", "resistencia", "grupo", "circuito-natural", "polvo"], "offroad-18-resistencia-tierra-motos-grupo-circuito-natural-polvo.webp"),
+  fallback("offroad-19", "offroad", "moto", ["offroad", "moto", "trial", "natural", "bosque", "humedo", "obstaculo-tecnico"], "offroad-19-trial-natural-bosque-humedo-obstaculo-tecnico.webp"),
 
   fallback("clasicos-01", "clasicos", "coche", ["clasicos", "coche", "carretera"], "clasicos-01-coche-clasico-carretera-secundaria.webp"),
   fallback("clasicos-02", "clasicos", "coche", ["clasicos", "concentracion", "coche"], "clasicos-02-concentracion-plaza-historica.webp"),

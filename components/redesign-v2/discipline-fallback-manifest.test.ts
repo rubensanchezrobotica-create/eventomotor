@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import sharp from "sharp";
@@ -11,7 +12,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   rallyes: 11,
   circuito: 19,
   concentraciones: 11,
-  offroad: 17,
+  offroad: 19,
   clasicos: 5,
   karting: 5,
   rutas: 6,
@@ -54,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 79 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 79);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 79);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 79);
+test("el manifiesto contiene exactamente los 81 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 81);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 81);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 81);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -67,6 +68,66 @@ test("el manifiesto contiene exactamente los 79 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("los dos nuevos fallbacks especializados de Offroad conservan rutas y metadatos técnicos aprobados", async () => {
+  const expected = new Map([
+    ["offroad-18", {
+      src: "/images/disciplines/fallbacks/offroad/offroad-18-resistencia-tierra-motos-grupo-circuito-natural-polvo.webp",
+      tags: ["offroad", "moto", "resistencia-tierra", "resistencia", "grupo", "circuito-natural", "polvo"],
+    }],
+    ["offroad-19", {
+      src: "/images/disciplines/fallbacks/offroad/offroad-19-trial-natural-bosque-humedo-obstaculo-tecnico.webp",
+      tags: ["offroad", "moto", "trial", "natural", "bosque", "humedo", "obstaculo-tecnico"],
+    }],
+  ] as const);
+
+  for (const [id, contract] of expected) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    assert.equal(image.src, contract.src);
+    assert.equal(image.discipline, "offroad");
+    assert.equal(image.vehicle, "moto");
+    assert.deepEqual(image.tags, contract.tags);
+    const file = new URL(`../../public${contract.src}`, import.meta.url);
+    const metadata = await sharp(readFileSync(file)).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 800);
+    assert.equal(metadata.space, "srgb");
+    assert.equal(metadata.channels, 3);
+    assert.equal(metadata.pages ?? 1, 1);
+    assert.equal(metadata.hasAlpha, false);
+  }
+});
+
+test("Offroad 01 a 17 conservan byte por byte el banco aprobado", () => {
+  const expectedHashes = new Map([
+    ["offroad-01", "4db6387a2130a2e1c39d15df9f248c336f76eaefd0c88e7a0b9348f827900ea5"],
+    ["offroad-02", "5a4a201528690c289b0a943d61d7df2a55f12c79277f96c923c71ec72d15f5b7"],
+    ["offroad-03", "2bd170b8b9d8fa0562dfd5b7ef65d97f776f6118bc1252193843dbf7906c580e"],
+    ["offroad-04", "42f3d3c2f36efc5d358039212a3edf71f658823a234b2e3c33f6c13ecd6062f5"],
+    ["offroad-05", "0d57e160f40c9a8a56271772e95516b1b2402682770b3d32d44545bc5331a760"],
+    ["offroad-06", "672bd015829f48ea59c7adc4d2d413240c5dbbf83e0c72f5a68f679306622784"],
+    ["offroad-07", "bfd7d2e32de63c606acf834c2338486886cc02d210e2ee9672e77b548eba90aa"],
+    ["offroad-08", "7f3e7cade8d8dbff085b614b6824fac0bd4ec09ab74a55a38a7fe95d3e056587"],
+    ["offroad-09", "635041581d2861f7156a064fc2355b2248a4b8bc2fb319faa248fce2c00f027e"],
+    ["offroad-10", "8554924810bcc9a7a2829fcff03ebdc1dfb4eb4f780b2318b57b7bd24da31e59"],
+    ["offroad-11", "329e42e416f12cdc1fb4cbbd62999082ce8b295c5fd6695a1cf366f7ea870946"],
+    ["offroad-12", "26b8b80ee38fc7e236aa260593785f018af282b3111986346093fe834a1ad7fe"],
+    ["offroad-13", "89398eebc5ddc1b2c622781664bf620ae802aa104707ddb7e799b16367ee4153"],
+    ["offroad-14", "dfefe358c097e93561bc78c3d218fa6575d4fd032cededf7391f2d268fa187c0"],
+    ["offroad-15", "305d8a43b5db070ea2ea29ff5ae98340ba54f50476c6560c023b5f9ff602ad74"],
+    ["offroad-16", "1e476484905ff0959384f5f230a1563f01532a18aefc0ded1d95e29803ce78a1"],
+    ["offroad-17", "f0f56dc495a3f0efc8b418502d0eb0172b989460f6e9573730bfdc4f89116b55"],
+  ]);
+
+  for (const [id, expectedHash] of expectedHashes) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    const file = new URL(`../../public${image.src}`, import.meta.url);
+    assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
+  }
 });
 
 test("los dos nuevos fallbacks genéricos de Concentraciones conservan rutas y metadatos técnicos aprobados", async () => {

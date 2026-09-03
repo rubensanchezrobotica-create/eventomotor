@@ -117,7 +117,7 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (hasClassicContext && includesPhrase(text, "enduro")) {
     return classification("offroad", "enduro", "enduro clasico");
   }
-  if (hasClassicContext && includesAny(text, ["trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
+  if (hasClassicContext && includesAny(text, ["x trial", "trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
     return classification("offroad", "trial-indoor", "trial indoor clasico");
   }
   if (hasClassicContext && includesAny(text, ["trial", "trialgp", "trial gp"])) {
@@ -185,7 +185,7 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["enduro"])) {
     return classification("offroad", "enduro", "enduro");
   }
-  if (includesAny(text, ["trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
+  if (includesAny(text, ["x trial", "trial indoor", "indoor trial", "trial en pabellon", "trial sobre modulos artificiales"])) {
     return classification("offroad", "trial-indoor", "trial indoor");
   }
   if (includesAny(text, ["trial", "trialgp", "trial gp"])) {
@@ -361,6 +361,7 @@ const R2_EXACT_ONLY_FALLBACK_IDS: ReadonlySet<string> = new Set([
   "circuito-17",
   "circuito-18",
   "circuito-19",
+  "offroad-18",
 ]);
 
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
@@ -379,11 +380,13 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "offroad:hard-enduro": ["offroad-02", "offroad-07"],
   "offroad:enduro-indoor": ["offroad-08", "offroad-17"],
   "offroad:motocross": ["offroad-03", "offroad-09", "offroad-10"],
-  "offroad:trial": ["offroad-05", "offroad-11"],
+  "offroad:supercross": ["offroad-03", "offroad-09", "offroad-10"],
+  "offroad:trial": ["offroad-05", "offroad-11", "offroad-19"],
   "offroad:trial-indoor": ["offroad-12"],
   "offroad:autocross": ["offroad-13", "offroad-14"],
   "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
   "offroad:cross-country": ["offroad-15", "offroad-16"],
+  "offroad:resistencia-tierra": ["offroad-18"],
 };
 
 const CLOSED_SUBTYPE_KEYS = new Set([
@@ -397,11 +400,13 @@ const CLOSED_SUBTYPE_KEYS = new Set([
   "offroad:hard-enduro",
   "offroad:enduro-indoor",
   "offroad:motocross",
+  "offroad:supercross",
   "offroad:trial",
   "offroad:trial-indoor",
   "offroad:autocross",
   "offroad:tramo-tierra",
   "offroad:cross-country",
+  "offroad:resistencia-tierra",
 ]);
 
 const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
@@ -415,10 +420,11 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "concentraciones-07": ["motoalmuerzo"],
   "concentraciones-08": ["custom-biker"],
   "concentraciones-09": ["motoalmuerzo"],
+  "offroad-05": ["trial"],
   "offroad-07": ["enduro", "hard-enduro"],
   "offroad-08": ["enduro-indoor"],
-  "offroad-09": ["motocross"],
-  "offroad-10": ["motocross"],
+  "offroad-09": ["motocross", "supercross"],
+  "offroad-10": ["motocross", "supercross"],
   "offroad-11": ["trial"],
   "offroad-12": ["trial-indoor"],
   "offroad-13": ["autocross", "tramo-tierra"],
@@ -426,6 +432,8 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "offroad-15": ["cross-country"],
   "offroad-16": ["cross-country"],
   "offroad-17": ["enduro-indoor"],
+  "offroad-18": ["resistencia-tierra"],
+  "offroad-19": ["trial"],
 };
 
 function isR2SubtypeCompatible(

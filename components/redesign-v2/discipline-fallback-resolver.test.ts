@@ -230,7 +230,7 @@ test("corrige MotorLand y conserva Rally Pistón en su fallback mixto", () => {
 test("los subtipos de alta confianza encabezan sus candidatos", () => {
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de motocross", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
   assert.deepEqual(tierOneIds(event({ title: "Campeonato de enduro", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-02", "offroad-07"]));
-  assert.deepEqual(tierOneIds(event({ title: "Prueba de trial", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
+  assert.deepEqual(tierOneIds(event({ title: "Prueba de trial", discipline: "Offroad", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11", "offroad-19"]));
   assert.deepEqual(tierOneIds(event({ title: "Trackday de coches", discipline: "Circuito", vehicleType: "Coche" })), new Set(["circuito-03", "circuito-16"]));
 
   const fourByFour = resolveV2EventImageCandidates(event({ title: "Encuentro 4x4 de barro y trialeras", discipline: "Offroad", vehicleType: "Coche" }));
@@ -388,7 +388,7 @@ test("R2 amplía los pools offroad sin mezclar subtipos", () => {
   assert.deepEqual(tierOneIds(event({ discipline: "Enduro Indoor", vehicleType: "Moto" })), new Set(["offroad-08", "offroad-17"]));
   assert.deepEqual(tierOneIds(event({ discipline: "SuperEnduro", vehicleType: "Moto" })), new Set(["offroad-08", "offroad-17"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Motocross", vehicleType: "Moto" })), new Set(["offroad-03", "offroad-09", "offroad-10"]));
-  assert.deepEqual(tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11"]));
+  assert.deepEqual(tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })), new Set(["offroad-05", "offroad-11", "offroad-19"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Trial Indoor", vehicleType: "Moto" })), new Set(["offroad-12"]));
   assert.deepEqual(tierOneIds(event({ discipline: "Autocross", vehicleType: "Coche" })), new Set(["offroad-13", "offroad-14"]));
   assert.deepEqual(tierOneIds(event({ title: "Tramo de Tierra individual", vehicleType: "Coche" })), new Set(["offroad-14"]));
@@ -420,6 +420,54 @@ test("R2 no usa escenas de subtipo específico como diversidad genérica", () =>
   assert.deepEqual(hardEnduro, new Set(["offroad-02", "offroad-07"]));
 });
 
+test("A6.6.4A dedica Offroad 18 exclusivamente a resistencia-tierra", () => {
+  const resistance = event({ title: "Resistencia Tierra Catalunya", discipline: "Resistencia Tierra", vehicleType: "Moto" });
+  assert.equal(classificationOf(resistance).subtype, "resistencia-tierra");
+  assert.deepEqual(resolveV2EventImageCandidates(resistance).map(({ id, tier }) => [id, tier]), [["offroad-18", 1]]);
+  assert.deepEqual(
+    assignedFallbackIds(4, { discipline: "Resistencia Tierra", vehicleType: "Moto" }),
+    Array(4).fill("offroad-18"),
+  );
+});
+
+test("A6.6.4A conserva Trial cerrado, retira Trial del genérico y no degrada los nuevos especializados", () => {
+  assert.deepEqual(
+    tierOneIds(event({ discipline: "Trial", vehicleType: "Moto" })),
+    new Set(["offroad-05", "offroad-11", "offroad-19"]),
+  );
+  const genericMoto = new Set(ids(event({ title: "Evento Offroad de motos", discipline: "Offroad", vehicleType: "Moto" })));
+  assert.deepEqual(genericMoto, new Set(["offroad-02", "offroad-03"]));
+  for (const id of ["offroad-05", "offroad-18", "offroad-19"]) assert.equal(genericMoto.has(id), false, id);
+});
+
+test("A6.6.4A enruta X-Trial al indoor existente y Supercross al pool cerrado de Motocross", () => {
+  for (const title of ["X-Trial Madrid 2026", "X-Trial Pamplona 2026"]) {
+    const xTrial = event({ title, championship: "FIM X-Trial World Championship", discipline: "Trial", vehicleType: "Moto" });
+    assert.equal(classificationOf(xTrial).subtype, "trial-indoor");
+    assert.deepEqual(ids(xTrial), ["offroad-12"]);
+  }
+
+  const supercross = event({ title: "Supercross Castrojeriz 2026", discipline: "Supercross", vehicleType: "Moto" });
+  assert.equal(classificationOf(supercross).subtype, "supercross");
+  assert.deepEqual(tierOneIds(supercross), new Set(["offroad-03", "offroad-09", "offroad-10"]));
+  assertClosedPool(
+    assignedFallbackIds(8, { discipline: "Supercross", vehicleType: "Moto" }),
+    ["offroad-03", "offroad-09", "offroad-10"],
+  );
+});
+
+test("A6.6.4A deja expresamente diferido Todo Terreno Clásico", () => {
+  for (const title of [
+    "Copa de España de Todo Terreno Clásico Amurrio",
+    "Copa de España de Todo Terreno Clásico Sant Mateu",
+  ]) {
+    const candidate = event({ title, discipline: "Todo Terreno Clasico", vehicleType: "Moto" });
+    assert.equal(classificationOf(candidate).discipline, "clasicos");
+    assert.equal(classificationOf(candidate).subtype, "motos-clasicas");
+    assert.equal(assignV2HomeEventImages([candidate])[0].fallbackId, "clasicos-03");
+  }
+});
+
 test("Enduro exterior repite únicamente su pool cerrado", () => {
   assertClosedPool(
     assignedFallbackIds(8, { discipline: "Enduro", vehicleType: "Moto" }),
@@ -444,7 +492,7 @@ test("Motocross repite únicamente su pool cerrado", () => {
 test("Trial repite únicamente su pool cerrado", () => {
   assertClosedPool(
     assignedFallbackIds(8, { discipline: "Trial", vehicleType: "Moto" }),
-    ["offroad-05", "offroad-11"],
+    ["offroad-05", "offroad-11", "offroad-19"],
   );
 });
 
@@ -463,7 +511,7 @@ test("las competiciones clásicas conservan su modalidad deportiva principal", (
   ]) {
     assert.equal(classificationOf(candidate).discipline, "offroad");
     assert.equal(classificationOf(candidate).subtype, "trial");
-    assert.deepEqual(new Set(ids(candidate)), new Set(["offroad-05", "offroad-11"]));
+    assert.deepEqual(new Set(ids(candidate)), new Set(["offroad-05", "offroad-11", "offroad-19"]));
   }
   const classicEnduro = event({ title: "Enduro Sprint y TT Clásico", discipline: "Enduro", vehicleType: "Moto" });
   assert.equal(classificationOf(classicEnduro).subtype, "enduro");
@@ -504,7 +552,7 @@ test("Trial general y TrialGP usan naturaleza mientras Trial Indoor conserva mó
   for (const discipline of ["Trial", "TrialGP"]) {
     assertClosedPool(
       assignedFallbackIds(8, { discipline, vehicleType: "Moto" }),
-      ["offroad-05", "offroad-11"],
+      ["offroad-05", "offroad-11", "offroad-19"],
     );
   }
   assert.deepEqual(

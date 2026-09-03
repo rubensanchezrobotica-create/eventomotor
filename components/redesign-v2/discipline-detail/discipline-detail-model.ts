@@ -43,6 +43,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   concentraciones: {
     src: "/images/redesign-v2/disciplines/hero-concentraciones.png",
   },
+  offroad: {
+    src: "/images/redesign-v2/disciplines/hero-offroad.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {
