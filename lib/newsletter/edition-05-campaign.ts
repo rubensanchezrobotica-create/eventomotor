@@ -25,6 +25,15 @@ export const NEWSLETTER_EDITION_05_CAMPAIGN_CONFIRM_PHRASE =
   "SEND-AGENDA-MOTOR-2026-09-03";
 export const NEWSLETTER_EDITION_05_CAMPAIGN_ARMED_VALUE =
   "agenda-motor-2026-09-03-manual-send";
+export const NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID =
+  "401dab00-cb04-4a83-a0bd-fe63fd0e764d";
+export const NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT = 69;
+export const NEWSLETTER_EDITION_05_PREPARED_VARIANT_COUNTS = {
+  national: 55,
+  madrid: 9,
+  "a-coruna": 1,
+  barcelona: 4,
+} as const;
 export const NEWSLETTER_EDITION_05_UNSUBSCRIBE_ORIGIN =
   "https://www.eventomotor.com";
 
@@ -38,11 +47,13 @@ const SAFE_IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_./:-]{1,256}$/;
 
 export type NewsletterEdition05CampaignRequest = {
   send: boolean;
+  sendPrepared?: boolean;
   prepareOnly: boolean;
   resume: boolean;
   limit: number;
   confirmEdition?: string;
   confirmPhrase?: string;
+  confirmCampaignId?: string;
 };
 
 export type NewsletterEdition05CampaignEnvironment = {
@@ -166,11 +177,13 @@ export type ExecuteNewsletterEdition05CampaignOptions = {
 };
 
 export type NewsletterEdition05CampaignResult = {
-  status: "dry_run" | "prepared" | "completed";
+  status: "dry_run" | "prepared" | "completed" | "prepared_sent";
   identity: NewsletterEdition05CampaignIdentity;
   digest: string;
   processedCount: number;
-  summary: NewsletterEdition05CampaignSummary;
+  summary: NewsletterEdition05CampaignSummary | null;
+  campaignId?: string;
+  processedVariantCounts?: Readonly<Record<NewsletterEdition05ContentVariant, number>>;
 };
 
 export class NewsletterEdition05CampaignError extends Error {
@@ -259,7 +272,16 @@ function requireResendApiKey(
 
 function assertRequestMode(request: NewsletterEdition05CampaignRequest): void {
   if (request.send && request.prepareOnly) fail("send_prepare_only_conflict");
+  if (
+    request.sendPrepared === true &&
+    (request.send || request.prepareOnly)
+  ) {
+    fail("send_prepared_mode_conflict");
+  }
   if (request.resume && !request.send) fail("resume_requires_send");
+  if (request.confirmCampaignId !== undefined && request.sendPrepared !== true) {
+    fail("campaign_id_confirmation_unexpected");
+  }
 }
 
 function assertSummary(summary: NewsletterEdition05CampaignSummary): void {
@@ -408,86 +430,41 @@ async function recordUnknownAndStop(
   fail("provider_result_unknown");
 }
 
-export async function executeNewsletterEdition05Campaign(
+type NewsletterEdition05ProcessedBatch = {
+  processedCount: number;
+  variantCounts: Record<NewsletterEdition05ContentVariant, number>;
+};
+
+async function sendClaimedNewsletterEdition05Deliveries(
   options: ExecuteNewsletterEdition05CampaignOptions,
-): Promise<NewsletterEdition05CampaignResult> {
-  const environment = options.environment ?? {};
-  const logger = options.logger ?? (() => undefined);
-  const identity = newsletterEdition05CampaignIdentity();
-  const digest = newsletterEdition05CampaignDigest(identity);
-  assertRequestMode(options.request);
-  assertSafeEnvironment(environment);
-  if (
-    options.sender !== NEWSLETTER_EDITION_05_SENDER ||
-    options.replyTo !== NEWSLETTER_EDITION_05_REPLY_TO
-  ) {
-    fail("mail_identity_invalid");
-  }
-  validateEdition05SourceIntegrity(options.source);
-  if (identity.subject.startsWith("[PRUEBA]")) fail("test_subject_blocked");
-
-  if (!options.request.send && !options.request.prepareOnly) {
-    const summary = await options.repository.previewCampaign(identity);
-    assertSummary(summary);
-    logSummary(logger, identity, digest, summary);
-    logger("NO CAMPAIGN WAS PREPARED");
-    logger("NO EMAIL WAS SENT");
-    return {
-      status: "dry_run",
-      identity,
-      digest,
-      processedCount: 0,
-      summary,
-    };
-  }
-
-  assertMutationGates(options.request, environment);
-  const apiKey = options.request.send ? requireResendApiKey(environment) : null;
-  const preparedSummary = await options.repository.prepareCampaign(identity);
-  assertSummary(preparedSummary);
-  if (!preparedSummary.campaignId || !preparedSummary.audienceFrozenAt) {
-    fail("campaign_not_frozen");
-  }
-  logSummary(logger, identity, digest, preparedSummary);
-
-  if (options.request.prepareOnly) {
-    logger("Prepare-only complete. Audience frozen; no delivery was claimed and no email was sent.");
-    return {
-      status: "prepared",
-      identity,
-      digest,
-      processedCount: 0,
-      summary: preparedSummary,
-    };
-  }
-
-  if (
-    preparedSummary.campaignStatus === "paused" ||
-    preparedSummary.unknownCount > 0
-  ) {
-    fail("campaign_paused_unknown");
-  }
+  campaignId: string,
+  apiKey: string,
+): Promise<NewsletterEdition05ProcessedBatch> {
   if (!options.clientFactory || !options.tokenFactory || !options.tokenHasher) {
     fail("server_dependencies_unavailable");
   }
-  if (!apiKey) fail("api_key_unavailable");
-
   const client = options.clientFactory(apiKey);
   const now = options.now ?? (() => new Date());
   let processedCount = 0;
+  const variantCounts: Record<NewsletterEdition05ContentVariant, number> = {
+    national: 0,
+    madrid: 0,
+    "a-coruna": 0,
+    barcelona: 0,
+  };
   while (processedCount < options.request.limit) {
     const rawToken = options.tokenFactory();
     const tokenHash = options.tokenHasher(rawToken);
     if (!HASH_PATTERN.test(tokenHash)) fail("token_hash_invalid");
 
     const claim = await options.repository.claimDelivery({
-      campaignId: preparedSummary.campaignId,
+      campaignId,
       tokenHash,
       allowRetry: options.request.resume,
     });
     if (!claim) break;
     assertClaim(claim);
-    if (claim.campaignId !== preparedSummary.campaignId) {
+    if (claim.campaignId !== campaignId) {
       fail("repository_contract_invalid");
     }
 
@@ -500,7 +477,7 @@ export async function executeNewsletterEdition05Campaign(
       from: options.sender,
       to: [claim.recipientEmail],
       replyTo: options.replyTo,
-      subject: identity.subject,
+      subject: NEWSLETTER_EDITION_05_SUBJECT,
       html: content.html,
       text: content.text,
       idempotencyKey: claim.idempotencyKey,
@@ -567,8 +544,146 @@ export async function executeNewsletterEdition05Campaign(
         });
       }
     }
+    variantCounts[claim.contentVariant] += 1;
     processedCount += 1;
   }
+  return { processedCount, variantCounts };
+}
+
+export async function sendPreparedNewsletterEdition05Campaign(
+  options: ExecuteNewsletterEdition05CampaignOptions,
+): Promise<NewsletterEdition05CampaignResult> {
+  const environment = options.environment ?? {};
+  const logger = options.logger ?? (() => undefined);
+  const identity = newsletterEdition05CampaignIdentity();
+  const digest = newsletterEdition05CampaignDigest(identity);
+  assertRequestMode(options.request);
+  assertSafeEnvironment(environment);
+  if (options.request.sendPrepared !== true) fail("send_prepared_mode_required");
+  if (
+    options.sender !== NEWSLETTER_EDITION_05_SENDER ||
+    options.replyTo !== NEWSLETTER_EDITION_05_REPLY_TO
+  ) {
+    fail("mail_identity_invalid");
+  }
+  validateEdition05SourceIntegrity(options.source);
+  if (identity.subject.startsWith("[PRUEBA]")) fail("test_subject_blocked");
+  assertMutationGates(options.request, environment);
+  if (
+    options.request.confirmCampaignId !==
+    NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID
+  ) {
+    fail("prepared_campaign_confirmation_invalid");
+  }
+  if (options.request.limit !== NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT) {
+    fail("prepared_delivery_limit_invalid");
+  }
+  const apiKey = requireResendApiKey(environment);
+  const batch = await sendClaimedNewsletterEdition05Deliveries(
+    options,
+    NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+    apiKey,
+  );
+  if (batch.processedCount !== NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT) {
+    fail("frozen_delivery_count_mismatch");
+  }
+  for (const variant of ["national", "madrid", "a-coruna", "barcelona"] as const) {
+    if (
+      batch.variantCounts[variant] !==
+      NEWSLETTER_EDITION_05_PREPARED_VARIANT_COUNTS[variant]
+    ) {
+      fail("frozen_variant_count_mismatch");
+    }
+  }
+  logger(`Campaign: ${identity.editionKey}`);
+  logger("Edition: 05");
+  logger(`Prepared campaign ID: ${NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID}`);
+  logger(`Digest: ${digest}`);
+  logger(`Processed frozen deliveries: ${batch.processedCount}`);
+  logger(`Processed variant national: ${batch.variantCounts.national}`);
+  logger(`Processed variant madrid: ${batch.variantCounts.madrid}`);
+  logger(`Processed variant a-coruna: ${batch.variantCounts["a-coruna"]}`);
+  logger(`Processed variant barcelona: ${batch.variantCounts.barcelona}`);
+  logger("NO CAMPAIGN PREPARE WAS CALLED");
+  return {
+    status: "prepared_sent",
+    identity,
+    digest,
+    processedCount: batch.processedCount,
+    summary: null,
+    campaignId: NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+    processedVariantCounts: batch.variantCounts,
+  };
+}
+
+export async function executeNewsletterEdition05Campaign(
+  options: ExecuteNewsletterEdition05CampaignOptions,
+): Promise<NewsletterEdition05CampaignResult> {
+  if (options.request.sendPrepared === true) {
+    return sendPreparedNewsletterEdition05Campaign(options);
+  }
+  const environment = options.environment ?? {};
+  const logger = options.logger ?? (() => undefined);
+  const identity = newsletterEdition05CampaignIdentity();
+  const digest = newsletterEdition05CampaignDigest(identity);
+  assertRequestMode(options.request);
+  assertSafeEnvironment(environment);
+  if (
+    options.sender !== NEWSLETTER_EDITION_05_SENDER ||
+    options.replyTo !== NEWSLETTER_EDITION_05_REPLY_TO
+  ) {
+    fail("mail_identity_invalid");
+  }
+  validateEdition05SourceIntegrity(options.source);
+  if (identity.subject.startsWith("[PRUEBA]")) fail("test_subject_blocked");
+
+  if (!options.request.send && !options.request.prepareOnly) {
+    const summary = await options.repository.previewCampaign(identity);
+    assertSummary(summary);
+    logSummary(logger, identity, digest, summary);
+    logger("NO CAMPAIGN WAS PREPARED");
+    logger("NO EMAIL WAS SENT");
+    return {
+      status: "dry_run",
+      identity,
+      digest,
+      processedCount: 0,
+      summary,
+    };
+  }
+
+  assertMutationGates(options.request, environment);
+  const apiKey = options.request.send ? requireResendApiKey(environment) : null;
+  const preparedSummary = await options.repository.prepareCampaign(identity);
+  assertSummary(preparedSummary);
+  if (!preparedSummary.campaignId || !preparedSummary.audienceFrozenAt) {
+    fail("campaign_not_frozen");
+  }
+  logSummary(logger, identity, digest, preparedSummary);
+
+  if (options.request.prepareOnly) {
+    logger("Prepare-only complete. Audience frozen; no delivery was claimed and no email was sent.");
+    return {
+      status: "prepared",
+      identity,
+      digest,
+      processedCount: 0,
+      summary: preparedSummary,
+    };
+  }
+
+  if (
+    preparedSummary.campaignStatus === "paused" ||
+    preparedSummary.unknownCount > 0
+  ) {
+    fail("campaign_paused_unknown");
+  }
+  if (!apiKey) fail("api_key_unavailable");
+  const { processedCount } = await sendClaimedNewsletterEdition05Deliveries(
+    options,
+    preparedSummary.campaignId,
+    apiKey,
+  );
 
   const summary = await options.repository.previewCampaign(identity);
   assertSummary(summary);
@@ -588,6 +703,7 @@ export function parseNewsletterEdition05CampaignArguments(
 ): NewsletterEdition05CampaignRequest {
   const request: NewsletterEdition05CampaignRequest = {
     send: false,
+    sendPrepared: false,
     prepareOnly: false,
     resume: false,
     limit: DEFAULT_LIMIT,
@@ -597,12 +713,14 @@ export function parseNewsletterEdition05CampaignArguments(
     const argument = argv[index];
     if (
       argument === "--send" ||
+      argument === "--send-prepared" ||
       argument === "--prepare-only" ||
       argument === "--resume"
     ) {
       if (seen.has(argument)) fail("duplicate_argument");
       seen.add(argument);
       if (argument === "--send") request.send = true;
+      if (argument === "--send-prepared") request.sendPrepared = true;
       if (argument === "--prepare-only") request.prepareOnly = true;
       if (argument === "--resume") request.resume = true;
       continue;
@@ -610,7 +728,8 @@ export function parseNewsletterEdition05CampaignArguments(
     if (
       argument !== "--limit" &&
       argument !== "--confirm-edition" &&
-      argument !== "--confirm-phrase"
+      argument !== "--confirm-phrase" &&
+      argument !== "--confirm-campaign-id"
     ) {
       fail("unknown_argument");
     }
@@ -628,8 +747,8 @@ export function parseNewsletterEdition05CampaignArguments(
     }
     if (argument === "--confirm-edition") request.confirmEdition = value;
     if (argument === "--confirm-phrase") request.confirmPhrase = value;
+    if (argument === "--confirm-campaign-id") request.confirmCampaignId = value;
   }
-  if (request.send && request.prepareOnly) fail("send_prepare_only_conflict");
-  if (request.resume && !request.send) fail("resume_requires_send");
+  assertRequestMode(request);
   return request;
 }

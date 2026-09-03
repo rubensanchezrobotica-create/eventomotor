@@ -12,12 +12,19 @@ import {
   NEWSLETTER_EDITION_05_CAMPAIGN_ARMED_VALUE,
   NEWSLETTER_EDITION_05_CAMPAIGN_CONFIRM_PHRASE,
   NEWSLETTER_EDITION_05_CAMPAIGN_KEY,
+  NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+  NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT,
+  NEWSLETTER_EDITION_05_PREPARED_VARIANT_COUNTS,
   NEWSLETTER_EDITION_05_REPLY_TO,
   NEWSLETTER_EDITION_05_SENDER,
   NEWSLETTER_EDITION_05_SUBJECT,
   NewsletterEdition05CampaignError,
   executeNewsletterEdition05Campaign,
   parseNewsletterEdition05CampaignArguments,
+  sendPreparedNewsletterEdition05Campaign,
+  type NewsletterEdition05CampaignClient,
+  type NewsletterEdition05CampaignEnvironment,
+  type NewsletterEdition05CampaignRequest,
   type NewsletterEdition05CampaignRepository,
   type NewsletterEdition05CampaignSummary,
 } from "@/lib/newsletter/edition-05-campaign";
@@ -130,6 +137,43 @@ function repositoryFixture(
     recordUnknown: async () => undefined,
     ...overrides,
   };
+}
+
+function sendPreparedRequest(
+  overrides: Partial<NewsletterEdition05CampaignRequest> = {},
+): NewsletterEdition05CampaignRequest {
+  return {
+    send: false,
+    sendPrepared: true,
+    prepareOnly: false,
+    resume: false,
+    limit: NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT,
+    confirmEdition: NEWSLETTER_EDITION_05_CAMPAIGN_KEY,
+    confirmPhrase: NEWSLETTER_EDITION_05_CAMPAIGN_CONFIRM_PHRASE,
+    confirmCampaignId: NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+    ...overrides,
+  };
+}
+
+function sendPreparedEnvironment(): NewsletterEdition05CampaignEnvironment {
+  return {
+    armed: NEWSLETTER_EDITION_05_CAMPAIGN_ARMED_VALUE,
+    apiKey: "re_test_edition05_prepared_campaign_only",
+    mailTransport: "resend",
+    newsletterMode: "live",
+    publicLaunchEnabled: "public-newsletter-live",
+  };
+}
+
+function preparedVariant(index: number): NewsletterEdition05ContentVariant {
+  if (index < 55) return "national";
+  if (index < 64) return "madrid";
+  if (index < 65) return "a-coruna";
+  return "barcelona";
+}
+
+function fixtureUuid(prefix: number, index: number): string {
+  return `${prefix.toString().padStart(8, "0")}-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
 }
 
 test("Edition 05 has the approved independent identity", () => {
@@ -514,9 +558,205 @@ test("mutation modes retain Edition 05-specific fail-closed gates", async () => 
   );
 });
 
+test("send-prepared consumes exactly the frozen deliveries without preview or prepare", async () => {
+  const source = await sourceFixture();
+  let claimIndex = 0;
+  let previewCalls = 0;
+  let prepareCalls = 0;
+  let providerCalls = 0;
+  let acceptedCalls = 0;
+  let tokenIndex = 0;
+  const payloads: Array<{ html: string; text: string; subject: string }> = [];
+  const repository = repositoryFixture({
+    previewCampaign: async () => {
+      previewCalls += 1;
+      throw new Error("live audience preview must not run");
+    },
+    prepareCampaign: async () => {
+      prepareCalls += 1;
+      throw new Error("prepare must not run");
+    },
+    claimDelivery: async (input) => {
+      assert.equal(input.campaignId, NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID);
+      assert.equal(input.allowRetry, false);
+      const index = claimIndex;
+      claimIndex += 1;
+      return {
+        deliveryId: fixtureUuid(1, index),
+        campaignId: NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+        subscriberId: fixtureUuid(2, index),
+        recipientEmail: `edition05-${index}@example.invalid`,
+        claimId: fixtureUuid(3, index),
+        attemptCount: 1,
+        idempotencyKey: `newsletter/${NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID}/${fixtureUuid(1, index)}/1`,
+        contentVariant: preparedVariant(index),
+      };
+    },
+    recordAccepted: async () => {
+      acceptedCalls += 1;
+    },
+  });
+  const client: NewsletterEdition05CampaignClient = {
+    sendEmail: async (payload) => {
+      providerCalls += 1;
+      payloads.push(payload);
+      return {
+        status: "accepted",
+        providerMessageId: `edition05-prepared-${providerCalls}`,
+      };
+    },
+  };
+
+  const result = await sendPreparedNewsletterEdition05Campaign({
+    request: sendPreparedRequest(),
+    environment: sendPreparedEnvironment(),
+    source,
+    repository,
+    sender: NEWSLETTER_EDITION_05_SENDER,
+    replyTo: NEWSLETTER_EDITION_05_REPLY_TO,
+    clientFactory: () => client,
+    tokenFactory: () => {
+      tokenIndex += 1;
+      return Buffer.alloc(32, tokenIndex).toString("base64url");
+    },
+    tokenHasher: (token) => sha256(token),
+  });
+
+  assert.equal(result.status, "prepared_sent");
+  assert.equal(result.campaignId, NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID);
+  assert.equal(result.processedCount, NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT);
+  assert.deepEqual(
+    result.processedVariantCounts,
+    NEWSLETTER_EDITION_05_PREPARED_VARIANT_COUNTS,
+  );
+  assert.equal(previewCalls, 0);
+  assert.equal(prepareCalls, 0);
+  assert.equal(claimIndex, NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT);
+  assert.equal(providerCalls, NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT);
+  assert.equal(acceptedCalls, NEWSLETTER_EDITION_05_PREPARED_DELIVERY_COUNT);
+  assert.equal(payloads[0]?.subject, NEWSLETTER_EDITION_05_SUBJECT);
+  assert.match(payloads[0]?.html ?? "", /utm_campaign=agenda_motor_2026_09_03/);
+  assert.match(payloads[0]?.html ?? "", /newsletter\/unsubscribe\?token=/);
+  assert.doesNotMatch(payloads[0]?.html ?? "", /\{\{unsubscribe_url\}\}/);
+  assert.doesNotMatch(payloads[0]?.text ?? "", /\{\{unsubscribe_url\}\}/);
+});
+
+test("send-prepared fails before provider when the frozen campaign is unavailable", async () => {
+  const source = await sourceFixture();
+  for (const claimDelivery of [
+    async () => null,
+    async () => {
+      throw new Error("campaign missing or audience not frozen");
+    },
+  ]) {
+    let providerCalls = 0;
+    const repository = repositoryFixture({
+      previewCampaign: async () => {
+        throw new Error("live audience preview must not run");
+      },
+      prepareCampaign: async () => {
+        throw new Error("prepare must not run");
+      },
+      claimDelivery,
+    });
+    await assert.rejects(
+      sendPreparedNewsletterEdition05Campaign({
+        request: sendPreparedRequest(),
+        environment: sendPreparedEnvironment(),
+        source,
+        repository,
+        sender: NEWSLETTER_EDITION_05_SENDER,
+        replyTo: NEWSLETTER_EDITION_05_REPLY_TO,
+        clientFactory: () => ({
+          sendEmail: async () => {
+            providerCalls += 1;
+            return { status: "accepted", providerMessageId: "unexpected" };
+          },
+        }),
+        tokenFactory: () => Buffer.alloc(32, 1).toString("base64url"),
+        tokenHasher: (token) => sha256(token),
+      }),
+    );
+    assert.equal(providerCalls, 0);
+  }
+});
+
+test("send-prepared rejects edition and campaign identity mismatches before claiming", async () => {
+  const source = await sourceFixture();
+  let claimCalls = 0;
+  let providerCalls = 0;
+  const repository = repositoryFixture({
+    claimDelivery: async () => {
+      claimCalls += 1;
+      return null;
+    },
+  });
+  for (const request of [
+    sendPreparedRequest({ confirmEdition: "agenda_motor_2026_08_27" }),
+    sendPreparedRequest({ confirmCampaignId: "401dab00-cb04-4a83-a0bd-fe63fd0e7000" }),
+  ]) {
+    await assert.rejects(
+      sendPreparedNewsletterEdition05Campaign({
+        request,
+        environment: sendPreparedEnvironment(),
+        source,
+        repository,
+        sender: NEWSLETTER_EDITION_05_SENDER,
+        replyTo: NEWSLETTER_EDITION_05_REPLY_TO,
+        clientFactory: () => ({
+          sendEmail: async () => {
+            providerCalls += 1;
+            return { status: "accepted", providerMessageId: "unexpected" };
+          },
+        }),
+        tokenFactory: () => Buffer.alloc(32, 1).toString("base64url"),
+        tokenHasher: (token) => sha256(token),
+      }),
+      NewsletterEdition05CampaignError,
+    );
+  }
+  assert.equal(claimCalls, 0);
+  assert.equal(providerCalls, 0);
+});
+
+test("send-prepared requires the exact sealed count and cannot fall back to prepare", async () => {
+  const source = await sourceFixture();
+  let prepareCalls = 0;
+  let providerCalls = 0;
+  await assert.rejects(
+    sendPreparedNewsletterEdition05Campaign({
+      request: sendPreparedRequest({ limit: 68 }),
+      environment: sendPreparedEnvironment(),
+      source,
+      repository: repositoryFixture({
+        prepareCampaign: async () => {
+          prepareCalls += 1;
+          return summary();
+        },
+      }),
+      sender: NEWSLETTER_EDITION_05_SENDER,
+      replyTo: NEWSLETTER_EDITION_05_REPLY_TO,
+      clientFactory: () => ({
+        sendEmail: async () => {
+          providerCalls += 1;
+          return { status: "accepted", providerMessageId: "unexpected" };
+        },
+      }),
+      tokenFactory: () => Buffer.alloc(32, 1).toString("base64url"),
+      tokenHasher: (token) => sha256(token),
+    }),
+    (error) =>
+      error instanceof NewsletterEdition05CampaignError &&
+      error.code === "prepared_delivery_limit_invalid",
+  );
+  assert.equal(prepareCalls, 0);
+  assert.equal(providerCalls, 0);
+});
+
 test("campaign parser is dry-run by default and rejects unsafe combinations", () => {
   assert.deepEqual(parseNewsletterEdition05CampaignArguments([]), {
     send: false,
+    sendPrepared: false,
     prepareOnly: false,
     resume: false,
     limit: 25,
@@ -532,6 +772,30 @@ test("campaign parser is dry-run by default and rejects unsafe combinations", ()
     (error) =>
       error instanceof NewsletterEdition05CampaignError &&
       error.code === "send_prepare_only_conflict",
+  );
+  assert.deepEqual(
+    parseNewsletterEdition05CampaignArguments([
+      "--send-prepared",
+      "--limit",
+      "69",
+      "--confirm-edition",
+      NEWSLETTER_EDITION_05_CAMPAIGN_KEY,
+      "--confirm-phrase",
+      NEWSLETTER_EDITION_05_CAMPAIGN_CONFIRM_PHRASE,
+      "--confirm-campaign-id",
+      NEWSLETTER_EDITION_05_PREPARED_CAMPAIGN_ID,
+    ]),
+    sendPreparedRequest(),
+  );
+  assert.throws(
+    () =>
+      parseNewsletterEdition05CampaignArguments([
+        "--send",
+        "--send-prepared",
+      ]),
+    (error) =>
+      error instanceof NewsletterEdition05CampaignError &&
+      error.code === "send_prepared_mode_conflict",
   );
 });
 

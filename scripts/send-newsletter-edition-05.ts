@@ -12,7 +12,7 @@ async function main(): Promise<void> {
   await executeNewsletterEdition05Campaign({
     request,
     environment: newsletterEdition05CampaignEnvironmentFromProcess(
-      request.send,
+      request.send || request.sendPrepared === true,
     ),
     logger: (message) => console.log(message),
   });
