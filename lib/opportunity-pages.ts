@@ -158,7 +158,6 @@ const EXPLICIT_RECREATIONAL_MOTORCYCLE_ROUTE_PHRASES = [
   "ruta en moto",
   "rutas en moto",
 ];
-const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
 const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
   "tandas libres",
@@ -180,6 +179,21 @@ const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
   "curso de conduccion y tandas",
   "curso de conduccion tandas",
 ];
+const TRACKDAY_ACTIVITY_PHRASES = [
+  "trackday",
+  "track day",
+  "trackdays",
+  "track days",
+  "tandas",
+  "tandas libres",
+  "rodada",
+  "rodadas",
+  "open pit lane",
+  "curso de conduccion",
+  "racing experience",
+  "drift day",
+];
+const TRACKDAY_VEHICLE_TYPES = new Set(["coche", "moto", "mixto"]);
 const AUTOMOTIVE_RALLY_VEHICLES = new Set(["coche", "coches", "automovil", "automovilismo"]);
 const EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES = new Set([
   "moto",
@@ -357,6 +371,22 @@ export function matchesMotorcycleTrackdayOpportunity(event: EventItem) {
   return MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES.some((phrase) =>
     activityText.includes(normalizedPhraseText([phrase])),
   );
+}
+
+export function matchesTrackdayOpportunity(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline).trim();
+  const activityText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+  const hasTrackdayActivity = discipline === "tandas"
+    || TRACKDAY_ACTIVITY_PHRASES.some((phrase) => includesNormalizedPhrase(activityText, phrase));
+
+  if (!hasTrackdayActivity) return false;
+
+  const vehicleType = normalizeSeoText(event.vehicleType || event.vehicle_type || "").trim();
+  return TRACKDAY_VEHICLE_TYPES.has(vehicleType);
 }
 
 export function matchesFairOpportunity(event: EventItem) {
@@ -1663,7 +1693,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, circuitTerms),
+    filter: (event) => isYear(event, 2026) && matchesTrackdayOpportunity(event),
   },
   {
     slug: "karting-espana-2026",
