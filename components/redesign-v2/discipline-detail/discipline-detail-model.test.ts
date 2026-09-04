@@ -64,8 +64,8 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.7.4A asigna heroes propios a las cinco disciplinas visualmente cerradas mediante metadata", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos"]);
+test("A6.8.4A asigna heroes propios a las seis disciplinas visualmente cerradas mediante metadata", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
@@ -81,12 +81,15 @@ test("A6.7.4A asigna heroes propios a las cinco disciplinas visualmente cerradas
   assert.deepEqual(resolveDisciplineHeroVisual("clasicos"), {
     src: "/images/redesign-v2/disciplines/hero-clasicos.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("karting"), {
+    src: "/images/redesign-v2/disciplines/hero-karting.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos"].includes(slug));
+    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting"].includes(slug));
 
-  assert.equal(otherDisciplines.length, 3);
+  assert.equal(otherDisciplines.length, 2);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
@@ -95,6 +98,7 @@ test("A6.7.4A asigna heroes propios a las cinco disciplinas visualmente cerradas
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.concentraciones ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.offroad ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.clasicos ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.karting ?? {}), ["src"]);
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {

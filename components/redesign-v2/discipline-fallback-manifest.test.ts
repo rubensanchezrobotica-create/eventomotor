@@ -14,7 +14,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   concentraciones: 11,
   offroad: 19,
   clasicos: 9,
-  karting: 5,
+  karting: 7,
   rutas: 6,
   ferias: 5,
 };
@@ -55,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 85 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 85);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 85);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 85);
+test("el manifiesto contiene exactamente los 87 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 87);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 87);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 87);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -68,6 +68,54 @@ test("el manifiesto contiene exactamente los 85 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("A6.8.4A registra los dos fallbacks genéricos de Karting con sus metadatos técnicos", async () => {
+  const expected = new Map([
+    ["karting-06", {
+      src: "/images/disciplines/fallbacks/karting/karting-06-carrera-outdoor-grupo-compacto-curva-accion-lateral.webp",
+      tags: ["karting", "carrera", "outdoor", "grupo", "curva"],
+    }],
+    ["karting-07", {
+      src: "/images/disciplines/fallbacks/karting/karting-07-carrera-outdoor-frenada-entrada-curva-grupo-precision.webp",
+      tags: ["karting", "carrera", "outdoor", "grupo", "frenada", "curva"],
+    }],
+  ] as const);
+
+  for (const [id, contract] of expected) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    assert.equal(image.discipline, "karting");
+    assert.equal(image.vehicle, "karting");
+    assert.equal(image.src, contract.src);
+    assert.deepEqual(image.tags, contract.tags);
+    const file = new URL(`../../public${contract.src}`, import.meta.url);
+    const metadata = await sharp(readFileSync(file)).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 800);
+    assert.equal(metadata.space, "srgb");
+    assert.equal(metadata.channels, 3);
+    assert.equal(metadata.pages ?? 1, 1);
+    assert.equal(metadata.hasAlpha, false);
+  }
+});
+
+test("Karting 01 a 05 permanecen congelados byte por byte", () => {
+  const expectedHashes = new Map([
+    ["karting-01", "f9bed318c32f858d98d2abf399da0e3868ccec2e16537389d6aa549ddbd32a53"],
+    ["karting-02", "f19fc5f3520a526c471d89eea05746c3a486387fe53c0965a418c1de3e9cab50"],
+    ["karting-03", "40d891ff48759879ec2fb75afd9e6e30c1756976b95bb9131b51fd5533085a26"],
+    ["karting-04", "6bf0e99c789b733b13fb3e6613ecb55d64d18b5e715c9c917e83103f4732de38"],
+    ["karting-05", "f07c90b829523d0254869b6ef35a4ad65feaa9000bd19bac6772a2a279f93d44"],
+  ]);
+
+  for (const [id, expectedHash] of expectedHashes) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    const file = new URL(`../../public${image.src}`, import.meta.url);
+    assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
+  }
 });
 
 test("los cuatro nuevos fallbacks de Clásicos conservan contratos y metadatos técnicos aprobados", async () => {

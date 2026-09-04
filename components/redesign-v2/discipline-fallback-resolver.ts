@@ -102,6 +102,15 @@ function classification(
 
 function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["kart", "karting", "kartodromo"])) {
+    if (includesAny(text, ["junior", "kids", "kid", "cadet", "cadete"])) {
+      return classification("karting", "karting-junior", "karting junior, kids o cadet");
+    }
+    if (includesAny(text, ["indoor", "pista cubierta", "tandas"])) {
+      return classification("karting", "karting-indoor", "karting indoor o tandas");
+    }
+    if (includesAny(text, ["alquiler", "amateur", "carrera social", "preparacion"])) {
+      return classification("karting", "karting-alquiler", "karting de alquiler, amateur o social");
+    }
     return classification("karting", "karting", "karting");
   }
   if (includesAny(text, ["eco rally", "eco rallye", "ecorally", "ecorallye"])) {
@@ -391,6 +400,13 @@ const R2_EXACT_ONLY_FALLBACK_IDS: ReadonlySet<string> = new Set([
   "clasicos-08",
 ]);
 
+const KARTING_GENERIC_FALLBACK_IDS: ReadonlySet<string> = new Set([
+  "karting-01",
+  "karting-05",
+  "karting-06",
+  "karting-07",
+]);
+
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
   "circuito:trackday": ["circuito-03", "circuito-08", "circuito-16"],
   "circuito:tandas": ["circuito-08", "circuito-16"],
@@ -421,6 +437,9 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "clasicos:clasicos-mixto": ["clasicos-06", "clasicos-09"],
   "clasicos:motos-clasicas-asfalto": ["clasicos-07"],
   "clasicos:todo-terreno-clasico": ["clasicos-08"],
+  "karting:karting-indoor": ["karting-02"],
+  "karting:karting-alquiler": ["karting-03"],
+  "karting:karting-junior": ["karting-04"],
 };
 
 const CLOSED_SUBTYPE_KEYS = new Set([
@@ -541,11 +560,15 @@ function candidateTier(
   const closedFallbackIds = closedSubtypeFallbackIds(event, classification);
   if (closedFallbackIds && !closedFallbackIds.includes(candidate.id)) return null;
   if (!isR2SubtypeCompatible(classification, candidate)) return null;
+  if (classification.discipline === "karting") {
+    const specializedIds = EXACT_SUBTYPE_FALLBACK_IDS[`karting:${classification.subtype ?? ""}`];
+    if (specializedIds) return specializedIds.includes(candidate.id) ? 1 : null;
+    return KARTING_GENERIC_FALLBACK_IDS.has(candidate.id) ? 2 : null;
+  }
   const exactSubtypeMatch = matchesExactSubtype(event, classification, candidate);
   if (R2_EXACT_ONLY_FALLBACK_IDS.has(candidate.id)) {
     return candidate.vehicle === classification.vehicle && exactSubtypeMatch ? 1 : null;
   }
-  if (classification.vehicle === "karting") return candidate.vehicle === "karting" ? (exactSubtypeMatch ? 1 : 2) : null;
   if (candidate.vehicle === classification.vehicle) {
     return exactSubtypeMatch ? 1 : 2;
   }

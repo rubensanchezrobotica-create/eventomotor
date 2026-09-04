@@ -33,6 +33,10 @@ const classicsHero = readFileSync(join(
   process.cwd(),
   "public/images/redesign-v2/disciplines/hero-clasicos.png",
 ));
+const kartingHero = readFileSync(join(
+  process.cwd(),
+  "public/images/redesign-v2/disciplines/hero-karting.png",
+));
 
 test("A6 crea una sola ruta dinámica, server-first y con un único fetch visible", () => {
   assert.match(route, /params:\s*Promise<\{ slug: string \}>/);
@@ -69,12 +73,13 @@ test("A6 reutiliza taxonomía, clasificación, semántica upcoming y paginación
   assert.doesNotMatch(model, /title\.includes|Math\.random|Date\.now/);
 });
 
-test("A6.7.4A conecta los heroes dedicados sin condicionales de slug en JSX", () => {
+test("A6.8.4A conecta los heroes dedicados sin condicionales de slug en JSX", () => {
   assert.match(model, /DISCIPLINE_HERO_VISUALS/);
   assert.match(model, /rallyes:\s*\{[\s\S]*hero-rallyes\.png/);
   assert.match(model, /circuito:\s*\{[\s\S]*hero-circuito\.png/);
   assert.match(model, /offroad:\s*\{[\s\S]*hero-offroad\.png/);
   assert.match(model, /clasicos:\s*\{[\s\S]*hero-clasicos\.png/);
+  assert.match(model, /karting:\s*\{[\s\S]*hero-karting\.png/);
   assert.match(route, /resolveDisciplineHeroVisual\(definition\.slug\)/);
   assert.match(route, /heroImageSrc=\{heroVisual\?\.src\}/);
   assert.doesNotMatch(route, /definition\.slug\s*===\s*["']rallyes["']/);
@@ -83,6 +88,7 @@ test("A6.7.4A conecta los heroes dedicados sin condicionales de slug en JSX", ()
   assert.equal(circuitoHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.equal(offroadHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.equal(classicsHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(kartingHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
 });
 
 test("A6 enlaza cards al Event Detail V2 y no crea Search ni enlaces públicos de evento", () => {

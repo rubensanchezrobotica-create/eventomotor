@@ -112,6 +112,8 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("karting-03", "karting", "karting", ["karting", "alquiler", "amateur"], "karting-03-amateur-alquiler-preparacion.webp"),
   fallback("karting-04", "karting", "karting", ["karting", "junior", "parrilla"], "karting-04-junior-parrilla.webp"),
   fallback("karting-05", "karting", "karting", ["karting", "kartodromo", "outdoor"], "karting-05-kartodromo-outdoor-vista-amplia.webp"),
+  fallback("karting-06", "karting", "karting", ["karting", "carrera", "outdoor", "grupo", "curva"], "karting-06-carrera-outdoor-grupo-compacto-curva-accion-lateral.webp"),
+  fallback("karting-07", "karting", "karting", ["karting", "carrera", "outdoor", "grupo", "frenada", "curva"], "karting-07-carrera-outdoor-frenada-entrada-curva-grupo-precision.webp"),
 
   fallback("rutas-01", "rutas", "moto", ["rutas", "moto", "touring", "montana"], "rutas-01-motos-touring-montana.webp"),
   fallback("rutas-02", "rutas", "coche", ["rutas", "coche", "club", "carretera"], "rutas-02-coches-salida-club-carretera-escenica.webp"),

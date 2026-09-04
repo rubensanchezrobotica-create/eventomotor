@@ -49,6 +49,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   clasicos: {
     src: "/images/redesign-v2/disciplines/hero-clasicos.png",
   },
+  karting: {
+    src: "/images/redesign-v2/disciplines/hero-karting.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {

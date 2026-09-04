@@ -837,8 +837,77 @@ test("rutas, clásicos, ferias y karting mantienen su semántica de vehículo", 
   assert.equal(ids(event({ title: "Encuentro de motos clásicas", discipline: "Clásicos", vehicleType: "Moto" }))[0], "clasicos-03");
   assert.equal(ids(event({ title: "Salón de la moto", discipline: "Ferias", vehicleType: "Moto" }))[0], "ferias-02");
   assert.deepEqual(new Set(ids(event({ title: "Carrera de karting", discipline: "Karting", vehicleType: "Karting" }))), new Set([
-    "karting-01", "karting-02", "karting-03", "karting-04", "karting-05",
+    "karting-01", "karting-05", "karting-06", "karting-07",
   ]));
+});
+
+test("A6.8.4A limita el pool genérico de Karting a 01, 05, 06 y 07", () => {
+  const generic = event({
+    title: "Campeonato nacional de karting",
+    discipline: "Karting",
+    vehicleType: "Karting",
+    tags: ["karting", "competicion", "campeonato"],
+  });
+  const candidates = resolveV2EventImageCandidates(generic);
+
+  assert.equal(classificationOf(generic).subtype, "karting");
+  assert.deepEqual(new Set(candidates.map(({ id }) => id)), new Set([
+    "karting-01", "karting-05", "karting-06", "karting-07",
+  ]));
+  assert.equal(candidates.every(({ tier }) => tier === 2), true);
+  assert.equal(candidates.some(({ id }) => ["karting-02", "karting-03", "karting-04"].includes(id)), false);
+});
+
+test("A6.8.4A reserva los fallbacks 02, 03 y 04 para señales especializadas explícitas", () => {
+  const cases = [
+    [event({ title: "Karting indoor por tandas", discipline: "Karting", vehicleType: "Karting" }), "karting-indoor", "karting-02"],
+    [event({ title: "Carrera social de karting de alquiler", discipline: "Karting", vehicleType: "Karting" }), "karting-alquiler", "karting-03"],
+    [event({ title: "Trofeo de karting cadete", discipline: "Karting", vehicleType: "Karting" }), "karting-junior", "karting-04"],
+  ] as const;
+
+  for (const [fixture, subtype, fallbackId] of cases) {
+    assert.equal(classificationOf(fixture).subtype, subtype);
+    const candidates = resolveV2EventImageCandidates(fixture);
+    assert.deepEqual(candidates.map(({ id }) => id), [fallbackId]);
+    assert.deepEqual(candidates.map(({ tier }) => tier), [1]);
+    assert.equal(assignV2HomeEventImages([fixture])[0].fallbackId, fallbackId);
+  }
+});
+
+test("A6.8.4A reconoce kids sin exponer el fallback junior al pool genérico", () => {
+  const kids = ["II", "III"].map((edition) => event({
+    id: `karting-kids-${edition}`,
+    slug: `karting-kids-${edition}`,
+    title: `Karting Kids FEXA Cáceres ${edition} 2026`,
+    championship: "Karting Kids FEXA",
+    discipline: "Karting",
+    vehicleType: "Karting",
+    tags: ["karting", "kids", "fexa"],
+  }));
+  const assigned = assignV2HomeEventImages(kids);
+
+  assert.equal(kids.every((fixture) => classificationOf(fixture).subtype === "karting-junior"), true);
+  assert.deepEqual(assigned.map(({ fallbackId }) => fallbackId), ["karting-04", "karting-04"]);
+  assert.deepEqual(assigned.map(({ fallbackTier }) => fallbackTier), [1, 1]);
+  assert.equal(ids(event({ title: "Karting nacional", discipline: "Karting", vehicleType: "Karting" })).includes("karting-04"), false);
+});
+
+test("A6.8.4A hace que el Tier 1 de Karting excluya el Tier 2 sin cambiar hash ni identidad", () => {
+  const specialized = event({
+    id: "gp-alquiler",
+    slug: "gp-alquiler",
+    title: "GP de karting de alquiler",
+    discipline: "Karting",
+    vehicleType: "Karting",
+    tags: ["karting", "alquiler", "amateur", "carrera", "outdoor"],
+  });
+  const candidates = resolveV2EventImageCandidates(specialized);
+
+  assert.deepEqual(candidates.map(({ id }) => id), ["karting-03"]);
+  assert.deepEqual(candidates.map(({ tier }) => tier), [1]);
+  assert.equal(assignV2HomeEventImages([specialized])[0].fallbackId, "karting-03");
+  assert.equal(stableV2EventKey(specialized), "slug:gp-alquiler");
+  assert.deepEqual(assignV2HomeEventImages([specialized]), assignV2HomeEventImages([specialized]));
 });
 
 test("la asignación de lista es estable y sólo repite al agotar candidatos compatibles", () => {
