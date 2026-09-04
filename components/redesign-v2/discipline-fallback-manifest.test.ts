@@ -13,7 +13,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   circuito: 19,
   concentraciones: 11,
   offroad: 19,
-  clasicos: 5,
+  clasicos: 9,
   karting: 5,
   rutas: 6,
   ferias: 5,
@@ -55,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 81 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 81);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 81);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 81);
+test("el manifiesto contiene exactamente los 85 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 85);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 85);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 85);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -68,6 +68,66 @@ test("el manifiesto contiene exactamente los 81 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("los cuatro nuevos fallbacks de Clásicos conservan contratos y metadatos técnicos aprobados", async () => {
+  const expected = new Map([
+    ["clasicos-06", {
+      vehicle: "mixto",
+      src: "/images/disciplines/fallbacks/clasicos/clasicos-06-concentracion-mixta-coches-y-motos-clasicos-encuentro-exterior.webp",
+      tags: ["clasicos", "mixto", "coche", "moto", "concentracion"],
+    }],
+    ["clasicos-07", {
+      vehicle: "moto",
+      src: "/images/disciplines/fallbacks/clasicos/clasicos-07-motos-clasicas-velocidad-asfalto-circuito-dinamico.webp",
+      tags: ["clasicos", "moto", "velocidad", "resistencia", "asfalto", "circuito"],
+    }],
+    ["clasicos-08", {
+      vehicle: "moto",
+      src: "/images/disciplines/fallbacks/clasicos/clasicos-08-motos-clasicas-todo-terreno-competicion-bosque.webp",
+      tags: ["clasicos", "moto", "todo-terreno-clasico", "offroad", "competicion"],
+    }],
+    ["clasicos-09", {
+      vehicle: "mixto",
+      src: "/images/disciplines/fallbacks/clasicos/clasicos-09-evento-mixto-llegada-club-coches-y-motos-clasicos-exterior.webp",
+      tags: ["clasicos", "mixto", "coche", "moto", "evento", "llegada", "club", "exterior"],
+    }],
+  ] as const);
+
+  for (const [id, contract] of expected) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    assert.equal(image.discipline, "clasicos");
+    assert.equal(image.vehicle, contract.vehicle);
+    assert.equal(image.src, contract.src);
+    assert.deepEqual(image.tags, contract.tags);
+    const file = new URL(`../../public${contract.src}`, import.meta.url);
+    const metadata = await sharp(readFileSync(file)).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 800);
+    assert.equal(metadata.space, "srgb");
+    assert.equal(metadata.channels, 3);
+    assert.equal(metadata.pages ?? 1, 1);
+    assert.equal(metadata.hasAlpha, false);
+  }
+});
+
+test("Clásicos 01 a 05 permanecen congelados byte por byte", () => {
+  const expectedHashes = new Map([
+    ["clasicos-01", "e328f1b3c6b06bf71823f06171ea7621bf3608103801637bab80c4715f503272"],
+    ["clasicos-02", "9a54cfc7bef80b44042cf5b8dfab08f1ad11e46f61d44f74e345e5be6dd7cb1d"],
+    ["clasicos-03", "485b33d2a123c84fe317af1bff76cb9ec5f4cfa1665e86a641790a3d4e7592db"],
+    ["clasicos-04", "cee2e1053ff96d0ccd1e3da50b7239664b41497b8f48d616c4bbf834d48e2bdd"],
+    ["clasicos-05", "aa49ce16767be89210e0ad683141df500a6b2860958611f273e50ba83278a732"],
+  ]);
+
+  for (const [id, expectedHash] of expectedHashes) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    const file = new URL(`../../public${image.src}`, import.meta.url);
+    assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
+  }
 });
 
 test("los dos nuevos fallbacks especializados de Offroad conservan rutas y metadatos técnicos aprobados", async () => {

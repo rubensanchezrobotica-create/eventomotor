@@ -456,15 +456,108 @@ test("A6.6.4A enruta X-Trial al indoor existente y Supercross al pool cerrado de
   );
 });
 
-test("A6.6.4A deja expresamente diferido Todo Terreno Clásico", () => {
+test("A6.7.4A reserva Clásicos 08 para Todo Terreno Clásico", () => {
   for (const title of [
     "Copa de España de Todo Terreno Clásico Amurrio",
     "Copa de España de Todo Terreno Clásico Sant Mateu",
   ]) {
     const candidate = event({ title, discipline: "Todo Terreno Clasico", vehicleType: "Moto" });
     assert.equal(classificationOf(candidate).discipline, "clasicos");
-    assert.equal(classificationOf(candidate).subtype, "motos-clasicas");
-    assert.equal(assignV2HomeEventImages([candidate])[0].fallbackId, "clasicos-03");
+    assert.equal(classificationOf(candidate).subtype, "todo-terreno-clasico");
+    assert.deepEqual(ids(candidate), ["clasicos-08"]);
+    assert.equal(assignV2HomeEventImages([candidate])[0].fallbackId, "clasicos-08");
+  }
+
+  const genericOffroad = event({ title: "Encuentro de motos offroad clásicas", discipline: "Offroad", vehicleType: "Moto" });
+  assert.equal(ids(genericOffroad).includes("clasicos-08"), false);
+});
+
+test("A6.7.4A-R1 amplía a 06 y 09 únicamente el pool de clásicos mixtos", () => {
+  assert.match(
+    resolverSource,
+    /"clasicos:clasicos-mixto": \["clasicos-06", "clasicos-09"\]/,
+  );
+  const mixedEvents = [
+    event({
+      id: "mixed-classics-a",
+      slug: "mixed-classics-a",
+      title: "Concentración de vehículos clásicos",
+      discipline: "Clásicos",
+      vehicleType: "Mixto",
+    }),
+    event({
+      id: "mixed-classics-b",
+      slug: "mixed-classics-b",
+      title: "Encuentro mixto de coches y motos clásicos",
+      discipline: "Clásicos",
+      vehicleType: "Mixto",
+    }),
+  ];
+  for (const mixed of mixedEvents) {
+    assert.equal(classificationOf(mixed).subtype, "clasicos-mixto");
+    assert.deepEqual([...tierOneIds(mixed)].sort(), ["clasicos-06", "clasicos-09"]);
+  }
+  const first = assignV2HomeEventImages(mixedEvents).map(({ fallbackId }) => fallbackId);
+  const second = assignV2HomeEventImages(mixedEvents).map(({ fallbackId }) => fallbackId);
+  assert.deepEqual(
+    first,
+    second,
+  );
+  assert.deepEqual(new Set(first), new Set(["clasicos-06", "clasicos-09"]));
+
+  const carOnly = event({ title: "Concentración de coches clásicos", discipline: "Clásicos", vehicleType: "Coche" });
+  const motoOnly = event({ title: "Encuentro de motos clásicas", discipline: "Clásicos", vehicleType: "Moto" });
+  assert.equal(ids(carOnly).some((id) => ["clasicos-06", "clasicos-09"].includes(id)), false);
+  assert.equal(ids(motoOnly).some((id) => ["clasicos-06", "clasicos-09"].includes(id)), false);
+});
+
+test("A6.7.4A reserva Clásicos 07 para competición clásica de moto en asfalto", () => {
+  for (const candidate of [
+    event({
+      title: "Jornada de Velocidad Catalunya Calafat 2026",
+      discipline: "Velocidad",
+      tags: ["moto", "velocidad", "velocidad clasicas", "calafat"],
+      vehicleType: "Moto",
+    }),
+    event({
+      title: "Resistencia Clásicas Asfalto Calafat 2026",
+      discipline: "Resistencia Clasicas Asfalto",
+      tags: ["moto", "resistencia clasicas", "calafat"],
+      vehicleType: "Moto",
+    }),
+  ]) {
+    assert.equal(classificationOf(candidate).subtype, "motos-clasicas-asfalto");
+    assert.deepEqual(ids(candidate), ["clasicos-07"]);
+  }
+
+  const social = event({ title: "Encuentro de motos clásicas", discipline: "Clásicos", vehicleType: "Moto" });
+  assert.deepEqual(ids(social), ["clasicos-03"]);
+  assert.equal(ids(social).includes("clasicos-07"), false);
+});
+
+test("A6.7.4A mantiene 03, 04 y 05 dentro de sus roles semánticos", () => {
+  const socialMoto = event({ title: "Encuentro de motos clásicas", discipline: "Clásicos", vehicleType: "Moto" });
+  const route = event({ title: "Ruta de youngtimers del club", discipline: "Clásicos", vehicleType: "Coche" });
+  const historicRally = event({ title: "Rallye histórico", discipline: "Rally Histórico", vehicleType: "Coche" });
+  const genericCar = event({ title: "Exposición de coches clásicos", discipline: "Clásicos", vehicleType: "Coche" });
+
+  assert.equal(assignV2HomeEventImages([socialMoto])[0].fallbackId, "clasicos-03");
+  assert.equal(assignV2HomeEventImages([route])[0].fallbackId, "clasicos-04");
+  assert.equal(assignV2HomeEventImages([historicRally])[0].fallbackId, "clasicos-05");
+  assert.equal(ids(genericCar).some((id) => ["clasicos-03", "clasicos-04", "clasicos-05"].includes(id)), false);
+});
+
+test("A6.7.4A excluye Eco Rally moderno de Clásicos sin alterar su familia pública", () => {
+  for (const title of ["Eco Rallye Cantabria", "EcoRally Catalunya"]) {
+    const candidate = event({
+      title,
+      championship: "Campeonato de energías alternativas",
+      discipline: "Eco Rally",
+      tags: ["coche", "eco-rally", "regularidad"],
+      vehicleType: "Coche",
+    });
+    assert.equal(classificationOf(candidate).discipline, "rallyes");
+    assert.equal(ids(candidate).some((id) => id.startsWith("clasicos-")), false);
   }
 });
 

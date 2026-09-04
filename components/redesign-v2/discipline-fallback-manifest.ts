@@ -102,6 +102,10 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("clasicos-03", "clasicos", "moto", ["clasicos", "moto", "encuentro"], "clasicos-03-motos-clasicas-encuentro-historico.webp"),
   fallback("clasicos-04", "clasicos", "coche", ["clasicos", "youngtimers", "ruta", "club"], "clasicos-04-youngtimers-ruta-club-mirador.webp"),
   fallback("clasicos-05", "clasicos", "coche", ["clasicos", "regularidad", "rally-historico"], "clasicos-05-regularidad-rally-historico-carretera.webp"),
+  fallback("clasicos-06", "clasicos", "mixto", ["clasicos", "mixto", "coche", "moto", "concentracion"], "clasicos-06-concentracion-mixta-coches-y-motos-clasicos-encuentro-exterior.webp"),
+  fallback("clasicos-07", "clasicos", "moto", ["clasicos", "moto", "velocidad", "resistencia", "asfalto", "circuito"], "clasicos-07-motos-clasicas-velocidad-asfalto-circuito-dinamico.webp"),
+  fallback("clasicos-08", "clasicos", "moto", ["clasicos", "moto", "todo-terreno-clasico", "offroad", "competicion"], "clasicos-08-motos-clasicas-todo-terreno-competicion-bosque.webp"),
+  fallback("clasicos-09", "clasicos", "mixto", ["clasicos", "mixto", "coche", "moto", "evento", "llegada", "club", "exterior"], "clasicos-09-evento-mixto-llegada-club-coches-y-motos-clasicos-exterior.webp"),
 
   fallback("karting-01", "karting", "karting", ["karting", "carrera", "outdoor"], "karting-01-carrera-grupo-curva-outdoor.webp"),
   fallback("karting-02", "karting", "karting", ["karting", "indoor", "tandas"], "karting-02-indoor-pista-cubierta-tandas.webp"),

@@ -46,6 +46,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   offroad: {
     src: "/images/redesign-v2/disciplines/hero-offroad.png",
   },
+  clasicos: {
+    src: "/images/redesign-v2/disciplines/hero-clasicos.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {
@@ -298,9 +301,13 @@ export function resolveDisciplineDetailEventImage(event: PreviewEvent): Resolved
   const [baseImage] = resolveRedesignEventImages([event]);
   if (baseImage.kind !== "representative") return baseImage;
 
-  const compatibleCandidates = resolveV2EventImageCandidates(event)
-    .filter(({ tier }) => tier <= 2)
-    .sort((left, right) => left.id.localeCompare(right.id));
+  const candidates = resolveV2EventImageCandidates(event)
+    .filter(({ tier }) => tier <= 2);
+  const compatibleCandidates = candidates[0]?.discipline === "clasicos"
+    && candidates.some(({ tier }) => tier === 1)
+    ? candidates.filter(({ tier }) => tier === 1)
+    : candidates;
+  compatibleCandidates.sort((left, right) => left.id.localeCompare(right.id));
   if (!compatibleCandidates.length) return baseImage;
 
   const stableHash = stableV2Hash(stableV2EventKey(event));

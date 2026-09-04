@@ -104,7 +104,13 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["kart", "karting", "kartodromo"])) {
     return classification("karting", "karting", "karting");
   }
+  if (includesAny(text, ["eco rally", "eco rallye", "ecorally", "ecorallye"])) {
+    return classification("rallyes", "rally", "eco rally moderno");
+  }
   const hasClassicContext = includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "classic", "historico", "historica"]);
+  if (hasClassicContext && includesPhrase(text, "todo terreno clasico")) {
+    return classification("clasicos", "todo-terreno-clasico", "todo terreno clasico");
+  }
   if (hasClassicContext && includesPhrase(text, "motocross")) {
     return classification("offroad", "motocross", "motocross clasico");
   }
@@ -124,13 +130,32 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
     return classification("offroad", "trial", "trial clasico");
   }
   if (includesAny(text, ["clasico", "clasicos", "clasica", "clasicas", "classic", "historico", "historica", "youngtimer", "youngtimers", "regularidad", "vintage", "retro"])) {
-    const subtype = includesAny(text, ["moto", "motos", "motocicleta", "motocicletas"])
-      ? "motos-clasicas"
+    const hasClassicMoto = includesAny(text, ["moto", "motos", "motocicleta", "motocicletas"]);
+    const hasClassicMotoAsphaltCompetition = hasClassicMoto && (
+      includesAny(text, [
+        "velocidad clasica",
+        "velocidad clasicas",
+        "resistencia clasica",
+        "resistencia clasicas",
+      ])
+      || (
+        includesAny(text, ["velocidad", "resistencia"])
+        && includesAny(text, ["asfalto", "circuito"])
+      )
+    );
+    const subtype = includesAny(text, ["mixto", "mixta", "coches y motos", "motos y coches"])
+      ? "clasicos-mixto"
+      : hasClassicMotoAsphaltCompetition
+        ? "motos-clasicas-asfalto"
+        : hasClassicMoto
+          ? "motos-clasicas"
       : includesAny(text, ["rally", "rallye"])
         ? "rally-historico"
         : includesAny(text, ["regularidad"])
           ? "regularidad-historica"
-          : "clasicos";
+          : includesAny(text, ["ruta", "club", "youngtimer", "youngtimers"])
+            ? "ruta-club-youngtimer"
+            : "clasicos";
     return classification("clasicos", subtype, "clasicos o regularidad historica");
   }
 
@@ -362,6 +387,8 @@ const R2_EXACT_ONLY_FALLBACK_IDS: ReadonlySet<string> = new Set([
   "circuito-18",
   "circuito-19",
   "offroad-18",
+  "clasicos-07",
+  "clasicos-08",
 ]);
 
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
@@ -387,6 +414,13 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
   "offroad:cross-country": ["offroad-15", "offroad-16"],
   "offroad:resistencia-tierra": ["offroad-18"],
+  "clasicos:motos-clasicas": ["clasicos-03"],
+  "clasicos:ruta-club-youngtimer": ["clasicos-04"],
+  "clasicos:rally-historico": ["clasicos-05"],
+  "clasicos:regularidad-historica": ["clasicos-05"],
+  "clasicos:clasicos-mixto": ["clasicos-06", "clasicos-09"],
+  "clasicos:motos-clasicas-asfalto": ["clasicos-07"],
+  "clasicos:todo-terreno-clasico": ["clasicos-08"],
 };
 
 const CLOSED_SUBTYPE_KEYS = new Set([
@@ -434,6 +468,13 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "offroad-17": ["enduro-indoor"],
   "offroad-18": ["resistencia-tierra"],
   "offroad-19": ["trial"],
+  "clasicos-03": ["motos-clasicas"],
+  "clasicos-04": ["ruta-club-youngtimer"],
+  "clasicos-05": ["rally-historico", "regularidad-historica"],
+  "clasicos-06": ["clasicos-mixto"],
+  "clasicos-07": ["motos-clasicas-asfalto"],
+  "clasicos-08": ["todo-terreno-clasico"],
+  "clasicos-09": ["clasicos-mixto"],
 };
 
 function isR2SubtypeCompatible(

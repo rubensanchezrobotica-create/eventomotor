@@ -64,8 +64,8 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.6.4A asigna heroes propios a Rallyes, Circuito, Concentraciones y Offroad mediante metadata visual", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad"]);
+test("A6.7.4A asigna heroes propios a las cinco disciplinas visualmente cerradas mediante metadata", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
@@ -78,12 +78,15 @@ test("A6.6.4A asigna heroes propios a Rallyes, Circuito, Concentraciones y Offro
   assert.deepEqual(resolveDisciplineHeroVisual("offroad"), {
     src: "/images/redesign-v2/disciplines/hero-offroad.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("clasicos"), {
+    src: "/images/redesign-v2/disciplines/hero-clasicos.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => slug !== "rallyes" && slug !== "circuito" && slug !== "concentraciones" && slug !== "offroad");
+    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos"].includes(slug));
 
-  assert.equal(otherDisciplines.length, 4);
+  assert.equal(otherDisciplines.length, 3);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
@@ -91,6 +94,7 @@ test("A6.6.4A asigna heroes propios a Rallyes, Circuito, Concentraciones y Offro
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.circuito ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.concentraciones ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.offroad ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.clasicos ?? {}), ["src"]);
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {
@@ -505,4 +509,45 @@ test("A6.3.3B conserva sin cambios la imagen real del evento", () => {
     kind: "event",
     alt: "Imagen del evento Evento real",
   });
+});
+
+test("A6.7.4A hace que Tier 1 gane a Tier 2 sólo en la selección semántica de Clásicos", () => {
+  const historicRally = event("historico", "Rally Histórico", "2026-09-12", {
+    title: "II Rallye Histórico Fuente de Cantos 2026",
+    tags: ["coche", "rally", "histórico"],
+    vehicleType: "coche",
+    vehicle_type: "coche",
+  });
+  const image = resolveDisciplineDetailEventImage(projectPreviewEvent(historicRally));
+
+  assert.match(String(image.src), /\/clasicos\/clasicos-05-/);
+  assert.equal(image.kind, "representative");
+});
+
+test("A6.7.4A mantiene públicas las disciplinas de los cruces autorizados", () => {
+  const fixtures = [
+    event("todo-terreno", "Todo Terreno Clasico", "2026-09-19", {
+      title: "Copa de España de Todo Terreno Clásico Amurrio 2026",
+      tags: ["moto", "todo terreno clasico"],
+      vehicleType: "moto",
+      vehicle_type: "moto",
+    }),
+    event("velocidad-clasica", "Velocidad", "2026-10-11", {
+      title: "Jornada de Velocidad Catalunya Calafat 2026",
+      tags: ["moto", "velocidad", "velocidad clasicas", "calafat"],
+      vehicleType: "moto",
+      vehicle_type: "moto",
+    }),
+    event("eco-rally", "Eco Rally", "2026-09-19", {
+      title: "Eco Rallye A Coruña - FIA EcoRally Cup",
+      tags: ["coche", "eco-rally", "regularidad"],
+      vehicleType: "coche",
+      vehicle_type: "coche",
+    }),
+  ];
+
+  assert.equal(buildDisciplineDetailPageModel(fixtures, "offroad", { now: NOW, page: 1 }).items[0]?.event.id, "todo-terreno");
+  assert.equal(buildDisciplineDetailPageModel(fixtures, "circuito", { now: NOW, page: 1 }).items[0]?.event.id, "velocidad-clasica");
+  assert.equal(buildDisciplineDetailPageModel(fixtures, "rallyes", { now: NOW, page: 1 }).items[0]?.event.id, "eco-rally");
+  assert.equal(buildDisciplineDetailPageModel(fixtures, "clasicos", { now: NOW, page: 1 }).totalUpcomingCount, 0);
 });
