@@ -1,5 +1,35 @@
 import type { EventItem } from "@/types/event";
 
+export type CompactSearchPresentationState = {
+  zone: string;
+  dateFilter: "todos" | "hoy" | "fin-semana" | "mes" | "30-dias";
+  vehicleFilter: "todos" | "moto" | "coche";
+  discipline: string;
+  userLocationActive?: boolean;
+};
+
+export const PREVIEW_VEHICLE_FILTERS = [
+  { id: "todos", label: "Todos" },
+  { id: "moto", label: "Motos" },
+  { id: "coche", label: "Coches" },
+] as const;
+
+export const PREVIEW_DATE_OPTIONS = [
+  { id: "todos", label: "Todas las fechas" },
+  { id: "hoy", label: "Hoy" },
+  { id: "fin-semana", label: "Este fin de semana" },
+  { id: "mes", label: "Este mes" },
+  { id: "30-dias", label: "Próximos 30 días" },
+] as const;
+
+const DATE_LABELS = Object.fromEntries(
+  PREVIEW_DATE_OPTIONS.map((option) => [option.id, option.label]),
+) as Record<CompactSearchPresentationState["dateFilter"], string>;
+
+const VEHICLE_LABELS = Object.fromEntries(
+  PREVIEW_VEHICLE_FILTERS.map((option) => [option.id, option.label]),
+) as Record<CompactSearchPresentationState["vehicleFilter"], string>;
+
 export type PreviewSuggestionKind = "evento" | "ubicacion" | "disciplina";
 
 export type PreviewSuggestion = {
@@ -63,4 +93,34 @@ export function previewResultLabel(count: number) {
 
 export function previewSearchButtonLabel(count: number) {
   return count === 1 ? "Ver 1 evento" : `Ver ${count} eventos`;
+}
+
+export function getActiveAdvancedFilterCount({
+  zone,
+  dateFilter,
+  vehicleFilter,
+  discipline,
+}: CompactSearchPresentationState) {
+  return Number(zone !== "Toda España")
+    + Number(dateFilter !== "todos")
+    + Number(vehicleFilter !== "todos")
+    + Number(discipline !== "Todas");
+}
+
+export function buildCompactFilterSummary({
+  zone,
+  dateFilter,
+  vehicleFilter,
+  discipline,
+  userLocationActive = false,
+}: CompactSearchPresentationState) {
+  const labels: string[] = [];
+
+  if (zone !== "Toda España") labels.push(zone);
+  if (dateFilter !== "todos") labels.push(DATE_LABELS[dateFilter]);
+  if (vehicleFilter !== "todos") labels.push(VEHICLE_LABELS[vehicleFilter]);
+  if (discipline !== "Todas") labels.push(discipline);
+  if (userLocationActive) labels.push("Cerca de ti primero");
+
+  return labels.join(" · ");
 }

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import ConceptHomePage from "@/components/public/concept/ConceptHomePage";
+import ConceptHomePage, { type ConceptHomeSearchPanelProps } from "@/components/public/concept/ConceptHomePage";
 import { grammaticalMonthSummary } from "@/components/public/concept/ConceptCalendar";
 import { conciseExplorerSummary } from "@/components/public/concept/ConceptEventExplorer";
 import type { EventItem } from "@/types/event";
@@ -11,11 +13,30 @@ import {
   formatPreviewZoneProvinces,
 } from "./preview-geography";
 import {
+  buildCompactFilterSummary,
   buildPreviewSuggestions,
+  type CompactSearchPresentationState,
+  getActiveAdvancedFilterCount,
   normalizePreviewText,
   previewResultLabel,
   previewSearchButtonLabel,
 } from "./search-preview-model";
+
+const testRequire = createRequire(import.meta.url);
+testRequire.extensions[".css"] = (module) => {
+  const classNames = new Proxy({}, {
+    get: (_target, property) => typeof property === "string" ? property : "",
+  });
+  module.exports = { __esModule: true, default: classNames };
+};
+
+const DEFAULT_COMPACT_SEARCH_STATE: CompactSearchPresentationState = {
+  zone: "Toda España",
+  dateFilter: "todos",
+  vehicleFilter: "todos",
+  discipline: "Todas",
+  userLocationActive: false,
+};
 
 function event(overrides: Partial<EventItem> = {}): EventItem {
   return {
@@ -46,6 +67,38 @@ function localIsoDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function searchProps(overrides: Partial<ConceptHomeSearchPanelProps> = {}): ConceptHomeSearchPanelProps {
+  return {
+    events: [event()],
+    zones: [],
+    disciplines: ["Rally", "Motocross"],
+    query: "",
+    discipline: "Todas",
+    zone: "Toda España",
+    vehicleFilter: "todos",
+    dateFilter: "todos",
+    filteredCount: 2,
+    locationLabel: "Cerca de ti",
+    locationMessage: "",
+    userLocationActive: false,
+    onSearch: () => undefined,
+    onQuery: () => undefined,
+    onDiscipline: () => undefined,
+    onZone: () => undefined,
+    onVehicle: () => undefined,
+    onDateFilter: () => undefined,
+    onUseLocation: () => undefined,
+    onClearLocation: () => undefined,
+    onClearFilters: () => undefined,
+    ...overrides,
+  };
+}
+
+async function renderSearch(overrides: Partial<ConceptHomeSearchPanelProps> = {}) {
+  const { default: SearchPreview } = await import("./SearchPreview");
+  return renderToStaticMarkup(createElement(SearchPreview, searchProps(overrides)));
 }
 
 test("normaliza búsquedas ignorando mayúsculas y acentos", () => {
@@ -118,6 +171,98 @@ test("el botón usa el recuento real con singular y plural", () => {
   assert.equal(previewSearchButtonLabel(1), "Ver 1 evento");
   assert.equal(previewSearchButtonLabel(37), "Ver 37 eventos");
   assert.equal(previewResultLabel(1), "1 evento visible");
+});
+
+test("el contador avanzado omite defaults y cuenta cada filtro aprobado", () => {
+  assert.equal(getActiveAdvancedFilterCount(DEFAULT_COMPACT_SEARCH_STATE), 0);
+  assert.equal(getActiveAdvancedFilterCount({ ...DEFAULT_COMPACT_SEARCH_STATE, zone: "Levante" }), 1);
+  assert.equal(getActiveAdvancedFilterCount({ ...DEFAULT_COMPACT_SEARCH_STATE, dateFilter: "fin-semana" }), 1);
+  assert.equal(getActiveAdvancedFilterCount({ ...DEFAULT_COMPACT_SEARCH_STATE, vehicleFilter: "moto" }), 1);
+  assert.equal(getActiveAdvancedFilterCount({ ...DEFAULT_COMPACT_SEARCH_STATE, discipline: "Rally" }), 1);
+  assert.equal(getActiveAdvancedFilterCount({
+    ...DEFAULT_COMPACT_SEARCH_STATE,
+    zone: "Levante",
+    dateFilter: "fin-semana",
+    vehicleFilter: "moto",
+    discipline: "Rally",
+  }), 4);
+});
+
+test("consulta y ubicación quedan fuera del contador avanzado", () => {
+  const stateWithVisibleQuery = { ...DEFAULT_COMPACT_SEARCH_STATE, query: "Jarama" };
+  assert.equal(getActiveAdvancedFilterCount(stateWithVisibleQuery), 0);
+  assert.equal(getActiveAdvancedFilterCount({ ...DEFAULT_COMPACT_SEARCH_STATE, userLocationActive: true }), 0);
+});
+
+test("el resumen omite defaults y conserva etiquetas y orden", () => {
+  assert.equal(buildCompactFilterSummary(DEFAULT_COMPACT_SEARCH_STATE), "");
+  assert.equal(buildCompactFilterSummary({ ...DEFAULT_COMPACT_SEARCH_STATE, zone: "Levante" }), "Levante");
+  assert.equal(
+    buildCompactFilterSummary({ ...DEFAULT_COMPACT_SEARCH_STATE, dateFilter: "fin-semana" }),
+    "Este fin de semana",
+  );
+  assert.equal(buildCompactFilterSummary({ ...DEFAULT_COMPACT_SEARCH_STATE, vehicleFilter: "moto" }), "Motos");
+  assert.equal(
+    buildCompactFilterSummary({ ...DEFAULT_COMPACT_SEARCH_STATE, discipline: "Rally Histórico" }),
+    "Rally Histórico",
+  );
+  assert.equal(buildCompactFilterSummary({
+    ...DEFAULT_COMPACT_SEARCH_STATE,
+    zone: "Levante",
+    dateFilter: "fin-semana",
+    vehicleFilter: "moto",
+    discipline: "Rally Histórico",
+  }), "Levante · Este fin de semana · Motos · Rally Histórico");
+});
+
+test("el resumen excluye query y añade ubicación como sufijo sin contarla", () => {
+  const stateWithVisibleQuery = { ...DEFAULT_COMPACT_SEARCH_STATE, query: "Jarama" };
+  assert.equal(buildCompactFilterSummary(stateWithVisibleQuery), "");
+  assert.equal(
+    buildCompactFilterSummary({ ...DEFAULT_COMPACT_SEARCH_STATE, userLocationActive: true }),
+    "Cerca de ti primero",
+  );
+  assert.equal(buildCompactFilterSummary({
+    ...DEFAULT_COMPACT_SEARCH_STATE,
+    zone: "Norte",
+    discipline: "Trial",
+    userLocationActive: true,
+  }), "Norte · Trial · Cerca de ti primero");
+});
+
+test("el buscador compacto renderiza cerrado con orden DOM y controles avanzados presentes", async () => {
+  const markup = await renderSearch();
+  const queryIndex = markup.indexOf('id="preview-home-query"');
+  const ctaIndex = markup.indexOf("Ver 2 eventos");
+  const toggleIndex = markup.indexOf("Más filtros");
+  const panelIndex = markup.indexOf('id="preview-home-advanced-filters"');
+
+  assert.match(markup, /aria-controls="preview-home-advanced-filters" aria-expanded="false"/);
+  assert.match(markup, /hidden="" id="preview-home-advanced-filters"/);
+  assert.ok(queryIndex >= 0 && queryIndex < ctaIndex);
+  assert.ok(ctaIndex < toggleIndex && toggleIndex < panelIndex);
+  assert.match(markup, /id="preview-home-zone"/);
+  assert.match(markup, /id="preview-home-date"/);
+  assert.match(markup, /id="preview-home-discipline"/);
+  assert.match(markup, /Hoy/);
+  assert.match(markup, /Este fin de semana/);
+  assert.match(markup, /Este mes/);
+  assert.match(markup, /Próximos 30 días/);
+  assert.match(markup, /aria-live="polite"/);
+});
+
+test("el CTA compacto conserva singular, plural y cero deshabilitado", async () => {
+  assert.match(await renderSearch({ filteredCount: 1 }), /Ver 1 evento/);
+  assert.match(await renderSearch({ filteredCount: 27 }), /Ver 27 eventos/);
+  assert.match(await renderSearch({ filteredCount: 0 }), /disabled="" type="submit">Sin eventos<\/button>/);
+});
+
+test("el código conserva los contratos de Enter, analytics y submit", () => {
+  const source = readFileSync(new URL("./SearchPreview.tsx", import.meta.url), "utf8");
+  assert.match(source, /if \(!suggestionsOpen \|\| !suggestions\.length\) return;/);
+  assert.match(source, /event\.key === "Enter" && activeSuggestion >= 0/);
+  assert.match(source, /event\.preventDefault\(\);\s*chooseSuggestion\(suggestions\[activeSuggestion\]\.label\);/);
+  assert.match(source, /trackEvent\("search_events", \{\s*search_term: query\.trim\(\),\s*page_path: currentPagePath\(\),\s*\}\);\s*onSearch\(\);/);
 });
 
 test("la variante concisa conserva singular y plural", () => {
