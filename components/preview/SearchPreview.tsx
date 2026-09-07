@@ -1,7 +1,8 @@
 "use client";
 
 import type { FormEvent, KeyboardEvent } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   ConceptHomeSearchPanelProps,
   DateQuickFilter,
@@ -20,6 +21,13 @@ import styles from "./SearchPreview.module.css";
 
 const QUICK_DATES = PREVIEW_DATE_OPTIONS.filter((option) => option.id !== "todos");
 const ADVANCED_FILTERS_PANEL_ID = "preview-home-advanced-filters";
+const SUGGESTIONS_GAP_PX = 7;
+
+type SuggestionsOverlayPosition = {
+  left: number;
+  top: number;
+  width: number;
+};
 
 const SUGGESTION_KIND_LABELS = {
   evento: "Evento",
@@ -53,6 +61,8 @@ export default function SearchPreview({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [suggestionsOverlayPosition, setSuggestionsOverlayPosition] = useState<SuggestionsOverlayPosition | null>(null);
+  const queryFieldRef = useRef<HTMLDivElement | null>(null);
   const suggestions = useMemo(() => buildPreviewSuggestions(events, query), [events, query]);
   const compactSearchState = {
     zone,
@@ -72,6 +82,37 @@ export default function SearchPreview({
     zone !== "Toda España" ||
     vehicleFilter !== "todos" ||
     dateFilter !== "todos";
+
+  const updateSuggestionsOverlayPosition = useCallback(() => {
+    const queryField = queryFieldRef.current;
+    if (!queryField) return;
+
+    const rect = queryField.getBoundingClientRect();
+    setSuggestionsOverlayPosition({
+      left: rect.left,
+      top: rect.bottom + SUGGESTIONS_GAP_PX,
+      width: rect.width,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!suggestionsOpen || !suggestions.length) return;
+
+    updateSuggestionsOverlayPosition();
+    window.addEventListener("resize", updateSuggestionsOverlayPosition);
+    window.addEventListener("scroll", updateSuggestionsOverlayPosition, true);
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateSuggestionsOverlayPosition);
+    if (queryFieldRef.current) resizeObserver?.observe(queryFieldRef.current);
+
+    return () => {
+      window.removeEventListener("resize", updateSuggestionsOverlayPosition);
+      window.removeEventListener("scroll", updateSuggestionsOverlayPosition, true);
+      resizeObserver?.disconnect();
+    };
+  }, [suggestions.length, suggestionsOpen, updateSuggestionsOverlayPosition]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,7 +151,7 @@ export default function SearchPreview({
   return (
     <form className={`emc-hero-search ${styles.searchPanel}`} data-preview-search="true" onSubmit={submit}>
       <div className={styles.primaryRow}>
-        <div className={`${styles.field} ${styles.queryField}`}>
+        <div className={`${styles.field} ${styles.queryField}`} ref={queryFieldRef}>
           <label htmlFor="preview-home-query">¿Qué buscas?</label>
           <input
             aria-activedescendant={activeSuggestion >= 0 ? suggestions[activeSuggestion]?.id : undefined}
@@ -122,34 +163,46 @@ export default function SearchPreview({
             onBlur={() => setSuggestionsOpen(false)}
             onChange={(event) => {
               onQuery(event.target.value);
+              updateSuggestionsOverlayPosition();
               setSuggestionsOpen(true);
               setActiveSuggestion(-1);
             }}
-            onFocus={() => setSuggestionsOpen(true)}
+            onFocus={() => {
+              updateSuggestionsOverlayPosition();
+              setSuggestionsOpen(true);
+            }}
             onKeyDown={handleQueryKeyDown}
             placeholder="Evento, circuito, ciudad…"
             role="combobox"
             value={query}
           />
-          {suggestionsOpen && suggestions.length ? (
-            <div className={styles.suggestions} id="preview-home-suggestions" role="listbox">
-              {suggestions.map((suggestion, index) => (
-                <button
-                  aria-selected={activeSuggestion === index}
-                  className={activeSuggestion === index ? styles.suggestionActive : undefined}
-                  id={suggestion.id}
-                  key={suggestion.id}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => chooseSuggestion(suggestion.label)}
-                  role="option"
-                  type="button"
+          {suggestionsOpen && suggestions.length && suggestionsOverlayPosition && typeof document !== "undefined"
+            ? createPortal(
+                <div
+                  className={`${styles.suggestions} ${styles.suggestionsOverlay}`}
+                  data-preview-suggestions-overlay="true"
+                  id="preview-home-suggestions"
+                  role="listbox"
+                  style={suggestionsOverlayPosition}
                 >
-                  <span>{SUGGESTION_KIND_LABELS[suggestion.kind]}</span>
-                  <strong>{suggestion.label}</strong>
-                </button>
-              ))}
-            </div>
-          ) : null}
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      aria-selected={activeSuggestion === index}
+                      className={activeSuggestion === index ? styles.suggestionActive : undefined}
+                      id={suggestion.id}
+                      key={suggestion.id}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => chooseSuggestion(suggestion.label)}
+                      role="option"
+                      type="button"
+                    >
+                      <span>{SUGGESTION_KIND_LABELS[suggestion.kind]}</span>
+                      <strong>{suggestion.label}</strong>
+                    </button>
+                  ))}
+                </div>,
+                document.body,
+              ) : null}
         </div>
 
         <button
