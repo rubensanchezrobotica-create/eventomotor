@@ -1,0 +1,9 @@
+[
+  { "file": "01-f1-madring-hero.webp", "width": 1200, "height": 675, "bytes": 139148, "sha256": "843a4b194507bd178e6fcaa4ddc6e0fe2f24fe5d2a2bb322915dcc20aae294f2" },
+  { "file": "02-baja-espana-aragon.webp", "width": 800, "height": 500, "bytes": 130994, "sha256": "86d40738e63f3530d1b694457417b881535384084f9bc7a0752f95680bcfb854" },
+  { "file": "03-big-twin-espana.webp", "width": 800, "height": 500, "bytes": 155400, "sha256": "0ddaff1246c3b8aecb573664538fef83489d33f94f15abde5210e1f4d504da85" },
+  { "file": "04-trial-vimianzo.webp", "width": 800, "height": 500, "bytes": 175726, "sha256": "ab456d2d7c34a35e2c12511bb32b50508ad34865eb6c39149699966e91400513" },
+  { "file": "05-eco-rally-a-coruna.webp", "width": 800, "height": 500, "bytes": 105964, "sha256": "47ee79ba144dddee5f9647f1a088dfcbc5677bdc7afa78d56e72643633cd6b66" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 38233, "sha256": "4163658063440544171d358a78b37ea0a559e2a7423d4aa9ea8ebce31d69b6bf" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]
