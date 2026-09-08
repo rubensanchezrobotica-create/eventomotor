@@ -64,8 +64,8 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.8.4A asigna heroes propios a las seis disciplinas visualmente cerradas mediante metadata", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting"]);
+test("A6.9.3A asigna heroes propios a las siete disciplinas visualmente cerradas mediante metadata", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
@@ -84,12 +84,15 @@ test("A6.8.4A asigna heroes propios a las seis disciplinas visualmente cerradas 
   assert.deepEqual(resolveDisciplineHeroVisual("karting"), {
     src: "/images/redesign-v2/disciplines/hero-karting.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("rutas"), {
+    src: "/images/redesign-v2/disciplines/hero-rutas.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting"].includes(slug));
+    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas"].includes(slug));
 
-  assert.equal(otherDisciplines.length, 2);
+  assert.equal(otherDisciplines.length, 1);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
@@ -99,6 +102,7 @@ test("A6.8.4A asigna heroes propios a las seis disciplinas visualmente cerradas 
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.offroad ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.clasicos ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.karting ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.rutas ?? {}), ["src"]);
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {
@@ -554,4 +558,21 @@ test("A6.7.4A mantiene públicas las disciplinas de los cruces autorizados", () 
   assert.equal(buildDisciplineDetailPageModel(fixtures, "circuito", { now: NOW, page: 1 }).items[0]?.event.id, "velocidad-clasica");
   assert.equal(buildDisciplineDetailPageModel(fixtures, "rallyes", { now: NOW, page: 1 }).items[0]?.event.id, "eco-rally");
   assert.equal(buildDisciplineDetailPageModel(fixtures, "clasicos", { now: NOW, page: 1 }).totalUpcomingCount, 0);
+});
+
+test("A6.9.3A mantiene todos los fallbacks de Rutas dentro de su banco y reserva Rutas 07 al grupo trail roadbook", () => {
+  const fixtures = [
+    event("rodibook", "Rutas", "2026-09-18", { title: "RodiBook 2026", tags: ["mototurismo", "ruta trail", "roadbook", "offroad"], vehicleType: "moto", vehicle_type: "moto" }),
+    event("asturcones", "Rutas", "2026-10-10", { title: "Sun To Sun Asturcones Off-road 2026", tags: ["moto", "ruta", "trail", "offroad"], vehicleType: "moto", vehicle_type: "moto" }),
+    event("toledo", "Rutas", "2026-09-26", { title: "Xtreme Challenge Toledo 2026", tags: ["moto", "ruta", "xtreme challenge", "gas biker"], vehicleType: "moto", vehicle_type: "moto" }),
+    event("piston", "Mototurismo", "2026-09-24", { title: "XXXIX Rally Pistón", tags: ["concentracion", "motos"], vehicleType: "moto", vehicle_type: "moto" }),
+  ];
+  const model = buildDisciplineDetailPageModel(fixtures, "rutas", { now: NOW, page: 1 });
+  const byId = new Map(model.items.map(({ event: item, image }) => [item.id, image]));
+
+  assert.match(String(byId.get("rodibook")?.src), /\/rutas\/rutas-07-/);
+  assert.match(String(byId.get("asturcones")?.src), /\/rutas\/rutas-07-/);
+  assert.match(String(byId.get("toledo")?.src), /\/rutas\/rutas-0[1358]-/);
+  assert.match(String(byId.get("piston")?.src), /\/rutas\/rutas-0[1358]-/);
+  assert.equal(model.items.every(({ image }) => String(image.src).includes("/rutas/")), true);
 });

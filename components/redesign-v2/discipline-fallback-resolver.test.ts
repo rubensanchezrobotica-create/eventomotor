@@ -831,14 +831,105 @@ test("la precedencia mantiene las modalidades existentes por delante de reglas g
 
 test("rutas, clásicos, ferias y karting mantienen su semántica de vehículo", () => {
   const routeMoto = resolveV2EventImageCandidates(event({ title: "Ruta de motos", discipline: "Rutas", vehicleType: "Moto" }));
-  assert.deepEqual(new Set(routeMoto.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["rutas-01", "rutas-03", "rutas-05"]));
+  assert.deepEqual(new Set(routeMoto.map(({ id }) => id)), new Set(["rutas-01", "rutas-03", "rutas-05", "rutas-08"]));
+  assert.equal(routeMoto.every(({ tier, vehicle }) => tier === 2 && vehicle === "moto"), true);
   const routeCar = resolveV2EventImageCandidates(event({ title: "Ruta de coches", discipline: "Rutas", vehicleType: "Coche" }));
-  assert.deepEqual(new Set(routeCar.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["rutas-02", "rutas-04"]));
+  assert.deepEqual(new Set(routeCar.map(({ id }) => id)), new Set(["rutas-02", "rutas-04"]));
+  assert.equal(routeCar.every(({ tier, vehicle }) => tier === 2 && vehicle === "coche"), true);
+  const routeMixed = resolveV2EventImageCandidates(event({ title: "Ruta mixta de coches y motos", discipline: "Rutas", vehicleType: "Mixto" }));
+  assert.deepEqual(routeMixed.map(({ id }) => id), ["rutas-06"]);
+  assert.equal(routeMixed[0]?.tier, 2);
+  assert.deepEqual(resolveV2EventImageCandidates(event({ title: "Ruta por carretera", discipline: "Rutas", vehicleType: "Otros" })), []);
   assert.equal(ids(event({ title: "Encuentro de motos clásicas", discipline: "Clásicos", vehicleType: "Moto" }))[0], "clasicos-03");
   assert.equal(ids(event({ title: "Salón de la moto", discipline: "Ferias", vehicleType: "Moto" }))[0], "ferias-02");
   assert.deepEqual(new Set(ids(event({ title: "Carrera de karting", discipline: "Karting", vehicleType: "Karting" }))), new Set([
     "karting-01", "karting-05", "karting-06", "karting-07",
   ]));
+});
+
+test("A6.9.3A reserva Rutas 07 a señales explícitas trail roadbook dentro de Rutas", () => {
+  const fixtures = [
+    event({ id: "rodibook", slug: "rodibook", title: "RodiBook 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["mototurismo", "ruta trail", "roadbook", "offroad"] }),
+    event({ id: "asturcones", slug: "asturcones", title: "Sun To Sun Asturcones Off-road 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["moto", "ruta", "trail", "offroad"] }),
+    event({ id: "oktoberbook", slug: "oktoberbook", title: "Oktoberbook 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["ruta trail", "offroad", "roadbook"] }),
+    event({ id: "xtreme-trail", slug: "xtreme-trail", title: "Xtreme Trail Experience Peñarroya 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["ruta trail", "offroad", "desafio"] }),
+  ];
+
+  for (const fixture of fixtures) {
+    assert.equal(classificationOf(fixture).discipline, "rutas");
+    assert.equal(classificationOf(fixture).subtype, "trail-roadbook");
+    assert.deepEqual(resolveV2EventImageCandidates(fixture).map(({ id, tier }) => [id, tier]), [["rutas-07", 1]]);
+    assert.equal(assignV2HomeEventImages([fixture])[0].fallbackId, "rutas-07");
+  }
+
+  assert.equal(ids(event({ title: "Ruta de motos por carretera", discipline: "Rutas", vehicleType: "Moto" })).includes("rutas-07"), false);
+  assert.equal(ids(event({ title: "Trail clásico", discipline: "Offroad", vehicleType: "Moto", tags: ["trail"] })).includes("rutas-07"), false);
+});
+
+test("A6.9.3C-R1 limita Rutas 08 al pool genérico Tier 2 de moto", () => {
+  const genericMoto = resolveV2EventImageCandidates(event({
+    title: "Ruta de motos por carretera",
+    discipline: "Rutas",
+    vehicleType: "Moto",
+  }));
+  const rutas08 = genericMoto.find(({ id }) => id === "rutas-08");
+  assert.ok(rutas08);
+  assert.equal(rutas08.vehicle, "moto");
+  assert.equal(rutas08.tier, 2);
+
+  for (const vehicleType of ["Coche", "Mixto", "Otros"] as const) {
+    const candidates = resolveV2EventImageCandidates(event({
+      title: "Ruta por carretera",
+      discipline: "Rutas",
+      vehicleType,
+    }));
+    assert.equal(candidates.some(({ id }) => id === "rutas-08"), false, vehicleType);
+  }
+
+  const trail = resolveV2EventImageCandidates(event({
+    title: "Ruta trail con roadbook",
+    discipline: "Rutas",
+    vehicleType: "Moto",
+    tags: ["trail", "roadbook"],
+  }));
+  assert.deepEqual(trail.map(({ id, tier }) => [id, tier]), [["rutas-07", 1]]);
+});
+
+test("A6.9.3A conserva la disciplina y el vehículo primarios de Rutas ante señales incidentales", () => {
+  const fixtures = [
+    event({ title: "Xtreme Challenge Toledo 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["moto", "ruta", "xtreme challenge", "gas biker"] }),
+    event({ title: "XXXIX Rally Pistón", discipline: "Mototurismo", vehicleType: "Moto", tags: ["concentracion", "motos"] }),
+    event({ title: "Ruta Motera Sierra", discipline: "Ruta motera", vehicleType: "Moto", tags: ["concentracion", "motos", "ruta-motera"] }),
+    event({ title: "Ruta Motera Otoño", discipline: "Ruta motera", vehicleType: "Moto", tags: ["concentracion", "motos", "ruta-motera"] }),
+    event({ title: "Ruta Motera Invernal", discipline: "Ruta motera", vehicleType: "Moto", tags: ["concentracion", "motos", "ruta-motera"] }),
+    event({ title: "Ruta Motera Invierno", discipline: "Ruta motera", vehicleType: "Moto", tags: ["concentracion", "motos", "ruta-motera"] }),
+  ];
+
+  for (const fixture of fixtures) {
+    const classification = classificationOf(fixture);
+    assert.equal(classification.discipline, "rutas");
+    assert.equal(classification.vehicle, "moto");
+    const candidates = resolveV2EventImageCandidates(fixture);
+    assert.equal(candidates.length > 0, true);
+    assert.equal(candidates.every(({ id, vehicle }) => /^rutas-0[1358]$/.test(id) && vehicle === "moto"), true);
+  }
+});
+
+test("A6.9.3A hace que el Tier 1 de Rutas excluya candidatos Tier 2 sin cambiar hash ni seed", () => {
+  const north = event({
+    id: "cabo-norte",
+    slug: "ruta-en-moto-cabo-norte-2026-09-01",
+    title: "Ruta en Moto Cabo Norte 2026",
+    discipline: "Rutas",
+    vehicleType: "Moto",
+    tags: ["moto", "ruta", "mototurismo", "cabo norte", "noruega"],
+  });
+  const candidates = resolveV2EventImageCandidates(north);
+
+  assert.deepEqual(candidates.map(({ id, tier }) => [id, tier]), [["rutas-05", 1]]);
+  assert.equal(assignV2HomeEventImages([north])[0].fallbackId, "rutas-05");
+  assert.match(resolverSource, /stableV2Hash/);
+  assert.doesNotMatch(resolverSource, /RUTAS[^\n]*(?:HASH|SEED)|(?:HASH|SEED)[^\n]*RUTAS/i);
 });
 
 test("A6.8.4A limita el pool genérico de Karting a 01, 05, 06 y 07", () => {

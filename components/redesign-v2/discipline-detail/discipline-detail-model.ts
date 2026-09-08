@@ -52,6 +52,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   karting: {
     src: "/images/redesign-v2/disciplines/hero-karting.png",
   },
+  rutas: {
+    src: "/images/redesign-v2/disciplines/hero-rutas.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {

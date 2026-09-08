@@ -121,6 +121,8 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("rutas-04", "rutas", "coche", ["rutas", "coche", "bosque", "norte"], "rutas-04-coches-norte-verde-bosque.webp"),
   fallback("rutas-05", "rutas", "moto", ["rutas", "moto", "montana", "norte"], "rutas-05-motos-norte-verde-montana.webp"),
   fallback("rutas-06", "rutas", "mixto", ["rutas", "mixto", "coche", "moto", "parada", "mirador"], "rutas-06-parada-ruta-coches-motos.webp"),
+  fallback("rutas-07", "rutas", "moto", ["rutas", "moto", "trail", "roadbook", "navegacion", "adventure", "offroad", "pista", "viaje"], "rutas-07-trail-roadbook-navegacion-adventure-pista-facil-viaje-motor.webp"),
+  fallback("rutas-08", "rutas", "moto", ["rutas", "moto"], "rutas-08-touring-carretera-interior-dos-motos-curva-bosque-perspectiva-trasera-lateral.webp"),
 
   fallback("ferias-01", "ferias", "coche", ["ferias", "salon-automovil", "coche"], "ferias-01-salon-automovil-coche-stand.webp"),
   fallback("ferias-02", "ferias", "moto", ["ferias", "salon-moto", "moto"], "ferias-02-salon-moto-stand-publico.webp"),

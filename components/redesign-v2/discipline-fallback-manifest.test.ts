@@ -15,7 +15,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   offroad: 19,
   clasicos: 9,
   karting: 7,
-  rutas: 6,
+  rutas: 8,
   ferias: 5,
 };
 
@@ -55,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 87 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 87);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 87);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 87);
+test("el manifiesto contiene exactamente los 89 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 89);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 89);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 89);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -68,6 +68,71 @@ test("el manifiesto contiene exactamente los 87 fallbacks aprobados", () => {
     ]),
   );
   assert.deepEqual(distribution, EXPECTED_DISTRIBUTION);
+});
+
+test("A6.9.3A registra Rutas 07 como fallback especializado trail y roadbook", async () => {
+  const image = V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === "rutas-07");
+  assert.ok(image);
+  assert.equal(image.discipline, "rutas");
+  assert.equal(image.vehicle, "moto");
+  assert.equal(image.src, "/images/disciplines/fallbacks/rutas/rutas-07-trail-roadbook-navegacion-adventure-pista-facil-viaje-motor.webp");
+  assert.deepEqual(image.tags, ["rutas", "moto", "trail", "roadbook", "navegacion", "adventure", "offroad", "pista", "viaje"]);
+
+  const file = new URL(`../../public${image.src}`, import.meta.url);
+  const metadata = await sharp(readFileSync(file)).metadata();
+  assert.equal(metadata.format, "webp");
+  assert.equal(metadata.width, 1200);
+  assert.equal(metadata.height, 800);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+  assert.equal(
+    createHash("sha256").update(readFileSync(file)).digest("hex"),
+    "1978a60303c2fd1605361f802af68d865da88c3363708a77355bd6d09028fa0e",
+  );
+});
+
+test("A6.9.3C-R1 registra Rutas 08 como fallback genérico moto con el asset aprobado", async () => {
+  const image = V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === "rutas-08");
+  assert.ok(image);
+  assert.equal(image.discipline, "rutas");
+  assert.equal(image.vehicle, "moto");
+  assert.equal(image.src, "/images/disciplines/fallbacks/rutas/rutas-08-touring-carretera-interior-dos-motos-curva-bosque-perspectiva-trasera-lateral.webp");
+  assert.deepEqual(image.tags, ["rutas", "moto"]);
+
+  const file = new URL(`../../public${image.src}`, import.meta.url);
+  const bytes = readFileSync(file);
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, "webp");
+  assert.equal(metadata.width, 1200);
+  assert.equal(metadata.height, 800);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+  assert.equal(
+    createHash("sha256").update(bytes).digest("hex"),
+    "0b080a61da53ea6e977ff882cdfab0918b512dc326ffeec1aab0f04a07de131f",
+  );
+});
+
+test("Rutas 01 a 06 permanecen congelados byte por byte", () => {
+  const expectedHashes = new Map([
+    ["rutas-01", "6c4a518aa77548e05daa28d7b2116aee5cb29dbcdc14976be91e8421b03a89a7"],
+    ["rutas-02", "f3d98943cab79d3b6f7400580721679354e7aaf86ffb18a53ddd2673a5578eab"],
+    ["rutas-03", "95d8f66aec76ee1f359da92b0e13aab8326a11cd7a2e69eb261f5f65d5d30d3f"],
+    ["rutas-04", "e0d7ed317234268bfeddf336c4e6f645d28edd667945e31f108f18302f842560"],
+    ["rutas-05", "23bdbed6f27d10a20f1185212200319665379a2abcbbbcdbbf292bd4b7460809"],
+    ["rutas-06", "2b568cc242bbb743ecd34bba63c7b5e56264cd0d9cf4afa540bcd34863d856c6"],
+  ]);
+
+  for (const [id, expectedHash] of expectedHashes) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    const file = new URL(`../../public${image.src}`, import.meta.url);
+    assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
+  }
 });
 
 test("A6.8.4A registra los dos fallbacks genéricos de Karting con sus metadatos técnicos", async () => {
@@ -333,4 +398,6 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("concentraciones-09")?.tags, ["motoalmuerzo", "almuerzo-motero", "matinal", "zona-rural", "encuentro-matinal", "motos", "social"]);
   assert.deepEqual(byId.get("offroad-16")?.tags, ["cross-country", "crosscountry", "xc", "terreno-verde", "dos-motos", "pista-rapida", "resistencia", "campo-abierto"]);
   assert.deepEqual(byId.get("offroad-17")?.tags, ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"]);
+  assert.deepEqual(byId.get("rutas-07")?.tags, ["rutas", "moto", "trail", "roadbook", "navegacion", "adventure", "offroad", "pista", "viaje"]);
+  assert.deepEqual(byId.get("rutas-08")?.tags, ["rutas", "moto"]);
 });

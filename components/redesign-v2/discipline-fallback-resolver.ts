@@ -19,6 +19,7 @@ export type V2FallbackEvent = {
   region?: string | null;
   tags?: readonly string[] | null;
   vehicleType?: string | null;
+  vehicle_type?: string | null;
   imageUrl?: string | null;
 };
 
@@ -329,6 +330,29 @@ const PRIMARY_P0_SUBTYPES = new Set([
   "rallymix",
 ]);
 
+const RUTAS_TRAIL_ROADBOOK_SIGNALS = [
+  "roadbook",
+  "road book",
+  "rodibook",
+  "trail",
+  "ruta trail",
+  "trail experience",
+  "offroad",
+  "off road",
+  "off-road",
+  "adventure",
+  "navigation",
+  "navegacion",
+] as const;
+
+function explicitRutasVehicle(event: V2FallbackEvent): FallbackVehicle | null {
+  const vehicle = normalize(event.vehicleType ?? event.vehicle_type);
+  if (["moto", "motos", "motocicleta", "motocicletas", "motociclismo"].includes(vehicle)) return "moto";
+  if (["coche", "coches", "automovil", "automoviles", "automovilismo"].includes(vehicle)) return "coche";
+  if (["mixto", "mixta", "coches y motos", "motos y coches"].includes(vehicle)) return "mixto";
+  return null;
+}
+
 function classifyVehicle(text: string, discipline: FallbackDiscipline): FallbackVehicle {
   if (discipline === "karting") return "karting";
 
@@ -360,17 +384,26 @@ export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClass
   const inferredDiscipline = classifyDiscipline(text);
   const primaryText = normalize(event.discipline);
   const primaryDiscipline = classifyDiscipline(primaryText);
+  const primaryIsRutas = primaryDiscipline?.discipline === "rutas";
   const primaryIsP0 = PRIMARY_P0_SUBTYPES.has(primaryDiscipline?.subtype ?? "")
     || (primaryText === "enduret" && primaryDiscipline?.subtype === "enduro");
-  const discipline = primaryDiscipline
+  const discipline = primaryIsRutas
+    ? includesAny(text, RUTAS_TRAIL_ROADBOOK_SIGNALS)
+      ? classification("rutas", "trail-roadbook", "ruta trail, roadbook o navegacion adventure")
+      : primaryDiscipline
+    : primaryDiscipline
     && inferredDiscipline?.discipline === primaryDiscipline.discipline
     && primaryIsP0
     ? primaryDiscipline
     : inferredDiscipline ?? primaryDiscipline;
   if (!discipline) return null;
+  const vehicle = primaryIsRutas
+    ? explicitRutasVehicle(event)
+    : classifyVehicle(text, discipline.discipline);
+  if (!vehicle) return null;
   return {
     ...discipline,
-    vehicle: classifyVehicle(text, discipline.discipline),
+    vehicle,
   };
 }
 
@@ -406,6 +439,8 @@ const KARTING_GENERIC_FALLBACK_IDS: ReadonlySet<string> = new Set([
   "karting-06",
   "karting-07",
 ]);
+
+const RUTAS_TRAIL_ROADBOOK_FALLBACK_ID = "rutas-07";
 
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
   "circuito:trackday": ["circuito-03", "circuito-08", "circuito-16"],
@@ -556,6 +591,12 @@ function candidateTier(
   candidate: V2FallbackImage,
 ): 1 | 2 | 3 | 4 | null {
   if (candidate.discipline !== classification.discipline) return null;
+  if (classification.discipline === "rutas") {
+    if (candidate.vehicle !== classification.vehicle) return null;
+    if (candidate.id === RUTAS_TRAIL_ROADBOOK_FALLBACK_ID) {
+      return classification.subtype === "trail-roadbook" ? 1 : null;
+    }
+  }
   if (!isExplicitVehicleCompatible(event, classification, candidate)) return null;
   const closedFallbackIds = closedSubtypeFallbackIds(event, classification);
   if (closedFallbackIds && !closedFallbackIds.includes(candidate.id)) return null;
@@ -602,7 +643,7 @@ export function resolveV2EventImageCandidates(
   if (!classification) return [];
   const stableKey = stableV2EventKey(event);
 
-  return manifest
+  const candidates = manifest
     .map((candidate) => {
       const tier = candidateTier(event, classification, candidate);
       if (!tier) return null;
@@ -622,6 +663,12 @@ export function resolveV2EventImageCandidates(
       const rightRank = stableV2Hash(`${stableKey}:${right.id}`);
       return leftRank - rightRank || left.id.localeCompare(right.id);
     });
+
+  if (classification.discipline === "rutas") {
+    const tierOne = candidates.filter(({ tier }) => tier === 1);
+    if (tierOne.length) return tierOne;
+  }
+  return candidates;
 }
 
 export function isValidV2EventImageSource(value: string | null | undefined): boolean {
