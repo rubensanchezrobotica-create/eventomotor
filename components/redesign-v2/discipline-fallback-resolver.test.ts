@@ -831,7 +831,7 @@ test("la precedencia mantiene las modalidades existentes por delante de reglas g
 
 test("rutas, clásicos, ferias y karting mantienen su semántica de vehículo", () => {
   const routeMoto = resolveV2EventImageCandidates(event({ title: "Ruta de motos", discipline: "Rutas", vehicleType: "Moto" }));
-  assert.deepEqual(new Set(routeMoto.map(({ id }) => id)), new Set(["rutas-01", "rutas-03", "rutas-05", "rutas-08"]));
+  assert.deepEqual(new Set(routeMoto.map(({ id }) => id)), new Set(["rutas-01", "rutas-03", "rutas-05", "rutas-08", "rutas-09"]));
   assert.equal(routeMoto.every(({ tier, vehicle }) => tier === 2 && vehicle === "moto"), true);
   const routeCar = resolveV2EventImageCandidates(event({ title: "Ruta de coches", discipline: "Rutas", vehicleType: "Coche" }));
   assert.deepEqual(new Set(routeCar.map(({ id }) => id)), new Set(["rutas-02", "rutas-04"]));
@@ -895,6 +895,35 @@ test("A6.9.3C-R1 limita Rutas 08 al pool genérico Tier 2 de moto", () => {
   assert.deepEqual(trail.map(({ id, tier }) => [id, tier]), [["rutas-07", 1]]);
 });
 
+test("A6.9.5 limita Rutas 09 al pool genérico Tier 2 de moto", () => {
+  const genericMoto = resolveV2EventImageCandidates(event({
+    title: "Ruta de motos por carretera",
+    discipline: "Rutas",
+    vehicleType: "Moto",
+  }));
+  const rutas09 = genericMoto.find(({ id }) => id === "rutas-09");
+  assert.ok(rutas09);
+  assert.equal(rutas09.vehicle, "moto");
+  assert.equal(rutas09.tier, 2);
+
+  for (const vehicleType of ["Coche", "Mixto", "Otros"] as const) {
+    const candidates = resolveV2EventImageCandidates(event({
+      title: "Ruta por carretera",
+      discipline: "Rutas",
+      vehicleType,
+    }));
+    assert.equal(candidates.some(({ id }) => id === "rutas-09"), false, vehicleType);
+  }
+
+  const trail = resolveV2EventImageCandidates(event({
+    title: "Ruta trail con roadbook",
+    discipline: "Rutas",
+    vehicleType: "Moto",
+    tags: ["trail", "roadbook"],
+  }));
+  assert.deepEqual(trail.map(({ id, tier }) => [id, tier]), [["rutas-07", 1]]);
+});
+
 test("A6.9.3A conserva la disciplina y el vehículo primarios de Rutas ante señales incidentales", () => {
   const fixtures = [
     event({ title: "Xtreme Challenge Toledo 2026", discipline: "Rutas", vehicleType: "Moto", tags: ["moto", "ruta", "xtreme challenge", "gas biker"] }),
@@ -911,7 +940,7 @@ test("A6.9.3A conserva la disciplina y el vehículo primarios de Rutas ante señ
     assert.equal(classification.vehicle, "moto");
     const candidates = resolveV2EventImageCandidates(fixture);
     assert.equal(candidates.length > 0, true);
-    assert.equal(candidates.every(({ id, vehicle }) => /^rutas-0[1358]$/.test(id) && vehicle === "moto"), true);
+    assert.equal(candidates.every(({ id, vehicle }) => /^rutas-0[13589]$/.test(id) && vehicle === "moto"), true);
   }
 });
 

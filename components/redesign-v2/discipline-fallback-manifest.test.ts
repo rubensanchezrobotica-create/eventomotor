@@ -15,7 +15,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   offroad: 19,
   clasicos: 9,
   karting: 7,
-  rutas: 8,
+  rutas: 9,
   ferias: 5,
 };
 
@@ -55,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 89 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 89);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 89);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 89);
+test("el manifiesto contiene exactamente los 90 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 90);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 90);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 90);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -114,6 +114,30 @@ test("A6.9.3C-R1 registra Rutas 08 como fallback genérico moto con el asset apr
   assert.equal(
     createHash("sha256").update(bytes).digest("hex"),
     "0b080a61da53ea6e977ff882cdfab0918b512dc326ffeec1aab0f04a07de131f",
+  );
+});
+
+test("A6.9.5 registra Rutas 09 como fallback genérico moto con el asset aprobado", async () => {
+  const image = V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === "rutas-09");
+  assert.ok(image);
+  assert.equal(image.discipline, "rutas");
+  assert.equal(image.vehicle, "moto");
+  assert.equal(image.src, "/images/disciplines/fallbacks/rutas/rutas-09-touring-carretera-interior-seca-dos-motos-paisaje-mediterraneo-tres-cuartos.webp");
+  assert.deepEqual(image.tags, ["rutas", "moto"]);
+
+  const file = new URL(`../../public${image.src}`, import.meta.url);
+  const bytes = readFileSync(file);
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, "webp");
+  assert.equal(metadata.width, 1200);
+  assert.equal(metadata.height, 800);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+  assert.equal(
+    createHash("sha256").update(bytes).digest("hex"),
+    "5f7526df6511181e7687108c3b6e25f124ec51f809f1fc8077a12173ee8641b4",
   );
 });
 
@@ -400,4 +424,5 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("offroad-17")?.tags, ["enduro", "enduro-indoor", "superenduro", "indoor", "neumaticos", "escalones", "obstaculos", "recinto-luminoso"]);
   assert.deepEqual(byId.get("rutas-07")?.tags, ["rutas", "moto", "trail", "roadbook", "navegacion", "adventure", "offroad", "pista", "viaje"]);
   assert.deepEqual(byId.get("rutas-08")?.tags, ["rutas", "moto"]);
+  assert.deepEqual(byId.get("rutas-09")?.tags, ["rutas", "moto"]);
 });

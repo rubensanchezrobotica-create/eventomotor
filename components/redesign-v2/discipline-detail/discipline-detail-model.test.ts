@@ -572,7 +572,7 @@ test("A6.9.3A mantiene todos los fallbacks de Rutas dentro de su banco y reserva
 
   assert.match(String(byId.get("rodibook")?.src), /\/rutas\/rutas-07-/);
   assert.match(String(byId.get("asturcones")?.src), /\/rutas\/rutas-07-/);
-  assert.match(String(byId.get("toledo")?.src), /\/rutas\/rutas-0[1358]-/);
-  assert.match(String(byId.get("piston")?.src), /\/rutas\/rutas-0[1358]-/);
+  assert.match(String(byId.get("toledo")?.src), /\/rutas\/rutas-0[13589]-/);
+  assert.match(String(byId.get("piston")?.src), /\/rutas\/rutas-0[13589]-/);
   assert.equal(model.items.every(({ image }) => String(image.src).includes("/rutas/")), true);
 });
