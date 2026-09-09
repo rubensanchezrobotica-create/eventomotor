@@ -250,8 +250,10 @@ export function buildEventJsonLd(
   description: string,
 ) {
   const officialUrl = cleanText(event.officialUrl) || cleanText(event.sourceUrl);
-  const organizerName = cleanText(event.organizerName) || cleanText(event.source);
-  const organizerUrl = cleanText(event.organizerUrl) || cleanText(event.sourceUrl);
+  const explicitOrganizerName = cleanText(event.organizerName);
+  const organizerName = explicitOrganizerName || cleanText(event.source);
+  const organizerUrl = cleanText(event.organizerUrl)
+    || (!explicitOrganizerName ? cleanText(event.sourceUrl) : "");
   const location: Record<string, unknown> = {
     "@type": "Place",
     name: event.venue || event.city || "Por confirmar",
@@ -295,7 +297,7 @@ export function buildEventJsonLd(
     jsonLd.organizer = {
       "@type": "Organization",
       name: organizerName,
-      url: organizerUrl || undefined,
+      ...(organizerUrl ? { url: organizerUrl } : {}),
     };
   }
 

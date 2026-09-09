@@ -99,16 +99,8 @@ function publicSourceUrl(value: string | null | undefined) {
   const url = parseHttpUrl(value);
   if (!url || url.username || url.password) return null;
 
-  const decoded = (() => {
-    try {
-      return decodeURIComponent(url.href);
-    } catch {
-      return url.href;
-    }
-  })();
   const hostnameDigits = url.hostname.replace(/\D/g, "");
 
-  if (UUID_PATTERN.test(decoded) || EMAIL_PATTERN.test(decoded) || containsPhoneLikeValue(decoded)) return null;
   if (hostnameDigits.length >= 9 && !/[a-z]/i.test(url.hostname)) return null;
 
   return url;

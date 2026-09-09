@@ -330,6 +330,66 @@ test("Event JSON-LD usa datos reales y no inventa ofertas, precio ni coordenadas
   assert.equal("geo" in location, false);
 });
 
+test("Event JSON-LD conserva la identidad semántica del organizador", () => {
+  const fctaUrl = "https://www.fcta.es/competiciones/1c1357bf-c552-4993-96d9-3d9c42bdc225";
+  const municipalUrl = "https://aytovaldemorillo.com/xv-concentracion-clasicos-sierra-oeste-de-madrid/";
+  const cefmxUrl = "https://cefmx.com/";
+  const cefmxEventUrl = "https://cefmx.com/eventos/freestyle-murcia-2026/";
+
+  const faldaJsonLd = buildEventJsonLd(eventFixture({
+    organizerName: "Heras Sport",
+    organizerUrl: "",
+    source: "Federación Cántabra de Automovilismo",
+    sourceUrl: fctaUrl,
+    officialUrl: fctaUrl,
+  }), CANONICAL, IMAGE, SEO_DESCRIPTION);
+  assert.deepEqual(faldaJsonLd.organizer, {
+    "@type": "Organization",
+    name: "Heras Sport",
+  });
+  assert.equal(faldaJsonLd.sameAs, fctaUrl);
+
+  const cefmxJsonLd = buildEventJsonLd(eventFixture({
+    organizerName: "CEFMX",
+    organizerUrl: cefmxUrl,
+    source: "CEFMX",
+    sourceUrl: cefmxEventUrl,
+    officialUrl: cefmxEventUrl,
+  }), CANONICAL, IMAGE, SEO_DESCRIPTION);
+  assert.deepEqual(cefmxJsonLd.organizer, {
+    "@type": "Organization",
+    name: "CEFMX",
+    url: cefmxUrl,
+  });
+
+  const valdemorilloJsonLd = buildEventJsonLd(eventFixture({
+    organizerName: "Asociación Clásicos Ruta Imperial",
+    organizerUrl: "",
+    source: "Ayuntamiento de Valdemorillo",
+    sourceUrl: municipalUrl,
+    officialUrl: municipalUrl,
+  }), CANONICAL, IMAGE, SEO_DESCRIPTION);
+  assert.deepEqual(valdemorilloJsonLd.organizer, {
+    "@type": "Organization",
+    name: "Asociación Clásicos Ruta Imperial",
+  });
+  assert.equal(valdemorilloJsonLd.sameAs, municipalUrl);
+
+  const sourceFallbackJsonLd = buildEventJsonLd(eventFixture({
+    organizerName: "",
+    organizerUrl: "",
+    source: "Federación de prueba",
+    sourceUrl: "https://federacion.example/evento",
+    officialUrl: "",
+  }), CANONICAL, IMAGE, SEO_DESCRIPTION);
+  assert.deepEqual(sourceFallbackJsonLd.organizer, {
+    "@type": "Organization",
+    name: "Federación de prueba",
+    url: "https://federacion.example/evento",
+  });
+  assert.equal(sourceFallbackJsonLd.sameAs, "https://federacion.example/evento");
+});
+
 test("los títulos editoriales preexistentes ignoran la plantilla sin duplicar la marca", () => {
   const page = getOpportunityPage("eventos-motor-castilla-y-leon");
   const metadata = buildOpportunityMetadata(page);
