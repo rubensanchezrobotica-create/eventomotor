@@ -10,6 +10,7 @@ import RegionalEventCard from "./RegionalEventCard";
 import RegionalLandingAnalytics from "./RegionalLandingAnalytics";
 import RegionalTrackedDetails from "./RegionalTrackedDetails";
 import {
+  filterRegionalEventCollection,
   filterRegionalLandingEvents,
   normalizeRegionalText,
   REGIONAL_DESKTOP_LIMIT,
@@ -167,8 +168,10 @@ function RegionalEmptyState({
 
 function RegionalHistory({
   model,
-}: Pick<RegionalLandingProps, "model">) {
-  if (!model.pastEvents.length) return null;
+  query,
+}: Pick<RegionalLandingProps, "model" | "query">) {
+  const filteredPastEvents = filterRegionalEventCollection(model.pastEvents, model, query);
+  if (!filteredPastEvents.length) return null;
 
   return (
     <section className={styles.historySection}>
@@ -180,12 +183,12 @@ function RegionalHistory({
           <summary>
             <span>
               <small>Archivo regional</small>
-              Ver {model.pastEvents.length} {model.pastEvents.length === 1 ? "evento celebrado" : "eventos celebrados"} en {model.config.name}
+              Ver {filteredPastEvents.length} {filteredPastEvents.length === 1 ? "evento celebrado" : "eventos celebrados"} en {model.config.name}
             </span>
             <span aria-hidden="true">+</span>
           </summary>
           <div className={styles.historyList}>
-            {model.pastEvents.slice(0, 12).map((event) => (
+            {filteredPastEvents.slice(0, 12).map((event) => (
               <Link href={`/evento/${event.slug || event.id}`} key={eventKey(event)}>
                 <strong>{event.title}</strong>
                 <span>{event.start} · {event.city}, {event.province}</span>
@@ -354,7 +357,7 @@ export default function RegionalLanding({
           </section>
         ) : null}
 
-        <RegionalHistory model={model} />
+        <RegionalHistory model={model} query={query} />
 
         <section className={styles.editorialSection}>
           <div className={`emc-container ${styles.editorialCard}`}>
