@@ -1,0 +1,341 @@
+.section {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  margin-top: -72px;
+  padding: 20px 0 clamp(68px, 8vw, 104px);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(255, 98, 0, 0.1), transparent 25rem),
+    linear-gradient(180deg, #090c10 0%, #07090c 100%);
+}
+
+.shell {
+  width: min(1188px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.intro {
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #ff6200;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 24px;
+  height: 2px;
+  content: "";
+  background: currentColor;
+}
+
+.intro h2,
+.cities h2 {
+  margin: 10px 0 0;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(2rem, 3.4vw, 3.2rem);
+  font-stretch: condensed;
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.activitySummary {
+  max-width: 250px;
+  margin: 12px 0 0;
+  color: #949ba4;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > li {
+  min-width: 0;
+}
+
+.card {
+  min-width: 0;
+  min-height: 218px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid #29313a;
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, rgba(255, 98, 0, 0.055), transparent 48%),
+    #10151b;
+}
+
+.cardHeading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cardHeading h3 {
+  min-width: 0;
+  margin: 0;
+  color: #f7f7f4;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.32rem, 2vw, 1.72rem);
+  font-stretch: condensed;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.cardHeading strong {
+  flex: 0 0 auto;
+  color: #ff6200;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 2rem;
+  font-stretch: condensed;
+  font-weight: 900;
+  line-height: 0.9;
+}
+
+.eventCount,
+.provinceCount {
+  margin: 0;
+}
+
+.eventCount {
+  margin-top: 15px;
+  color: #d9dce1;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.provinceCount {
+  margin-top: 5px;
+  color: #8f969f;
+  font-size: 0.76rem;
+}
+
+.cardLink,
+.preparingStatus {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  margin-top: auto;
+  padding-top: 14px;
+  color: #f2f2ef;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.cardLink {
+  transition: color 160ms ease;
+}
+
+.cardLink span {
+  color: #ff6200;
+  font-size: 1.18rem;
+}
+
+.cardLink:hover {
+  color: #ff7a27;
+}
+
+.preparingStatus {
+  color: #8f969f;
+  font-weight: 700;
+}
+
+.cities {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: clamp(28px, 5vw, 72px);
+  margin-top: 30px;
+  padding: clamp(26px, 4vw, 42px);
+  border: 1px solid #252c34;
+  border-radius: 10px;
+  background: #0c1116;
+}
+
+.cities header > p {
+  max-width: 440px;
+  margin: 14px 0 0;
+  color: #969da6;
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.cities h2 {
+  font-size: clamp(1.75rem, 3vw, 2.55rem);
+}
+
+.cities ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cities li {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-left: 2px solid #ff6200;
+  background: #12171d;
+}
+
+.cities li strong {
+  color: #f4f4f1;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 1.35rem;
+  font-stretch: condensed;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cities li > span {
+  margin-top: 8px;
+  color: #b4b9c0;
+  font-size: 0.78rem;
+}
+
+.cities li .cityStatus {
+  margin-top: auto;
+  padding-top: 22px;
+  color: #7f8790;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cities {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 761px) {
+  .section {
+    margin-top: -40px;
+  }
+
+  :global(#contenido-redesign-v2-interior):has(> .section) > :first-child {
+    min-height: clamp(285px, 31vw, 385px);
+  }
+
+  :global(#contenido-redesign-v2-interior):has(> .section) > :first-child > div {
+    padding-bottom: clamp(50px, 6vw, 72px);
+  }
+
+  :global(#contenido-redesign-v2-interior):has(> .section) > :first-child > div > nav + span {
+    margin-top: clamp(34px, 4.4vw, 52px);
+  }
+}
+
+@media (max-width: 600px) {
+  .section {
+    margin-top: -24px;
+    padding: 14px 0 58px;
+  }
+
+  .shell {
+    width: calc(100% - 32px);
+  }
+
+  .intro {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .intro h2 {
+    font-size: clamp(1.9rem, 10vw, 2.45rem);
+  }
+
+  .activitySummary {
+    max-width: none;
+    margin-top: 12px;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .card {
+    min-height: 174px;
+    padding: 18px;
+  }
+
+  .cardHeading h3 {
+    font-size: 1.3rem;
+  }
+
+  .cardHeading strong {
+    font-size: 1.75rem;
+  }
+
+  .cities {
+    gap: 24px;
+    margin-top: 22px;
+    padding: 22px 18px;
+  }
+
+  .cities ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cities li {
+    min-height: 130px;
+    padding: 17px;
+  }
+}
+
+@media (max-width: 350px) {
+  .shell {
+    width: calc(100% - 28px);
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .cardHeading {
+    gap: 12px;
+  }
+
+  .cardHeading h3 {
+    font-size: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardLink {
+    transition: none;
+  }
+}
