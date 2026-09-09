@@ -130,4 +130,6 @@ export const V2_DISCIPLINE_FALLBACKS = [
   fallback("ferias-03", "ferias", "coche", ["ferias", "clasicos", "coche"], "ferias-03-clasicos-pabellon-clubes.webp"),
   fallback("ferias-04", "ferias", "coche", ["ferias", "aftermarket", "preparacion"], "ferias-04-aftermarket-preparacion-componentes.webp"),
   fallback("ferias-05", "ferias", "mixto", ["ferias", "general", "coche", "moto", "pabellon"], "ferias-05-gran-pabellon-coches-motos.webp"),
+  fallback("ferias-06", "ferias", "mixto", ["ferias", "neutral", "movilidad-profesional", "transporte", "bus", "camper", "caravaning", "otros"], "ferias-06-pabellon-neutral-movilidad-exposicion-profesional-publico-vehiculos-diversos.webp"),
+  fallback("ferias-07", "ferias", "coche", ["ferias", "general", "salon-automovil", "coche", "pabellon", "publico"], "ferias-07-salon-automovil-general-varios-coches-pabellon-publico.webp"),
 ] as const satisfies readonly V2FallbackImage[];

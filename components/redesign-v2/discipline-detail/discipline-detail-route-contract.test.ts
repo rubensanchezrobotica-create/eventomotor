@@ -43,6 +43,10 @@ const rutasHero = readFileSync(join(
   process.cwd(),
   "public/images/redesign-v2/disciplines/hero-rutas.png",
 ));
+const feriasHero = readFileSync(join(
+  process.cwd(),
+  "public/images/redesign-v2/disciplines/hero-ferias.png",
+));
 
 test("A6 crea una sola ruta dinámica, server-first y con un único fetch visible", () => {
   assert.match(route, /params:\s*Promise<\{ slug: string \}>/);
@@ -79,7 +83,7 @@ test("A6 reutiliza taxonomía, clasificación, semántica upcoming y paginación
   assert.doesNotMatch(model, /title\.includes|Math\.random|Date\.now/);
 });
 
-test("A6.9.3A conecta los heroes dedicados sin condicionales de slug en JSX", () => {
+test("A6.10.3A conecta los ocho heroes dedicados sin condicionales de slug en JSX", () => {
   assert.match(model, /DISCIPLINE_HERO_VISUALS/);
   assert.match(model, /rallyes:\s*\{[\s\S]*hero-rallyes\.png/);
   assert.match(model, /circuito:\s*\{[\s\S]*hero-circuito\.png/);
@@ -87,6 +91,7 @@ test("A6.9.3A conecta los heroes dedicados sin condicionales de slug en JSX", ()
   assert.match(model, /clasicos:\s*\{[\s\S]*hero-clasicos\.png/);
   assert.match(model, /karting:\s*\{[\s\S]*hero-karting\.png/);
   assert.match(model, /rutas:\s*\{[\s\S]*hero-rutas\.png/);
+  assert.match(model, /ferias:\s*\{[\s\S]*hero-ferias\.png/);
   assert.match(route, /resolveDisciplineHeroVisual\(definition\.slug\)/);
   assert.match(route, /heroImageSrc=\{heroVisual\?\.src\}/);
   assert.doesNotMatch(route, /definition\.slug\s*===\s*["']rallyes["']/);
@@ -97,10 +102,22 @@ test("A6.9.3A conecta los heroes dedicados sin condicionales de slug en JSX", ()
   assert.equal(classicsHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.equal(kartingHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.equal(rutasHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(feriasHero.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
 });
 
 test("A6.9.3A conserva el recorte técnico aprobado del hero de Rutas", async () => {
   const metadata = await sharp(rutasHero).metadata();
+  assert.equal(metadata.format, "png");
+  assert.equal(metadata.width, 2048);
+  assert.equal(metadata.height, 441);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+});
+
+test("A6.10.3A conserva el recorte técnico aprobado del hero de Ferias", async () => {
+  const metadata = await sharp(feriasHero).metadata();
   assert.equal(metadata.format, "png");
   assert.equal(metadata.width, 2048);
   assert.equal(metadata.height, 441);

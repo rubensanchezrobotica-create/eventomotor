@@ -64,8 +64,8 @@ test("A6 resuelve exactamente las ocho disciplinas canónicas sin duplicar taxon
   assert.equal(resolveDisciplineDetailDefinition("freestyle"), null);
 });
 
-test("A6.9.3A asigna heroes propios a las siete disciplinas visualmente cerradas mediante metadata", () => {
-  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas"]);
+test("A6.10.3A asigna heroes propios a las ocho disciplinas mediante metadata", () => {
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS), ["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas", "ferias"]);
   assert.deepEqual(resolveDisciplineHeroVisual("rallyes"), {
     src: "/images/redesign-v2/disciplines/hero-rallyes.png",
   });
@@ -87,12 +87,15 @@ test("A6.9.3A asigna heroes propios a las siete disciplinas visualmente cerradas
   assert.deepEqual(resolveDisciplineHeroVisual("rutas"), {
     src: "/images/redesign-v2/disciplines/hero-rutas.png",
   });
+  assert.deepEqual(resolveDisciplineHeroVisual("ferias"), {
+    src: "/images/redesign-v2/disciplines/hero-ferias.png",
+  });
 
   const otherDisciplines = SEO_DISCIPLINES
     .map(({ slug }) => slug)
-    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas"].includes(slug));
+    .filter((slug) => !["rallyes", "circuito", "concentraciones", "offroad", "clasicos", "karting", "rutas", "ferias"].includes(slug));
 
-  assert.equal(otherDisciplines.length, 1);
+  assert.equal(otherDisciplines.length, 0);
   for (const slug of otherDisciplines) {
     assert.equal(resolveDisciplineHeroVisual(slug), null, slug);
   }
@@ -103,6 +106,19 @@ test("A6.9.3A asigna heroes propios a las siete disciplinas visualmente cerradas
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.clasicos ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.karting ?? {}), ["src"]);
   assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.rutas ?? {}), ["src"]);
+  assert.deepEqual(Object.keys(DISCIPLINE_HERO_VISUALS.ferias ?? {}), ["src"]);
+});
+
+test("A6.10.4 conserva Tier 1 y distribuye el pool genérico de Ferias en Discipline Detail", () => {
+  const fixtures = [
+    [event("classic-fair", "Ferias", "2026-09-12", { title: "Retromóvil Madrid", tags: ["retro", "clásicos"], vehicleType: "mixto", vehicle_type: "mixto" }), "ferias-03"],
+    [event("camper-fair", "Ferias", "2026-09-13", { title: "Madrid Expo Camper & Caravan", tags: ["camper", "caravaning"], vehicleType: "coche", vehicle_type: "coche" }), "ferias-06"],
+    [event("generic-fair", "Ferias", "2026-09-14", { title: "Feria del Automóvil", tags: ["feria", "automóvil"], vehicleType: "coche", vehicle_type: "coche" }), "ferias-07"],
+  ] as const;
+
+  for (const [fixture, fallbackId] of fixtures) {
+    assert.match(String(resolveDisciplineDetailEventImage(projectPreviewEvent(fixture)).src), new RegExp(`/ferias/${fallbackId}-`));
+  }
 });
 
 test("A6 filtra exclusivamente con el clasificador canónico para las ocho disciplinas", () => {

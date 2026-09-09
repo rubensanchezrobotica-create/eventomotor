@@ -159,9 +159,10 @@ test("un vehículo explícito nunca recibe el fallback del vehículo opuesto", (
     vehicleType: "coche",
   });
   const carCandidates = resolveV2EventImageCandidates(explicitCar);
-  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "moto"), false);
-  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "coche"), true);
-  assert.equal(carCandidates.some(({ vehicle }) => vehicle === "mixto"), true);
+  assert.deepEqual(
+    carCandidates.map(({ id, tier }) => [id, tier]).sort(([left], [right]) => String(left).localeCompare(String(right))),
+    [["ferias-01", 2], ["ferias-07", 2]],
+  );
 });
 
 test("mantiene mixto, inferencia de otros y la semántica especial de karting", () => {
@@ -170,23 +171,21 @@ test("mantiene mixto, inferencia de otros y la semántica especial de karting", 
     discipline: "Ferias",
     vehicleType: "moto",
   }));
-  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "coche"), false);
-  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "moto"), true);
-  assert.equal(explicitMoto.some(({ vehicle }) => vehicle === "mixto"), true);
+  assert.deepEqual(explicitMoto.map(({ id, tier }) => [id, tier]), [["ferias-02", 2]]);
 
   const inferredOther = resolveV2EventImageCandidates(event({
     title: "Salón de la moto",
     discipline: "Ferias",
     vehicleType: "otros",
   }));
-  assert.equal(inferredOther.some(({ vehicle }) => vehicle === "moto"), true);
+  assert.deepEqual(inferredOther.map(({ id, tier }) => [id, tier]), [["ferias-06", 2]]);
 
   const mixed = resolveV2EventImageCandidates(event({
     title: "Feria de coches y motos",
     discipline: "Ferias",
     vehicleType: "mixto",
   }));
-  assert.deepEqual(new Set(mixed.map(({ vehicle }) => vehicle)), new Set(["coche", "moto", "mixto"]));
+  assert.deepEqual(mixed.map(({ id, tier }) => [id, tier]), [["ferias-05", 2]]);
 
   const karting = resolveV2EventImageCandidates(event({
     title: "Karting FACYL Kotarr 2026",
@@ -195,6 +194,136 @@ test("mantiene mixto, inferencia de otros y la semántica especial de karting", 
   }));
   assert.equal(karting.length > 0, true);
   assert.equal(karting.every(({ vehicle }) => vehicle === "karting"), true);
+});
+
+test("A6.10.4 limita Ferias 07 al pool genérico seguro de coche", () => {
+  const fixtures = [
+    [event({ title: "Feria general del automóvil", discipline: "Ferias", vehicleType: "coche" }), ["ferias-01", "ferias-07"]],
+    [event({ title: "Feria general de motocicletas", discipline: "Ferias", vehicleType: "moto" }), ["ferias-02"]],
+    [event({ title: "Feria mixta de motor", discipline: "Ferias", vehicleType: "mixto" }), ["ferias-05"]],
+    [event({ title: "Feria general de movilidad", discipline: "Ferias", vehicleType: "otros" }), ["ferias-06"]],
+  ] as const;
+
+  for (const [fixture, expectedIds] of fixtures) {
+    const candidates = resolveV2EventImageCandidates(fixture);
+    assert.deepEqual(candidates.map(({ id }) => id).sort(), [...expectedIds].sort());
+    assert.equal(candidates.every(({ tier }) => tier === 2), true);
+  }
+  assert.equal(ids(fixtures[0][0]).includes("ferias-03"), false);
+  assert.equal(ids(fixtures[0][0]).includes("ferias-04"), false);
+  assert.equal(fixtures.slice(1).some(([fixture]) => ids(fixture).includes("ferias-07")), false);
+});
+
+test("A6.10.3A da prioridad Tier 1 sólo a subtipos explícitos de Ferias", () => {
+  const fixtures = [
+    [event({ title: "Feria de clásicos", discipline: "Ferias", vehicleType: "coche", tags: ["clásicos"] }), "ferias-03", "ferias-clasicos"],
+    [event({ title: "Feria mixta de clásicos", discipline: "Ferias", vehicleType: "mixto", tags: ["histórico"] }), "ferias-03", "ferias-clasicos"],
+    [event({ title: "Feria aftermarket", discipline: "Ferias", vehicleType: "coche", tags: ["tuning"] }), "ferias-04", "ferias-aftermarket-tuning"],
+    [event({ title: "Expo Camper", discipline: "Ferias", vehicleType: "coche", tags: ["caravaning"] }), "ferias-06", "ferias-neutral-profesional"],
+    [event({ title: "FIAA autobús y autocar", discipline: "Ferias", vehicleType: "otros", tags: ["transporte", "movilidad"] }), "ferias-06", "ferias-neutral-profesional"],
+  ] as const;
+
+  for (const [fixture, expectedId, expectedSubtype] of fixtures) {
+    const classification = classificationOf(fixture);
+    assert.equal(classification.discipline, "ferias");
+    assert.equal(classification.subtype, expectedSubtype);
+    assert.deepEqual(resolveV2EventImageCandidates(fixture).map(({ id, tier }) => [id, tier]), [[expectedId, 1]]);
+    assert.equal(ids(fixture).includes("ferias-07"), false);
+  }
+  assert.equal(classificationOf(fixtures[3][0]).vehicle, "coche");
+  assert.equal(classificationOf(fixtures[4][0]).vehicle, "mixto");
+});
+
+test("A6.10.4-R1 reserva Ferias 04 para señales aftermarket fuertes", () => {
+  const genericFixtures = [
+    event({
+      title: "Salón del Automóvil e Industrias Afines",
+      discipline: "Ferias",
+      vehicleType: "coche",
+    }),
+    event({
+      title: "Salón general del automóvil",
+      discipline: "Ferias",
+      vehicleType: "coche",
+      tags: ["industria del motor"],
+    }),
+  ];
+
+  for (const fixture of genericFixtures) {
+    assert.equal(classificationOf(fixture).subtype, "ferias-general-coche");
+    assert.deepEqual(ids(fixture).sort(), ["ferias-01", "ferias-07"]);
+    assert.equal(ids(fixture).includes("ferias-04"), false);
+  }
+
+  for (const signal of ["tuning", "modified", "aftermarket"]) {
+    const fixture = event({
+      title: "Feria especializada",
+      discipline: "Ferias",
+      vehicleType: "coche",
+      tags: [signal],
+    });
+    assert.equal(classificationOf(fixture).subtype, "ferias-aftermarket-tuning", signal);
+    assert.deepEqual(resolveV2EventImageCandidates(fixture).map(({ id, tier }) => [id, tier]), [["ferias-04", 1]], signal);
+  }
+});
+
+test("A6.10.4 enruta los diecisiete fixtures de Ferias sin cruces de disciplina", () => {
+  const fixtures = [
+    ["Feria del Vehículo de Ocasión Alcobendas 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["Expoclàssic Mollerussa 2026", "mixto", ["clásicos"], ["ferias-03"], 1],
+    ["Hot Wheels Legends Tour España 2026", "coche", ["tuning", "modified"], ["ferias-04"], 1],
+    ["FIAA 2026 - Feria Internacional del Autobús y del Autocar", "otros", ["bus", "autocar", "movilidad"], ["ferias-06"], 1],
+    ["Retro Auto IFEPA 2026", "mixto", ["retro"], ["ferias-03"], 1],
+    ["Salón del Automóvil de Lleida 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["Exclusive Top Cars 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["BMW Motorrad Days Peñíscola 2026", "moto", [], ["ferias-02"], 2],
+    ["Autotardor Mollerussa 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["MotorOcasión A Coruña 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["Retro Clásica Bilbao 2026", "mixto", ["retro clásica"], ["ferias-03"], 1],
+    ["CarOutlet Vigo 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["Firauto y Sobre2Ruedas noviembre 2026", "mixto", [], ["ferias-05"], 2],
+    ["Salón del Automóvil e Industrias Afines IFEPA 2026", "coche", ["industria del motor"], ["ferias-01", "ferias-07"], 2],
+    ["Feria del Automóvil Valencia 2026", "coche", [], ["ferias-01", "ferias-07"], 2],
+    ["Madrid Expo Camper & Caravan 2026", "coche", ["camper", "caravaning"], ["ferias-06"], 1],
+    ["Retromóvil Madrid 2026", "mixto", ["retromóvil"], ["ferias-03"], 1],
+  ] as const;
+
+  const resolved = fixtures.map(([title, vehicleType, tags, expectedIds, expectedTier], index) => {
+    const fixture = event({ id: `feria-${index}`, slug: `feria-${index}`, title, discipline: "Ferias", vehicleType, tags });
+    const classification = classificationOf(fixture);
+    const candidates = resolveV2EventImageCandidates(fixture);
+    assert.equal(classification.discipline, "ferias", title);
+    assert.deepEqual(candidates.map(({ id }) => id).sort(), [...expectedIds].sort(), title);
+    assert.equal(candidates.every(({ tier }) => tier === expectedTier), true, title);
+    assert.equal(candidates.every(({ discipline }) => discipline === "ferias"), true, title);
+    return assignV2HomeEventImages([fixture])[0]?.fallbackId;
+  });
+
+  assert.deepEqual(Object.fromEntries([...new Set(resolved)].map((id) => [id, resolved.filter((candidate) => candidate === id).length])), {
+    "ferias-01": 3,
+    "ferias-02": 1,
+    "ferias-03": 4,
+    "ferias-04": 1,
+    "ferias-05": 1,
+    "ferias-06": 2,
+    "ferias-07": 5,
+  });
+});
+
+test("A6.10.3A conserva la precedencia de imagen real en Ferias", () => {
+  const fixture = event({
+    title: "Feria clásica con imagen real",
+    discipline: "Ferias",
+    vehicleType: "mixto",
+    tags: ["clásicos"],
+    imageUrl: "https://images.example.com/feria-real.webp",
+  });
+
+  assert.deepEqual(assignV2HomeEventImages([fixture]), [{
+    src: "https://images.example.com/feria-real.webp",
+    kind: "event",
+    alt: "Imagen del evento Feria clásica con imagen real",
+  }]);
 });
 
 test("corrige MotorLand y conserva Rally Pistón en su fallback mixto", () => {

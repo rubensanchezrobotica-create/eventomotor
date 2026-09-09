@@ -16,7 +16,7 @@ const EXPECTED_DISTRIBUTION: Record<FallbackDiscipline, number> = {
   clasicos: 9,
   karting: 7,
   rutas: 9,
-  ferias: 5,
+  ferias: 7,
 };
 
 function webpDimensions(buffer: Buffer): { width: number; height: number } {
@@ -55,10 +55,10 @@ function webpDimensions(buffer: Buffer): { width: number; height: number } {
   throw new Error("WebP sin chunk de imagen reconocido");
 }
 
-test("el manifiesto contiene exactamente los 90 fallbacks aprobados", () => {
-  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 90);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 90);
-  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 90);
+test("el manifiesto contiene exactamente los 92 fallbacks aprobados", () => {
+  assert.equal(V2_DISCIPLINE_FALLBACKS.length, 92);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ id }) => id)).size, 92);
+  assert.equal(new Set(V2_DISCIPLINE_FALLBACKS.map(({ src }) => src)).size, 92);
   assert.equal(V2_DISCIPLINE_FALLBACKS.some(({ discipline }) => String(discipline) === "motos"), false);
 
   const distribution = Object.fromEntries(
@@ -157,6 +157,71 @@ test("Rutas 01 a 06 permanecen congelados byte por byte", () => {
     const file = new URL(`../../public${image.src}`, import.meta.url);
     assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
   }
+});
+
+test("A6.10.3A registra Ferias 06 como fallback neutral seguro con el asset aprobado", async () => {
+  const image = V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === "ferias-06");
+  assert.ok(image);
+  assert.equal(image.discipline, "ferias");
+  assert.equal(image.vehicle, "mixto");
+  assert.equal(image.src, "/images/disciplines/fallbacks/ferias/ferias-06-pabellon-neutral-movilidad-exposicion-profesional-publico-vehiculos-diversos.webp");
+  assert.deepEqual(image.tags, ["ferias", "neutral", "movilidad-profesional", "transporte", "bus", "camper", "caravaning", "otros"]);
+
+  const file = new URL(`../../public${image.src}`, import.meta.url);
+  const bytes = readFileSync(file);
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, "webp");
+  assert.equal(metadata.width, 1200);
+  assert.equal(metadata.height, 800);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+  assert.equal(
+    createHash("sha256").update(bytes).digest("hex"),
+    "c8cceb8bce8d8c509af15613a824f180713545d9cb4c09f4598c821102417025",
+  );
+});
+
+test("A6.10.3A conserva Ferias 01 a 05 byte por byte", () => {
+  const expectedHashes = new Map([
+    ["ferias-01", "5900eff4d85e7c0e8a92acd9e86fda1400a1617a3c8125d85d035d633589e3b0"],
+    ["ferias-02", "901c1fcb1ff1261c8124596872db32aa1da8279f6546e1496ad12830f790e29d"],
+    ["ferias-03", "c1284504fb85a71ec5eb83c92632789dea0152844c9fea484f9c819e5e03de22"],
+    ["ferias-04", "8978aa15c482df6972c5916bb7c1a443b82f937cadc3035a2702181f68099e03"],
+    ["ferias-05", "c1b5fcaaf731c888c9b41b40c11bdfa161722d2461c022f748a0765cbd5a8900"],
+  ]);
+
+  for (const [id, expectedHash] of expectedHashes) {
+    const image = V2_DISCIPLINE_FALLBACKS.find((candidate) => candidate.id === id);
+    assert.ok(image);
+    const file = new URL(`../../public${image.src}`, import.meta.url);
+    assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), expectedHash, id);
+  }
+});
+
+test("A6.10.4 registra Ferias 07 como fallback genérico seguro de coche", async () => {
+  const image = V2_DISCIPLINE_FALLBACKS.find(({ id }) => id === "ferias-07");
+  assert.ok(image);
+  assert.equal(image.discipline, "ferias");
+  assert.equal(image.vehicle, "coche");
+  assert.equal(image.src, "/images/disciplines/fallbacks/ferias/ferias-07-salon-automovil-general-varios-coches-pabellon-publico.webp");
+  assert.deepEqual(image.tags, ["ferias", "general", "salon-automovil", "coche", "pabellon", "publico"]);
+
+  const file = new URL(`../../public${image.src}`, import.meta.url);
+  const bytes = readFileSync(file);
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, "webp");
+  assert.equal(metadata.width, 1200);
+  assert.equal(metadata.height, 800);
+  assert.equal(metadata.space, "srgb");
+  assert.equal(metadata.channels, 3);
+  assert.equal(metadata.pages ?? 1, 1);
+  assert.equal(metadata.hasAlpha, false);
+  assert.equal(
+    createHash("sha256").update(bytes).digest("hex"),
+    "9a7421a7d4724fd2beef2e414933d939f40596f7982f20822a442a479febd3d2",
+  );
 });
 
 test("A6.8.4A registra los dos fallbacks genéricos de Karting con sus metadatos técnicos", async () => {
@@ -406,6 +471,8 @@ test("los tags distintivos aprobados permanecen en el manifiesto", () => {
   assert.deepEqual(byId.get("circuito-03")?.tags, ["circuito", "coche", "trackday", "frenada"]);
   assert.deepEqual(byId.get("clasicos-05")?.tags, ["clasicos", "regularidad", "rally-historico"]);
   assert.deepEqual(byId.get("ferias-05")?.tags, ["ferias", "general", "coche", "moto", "pabellon"]);
+  assert.deepEqual(byId.get("ferias-06")?.tags, ["ferias", "neutral", "movilidad-profesional", "transporte", "bus", "camper", "caravaning", "otros"]);
+  assert.deepEqual(byId.get("ferias-07")?.tags, ["ferias", "general", "salon-automovil", "coche", "pabellon", "publico"]);
   assert.deepEqual(byId.get("circuito-08")?.tags, ["circuito", "moto", "trackday", "tandas", "rodada", "rodadas", "amateur", "grupo", "motos"]);
   assert.deepEqual(byId.get("circuito-09")?.tags, ["circuito", "moto", "pitbike", "minivelocidad", "mini-velocidad", "drpit", "ciclomotores", "minibike", "kartodromo"]);
   assert.deepEqual(byId.get("circuito-10")?.tags, ["circuito", "moto", "supermotard", "supermoto", "minimotard", "trazado-mixto", "asfalto", "tierra"]);

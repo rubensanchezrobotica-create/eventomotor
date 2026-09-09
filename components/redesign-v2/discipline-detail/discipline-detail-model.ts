@@ -55,6 +55,9 @@ export const DISCIPLINE_HERO_VISUALS: Partial<Record<DisciplineSlug, DisciplineH
   rutas: {
     src: "/images/redesign-v2/disciplines/hero-rutas.png",
   },
+  ferias: {
+    src: "/images/redesign-v2/disciplines/hero-ferias.png",
+  },
 };
 
 export type DisciplineDetailPageItem = {

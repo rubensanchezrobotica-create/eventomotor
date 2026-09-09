@@ -345,6 +345,87 @@ const RUTAS_TRAIL_ROADBOOK_SIGNALS = [
   "navegacion",
 ] as const;
 
+const FERIAS_CLASSIC_SIGNALS = [
+  "clasico", "clasicos", "clasica", "clasicas", "classic", "historico", "historica",
+  "historic", "retro", "retromovil", "expoclassic", "retroclasica", "retro clasica",
+] as const;
+
+const FERIAS_AFTERMARKET_SIGNALS = [
+  "tuning", "modified", "aftermarket", "preparacion", "componentes", "recambios",
+  "performance", "custom", "customizacion",
+] as const;
+
+const FERIAS_NEUTRAL_PROFESSIONAL_SIGNALS = [
+  "bus", "autobus", "autobuses", "autocar", "autocares", "transporte profesional",
+  "movilidad profesional", "camper", "campers", "caravaning", "caravana", "caravanas",
+  "autocaravana", "autocaravanas", "motorhome", "motorhomes",
+] as const;
+
+type FeriasSourceVehicle = Exclude<FallbackVehicle, "karting"> | "unknown";
+
+function explicitFeriasVehicle(event: V2FallbackEvent): FeriasSourceVehicle | null {
+  const vehicle = normalize(event.vehicleType ?? event.vehicle_type);
+  if (["moto", "motos", "motocicleta", "motocicletas", "motociclismo"].includes(vehicle)) return "moto";
+  if (["coche", "coches", "automovil", "automoviles", "automovilismo"].includes(vehicle)) return "coche";
+  if (["mixto", "mixta", "coches y motos", "motos y coches"].includes(vehicle)) return "mixto";
+  if (["otro", "otros", "unknown", "desconocido", "desconocida"].includes(vehicle)) return "unknown";
+  return null;
+}
+
+function classifyPrimaryFerias(
+  event: V2FallbackEvent,
+  text: string,
+): V2FallbackClassification {
+  const explicitVehicle = explicitFeriasVehicle(event);
+
+  if (
+    includesAny(text, FERIAS_CLASSIC_SIGNALS)
+    && explicitVehicle !== "moto"
+    && explicitVehicle !== "unknown"
+  ) {
+    return {
+      ...classification("ferias", "ferias-clasicos", "feria clasica o historica explicita"),
+      vehicle: explicitVehicle ?? "coche",
+    };
+  }
+  if (
+    includesAny(text, FERIAS_AFTERMARKET_SIGNALS)
+    && explicitVehicle !== "moto"
+    && explicitVehicle !== "unknown"
+  ) {
+    return {
+      ...classification("ferias", "ferias-aftermarket-tuning", "feria aftermarket, tuning o preparacion explicita"),
+      vehicle: explicitVehicle ?? "coche",
+    };
+  }
+  if (includesAny(text, FERIAS_NEUTRAL_PROFESSIONAL_SIGNALS)) {
+    return {
+      ...classification("ferias", "ferias-neutral-profesional", "feria de movilidad profesional, transporte o camper"),
+      vehicle: explicitVehicle === "moto" || explicitVehicle === "coche" ? explicitVehicle : "mixto",
+    };
+  }
+  if (explicitVehicle === "coche") {
+    return { ...classification("ferias", "ferias-general-coche", "feria general de automovil"), vehicle: "coche" };
+  }
+  if (explicitVehicle === "moto") {
+    return { ...classification("ferias", "ferias-moto", "feria de motocicletas"), vehicle: "moto" };
+  }
+  if (explicitVehicle === "mixto") {
+    return { ...classification("ferias", "ferias-mixto", "feria mixta de coches y motos"), vehicle: "mixto" };
+  }
+  if (explicitVehicle === "unknown") {
+    return { ...classification("ferias", "ferias-neutral", "feria con vehiculo otro o desconocido"), vehicle: "mixto" };
+  }
+
+  const inferredVehicle = classifyVehicle(text, "ferias");
+  const subtype = inferredVehicle === "coche"
+    ? "ferias-general-coche"
+    : inferredVehicle === "moto"
+      ? "ferias-moto"
+      : "ferias-mixto";
+  return { ...classification("ferias", subtype, "vehiculo de feria inferido de senales explicitas"), vehicle: inferredVehicle };
+}
+
 function explicitRutasVehicle(event: V2FallbackEvent): FallbackVehicle | null {
   const vehicle = normalize(event.vehicleType ?? event.vehicle_type);
   if (["moto", "motos", "motocicleta", "motocicletas", "motociclismo"].includes(vehicle)) return "moto";
@@ -385,6 +466,8 @@ export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClass
   const primaryText = normalize(event.discipline);
   const primaryDiscipline = classifyDiscipline(primaryText);
   const primaryIsRutas = primaryDiscipline?.discipline === "rutas";
+  const primaryIsFerias = primaryDiscipline?.discipline === "ferias";
+  if (primaryIsFerias) return classifyPrimaryFerias(event, text);
   const primaryIsP0 = PRIMARY_P0_SUBTYPES.has(primaryDiscipline?.subtype ?? "")
     || (primaryText === "enduret" && primaryDiscipline?.subtype === "enduro");
   const discipline = primaryIsRutas
@@ -441,6 +524,19 @@ const KARTING_GENERIC_FALLBACK_IDS: ReadonlySet<string> = new Set([
 ]);
 
 const RUTAS_TRAIL_ROADBOOK_FALLBACK_ID = "rutas-07";
+
+const FERIAS_GENERIC_FALLBACK_IDS_BY_SUBTYPE: Readonly<Record<string, readonly string[]>> = {
+  "ferias-general-coche": ["ferias-01", "ferias-07"],
+  "ferias-moto": ["ferias-02"],
+  "ferias-mixto": ["ferias-05"],
+  "ferias-neutral": ["ferias-06"],
+};
+
+const FERIAS_EXACT_FALLBACK_BY_SUBTYPE: Readonly<Record<string, string>> = {
+  "ferias-clasicos": "ferias-03",
+  "ferias-aftermarket-tuning": "ferias-04",
+  "ferias-neutral-profesional": "ferias-06",
+};
 
 const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = {
   "circuito:trackday": ["circuito-03", "circuito-08", "circuito-16"],
@@ -591,6 +687,12 @@ function candidateTier(
   candidate: V2FallbackImage,
 ): 1 | 2 | 3 | 4 | null {
   if (candidate.discipline !== classification.discipline) return null;
+  if (classification.discipline === "ferias") {
+    const exactFallbackId = FERIAS_EXACT_FALLBACK_BY_SUBTYPE[classification.subtype ?? ""];
+    if (exactFallbackId) return candidate.id === exactFallbackId ? 1 : null;
+    const genericFallbackIds = FERIAS_GENERIC_FALLBACK_IDS_BY_SUBTYPE[classification.subtype ?? ""];
+    return genericFallbackIds?.includes(candidate.id) ? 2 : null;
+  }
   if (classification.discipline === "rutas") {
     if (candidate.vehicle !== classification.vehicle) return null;
     if (candidate.id === RUTAS_TRAIL_ROADBOOK_FALLBACK_ID) {
@@ -664,7 +766,7 @@ export function resolveV2EventImageCandidates(
       return leftRank - rightRank || left.id.localeCompare(right.id);
     });
 
-  if (classification.discipline === "rutas") {
+  if (classification.discipline === "rutas" || classification.discipline === "ferias") {
     const tierOne = candidates.filter(({ tier }) => tier === 1);
     if (tierOne.length) return tierOne;
   }
