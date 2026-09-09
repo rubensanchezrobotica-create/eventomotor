@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redesignV2DisplayPilot } from "../redesign-v2-fonts";
 import {
   territoryProvinceActivityLabel,
   territoryUpcomingCountLabel,
@@ -17,7 +18,13 @@ function provinceActivityLabel(count: number) {
 
 export default function ZonesDirectoryPage({ model }: ZonesDirectoryPageProps) {
   return (
-    <section className={styles.section} aria-labelledby="zonas-v2-directory-title">
+    <section
+      className={`${styles.section} ${redesignV2DisplayPilot.variable}`}
+      aria-labelledby="zonas-v2-directory-title"
+      data-v2-display-font-pilot="archivo"
+      data-v2-zones-directory
+    >
+      <style>{`:root:has([data-v2-zones-directory]) { --font-v2-display-pilot: ${redesignV2DisplayPilot.style.fontFamily}; }`}</style>
       <div className={styles.shell}>
         <header className={styles.intro}>
           <div>

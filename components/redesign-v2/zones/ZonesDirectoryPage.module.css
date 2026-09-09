@@ -37,11 +37,18 @@
   background: currentColor;
 }
 
+:global(body):has(.section) :global(#redesign-v2-interior-title) {
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+}
+
 .intro h2,
 .cities h2 {
   margin: 10px 0 0;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   font-size: clamp(2rem, 3.4vw, 3.2rem);
+  font-style: normal;
   font-stretch: condensed;
   font-weight: 900;
   line-height: 0.98;
@@ -96,8 +103,9 @@
   min-width: 0;
   margin: 0;
   color: #f7f7f4;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   font-size: clamp(1.32rem, 2vw, 1.72rem);
+  font-style: normal;
   font-stretch: condensed;
   font-weight: 900;
   line-height: 1;
@@ -210,8 +218,9 @@
 
 .cities li strong {
   color: #f4f4f1;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   font-size: 1.35rem;
+  font-style: normal;
   font-stretch: condensed;
   font-weight: 900;
   text-transform: uppercase;
