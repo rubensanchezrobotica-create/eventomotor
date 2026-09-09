@@ -123,11 +123,27 @@ function fallbackVisibleEvents(): EventItem[] {
   }));
 }
 
-export async function getVisibleEvents() {
+type VisibleEventsFailureMode = "fallback" | "strict";
+
+function handleVisibleEventsFailure(
+  failureMode: VisibleEventsFailureMode,
+  message: string,
+) {
+  if (failureMode === "strict") {
+    throw new Error(message);
+  }
+
+  return fallbackVisibleEvents();
+}
+
+async function loadVisibleEvents(failureMode: VisibleEventsFailureMode) {
   const supabase = createSupabaseServerClient();
 
   if (!supabase) {
-    return fallbackVisibleEvents();
+    return handleVisibleEventsFailure(
+      failureMode,
+      "Supabase is not configured for the strict visible-events loader.",
+    );
   }
 
   const { data, error } = await supabase
@@ -137,12 +153,30 @@ export async function getVisibleEvents() {
     .order("start_date", { ascending: true });
 
   if (error || !data) {
-    return fallbackVisibleEvents();
+    return handleVisibleEventsFailure(
+      failureMode,
+      "Supabase visible-events query failed.",
+    );
   }
 
   const events = (data as EventRow[]).map(mapEventRowToEventItem);
 
-  return events.length ? events : fallbackVisibleEvents();
+  if (!events.length) {
+    return handleVisibleEventsFailure(
+      failureMode,
+      "Supabase visible-events query returned an unexpected empty result.",
+    );
+  }
+
+  return events;
+}
+
+export async function getVisibleEvents() {
+  return loadVisibleEvents("fallback");
+}
+
+export async function getVisibleEventsStrict() {
+  return loadVisibleEvents("strict");
 }
 
 export async function getHomeVisibleEvents() {

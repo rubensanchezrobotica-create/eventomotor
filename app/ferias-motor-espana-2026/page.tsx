@@ -6,8 +6,9 @@ import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-
 const page = getOpportunityPage("ferias-motor-espana-2026");
 
 export const metadata: Metadata = buildOpportunityMetadata(page);
+export const revalidate = 21600;
 
 export default function FeriasMotorEspana2026Page() {
   if (!page) notFound();
-  return <OpportunityPage page={page} />;
+  return <OpportunityPage page={page} strictData />;
 }
