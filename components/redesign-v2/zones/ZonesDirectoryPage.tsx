@@ -70,16 +70,16 @@ export default function ZonesDirectoryPage({ model }: ZonesDirectoryPageProps) {
 
         <section className={styles.cities} aria-labelledby="zonas-v2-cities-title">
           <header>
-            <span className={styles.eyebrow}>Territorios conocidos</span>
-            <h2 id="zonas-v2-cities-title">Ciudades autónomas</h2>
-            <p>Ceuta y Melilla forman parte del catálogo territorial y permanecen sin landing pública.</p>
+            <span className={styles.eyebrow}>Ciudades autónomas</span>
+            <h2 id="zonas-v2-cities-title">Ceuta y Melilla</h2>
+            <p>Consulta la actividad de motor disponible en las ciudades autónomas.</p>
           </header>
           <ul>
             {model.autonomousCities.map((territory) => (
               <li key={territory.id}>
                 <strong>{territory.displayName}</strong>
                 <span>{territoryUpcomingCountLabel(territory.upcomingEventCount)}</span>
-                <span className={styles.cityStatus}>Landing no publicada</span>
+                <span className={styles.cityStatus}>Más información próximamente</span>
               </li>
             ))}
           </ul>

@@ -53,7 +53,8 @@ test("A7.3 usa anchors reales sólo cuando el contrato proporciona href", () => 
   assert.match(component, /territory\.href \? \(/);
   assert.match(component, /<Link[\s\S]*?href=\{territory\.href\}/);
   assert.match(component, /Detalle en preparación/);
-  assert.match(component, /Landing no publicada/);
+  assert.match(component, /Más información próximamente/);
+  assert.doesNotMatch(component, /Landing no publicada|catálogo territorial|Territorios conocidos/);
   assert.doesNotMatch(component, /aria-disabled|href=["']#["']/);
 });
 
