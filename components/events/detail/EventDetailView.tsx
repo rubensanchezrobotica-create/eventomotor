@@ -4,6 +4,7 @@ import Link from "next/link";
 import TrackAnchor from "@/components/analytics/TrackAnchor";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
+import DisciplineListingAction from "@/components/events/detail/DisciplineListingAction";
 import EventFaq from "@/components/events/detail/EventFaq";
 import NewsletterCaptureCard from "@/components/newsletter/NewsletterCaptureCard";
 import ShareEventButton from "@/components/ShareEventButton";
@@ -16,7 +17,6 @@ import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
 import { getEventImage, getEventImageAlt } from "@/lib/event-images";
 import { getEventSeoOverride } from "@/lib/event-seo-overrides";
-import { getDisciplineSlug } from "@/lib/event-listing-slugs";
 import { classifyEventMacroZone, type MacroZoneId } from "@/lib/event-macro-zone";
 import { getSeoCommunityForEvent } from "@/lib/seo-communities";
 import type { EventItem } from "@/types/event";
@@ -456,9 +456,11 @@ export default function EventDetailView({
               </div>
               <div className={styles.finalActions}>
                 <Link className="emc-btn emc-btn-primary" href={PUBLIC_NAVIGATION.calendar}>Ver calendario</Link>
-                <Link className="emc-btn emc-btn-dark" href={`/disciplinas/${getDisciplineSlug(event.discipline)}`}>
-                  Ver más de {event.discipline}
-                </Link>
+                <DisciplineListingAction
+                  className="emc-btn emc-btn-dark"
+                  discipline={event.discipline}
+                  vehicleType={vehicleTypeOf(event)}
+                />
                 {zone ? <Link className="emc-btn emc-btn-dark" href={`/zonas/${zone}`}>Ver zona {ZONE_LABELS[zone]}</Link> : null}
                 {community ? (
                   <Link className="emc-btn emc-btn-dark" href={`/${community.landingSlug}`}>
