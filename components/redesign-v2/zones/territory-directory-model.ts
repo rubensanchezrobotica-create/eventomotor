@@ -18,6 +18,7 @@ export type TerritoryDirectoryItem = Readonly<{
   href: string | null;
   id: SpanishTerritoryId;
   kind: SpanishTerritoryKind;
+  publicCanonicalHref: string | null;
   upcomingEventCount: number;
 }>;
 
@@ -134,9 +135,12 @@ export function buildTerritoryDirectoryModel(
   const items = SPANISH_TERRITORIES.map((territory): TerritoryDirectoryItem => ({
     activeProvinceCount: activeProvinces.get(territory.id)?.size ?? 0,
     displayName: territory.displayName,
-    href: territory.currentPublicCanonicalHref,
+    href: territory.kind === "AUTONOMOUS_COMMUNITY" && territory.launchLandingEligible
+      ? `/preview/redesign-v2/zonas/${territory.slug}`
+      : null,
     id: territory.id,
     kind: territory.kind,
+    publicCanonicalHref: territory.currentPublicCanonicalHref ?? territory.futurePublicCanonicalHref,
     upcomingEventCount: eventCounts.get(territory.id) ?? 0,
   }));
   const byDisplayName = (left: TerritoryDirectoryItem, right: TerritoryDirectoryItem) => (

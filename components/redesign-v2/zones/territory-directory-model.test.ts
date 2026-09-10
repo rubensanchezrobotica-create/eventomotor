@@ -78,7 +78,7 @@ test("A7.3 excluye Portugal y deja sin asignar la geografía española desconoci
   assert.equal(model.portugueseEventCountExcluded, 1);
 });
 
-test("A7.3 renderiza La Rioja con conteo pero sin enlace roto", () => {
+test("A7.5B enlaza La Rioja al detalle Preview sin publicar su canonical", () => {
   const model = buildTerritoryDirectoryModel([
     event({ id: "rioja", region: "La Rioja", province: "La Rioja" }),
   ], NOW);
@@ -87,18 +87,29 @@ test("A7.3 renderiza La Rioja con conteo pero sin enlace roto", () => {
   assert.ok(rioja);
   assert.equal(rioja.upcomingEventCount, 1);
   assert.equal(rioja.activeProvinceCount, 1);
-  assert.equal(rioja.href, null);
+  assert.equal(rioja.href, "/preview/redesign-v2/zonas/la-rioja");
+  assert.equal(rioja.publicCanonicalHref, "/eventos-motor-la-rioja");
 });
 
-test("A7.3 conserva los 16 href públicos existentes y no enlaza Ceuta o Melilla", () => {
+test("A7.5B converge las 17 comunidades a Preview y conserva sus canonicales públicos", () => {
   const model = buildTerritoryDirectoryModel([], NOW);
   const linkedCommunities = model.communities.filter(({ href }) => href);
 
-  assert.equal(linkedCommunities.length, 16);
+  assert.equal(linkedCommunities.length, 17);
+  assert.equal(
+    model.communities.filter(({ href }) => href?.startsWith("/preview/redesign-v2/zonas/")).length,
+    17,
+  );
+  assert.equal(
+    model.communities.filter(({ href }) => href?.startsWith("/eventos-motor-")).length,
+    0,
+  );
   for (const id of REGIONAL_REGION_IDS) {
-    assert.equal(model.communities.find((item) => item.id === id)?.href, REGIONAL_CONFIGS[id].publicPath);
+    const item = model.communities.find((candidate) => candidate.id === id);
+    assert.equal(item?.publicCanonicalHref, REGIONAL_CONFIGS[id].publicPath);
   }
   assert.ok(model.autonomousCities.every(({ href }) => href === null));
+  assert.ok(model.autonomousCities.every(({ publicCanonicalHref }) => publicCanonicalHref === null));
 });
 
 test("A7.3 cuenta provincias distintas dentro de la comunidad asignada", () => {
