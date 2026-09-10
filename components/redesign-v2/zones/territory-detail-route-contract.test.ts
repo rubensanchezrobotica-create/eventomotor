@@ -9,8 +9,11 @@ function source(path: string) {
 
 const route = source("app/preview/redesign-v2/zonas/[territory]/page.tsx");
 const component = source("components/redesign-v2/zones/TerritoryDetailPage.tsx");
+const searchAssist = source("components/redesign-v2/zones/TerritorySearchAssist.client.tsx");
 const model = source("components/redesign-v2/zones/territory-detail-model.ts");
 const styles = source("components/redesign-v2/zones/TerritoryDetailPage.module.css");
+const disciplineSearchAssist = source("components/redesign-v2/discipline-detail/DisciplineSearchAssist.client.tsx");
+const disciplineStyles = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.module.css");
 const directoryModel = source("components/redesign-v2/zones/territory-directory-model.ts");
 const sitemap = source("app/sitemap.ts");
 
@@ -55,14 +58,70 @@ test("A7.5B reutiliza exactamente EventCard y no introduce una variante territor
 });
 
 test("A7.5B implementa GET SSR, resetea page y limita los filtros al contrato", () => {
-  assert.equal((component.match(/method="get"/g) || []).length, 3);
-  assert.match(component, /name="q"/);
+  assert.equal((component.match(/method="get"/g) || []).length + (searchAssist.match(/method="get"/g) || []).length, 3);
+  assert.match(searchAssist, /name="q"/);
   assert.match(component, /name="province"/);
   assert.match(component, /name="discipline"/);
   assert.doesNotMatch(component, /name="page"/);
   assert.doesNotMatch(component, /name="(?:vehicle|date|weekend|next30|show)"/);
   assert.doesNotMatch(model, /show=all|vehicle|weekend|next30/);
   assert.match(component, /<details className=\{styles\.moreFilters\}/);
+});
+
+test("A7.5D-R1 añade typeahead territorial sin filtrar tarjetas en vivo ni alterar GET", () => {
+  assert.match(component, /<TerritorySearchAssist/);
+  assert.match(component, /source=\{model\.suggestionIndex\}/);
+  assert.match(searchAssist, /<form[\s\S]*method="get"[\s\S]*role="search"/);
+  assert.match(searchAssist, /value=\{query\}/);
+  assert.match(searchAssist, /onChange=\{\(event\) =>/);
+  assert.match(searchAssist, /setSuggestionsOpen\(normalizeDisciplineSearchText\(nextQuery\)\.length >= DISCIPLINE_SEARCH_MIN_CHARS\)/);
+  assert.match(searchAssist, /type="submit">Buscar<\/button>/);
+  assert.equal((searchAssist.match(/type="submit">Buscar<\/button>/g) || []).length, 1);
+  assert.doesNotMatch(searchAssist, /router\.replace|useSearchParams|filterPreviewEvents|EventCard/);
+});
+
+test("A7.5D-R1 conserva el contrato de teclado, foco, touch y selección aprobado", () => {
+  assert.match(searchAssist, /role="combobox"/);
+  assert.match(searchAssist, /aria-autocomplete="list"/);
+  assert.match(searchAssist, /aria-expanded=\{showSuggestions\}/);
+  assert.match(searchAssist, /aria-controls=\{listboxId\}/);
+  assert.match(searchAssist, /aria-activedescendant=/);
+  assert.match(searchAssist, /role="listbox"/);
+  assert.match(searchAssist, /role="option"/);
+  assert.match(searchAssist, /event\.key === "ArrowDown"/);
+  assert.match(searchAssist, /event\.key === "ArrowUp"/);
+  assert.match(searchAssist, /event\.key === "Enter" && resolvedActiveSuggestion >= 0/);
+  assert.match(searchAssist, /event\.preventDefault\(\);[\s\S]*chooseSuggestion\(suggestions\[resolvedActiveSuggestion\]\)/);
+  assert.match(searchAssist, /event\.key === "Escape"/);
+  assert.match(searchAssist, /onMouseDown=\{preserveInputFocus\}/);
+  assert.match(searchAssist, /router\.push\(suggestion\.href\)/);
+});
+
+test("A7.5D-R1 usa proyección ligera completa, scopes territoriales y destinos compatibles", () => {
+  assert.match(model, /buildDisciplineSearchSuggestionIndex\(territorialEvents\)/);
+  assert.match(model, /matchEventToSpanishTerritory\(event\)\?\.id === territory\.id/);
+  assert.match(model, /buildTerritorySearchSuggestions/);
+  assert.match(model, /`\/preview\/redesign-v2\/evento\/\$\{event\.slug\}`/);
+  assert.match(model, /territoryDetailPageHref\(territorySlug/);
+  assert.doesNotMatch(searchAssist, /EventItem|description|schedule|officialUrl|organizer|imageUrl|ResolvedEventImage/);
+});
+
+test("A7.5D-R1 replica capas y gramática visual sin clipping ni overflow móvil", () => {
+  assert.match(styles, /\.filters\s*\{[\s\S]*?position:\s*relative;[\s\S]*?z-index:\s*10/);
+  assert.match(searchAssist, /import searchStyles from ["']@\/components\/redesign-v2\/discipline-detail\/DisciplineDetailPage\.module\.css["']/);
+  assert.match(disciplineStyles, /\.searchAutocomplete\s*\{[\s\S]*?position:\s*relative/);
+  assert.match(disciplineStyles, /\.suggestions\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?z-index:\s*30/);
+  assert.match(disciplineStyles, /max-height:\s*min\(390px, 58vh\)/);
+  assert.match(disciplineStyles, /overflow-x:\s*hidden;[\s\S]*?overflow-y:\s*auto/);
+  assert.match(disciplineStyles, /@media \(max-width: 680px\)[\s\S]*?\.searchForm[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(disciplineStyles, /@media \(max-width: 680px\)[\s\S]*?\.suggestions[\s\S]*?max-height:\s*min\(330px, 46vh\)/);
+});
+
+test("A7.5D-R1 deja intacta la búsqueda de Disciplina con sugerencias al escribir y GET explícito", () => {
+  assert.match(disciplineSearchAssist, /setSuggestionsOpen\(normalizeDisciplineSearchText\(nextQuery\)\.length >= DISCIPLINE_SEARCH_MIN_CHARS\)/);
+  assert.match(disciplineSearchAssist, /type="submit">Buscar<\/button>/);
+  assert.match(disciplineSearchAssist, /router\.push\(suggestion\.href\)/);
+  assert.doesNotMatch(disciplineSearchAssist, /router\.replace|useSearchParams/);
 });
 
 test("A7.5B ofrece enlaces reales de paginación, empty state y CTA sin anclas falsas", () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import EventCard from "@/components/redesign-v2/EventCard";
+import TerritorySearchAssist from "./TerritorySearchAssist.client";
 import {
   TERRITORY_DETAIL_PAGE_SIZE,
   territoryDetailPageHref,
@@ -50,28 +51,17 @@ function ClearFilters({ model }: { model: TerritoryDetailPageModel }) {
 }
 
 function DesktopFilters({ model }: { model: TerritoryDetailPageModel }) {
-  const singleConditionalFilter = !model.showTextSearch
-    && model.showProvinceFilter !== model.showDisciplineFilter;
+  const showSecondaryFilters = model.showProvinceFilter || model.showDisciplineFilter;
+  if (!showSecondaryFilters) return null;
+  const singleConditionalFilter = model.showProvinceFilter !== model.showDisciplineFilter;
 
   return (
     <form
       action={territoryDetailPageHref(model.territory.slug)}
-      className={`${styles.desktopFilterForm} ${model.showTextSearch ? "" : styles.compactFilterForm} ${singleConditionalFilter ? styles.singleFilterForm : ""}`}
+      className={`${styles.desktopFilterForm} ${styles.compactFilterForm} ${singleConditionalFilter ? styles.singleFilterForm : ""}`}
       method="get"
     >
-      {model.showTextSearch ? (
-        <label className={`${styles.filterField} ${styles.searchField}`} htmlFor="territory-search-desktop">
-          <span>Buscar en {model.territory.displayName}</span>
-          <input
-            defaultValue={model.query.q}
-            id="territory-search-desktop"
-            maxLength={120}
-            name="q"
-            placeholder="Evento, circuito, ciudad…"
-            type="search"
-          />
-        </label>
-      ) : null}
+      {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
       {model.showProvinceFilter ? (
         <FilterSelect
           defaultValue={model.query.province}
@@ -98,65 +88,62 @@ function DesktopFilters({ model }: { model: TerritoryDetailPageModel }) {
 
 function MobileFilters({ model }: { model: TerritoryDetailPageModel }) {
   const showAdvanced = model.showProvinceFilter || model.showDisciplineFilter;
+  if (!showAdvanced) return null;
   return (
     <div className={styles.mobileFilters}>
-      {model.showTextSearch ? (
-        <form action={territoryDetailPageHref(model.territory.slug)} className={styles.mobileSearchForm} method="get">
-          {model.query.province ? <input name="province" type="hidden" value={model.query.province} /> : null}
-          {model.query.discipline ? <input name="discipline" type="hidden" value={model.query.discipline} /> : null}
-          <label className={`${styles.filterField} ${styles.searchField}`} htmlFor="territory-search-mobile">
-            <span>Buscar en {model.territory.displayName}</span>
-            <input
-              defaultValue={model.query.q}
-              id="territory-search-mobile"
-              maxLength={120}
-              name="q"
-              placeholder="Evento, circuito, ciudad…"
-              type="search"
+      <details className={styles.moreFilters} open={Boolean(model.query.province || model.query.discipline)}>
+        <summary>Más filtros</summary>
+        <form action={territoryDetailPageHref(model.territory.slug)} method="get">
+          {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
+          {model.showProvinceFilter ? (
+            <FilterSelect
+              defaultValue={model.query.province}
+              id="territory-province-mobile"
+              label="Provincia"
+              name="province"
+              options={model.provinceOptions}
             />
-          </label>
-          <button className={styles.applyFilters} type="submit">Buscar</button>
+          ) : null}
+          {model.showDisciplineFilter ? (
+            <FilterSelect
+              defaultValue={model.query.discipline}
+              id="territory-discipline-mobile"
+              label="Disciplina"
+              name="discipline"
+              options={model.disciplineOptions}
+            />
+          ) : null}
+          <div className={styles.mobileFilterActions}>
+            <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
+            <ClearFilters model={model} />
+          </div>
         </form>
-      ) : null}
-      {showAdvanced ? (
-        <details className={styles.moreFilters} open={Boolean(model.query.province || model.query.discipline)}>
-          <summary>Más filtros</summary>
-          <form action={territoryDetailPageHref(model.territory.slug)} method="get">
-            {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
-            {model.showProvinceFilter ? (
-              <FilterSelect
-                defaultValue={model.query.province}
-                id="territory-province-mobile"
-                label="Provincia"
-                name="province"
-                options={model.provinceOptions}
-              />
-            ) : null}
-            {model.showDisciplineFilter ? (
-              <FilterSelect
-                defaultValue={model.query.discipline}
-                id="territory-discipline-mobile"
-                label="Disciplina"
-                name="discipline"
-                options={model.disciplineOptions}
-              />
-            ) : null}
-            <div className={styles.mobileFilterActions}>
-              <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
-              <ClearFilters model={model} />
-            </div>
-          </form>
-        </details>
-      ) : null}
-      {!showAdvanced ? <ClearFilters model={model} /> : null}
+      </details>
     </div>
   );
 }
 
 function TerritoryFilters({ model }: { model: TerritoryDetailPageModel }) {
   if (!model.showTextSearch && !model.showProvinceFilter && !model.showDisciplineFilter) return null;
+  const hasSecondaryFilters = model.showProvinceFilter || model.showDisciplineFilter;
   return (
     <div className={styles.filters} aria-label={`Filtrar eventos en ${model.territory.displayName}`}>
+      {model.showTextSearch ? (
+        <TerritorySearchAssist
+          action={territoryDetailPageHref(model.territory.slug)}
+          activeFilters={{ discipline: model.query.discipline, province: model.query.province }}
+          clearHref={territoryDetailPageHref(model.territory.slug, {
+            discipline: model.query.discipline,
+            province: model.query.province,
+          })}
+          hasSecondaryFilters={hasSecondaryFilters}
+          initialQuery={model.query.q}
+          key={model.query.q}
+          source={model.suggestionIndex}
+          territoryName={model.territory.displayName}
+          territorySlug={model.territory.slug}
+        />
+      ) : null}
       <DesktopFilters model={model} />
       <MobileFilters model={model} />
     </div>

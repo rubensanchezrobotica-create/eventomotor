@@ -1,6 +1,13 @@
 import { classifyEventDisciplinePage } from "@/components/disciplines/discipline-preview-model";
 import { paginateVisibleEvents } from "@/components/redesign-v2/listing/paginate-visible-events";
 import {
+  DISCIPLINE_SEARCH_MAX_SUGGESTIONS,
+  DISCIPLINE_SEARCH_MIN_CHARS,
+  buildDisciplineSearchSuggestionIndex,
+  normalizeDisciplineSearchText,
+  type DisciplineSearchSuggestionSource,
+} from "@/components/redesign-v2/discipline-detail/discipline-detail-model";
+import {
   projectPreviewEvent,
   resolveRedesignEventImages,
   type PreviewEvent,
@@ -65,9 +72,18 @@ export type TerritoryDetailPageModel = Readonly<{
   showTextSearch: boolean;
   siteUpcomingCount: number;
   state: TerritoryDetailState;
+  suggestionIndex: readonly DisciplineSearchSuggestionSource[];
   territory: SpanishTerritory;
   today: string;
   totalUpcomingCount: number;
+}>;
+
+export type TerritorySearchSuggestion = Readonly<{
+  href: string;
+  id: string;
+  kind: "event" | "location";
+  label: string;
+  meta?: string;
 }>;
 
 const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "cancelado", "cancelada"]);
@@ -204,13 +220,13 @@ function disciplineOption(event: EventItem) {
 
 function eventMatchesSearch(event: EventItem, q: string) {
   if (!q) return true;
-  const haystack = normalizeTerritoryDetailText([
+  const haystack = normalizeDisciplineSearchText([
     event.title,
     event.venue,
     event.city,
     event.province,
   ].filter(Boolean).join(" "));
-  return haystack.includes(normalizeTerritoryDetailText(q));
+  return haystack.includes(normalizeDisciplineSearchText(q));
 }
 
 function territoryContent(territory: SpanishTerritory) {
@@ -251,6 +267,93 @@ export function territoryDetailPageHref(
   const search = params.toString();
   const base = `/preview/redesign-v2/zonas/${territorySlug}`;
   return search ? `${base}?${search}` : base;
+}
+
+function locationLabel(city?: string, province?: string) {
+  if (!city) return province;
+  if (!province || normalizeDisciplineSearchText(city) === normalizeDisciplineSearchText(province)) {
+    return city;
+  }
+  return `${city}, ${province}`;
+}
+
+function suggestionMatchRank(values: Array<string | undefined>, normalizedQuery: string) {
+  const normalizedValues = values.map(normalizeDisciplineSearchText).filter(Boolean);
+  if (!normalizedValues.some((value) => value.includes(normalizedQuery))) return null;
+  if (normalizedValues.some((value) => value.startsWith(normalizedQuery))) return 0;
+  if (normalizedValues.some((value) => value.split(" ").some((word) => word.startsWith(normalizedQuery)))) return 1;
+  return 2;
+}
+
+export function buildTerritorySearchSuggestions(
+  source: readonly DisciplineSearchSuggestionSource[],
+  query: string,
+  territorySlug: string,
+  activeFilters: Pick<TerritoryDetailQuery, "discipline" | "province"> = { discipline: "", province: "" },
+): TerritorySearchSuggestion[] {
+  const normalizedQuery = normalizeDisciplineSearchText(query);
+  if (normalizedQuery.length < DISCIPLINE_SEARCH_MIN_CHARS) return [];
+
+  const uniqueSource = [...new Map(
+    source.map((event) => [normalizeDisciplineSearchText(event.slug), event]),
+  ).values()];
+
+  const eventSuggestions = uniqueSource
+    .map((event, index) => ({
+      event,
+      index,
+      rank: suggestionMatchRank([event.title, event.city, event.province, event.venue], normalizedQuery),
+    }))
+    .filter((candidate): candidate is typeof candidate & { rank: number } => candidate.rank !== null)
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .slice(0, 4)
+    .map(({ event }) => ({
+      href: `/preview/redesign-v2/evento/${event.slug}`,
+      id: `event:${event.slug}`,
+      kind: "event" as const,
+      label: event.title,
+      meta: locationLabel(event.city, event.province) || event.venue,
+    }));
+
+  const locations = new Map<string, {
+    firstIndex: number;
+    label: string;
+    queryValue: string;
+    rank: number;
+  }>();
+
+  function addLocation(label: string | undefined, queryValue: string | undefined, index: number) {
+    if (!label || !queryValue) return;
+    const normalizedLabel = normalizeDisciplineSearchText(label);
+    const rank = suggestionMatchRank([label], normalizedQuery);
+    if (!normalizedLabel || rank === null || locations.has(normalizedLabel)) return;
+    locations.set(normalizedLabel, { firstIndex: index, label, queryValue, rank });
+  }
+
+  uniqueSource.forEach((event, index) => {
+    addLocation(locationLabel(event.city, event.province), event.city || event.province, index);
+    if (event.province && normalizeDisciplineSearchText(event.province) !== normalizeDisciplineSearchText(event.city)) {
+      addLocation(event.province, event.province, index);
+    }
+  });
+
+  const locationSuggestions = [...locations.values()]
+    .sort((left, right) => left.rank - right.rank
+      || left.firstIndex - right.firstIndex
+      || left.label.localeCompare(right.label, "es"))
+    .slice(0, 2)
+    .map((location) => ({
+      href: territoryDetailPageHref(territorySlug, {
+        ...activeFilters,
+        page: 1,
+        q: location.queryValue,
+      }),
+      id: `location:${normalizeDisciplineSearchText(location.label)}`,
+      kind: "location" as const,
+      label: location.label,
+    }));
+
+  return [...eventSuggestions, ...locationSuggestions].slice(0, DISCIPLINE_SEARCH_MAX_SUGGESTIONS);
 }
 
 export function territoryDetailPaginationItems(page: number, pageCount: number) {
@@ -340,6 +443,9 @@ export function buildTerritoryDetailPageModel(
   const visibleEvents = pagination.visible;
   const visibleImages = resolveRedesignEventImages(visibleEvents);
   const content = territoryContent(territory);
+  const suggestionIndex = showTextSearch
+    ? buildDisciplineSearchSuggestionIndex(territorialEvents)
+    : [];
 
   return {
     activeProvinceCount: provinceOptions.length,
@@ -359,6 +465,7 @@ export function buildTerritoryDetailPageModel(
     showTextSearch,
     siteUpcomingCount: directory.totalUpcomingEventCount,
     state,
+    suggestionIndex,
     territory,
     today: directory.today,
     totalUpcomingCount: territorialEvents.length,

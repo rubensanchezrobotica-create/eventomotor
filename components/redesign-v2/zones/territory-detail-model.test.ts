@@ -6,6 +6,7 @@ import {
   TERRITORY_DETAIL_PAGE_SIZE,
   TERRITORY_DETAIL_QUERY_MAX_LENGTH,
   buildTerritoryDetailPageModel,
+  buildTerritorySearchSuggestions,
   normalizeTerritoryDetailText,
   parseTerritoryDetailPage,
   parseTerritoryDetailQuery,
@@ -154,6 +155,80 @@ test("A7.5B filtra país y territorio antes de buscar sin inferir desde texto li
 
   assert.deepEqual(model.items.map(({ event: item }) => item.id), ["territory-detail-0"]);
   assert.equal(model.totalUpcomingCount, 1);
+  assert.deepEqual(model.suggestionIndex.map(({ slug }) => slug), []);
+});
+
+test("A7.5D-R1 crea un índice ligero con todo el territorio y sugiere más allá de la primera página", () => {
+  const fixtures = Array.from({ length: 15 }, (_, index) => event(index, {
+    title: index === 14 ? "Moto Oculta Sierra Sur" : `Rally territorial ${index}`,
+  }));
+  const model = andaluciaModel(fixtures);
+  const suggestions = buildTerritorySearchSuggestions(
+    model.suggestionIndex,
+    "moto oculta",
+    model.territory.slug,
+  );
+
+  assert.equal(model.items.length, TERRITORY_DETAIL_PAGE_SIZE);
+  assert.equal(model.suggestionIndex.length, 15);
+  assert.deepEqual(Object.keys(model.suggestionIndex[0] ?? {}), ["slug", "title", "city", "province", "venue"]);
+  assert.deepEqual(suggestions.map(({ id }) => id), ["event:territory-detail-14"]);
+  assert.equal(suggestions[0]?.href, "/preview/redesign-v2/evento/territory-detail-14");
+});
+
+test("A7.5D-R1 limita sugerencias al territorio español exacto antes del typeahead", () => {
+  const fixtures = [
+    ...Array.from({ length: 10 }, (_, index) => event(index)),
+    event(20, {
+      country: "PT",
+      province: "Faro",
+      region: "Algarve",
+      slug: "portugal-prohibido",
+      title: "Moto Portugal Prohibida",
+    }),
+    event(21, {
+      province: "Madrid",
+      region: "Madrid",
+      slug: "madrid-prohibido",
+      title: "Moto Madrid Prohibida",
+    }),
+    event(22, {
+      province: "Por confirmar",
+      region: "Por confirmar",
+      slug: "geografia-desconocida",
+      title: "Moto Geografía Desconocida",
+    }),
+  ];
+  const model = andaluciaModel(fixtures);
+
+  assert.equal(model.suggestionIndex.length, 10);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Portugal", "andalucia").length, 0);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Madrid Prohibida", "andalucia").length, 0);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Geografía", "andalucia").length, 0);
+  assert.equal(model.suggestionIndex.some(({ slug }) => slug.includes("prohibido") || slug === "geografia-desconocida"), false);
+});
+
+test("A7.5D-R1 replica normalización, límites y destinos de evento y ubicación", () => {
+  const model = andaluciaModel(Array.from({ length: 10 }, (_, index) => event(index, {
+    city: index % 2 ? "Málaga" : "Écija",
+    province: index % 2 ? "Málaga" : "Sevilla",
+    title: index === 0 ? "Concentración Clásica de Écija" : `Rally territorial ${index}`,
+  })));
+
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "e", "andalucia").length, 0);
+  const eventSuggestions = buildTerritorySearchSuggestions(model.suggestionIndex, "  CLASICA   DE   ECIJA ", "andalucia");
+  assert.equal(eventSuggestions[0]?.kind, "event");
+  assert.equal(eventSuggestions[0]?.href, "/preview/redesign-v2/evento/territory-detail-0");
+
+  const locationSuggestions = buildTerritorySearchSuggestions(
+    model.suggestionIndex,
+    "malaga",
+    "andalucia",
+    { discipline: "rallyes", province: "malaga" },
+  );
+  const location = locationSuggestions.find(({ kind }) => kind === "location");
+  assert.equal(location?.href, "/preview/redesign-v2/zonas/andalucia?q=M%C3%A1laga&province=malaga&discipline=rallyes");
+  assert.ok(locationSuggestions.length <= 6);
 });
 
 test("A7.5B pagina en servidor hasta 12 eventos y normaliza páginas fuera de rango", () => {
