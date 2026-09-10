@@ -192,6 +192,11 @@
   gap: 18px;
 }
 
+.resultsLanding {
+  min-width: 0;
+  scroll-margin-top: clamp(24px, 8vw, 116px);
+}
+
 .eventGrid > * {
   min-width: 0;
 }

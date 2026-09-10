@@ -5,6 +5,7 @@ import type { EventItem } from "@/types/event";
 import {
   TERRITORY_DETAIL_PAGE_SIZE,
   TERRITORY_DETAIL_QUERY_MAX_LENGTH,
+  TERRITORY_DETAIL_RESULTS_ANCHOR_ID,
   buildTerritoryDetailPageModel,
   buildTerritorySearchSuggestions,
   normalizeTerritoryDetailText,
@@ -15,6 +16,7 @@ import {
   territoryDetailHeroSummary,
   territoryDetailPageHref,
   territoryDetailPaginationItems,
+  territoryDetailResultsHref,
   territoryDetailResultsSummary,
   territoryDetailState,
 } from "./territory-detail-model";
@@ -227,7 +229,7 @@ test("A7.5D-R1 replica normalización, límites y destinos de evento y ubicació
     { discipline: "rallyes", province: "malaga" },
   );
   const location = locationSuggestions.find(({ kind }) => kind === "location");
-  assert.equal(location?.href, "/preview/redesign-v2/zonas/andalucia?q=M%C3%A1laga&province=malaga&discipline=rallyes");
+  assert.equal(location?.href, "/preview/redesign-v2/zonas/andalucia?q=M%C3%A1laga&province=malaga&discipline=rallyes#eventos");
   assert.ok(locationSuggestions.length <= 6);
 });
 
@@ -275,6 +277,15 @@ test("A7.5B construye query estable, paginación enlazable y reseteo implícito 
   assert.equal(
     territoryDetailPageHref("andalucia", { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
     "/preview/redesign-v2/zonas/andalucia?q=Sierra+%26+Mar&province=malaga&discipline=rallyes&page=2",
+  );
+  assert.equal(TERRITORY_DETAIL_RESULTS_ANCHOR_ID, "eventos");
+  assert.equal(
+    territoryDetailResultsHref("andalucia", { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
+    "/preview/redesign-v2/zonas/andalucia?q=Sierra+%26+Mar&province=malaga&discipline=rallyes&page=2#eventos",
+  );
+  assert.equal(
+    territoryDetailResultsHref("andalucia", { q: "Nueva búsqueda", page: 1 }),
+    "/preview/redesign-v2/zonas/andalucia?q=Nueva+b%C3%BAsqueda#eventos",
   );
   assert.deepEqual(territoryDetailPaginationItems(8, 16), [1, "ellipsis", 7, 8, 9, "ellipsis", 16]);
 });

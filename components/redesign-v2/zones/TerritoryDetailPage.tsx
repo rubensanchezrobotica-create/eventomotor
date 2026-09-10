@@ -3,8 +3,9 @@ import EventCard from "@/components/redesign-v2/EventCard";
 import TerritorySearchAssist from "./TerritorySearchAssist.client";
 import {
   TERRITORY_DETAIL_PAGE_SIZE,
-  territoryDetailPageHref,
+  TERRITORY_DETAIL_RESULTS_ANCHOR_ID,
   territoryDetailPaginationItems,
+  territoryDetailResultsHref,
   territoryDetailResultsSummary,
   type TerritoryDetailFilterOption,
   type TerritoryDetailPageModel,
@@ -44,7 +45,7 @@ function ClearFilters({ model }: { model: TerritoryDetailPageModel }) {
   const active = model.query.q || model.query.province || model.query.discipline;
   if (!active) return null;
   return (
-    <Link className={styles.clearFilters} href={territoryDetailPageHref(model.territory.slug)}>
+    <Link className={styles.clearFilters} href={territoryDetailResultsHref(model.territory.slug)}>
       Restablecer
     </Link>
   );
@@ -57,7 +58,7 @@ function DesktopFilters({ model }: { model: TerritoryDetailPageModel }) {
 
   return (
     <form
-      action={territoryDetailPageHref(model.territory.slug)}
+      action={territoryDetailResultsHref(model.territory.slug)}
       className={`${styles.desktopFilterForm} ${styles.compactFilterForm} ${singleConditionalFilter ? styles.singleFilterForm : ""}`}
       method="get"
     >
@@ -93,7 +94,7 @@ function MobileFilters({ model }: { model: TerritoryDetailPageModel }) {
     <div className={styles.mobileFilters}>
       <details className={styles.moreFilters} open={Boolean(model.query.province || model.query.discipline)}>
         <summary>Más filtros</summary>
-        <form action={territoryDetailPageHref(model.territory.slug)} method="get">
+        <form action={territoryDetailResultsHref(model.territory.slug)} method="get">
           {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
           {model.showProvinceFilter ? (
             <FilterSelect
@@ -130,9 +131,9 @@ function TerritoryFilters({ model }: { model: TerritoryDetailPageModel }) {
     <div className={styles.filters} aria-label={`Filtrar eventos en ${model.territory.displayName}`}>
       {model.showTextSearch ? (
         <TerritorySearchAssist
-          action={territoryDetailPageHref(model.territory.slug)}
+          action={territoryDetailResultsHref(model.territory.slug)}
           activeFilters={{ discipline: model.query.discipline, province: model.query.province }}
-          clearHref={territoryDetailPageHref(model.territory.slug, {
+          clearHref={territoryDetailResultsHref(model.territory.slug, {
             discipline: model.query.discipline,
             province: model.query.province,
           })}
@@ -153,7 +154,7 @@ function TerritoryFilters({ model }: { model: TerritoryDetailPageModel }) {
 function Pagination({ model }: { model: TerritoryDetailPageModel }) {
   const items = territoryDetailPaginationItems(model.page, model.pageCount);
   if (!items.length) return null;
-  const href = (page: number) => territoryDetailPageHref(model.territory.slug, { ...model.query, page });
+  const href = (page: number) => territoryDetailResultsHref(model.territory.slug, { ...model.query, page });
 
   return (
     <nav aria-label={`Paginación de eventos en ${model.territory.displayName}`} className={styles.pagination}>
@@ -183,7 +184,7 @@ function EmptyResults({ model }: { model: TerritoryDetailPageModel }) {
           : "Consulta el calendario nacional o vuelve más adelante para descubrir nuevas fechas."}
       </p>
       <div>
-        {filtered ? <Link href={territoryDetailPageHref(model.territory.slug)}>Limpiar filtros</Link> : null}
+        {filtered ? <Link href={territoryDetailResultsHref(model.territory.slug)}>Limpiar filtros</Link> : null}
         <Link href="/preview/redesign-v2/calendario">Ver calendario nacional</Link>
         <Link href="/publicar-evento">Publicar evento</Link>
       </div>
@@ -243,18 +244,20 @@ export default function TerritoryDetailPage({ model, nowIso }: TerritoryDetailPa
 
           <TerritoryFilters model={model} />
 
-          {model.items.length ? (
-            <div aria-labelledby="territory-detail-results" className={styles.eventGrid}>
-              {model.items.map((item) => (
-                <EventCard
-                  event={item.event}
-                  key={item.event.id}
-                  nowIso={nowIso}
-                  resolvedImage={item.image}
-                />
-              ))}
-            </div>
-          ) : <EmptyResults model={model} />}
+          <div className={styles.resultsLanding} id={TERRITORY_DETAIL_RESULTS_ANCHOR_ID}>
+            {model.items.length ? (
+              <div aria-labelledby="territory-detail-results" className={styles.eventGrid}>
+                {model.items.map((item) => (
+                  <EventCard
+                    event={item.event}
+                    key={item.event.id}
+                    nowIso={nowIso}
+                    resolvedImage={item.image}
+                  />
+                ))}
+              </div>
+            ) : <EmptyResults model={model} />}
+          </div>
 
           <Pagination model={model} />
           {model.pageCount > 1 ? (

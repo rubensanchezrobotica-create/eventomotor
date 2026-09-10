@@ -80,6 +80,20 @@ test("A7.5D-R1 añade typeahead territorial sin filtrar tarjetas en vivo ni alte
   assert.doesNotMatch(searchAssist, /router\.replace|useSearchParams|filterPreviewEvents|EventCard/);
 });
 
+test("A7.5E dirige búsquedas, filtros, ubicación y paginación al inicio real de resultados", () => {
+  assert.match(model, /export const TERRITORY_DETAIL_RESULTS_ANCHOR_ID = "eventos"/);
+  assert.match(model, /return `\$\{territoryDetailPageHref\(territorySlug, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
+  assert.match(model, /href: territoryDetailResultsHref\(territorySlug,[\s\S]*?q: location\.queryValue/);
+  assert.match(component, /action=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/);
+  assert.equal((component.match(/action=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/g) || []).length, 3);
+  assert.match(component, /const href = \(page: number\) => territoryDetailResultsHref\(model\.territory\.slug, \{ \.\.\.model\.query, page \}\)/);
+  assert.match(component, /id=\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}/);
+  assert.match(component, /className=\{styles\.resultsLanding\}[\s\S]*?model\.items\.length[\s\S]*?<EmptyResults model=\{model\}/);
+  assert.match(styles, /\.resultsLanding\s*\{[\s\S]*?scroll-margin-top:\s*clamp\(24px, 8vw, 116px\)/);
+  assert.match(searchAssist, /router\.push\(suggestion\.href\)/);
+  assert.doesNotMatch(searchAssist, /scrollIntoView|window\.scroll|setTimeout|MutationObserver/);
+});
+
 test("A7.5D-R1 conserva el contrato de teclado, foco, touch y selección aprobado", () => {
   assert.match(searchAssist, /role="combobox"/);
   assert.match(searchAssist, /aria-autocomplete="list"/);

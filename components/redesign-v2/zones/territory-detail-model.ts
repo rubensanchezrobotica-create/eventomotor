@@ -33,6 +33,7 @@ import {
 
 export const TERRITORY_DETAIL_PAGE_SIZE = 12;
 export const TERRITORY_DETAIL_QUERY_MAX_LENGTH = 120;
+export const TERRITORY_DETAIL_RESULTS_ANCHOR_ID = "eventos";
 
 export type TerritoryDetailState = "EMPTY" | "MINIMAL" | "COMPACT" | "FULL";
 
@@ -269,6 +270,13 @@ export function territoryDetailPageHref(
   return search ? `${base}?${search}` : base;
 }
 
+export function territoryDetailResultsHref(
+  territorySlug: string,
+  query: Partial<TerritoryDetailQuery> = {},
+) {
+  return `${territoryDetailPageHref(territorySlug, query)}#${TERRITORY_DETAIL_RESULTS_ANCHOR_ID}`;
+}
+
 function locationLabel(city?: string, province?: string) {
   if (!city) return province;
   if (!province || normalizeDisciplineSearchText(city) === normalizeDisciplineSearchText(province)) {
@@ -343,7 +351,7 @@ export function buildTerritorySearchSuggestions(
       || left.label.localeCompare(right.label, "es"))
     .slice(0, 2)
     .map((location) => ({
-      href: territoryDetailPageHref(territorySlug, {
+      href: territoryDetailResultsHref(territorySlug, {
         ...activeFilters,
         page: 1,
         q: location.queryValue,
