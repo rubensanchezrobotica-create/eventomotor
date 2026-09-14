@@ -283,6 +283,17 @@
   padding: 0 14px;
 }
 
+.field input[type="date"] {
+  padding-inline: 0;
+}
+
+.field input[type="date"]::-webkit-date-and-time-value {
+  min-width: 0;
+  margin: 0;
+  padding-inline-start: 14px;
+  text-align: left;
+}
+
 .field textarea {
   min-height: 132px;
   padding: 13px 14px;
