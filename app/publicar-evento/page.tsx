@@ -1,127 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import TrackAnchor from "@/components/analytics/TrackAnchor";
+import { connection } from "next/server";
 import EventSubmissionForm from "@/components/public/EventSubmissionForm";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import styles from "@/components/public/PublicarEventoV2.module.css";
+import { madridCalendarDateKey } from "@/components/redesign-v2/calendar/calendar-page-model";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
+import { getVisibleEvents } from "@/lib/public-events";
 import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import { SITE_URL } from "@/lib/seo";
 
-const CONTACT_EMAIL = "info@eventomotor.com";
-const EVENT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=Publicar%20evento%20en%20EventoMotor`;
-
-const publishBenefits = [
-  {
-    title: "Publicación gratuita",
-    detail: "Puedes enviar tu evento para revisión sin coste.",
-  },
-  {
-    title: "Ficha individual del evento",
-    detail: "Una página propia para compartir y enlazar desde otros canales.",
-  },
-  {
-    title: "Fuente oficial o entradas",
-    detail: "Enlazamos a la web, cartel, inscripción o venta cuando existe.",
-  },
-  {
-    title: "Calendario, zonas y disciplinas",
-    detail: "El evento puede aparecer por fecha, provincia, zona y tipo.",
-  },
-  {
-    title: "Revisión antes de publicar",
-    detail: "Comprobamos que haya datos verificables para mantener calidad.",
-  },
-  {
-    title: "Búsquedas de motor",
-    detail: "Las fichas pueden posicionar para consultas relacionadas con eventos.",
-  },
-];
-
-const acceptedEvents = [
-  "Concentraciones moteras",
-  "Motoalmuerzos y matinales",
-  "Rallyes y rallysprint",
-  "Trackdays, tandas y rodadas",
-  "Ferias y salones",
-  "Rutas mototurísticas",
-  "Karting",
-  "4x4 y offroad",
-  "Eventos clásicos y custom",
-];
-
-const publishPlacements = [
-  {
-    title: "Calendario nacional",
-    detail: "Visible por fecha",
-  },
-  {
-    title: "Mapa por zonas",
-    detail: "Descubrimiento territorial",
-  },
-  {
-    title: "Búsquedas por disciplina",
-    detail: "Usuarios con intención clara",
-  },
-  {
-    title: "Ficha individual del evento",
-    detail: "Página propia para compartir",
-  },
-  {
-    title: "Enlaces a fuente oficial y entradas",
-    detail: "Clics hacia tu web o entradas",
-  },
-];
-
 const processSteps = [
-  "Envías la información del evento",
-  "Revisamos que tenga fuente oficial o datos verificables",
-  "Publicamos la ficha si encaja con EventoMotor",
-  "El evento puede aparecer en calendario, zona y disciplina",
-];
+  {
+    number: "01",
+    title: "Envíanos la información",
+    detail: "Completa los datos y añade una fuente oficial que podamos consultar.",
+  },
+  {
+    number: "02",
+    title: "La revisamos",
+    detail: "Comprobamos que la información sea verificable y encaje en la agenda.",
+  },
+  {
+    number: "03",
+    title: "La incorporamos",
+    detail: "Si encaja y podemos verificarla, publicamos la ficha en EventoMotor.",
+  },
+] as const;
 
-const requestedData = [
-  {
-    title: "Nombre del evento",
-    detail: "Tal como aparece en la comunicación oficial.",
-  },
-  {
-    title: "Fecha",
-    detail: "Día o rango completo si dura varias jornadas.",
-  },
-  {
-    title: "Ubicación",
-    detail: "Ciudad, provincia y recinto si existe.",
-  },
-  {
-    title: "Disciplina",
-    detail: "Rally, concentración, circuito, ruta, feria, offroad...",
-  },
-  {
-    title: "Web oficial o fuente",
-    detail: "Imprescindible para poder verificar la publicación.",
-  },
-  {
-    title: "Enlace de entradas si existe",
-    detail: "También sirve inscripción, reservas o formulario oficial.",
-  },
-  {
-    title: "Cartel o imagen si existe",
-    detail: "Preferiblemente en buena calidad.",
-  },
-  {
-    title: "Breve descripción del evento",
-    detail: "Sin inventar programa: solo información confirmada.",
-  },
-];
-
-const publishInternalLinks = [
+const usefulLinks = [
   { label: "Calendario de eventos", href: PUBLIC_NAVIGATION.calendar },
   { label: "Eventos este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
-  { label: "Concentraciones moteras 2026", href: "/concentraciones-moteras-2026" },
-  { label: "Rallyes en España 2026", href: "/rallyes-espana-2026" },
-  { label: "Trackdays en España 2026", href: "/trackdays-espana-2026" },
-];
+  { label: "Explorar disciplinas", href: PUBLIC_NAVIGATION.disciplines },
+  { label: "Explorar zonas", href: PUBLIC_NAVIGATION.zones },
+] as const;
 
 export const metadata: Metadata = {
   title: "Publicar evento de motor gratis",
@@ -132,205 +44,75 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PublicarEventoPage() {
+export default async function PublicarEventoPage() {
+  await connection();
+  const today = madridCalendarDateKey();
+  const upcomingCount = (await getVisibleEvents()).filter(
+    (event) => (event.end || event.start) >= today,
+  ).length;
+
   return (
-    <div className="emc-page">
-      <ConceptStyles />
-      <ConceptStaticHeader compactActions />
-
-      <main className="emc-contact-page emc-publish-page">
-        <section className="emc-contact-hero">
-          <div className="emc-container emc-contact-grid">
-            <div>
-              <div className="emc-kicker">Organizadores</div>
-              <h1>Publica tu evento en EventoMotor</h1>
-              <p className="emc-contact-lead">
-                Da visibilidad a tu concentración, rallye, rodada, feria, ruta, curso o quedada en un calendario especializado en eventos de motor.
-              </p>
-              <div className="emc-contact-actions">
-                <TrackAnchor
-                  className="emc-btn emc-btn-primary"
-                  eventName="click_publish_event"
-                  eventParams={{ source: "publish_page_cta" }}
-                  href="#enviar-evento"
-                >
-                  Enviar evento
-                </TrackAnchor>
-                <Link className="emc-contact-secondary-link" href={PUBLIC_NAVIGATION.calendar}>
-                  Ver calendario
-                </Link>
-              </div>
+    <div className={`${styles.pageScope} ${redesignV2DisplayPilot.variable}`}>
+      <V2InteriorShell
+        breadcrumbs={[
+          { label: "Inicio", navigationId: "home" },
+          { label: "Publicar evento" },
+        ]}
+        currentNavigationId="publish"
+        description="Envíanos tu evento gratis. Revisamos cada propuesta antes de publicarla y una fuente oficial nos ayuda a verificarla."
+        eyebrow="Envía tu evento"
+        navigationMode="public"
+        title="Publica tu evento"
+        upcomingCount={upcomingCount}
+      >
+        <div className={styles.content}>
+          <section aria-labelledby="publish-process-title" className={styles.processSection}>
+            <div className={styles.sectionHeading}>
+              <span>Proceso de revisión</span>
+              <h2 id="publish-process-title">TRES PASOS, SIN COSTE</h2>
+              <p>El envío abre una solicitud de revisión; no publica el evento automáticamente.</p>
             </div>
-
-            <aside className="emc-panel emc-contact-card" aria-label="Correo para publicar eventos">
-              <span>PUBLICACIÓN GRATUITA</span>
-              <h2>Envía tu evento</h2>
-              <TrackAnchor
-                eventName="click_contact_email"
-                eventParams={{ location: "publish_page_email_card" }}
-                href={EVENT_MAILTO}
-              >
-                {CONTACT_EMAIL}
-              </TrackAnchor>
-              <p>Incluye fecha, ubicación, tipo de evento y fuente oficial para poder revisarlo correctamente.</p>
-              <small>Siempre que sea posible enlazamos a la fuente oficial del evento.</small>
-            </aside>
-          </div>
-        </section>
-
-        <section className="emc-section emc-publish-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Por qué publicar</div>
-                <h2>Más visibilidad para eventos reales de motor</h2>
-              </div>
-              <p>
-                EventoMotor es un calendario especializado en eventos de motor en España, con páginas por fecha, zona, disciplina y fichas indexables en Google.
-              </p>
-            </div>
-            <div className="emc-publish-grid emc-publish-benefits-grid">
-              {publishBenefits.map((item) => (
-                <div className="emc-publish-card" key={item.title}>
-                  <span />
-                  <strong>{item.title}</strong>
-                  <small>{item.detail}</small>
-                </div>
+            <ol className={styles.processGrid}>
+              {processSteps.map((step) => (
+                <li key={step.number}>
+                  <span aria-hidden="true">{step.number}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.detail}</p>
+                  </div>
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
+            </ol>
+          </section>
 
-        <section className="emc-section emc-contact-section" id="enviar-evento">
-          <div className="emc-container">
+          <section aria-labelledby="submission-form-title" className={styles.formSection} id="enviar-evento">
+            <div className={styles.formIntro}>
+              <span>Formulario</span>
+              <h2 id="submission-form-title">CUÉNTANOS TU EVENTO</h2>
+              <p>
+                Los campos marcados con <strong>*</strong> son obligatorios. El resto ayuda a preparar una ficha más útil y fácil de verificar.
+              </p>
+            </div>
             <EventSubmissionForm />
-          </div>
-        </section>
+          </section>
 
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-panel emc-publish-accepted">
-              <div>
-                <div className="emc-kicker">Qué eventos aceptamos</div>
-                <h2>Eventos de motor con fecha, ubicación y fuente verificable</h2>
-                <p>
-                  Revisamos eventos reales relacionados con motos, coches, competición, rutas, ferias, circuito, karting, offroad, clásicos y cultura custom.
-                </p>
-              </div>
-              <div className="emc-publish-chip-grid">
-                {acceptedEvents.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
+          <section aria-labelledby="publish-links-title" className={styles.linksSection}>
+            <div className={styles.sectionHeading}>
+              <span>Explora EventoMotor</span>
+              <h2 id="publish-links-title">CONSULTA LA AGENDA</h2>
+              <p>Revisa cómo presentamos fechas, disciplinas y territorios antes de enviar tu propuesta.</p>
             </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-publish-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Visibilidad</div>
-                <h2>Dónde puede aparecer tu evento</h2>
-              </div>
-            </div>
-            <div className="emc-publish-grid">
-              {publishPlacements.map((item) => (
-                <div className="emc-publish-card" key={item.title}>
-                  <span />
-                  <strong>{item.title}</strong>
-                  <small>{item.detail}</small>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-panel emc-publish-process">
-              <div>
-                <div className="emc-kicker">Proceso</div>
-                <h2>Cómo funciona</h2>
-              </div>
-              <div className="emc-publish-process-grid">
-                {processSteps.map((step, index) => (
-                  <div className="emc-publish-process-step" key={step}>
-                    <span>{index + 1}</span>
-                    <strong>{step}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-panel emc-publish-criteria">
-              <div className="emc-kicker">Confianza</div>
-              <h2>EventoMotor no organiza los eventos publicados</h2>
-              <p>
-                La información se revisa y se enlaza siempre que sea posible a la fuente oficial del evento. Los horarios, inscripciones, recorridos, precios o cambios de última hora deben confirmarse con el organizador.
-              </p>
-              <div className="emc-kicker emc-publish-kicker-spaced">Criterios</div>
-              <h2>Criterios de publicación</h2>
-              <p>
-                Publicamos eventos reales de motor con fecha, ubicación y fuente verificable. Damos prioridad a eventos con información oficial, web, cartel o enlace de entradas.
-              </p>
-              <p>
-                No publicamos eventos sin fuente verificable. Priorizamos la información oficial para mantener el calendario actualizado y fiable.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-panel emc-contact-list-panel">
-              <div>
-                <div className="emc-kicker">Datos necesarios</div>
-                <h2>Qué debes enviar</h2>
-                <p className="emc-contact-list-copy">
-                  Cuanto más clara sea la información, más rápido podremos revisar el evento y preparar una ficha útil para los usuarios.
-                </p>
-              </div>
-              <div className="emc-contact-list">
-                {requestedData.map((item) => (
-                  <div className="emc-contact-list-item" key={item.title}>
-                    <span />
-                    <div>
-                      <strong>{item.title}</strong>
-                      <small>{item.detail}</small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="emc-section emc-internal-links-section emc-opportunity-links-section">
-          <div className="emc-container">
-            <div className="emc-section-head">
-              <div>
-                <div className="emc-kicker">Explora EventoMotor</div>
-                <h2>Consulta ejemplos de páginas donde puede aparecer un evento</h2>
-              </div>
-            </div>
-            <div className="emc-internal-links">
-              {publishInternalLinks.map((link) => (
-                <Link className="emc-internal-link-card" href={link.href} key={link.href}>
-                  <span>Enlace interno</span>
-                  <strong>{link.label}</strong>
+            <div className={styles.linkGrid}>
+              {usefulLinks.map((link) => (
+                <Link href={link.href} key={link.href}>
+                  <span>{link.label}</span>
+                  <strong aria-hidden="true">↗</strong>
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
-      </main>
-
-      <ConceptFooter />
+          </section>
+        </div>
+      </V2InteriorShell>
     </div>
   );
 }
