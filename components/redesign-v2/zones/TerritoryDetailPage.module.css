@@ -102,6 +102,15 @@
   justify-self: start;
 }
 
+.filterActions {
+  min-width: 0;
+  display: flex;
+  align-self: end;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .filterField {
   min-width: 0;
   display: grid;
@@ -172,13 +181,21 @@
 
 .clearFilters {
   align-self: end;
-  padding-inline: 5px;
-  color: #c2c7ce;
+  padding-inline: 14px;
+  border: 1px solid #3a434d;
+  border-radius: 7px;
+  background: transparent;
+  color: #d7dbe0;
   font-size: 0.76rem;
   font-weight: 800;
-  text-decoration: underline;
-  text-decoration-color: #606975;
-  text-underline-offset: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.clearFilters:hover {
+  border-color: #5b6671;
+  background: #171d24;
+  color: #ffffff;
 }
 
 .mobileFilters {
@@ -508,10 +525,21 @@
   }
 
   .mobileFilterActions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: stretch;
     gap: 9px;
+  }
+
+  .mobileFilterActions .clearFilters,
+  .mobileFilterActions .applyFilters {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  .mobileFilterActions .applyFilters:only-child {
+    grid-column: 1 / -1;
   }
 
   .eventGrid {

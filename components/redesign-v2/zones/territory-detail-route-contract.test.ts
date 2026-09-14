@@ -94,6 +94,19 @@ test("A7.5E dirige búsquedas, filtros, ubicación y paginación al inicio real 
   assert.doesNotMatch(searchAssist, /scrollIntoView|window\.scroll|setTimeout|MutationObserver/);
 });
 
+test("A7.5F integra Limpiar filtros como acción secundaria sin cambiar su destino", () => {
+  assert.match(component, /const active = model\.query\.q \|\| model\.query\.province \|\| model\.query\.discipline/);
+  assert.match(component, /if \(!active\) return null/);
+  assert.match(component, /className=\{styles\.clearFilters\} href=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/);
+  assert.doesNotMatch(component, />\s*Restablecer\s*</);
+  assert.equal((component.match(/>\s*Limpiar filtros\s*</g) || []).length, 2);
+  assert.match(component, /className=\{styles\.filterActions\}[\s\S]*?<ClearFilters model=\{model\} \/>[\s\S]*?Aplicar filtros/);
+  assert.match(component, /styles\.filterActions[\s\S]*?styles\.mobileFilterActions[\s\S]*?<ClearFilters model=\{model\} \/>[\s\S]*?Aplicar filtros/);
+  assert.match(styles, /\.filterActions\s*\{[\s\S]*?display:\s*flex;[\s\S]*?gap:\s*8px/);
+  assert.match(styles, /\.clearFilters\s*\{[\s\S]*?border:\s*1px solid #3a434d;[\s\S]*?background:\s*transparent/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.mobileFilterActions\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:\s*minmax\(0, 0\.9fr\) minmax\(0, 1\.1fr\)/);
+});
+
 test("A7.5D-R1 conserva el contrato de teclado, foco, touch y selección aprobado", () => {
   assert.match(searchAssist, /role="combobox"/);
   assert.match(searchAssist, /aria-autocomplete="list"/);

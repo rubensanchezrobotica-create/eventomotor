@@ -46,7 +46,7 @@ function ClearFilters({ model }: { model: TerritoryDetailPageModel }) {
   if (!active) return null;
   return (
     <Link className={styles.clearFilters} href={territoryDetailResultsHref(model.territory.slug)}>
-      Restablecer
+      Limpiar filtros
     </Link>
   );
 }
@@ -81,8 +81,10 @@ function DesktopFilters({ model }: { model: TerritoryDetailPageModel }) {
           options={model.disciplineOptions}
         />
       ) : null}
-      <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
-      <ClearFilters model={model} />
+      <div className={styles.filterActions}>
+        <ClearFilters model={model} />
+        <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
+      </div>
     </form>
   );
 }
@@ -114,9 +116,9 @@ function MobileFilters({ model }: { model: TerritoryDetailPageModel }) {
               options={model.disciplineOptions}
             />
           ) : null}
-          <div className={styles.mobileFilterActions}>
-            <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
+          <div className={`${styles.filterActions} ${styles.mobileFilterActions}`}>
             <ClearFilters model={model} />
+            <button className={styles.applyFilters} type="submit">Aplicar filtros</button>
           </div>
         </form>
       </details>
