@@ -8,6 +8,8 @@ function source(path: string) {
 }
 
 const route = source("app/preview/redesign-v2/zonas/page.tsx");
+const publicRoute = source("app/zonas/page.tsx");
+const publicTerritoryAdapter = source("components/regions/PublicRegionalLanding.tsx");
 const component = source("components/redesign-v2/zones/ZonesDirectoryPage.tsx");
 const model = source("components/redesign-v2/zones/territory-directory-model.ts");
 const styles = source("components/redesign-v2/zones/ZonesDirectoryPage.module.css");
@@ -76,4 +78,25 @@ test("A7.3 protege grid, tactilidad, foco heredado, overflow y densidad móvil",
 test("A7.3 no introduce imágenes, mapas, buscadores ni enlaces provinciales", () => {
   assert.doesNotMatch(route + component, /next\/image|<Image|mapbox|leaflet|google maps/i);
   assert.doesNotMatch(component, /buscar|filtro|province.*href/i);
+});
+
+test("A7.6C converge /zonas al directorio V2 con contexto público explícito", () => {
+  assert.match(publicRoute, /await connection\(\)/);
+  assert.match(publicRoute, /<V2InteriorShell/);
+  assert.match(publicRoute, /navigationMode="public"/);
+  assert.match(publicRoute, /routeMode:\s*"public"/);
+  assert.match(publicRoute, /<ZonesDirectoryPage model=\{model\}/);
+  assert.doesNotMatch(publicRoute, /ConceptStyles|ConceptStaticHeader|ConceptFooter/);
+  assert.doesNotMatch(publicRoute, /redirect\(|\/preview\/redesign-v2\/zonas/);
+  assert.match(route, /routeMode:\s*"preview"/);
+  assert.match(publicTerritoryAdapter, /\{ label: "Zonas", navigationId: "territories" \}/);
+});
+
+test("A7.6C conserva el contrato SEO y de sitemap público de /zonas", () => {
+  assert.match(publicRoute, /title:\s*"Zonas"/);
+  assert.match(publicRoute, /Explora eventos de motor por zonas de España: norte, centro, Cataluña y Aragón, Levante, sur y Canarias\./);
+  assert.match(publicRoute, /canonical:\s*`\$\{SITE_URL\}\/zonas`/);
+  assert.match(sitemap, /sitemapEntry\("\/zonas", now, "weekly", 0\.8\)/);
+  assert.match(sitemap, /SEO_ZONES\.map/);
+  assert.doesNotMatch(sitemap, /eventos-motor-la-rioja|preview\/redesign-v2\/zonas/);
 });

@@ -22,7 +22,9 @@ export default async function ZonesPreviewPage() {
   await connection();
   if (!isRedesignPreviewAvailable()) notFound();
 
-  const model = buildTerritoryDirectoryModel(await getVisibleEvents(), new Date());
+  const model = buildTerritoryDirectoryModel(await getVisibleEvents(), new Date(), {
+    routeMode: "preview",
+  });
 
   return (
     <V2PreviewShell

@@ -11,6 +11,7 @@ import {
   type SpanishTerritoryKind,
 } from "@/lib/regions/territory-contract";
 import type { EventItem } from "@/types/event";
+import type { TerritoryRouteMode } from "./territory-route-context";
 
 export type TerritoryDirectoryItem = Readonly<{
   activeProvinceCount: number;
@@ -32,6 +33,10 @@ export type TerritoryDirectoryModel = Readonly<{
   totalSpanishUpcomingCount: number;
   totalUpcomingEventCount: number;
   unassignedSpanishGeographyCount: number;
+}>;
+
+export type TerritoryDirectoryRouteOptions = Readonly<{
+  routeMode?: TerritoryRouteMode;
 }>;
 
 const UNKNOWN_PROVINCES = new Set([
@@ -101,7 +106,9 @@ export function territoryProvinceActivityLabel(count: number) {
 export function buildTerritoryDirectoryModel(
   events: readonly EventItem[],
   now: string | Date = new Date(),
+  options: TerritoryDirectoryRouteOptions = {},
 ): TerritoryDirectoryModel {
+  const routeMode = options.routeMode ?? "preview";
   const today = madridCalendarDateKey(now);
   const upcomingEvents = deduplicateVisibleEvents(events)
     .filter((event) => isUpcomingTerritoryEvent(event, today));
@@ -136,7 +143,9 @@ export function buildTerritoryDirectoryModel(
     activeProvinceCount: activeProvinces.get(territory.id)?.size ?? 0,
     displayName: territory.displayName,
     href: territory.kind === "AUTONOMOUS_COMMUNITY" && territory.launchLandingEligible
-      ? `/preview/redesign-v2/zonas/${territory.slug}`
+      ? routeMode === "public"
+        ? territory.currentPublicCanonicalHref
+        : `/preview/redesign-v2/zonas/${territory.slug}`
       : null,
     id: territory.id,
     kind: territory.kind,

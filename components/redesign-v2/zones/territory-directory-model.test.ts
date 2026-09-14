@@ -112,6 +112,26 @@ test("A7.5B converge las 17 comunidades a Preview y conserva sus canonicales pú
   assert.ok(model.autonomousCities.every(({ publicCanonicalHref }) => publicCanonicalHref === null));
 });
 
+test("A7.6C enlaza sólo las 16 comunidades públicas existentes y deja La Rioja sin enlace", () => {
+  const model = buildTerritoryDirectoryModel([], NOW, { routeMode: "public" });
+  const linkedCommunities = model.communities.filter(({ href }) => href);
+  const laRioja = model.communities.find(({ id }) => id === "laRioja");
+
+  assert.equal(linkedCommunities.length, 16);
+  assert.ok(linkedCommunities.every(({ href }) => href?.startsWith("/eventos-motor-")));
+  assert.equal(
+    model.communities.filter(({ href }) => href?.startsWith("/preview/redesign-v2/zonas/")).length,
+    0,
+  );
+  for (const id of REGIONAL_REGION_IDS) {
+    const item = model.communities.find((candidate) => candidate.id === id);
+    assert.equal(item?.href, REGIONAL_CONFIGS[id].publicPath, id);
+  }
+  assert.equal(laRioja?.href, null);
+  assert.equal(laRioja?.publicCanonicalHref, "/eventos-motor-la-rioja");
+  assert.ok(model.autonomousCities.every(({ href }) => href === null));
+});
+
 test("A7.3 cuenta provincias distintas dentro de la comunidad asignada", () => {
   const model = buildTerritoryDirectoryModel([
     event({ id: "barcelona", region: "Cataluña", province: "Barcelona" }),
