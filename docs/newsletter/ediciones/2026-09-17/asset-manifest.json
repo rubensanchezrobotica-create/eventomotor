@@ -1,0 +1,10 @@
+[
+  { "file": "01-ecorally-a-coruna-hero.webp", "width": 1200, "height": 675, "bytes": 124672, "sha256": "592117992f4c42d6be5e2f7f89f749a4a8b80e878f7c0efbc5c793330563b245" },
+  { "file": "02-24h-barcelona.webp", "width": 800, "height": 500, "bytes": 49808, "sha256": "d407c5d63607bd1304c484351b1a61ece099dc276398b132eae621d42a848537" },
+  { "file": "03-trialgp-espana-pobladura.webp", "width": 800, "height": 500, "bytes": 107902, "sha256": "32037b2a6000d61f464a0c3366d2235eb822331030e949f65da66a7315d50b24" },
+  { "file": "04-subida-jaizkibel.webp", "width": 800, "height": 500, "bytes": 86174, "sha256": "cdfa604f42dc403cc0e0c8295c0840aaa0b8119084c5f867db7e39a31972abac" },
+  { "file": "05-rallye-villa-de-llanes.webp", "width": 800, "height": 500, "bytes": 87724, "sha256": "a81a4f2e750457978794d62dccc4b0635f8daf0565890b5cf1784bfc71ba95e8" },
+  { "file": "06-hot-wheels-jarama-madrid.webp", "width": 800, "height": 500, "bytes": 98046, "sha256": "68db61c12f42d7a5150a4ef41c447914577804364cb8e941e22aaabb098195c7" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 38429, "sha256": "2eefc398cde203f3b7f0f1e912a97f04de51368318e941cec1d99c50236456e0" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]
