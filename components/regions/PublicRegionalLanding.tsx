@@ -184,9 +184,9 @@ export default async function PublicRegionalLanding({
           ]}
           currentNavigationId="territories"
           description={model.config.description}
-          eyebrow={page.eyebrow}
+          eyebrow="Territorio"
           navigationMode="public"
-          title={page.h1}
+          title={territory.displayName}
           upcomingCount={detailModel.siteUpcomingCount}
         >
           <TerritoryDetailPage model={detailModel} nowIso={now.toISOString()} />

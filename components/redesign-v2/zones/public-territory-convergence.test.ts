@@ -124,6 +124,31 @@ test("A7.6B conserva JSON-LD público y monta únicamente el renderer V2 visible
   assert.match(adapter, /\$\{SITE_URL\}\/evento\/\$\{event\.slug \|\| event\.id\}/);
 });
 
+test("A7.6B-R2 alinea el hero público con la identidad territorial A7.5", () => {
+  const adapter = source("components/regions/PublicRegionalLanding.tsx");
+  const previewRoute = source("app/preview/redesign-v2/zonas/[territory]/page.tsx");
+  const detailPage = source("components/redesign-v2/zones/TerritoryDetailPage.tsx");
+
+  assert.match(adapter, /description=\{model\.config\.description\}/);
+  assert.match(adapter, /eyebrow="Territorio"/);
+  assert.match(adapter, /title=\{territory\.displayName\}/);
+  assert.doesNotMatch(adapter, /eyebrow=\{page\.eyebrow\}|title=\{page\.h1\}/);
+  assert.match(previewRoute, /eyebrow="Territorio"/);
+  assert.match(previewRoute, /title=\{territory\.displayName\}/);
+  assert.match(detailPage, /<h2 id="territory-detail-results">Eventos de motor en \{model\.territory\.displayName\}<\/h2>/);
+
+  assert.equal(REGIONAL_CONFIGS.andalucia.description, "Agenda de motor en Almería, Cádiz, Córdoba, Granada, Huelva, Jaén, Málaga y Sevilla.");
+  assert.equal(getSpanishTerritoryById("andalucia")?.displayName, "Andalucía");
+  assert.equal(getSpanishTerritoryById("castillaLaMancha")?.displayName, "Castilla-La Mancha");
+  assert.equal(getSpanishTerritoryById("paisVasco")?.displayName, "País Vasco");
+
+  for (const id of REGIONAL_REGION_IDS) {
+    const territory = getSpanishTerritoryById(id);
+    assert.ok(territory?.displayName, id);
+    assert.equal(buildPublicTerritoryRouteContext(territory).territorySlug, territory.slug, id);
+  }
+});
+
 test("A7.6B resuelve navegación de shell y breadcrumb sin fugas Preview", () => {
   assert.equal(resolveInteriorNavigationItem("home", "public").href, "/");
   assert.equal(resolveInteriorNavigationItem("calendar", "public").href, "/#calendario");
