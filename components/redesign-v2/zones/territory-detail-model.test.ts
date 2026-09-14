@@ -290,6 +290,35 @@ test("A7.5B construye query estable, paginación enlazable y reseteo implícito 
   assert.deepEqual(territoryDetailPaginationItems(8, 16), [1, "ellipsis", 7, 8, 9, "ellipsis", 16]);
 });
 
+test("A7.5G deriva aplicar, limpiar, volver y avanzar sólo del estado URL", () => {
+  const fixtures = Array.from({ length: 15 }, (_, index) => event(index, {
+    discipline: index < 5 ? "Offroad" : "Rally",
+    province: index % 2 ? "Cádiz" : "Sevilla",
+    title: index === 1 ? "Rally de prueba" : `Evento territorial ${index}`,
+  }));
+  const states = [
+    andaluciaModel(fixtures),
+    andaluciaModel(fixtures, { discipline: "offroad", province: "cadiz", q: "rally" }),
+    andaluciaModel(fixtures),
+    andaluciaModel(fixtures, { discipline: "offroad", province: "cadiz", q: "rally" }),
+    andaluciaModel(fixtures),
+  ];
+
+  assert.deepEqual(states.map(({ query: state }) => state), [
+    query(),
+    query({ discipline: "offroad", province: "cadiz", q: "rally" }),
+    query(),
+    query({ discipline: "offroad", province: "cadiz", q: "rally" }),
+    query(),
+  ]);
+  assert.equal(states[0]?.filteredCount, 15);
+  assert.equal(states[1]?.filteredCount, 1);
+  assert.equal(states[2]?.filteredCount, 15);
+  assert.equal(states[3]?.filteredCount, 1);
+  assert.equal(states[4]?.filteredCount, 15);
+  assert.equal(territoryDetailResultsHref("andalucia"), "/preview/redesign-v2/zonas/andalucia#eventos");
+});
+
 test("A7.5B diferencia resumen corto, paginado, vacío y filtrado", () => {
   const minimal = andaluciaModel([event(0)]);
   const full = andaluciaModel(Array.from({ length: 13 }, (_, index) => event(index)));

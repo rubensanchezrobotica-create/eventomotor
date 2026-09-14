@@ -107,6 +107,24 @@ test("A7.5F integra Limpiar filtros como acción secundaria sin cambiar su desti
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.mobileFilterActions\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:\s*minmax\(0, 0\.9fr\) minmax\(0, 1\.1fr\)/);
 });
 
+test("A7.5G sincroniza los controles visibles con cada estado efectivo de la URL", () => {
+  assert.match(component, /<select defaultValue=\{defaultValue\} id=\{id\} key=\{`\$\{id\}:\$\{defaultValue\}`\} name=\{name\}>/);
+  assert.equal((component.match(/defaultValue=\{model\.query\.province\}/g) || []).length, 2);
+  assert.equal((component.match(/defaultValue=\{model\.query\.discipline\}/g) || []).length, 2);
+  assert.match(component, /<TerritorySearchAssist[\s\S]*?initialQuery=\{model\.query\.q\}[\s\S]*?key=\{model\.query\.q\}/);
+  assert.match(searchAssist, /const \[query, setQuery\] = useState\(initialQuery\)/);
+  assert.match(searchAssist, /value=\{query\}/);
+  assert.doesNotMatch(component + searchAssist, /document\.querySelector|form\.reset|setTimeout|location\.reload|window\.location|MutationObserver/);
+});
+
+test("A7.5G conserva GET SSR, historial y ancla de resultados al aplicar o limpiar", () => {
+  assert.equal((component.match(/method="get"/g) || []).length + (searchAssist.match(/method="get"/g) || []).length, 3);
+  assert.equal((component.match(/href=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/g) || []).length, 2);
+  assert.match(model, /return `\$\{territoryDetailPageHref\(territorySlug, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
+  assert.match(searchAssist, /router\.push\(suggestion\.href\)/);
+  assert.doesNotMatch(component + searchAssist, /router\.replace|history\.replaceState|history\.pushState|location\.reload/);
+});
+
 test("A7.5D-R1 conserva el contrato de teclado, foco, touch y selección aprobado", () => {
   assert.match(searchAssist, /role="combobox"/);
   assert.match(searchAssist, /aria-autocomplete="list"/);

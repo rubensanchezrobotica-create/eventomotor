@@ -29,7 +29,7 @@ function FilterSelect({ defaultValue, id, label, name, options }: FilterSelectPr
   return (
     <label className={styles.filterField} htmlFor={id}>
       <span>{label}</span>
-      <select defaultValue={defaultValue} id={id} name={name}>
+      <select defaultValue={defaultValue} id={id} key={`${id}:${defaultValue}`} name={name}>
         <option value="">Todas</option>
         {options.map((option) => (
           <option key={option.key} value={option.key}>
