@@ -164,6 +164,8 @@
 .form {
   position: relative;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   display: grid;
   gap: 18px;
   margin-top: 30px;
@@ -171,6 +173,9 @@
 
 .formGroup {
   min-width: 0;
+  min-inline-size: 0;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
   padding: 26px;
   border: 1px solid var(--publish-line);
@@ -180,6 +185,7 @@
 
 .groupLegend {
   width: 100%;
+  max-width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 15px;
@@ -198,6 +204,7 @@
 }
 
 .groupLegend > span:last-child {
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
@@ -218,6 +225,8 @@
 
 .fieldGrid {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
@@ -226,6 +235,8 @@
 
 .field {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   display: grid;
   align-content: start;
   gap: 7px;
@@ -251,8 +262,13 @@
 .field input,
 .field select,
 .field textarea {
+  box-sizing: border-box;
+  display: block;
   min-width: 0;
+  min-inline-size: 0;
   width: 100%;
+  max-width: 100%;
+  max-inline-size: 100%;
   border: 1px solid #46515d;
   border-radius: 7px;
   background: #070a0e;
@@ -499,9 +515,9 @@
   transform: translateY(-1px);
 }
 
-.linkGrid strong {
+.linkArrow {
+  flex: 0 0 auto;
   color: var(--publish-orange);
-  font-size: 1rem;
 }
 
 .honeypot,

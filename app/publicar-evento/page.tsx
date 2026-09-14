@@ -35,6 +35,22 @@ const usefulLinks = [
   { label: "Explorar zonas", href: PUBLIC_NAVIGATION.zones },
 ] as const;
 
+function DirectionalArrowIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={styles.linkArrow}
+      fill="none"
+      focusable="false"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path d="M6 4h6v6M12 4 4 12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
 export const metadata: Metadata = {
   title: "Publicar evento de motor gratis",
   description:
@@ -106,7 +122,7 @@ export default async function PublicarEventoPage() {
               {usefulLinks.map((link) => (
                 <Link href={link.href} key={link.href}>
                   <span>{link.label}</span>
-                  <strong aria-hidden="true">↗</strong>
+                  <DirectionalArrowIcon />
                 </Link>
               ))}
             </div>
