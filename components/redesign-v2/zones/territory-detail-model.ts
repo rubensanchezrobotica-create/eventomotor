@@ -30,6 +30,11 @@ import {
   buildTerritoryDirectoryModel,
   isUpcomingTerritoryEvent,
 } from "./territory-directory-model";
+import {
+  territoryRouteEventHref,
+  territoryRoutePageHref,
+  type TerritoryRouteContext,
+} from "./territory-route-context";
 
 export const TERRITORY_DETAIL_PAGE_SIZE = 12;
 export const TERRITORY_DETAIL_QUERY_MAX_LENGTH = 120;
@@ -48,6 +53,8 @@ export type TerritoryDetailQuery = Readonly<{
   page: number;
   province: string;
   q: string;
+  vehicle: string;
+  when: "upcoming" | "weekend" | "next30";
 }>;
 
 export type TerritoryDetailPageItem = Readonly<{
@@ -68,6 +75,7 @@ export type TerritoryDetailPageModel = Readonly<{
   provinceOptions: readonly TerritoryDetailFilterOption[];
   query: TerritoryDetailQuery;
   relatedLinks: readonly { href: string; label: string }[];
+  routeContext: TerritoryRouteContext;
   showDisciplineFilter: boolean;
   showProvinceFilter: boolean;
   showTextSearch: boolean;
@@ -119,15 +127,33 @@ export function parseTerritoryDetailPage(value: string | string[] | undefined) {
   return Number.isSafeInteger(page) && page >= 1 ? page : 1;
 }
 
-export function parseTerritoryDetailQuery(
+function parseTerritoryDetailQueryWithMode(
   searchParams: Record<string, string | string[] | undefined>,
+  includeLegacyPublicParams: boolean,
 ): TerritoryDetailQuery {
+  const when = includeLegacyPublicParams ? firstParam(searchParams.when) : undefined;
   return {
     discipline: territoryDetailFilterKey(firstParam(searchParams.discipline)),
     page: parseTerritoryDetailPage(searchParams.page),
     province: territoryDetailFilterKey(firstParam(searchParams.province)),
     q: cleanText(firstParam(searchParams.q)).slice(0, TERRITORY_DETAIL_QUERY_MAX_LENGTH),
+    vehicle: includeLegacyPublicParams
+      ? territoryDetailFilterKey(firstParam(searchParams.vehicle))
+      : "",
+    when: when === "weekend" || when === "next30" ? when : "upcoming",
   };
+}
+
+export function parseTerritoryDetailQuery(
+  searchParams: Record<string, string | string[] | undefined>,
+) {
+  return parseTerritoryDetailQueryWithMode(searchParams, false);
+}
+
+export function parsePublicTerritoryDetailQuery(
+  searchParams: Record<string, string | string[] | undefined>,
+) {
+  return parseTerritoryDetailQueryWithMode(searchParams, true);
 }
 
 export function resolvePreviewTerritory(slug: string) {
@@ -257,24 +283,17 @@ function validFilterKey(
 }
 
 export function territoryDetailPageHref(
-  territorySlug: string,
+  routeContext: TerritoryRouteContext,
   query: Partial<TerritoryDetailQuery> = {},
 ) {
-  const params = new URLSearchParams();
-  if (query.q) params.set("q", query.q);
-  if (query.province) params.set("province", query.province);
-  if (query.discipline) params.set("discipline", query.discipline);
-  if ((query.page ?? 1) > 1) params.set("page", String(query.page));
-  const search = params.toString();
-  const base = `/preview/redesign-v2/zonas/${territorySlug}`;
-  return search ? `${base}?${search}` : base;
+  return territoryRoutePageHref(routeContext, query);
 }
 
 export function territoryDetailResultsHref(
-  territorySlug: string,
+  routeContext: TerritoryRouteContext,
   query: Partial<TerritoryDetailQuery> = {},
 ) {
-  return `${territoryDetailPageHref(territorySlug, query)}#${TERRITORY_DETAIL_RESULTS_ANCHOR_ID}`;
+  return `${territoryDetailPageHref(routeContext, query)}#${TERRITORY_DETAIL_RESULTS_ANCHOR_ID}`;
 }
 
 function locationLabel(city?: string, province?: string) {
@@ -296,8 +315,13 @@ function suggestionMatchRank(values: Array<string | undefined>, normalizedQuery:
 export function buildTerritorySearchSuggestions(
   source: readonly DisciplineSearchSuggestionSource[],
   query: string,
-  territorySlug: string,
-  activeFilters: Pick<TerritoryDetailQuery, "discipline" | "province"> = { discipline: "", province: "" },
+  routeContext: TerritoryRouteContext,
+  activeFilters: Pick<TerritoryDetailQuery, "discipline" | "province" | "vehicle" | "when"> = {
+    discipline: "",
+    province: "",
+    vehicle: "",
+    when: "upcoming",
+  },
 ): TerritorySearchSuggestion[] {
   const normalizedQuery = normalizeDisciplineSearchText(query);
   if (normalizedQuery.length < DISCIPLINE_SEARCH_MIN_CHARS) return [];
@@ -316,7 +340,7 @@ export function buildTerritorySearchSuggestions(
     .sort((left, right) => left.rank - right.rank || left.index - right.index)
     .slice(0, 4)
     .map(({ event }) => ({
-      href: `/preview/redesign-v2/evento/${event.slug}`,
+      href: territoryRouteEventHref(routeContext, event.slug),
       id: `event:${event.slug}`,
       kind: "event" as const,
       label: event.title,
@@ -351,7 +375,7 @@ export function buildTerritorySearchSuggestions(
       || left.label.localeCompare(right.label, "es"))
     .slice(0, 2)
     .map((location) => ({
-      href: territoryDetailResultsHref(territorySlug, {
+      href: territoryDetailResultsHref(routeContext, {
         ...activeFilters,
         page: 1,
         q: location.queryValue,
@@ -390,7 +414,13 @@ export function territoryDetailHeroSummary(model: TerritoryDetailPageModel) {
 }
 
 export function territoryDetailResultsSummary(model: TerritoryDetailPageModel) {
-  const hasFilters = Boolean(model.query.q || model.query.province || model.query.discipline);
+  const hasFilters = Boolean(
+    model.query.q
+    || model.query.province
+    || model.query.discipline
+    || model.query.vehicle
+    || model.query.when !== "upcoming",
+  );
   if (!model.filteredCount) {
     return hasFilters
       ? "No hay próximos eventos que coincidan con los filtros seleccionados."
@@ -406,11 +436,51 @@ export function territoryDetailResultsSummary(model: TerritoryDetailPageModel) {
   return `Mostrando ${first}–${last} de ${model.filteredCount} eventos próximos, ordenados por fecha.`;
 }
 
+function addCalendarDays(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function legacyWeekendRange(today: string) {
+  const [year, month, day] = today.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const daysUntilSaturday = weekday === 6 ? 0 : weekday === 0 ? 6 : 6 - weekday;
+  return {
+    friday: addCalendarDays(today, daysUntilSaturday - 1),
+    sunday: addCalendarDays(today, daysUntilSaturday + 1),
+  };
+}
+
+function eventMatchesLegacyWhen(
+  event: EventItem,
+  when: TerritoryDetailQuery["when"],
+  today: string,
+) {
+  if (when === "upcoming") return true;
+  const start = event.start;
+  const end = event.end && event.end >= start ? event.end : start;
+  if (when === "next30") return start <= addCalendarDays(today, 30);
+  const weekend = legacyWeekendRange(today);
+  return start <= weekend.sunday && end >= weekend.friday;
+}
+
+function eventVehicleKey(event: EventItem) {
+  return territoryDetailFilterKey(event.vehicleType || event.vehicle_type);
+}
+
 export function buildTerritoryDetailPageModel(
   events: readonly EventItem[],
   territory: SpanishTerritory,
-  options: { now: string | Date; query: TerritoryDetailQuery },
+  options: {
+    now: string | Date;
+    query: TerritoryDetailQuery;
+    routeContext: TerritoryRouteContext;
+  },
 ): TerritoryDetailPageModel {
+  if (options.routeContext.territorySlug !== territory.slug) {
+    throw new Error("El contexto de ruta no corresponde al territorio solicitado.");
+  }
   const directory = buildTerritoryDirectoryModel(events, options.now);
   const territorialEvents = deduplicateVisibleEvents(events)
     .filter((event) => isUpcomingTerritoryEvent(event, directory.today))
@@ -432,10 +502,16 @@ export function buildTerritoryDetailPageModel(
       ? validFilterKey(options.query.province, provinceOptions)
       : "",
     q: showTextSearch ? options.query.q : "",
+    vehicle: territorialEvents.some((event) => eventVehicleKey(event) === options.query.vehicle)
+      ? options.query.vehicle
+      : "",
+    when: options.query.when,
   };
   const filteredEvents = territorialEvents.filter((event) => (
     (!query.province || provinceOption(event)?.key === query.province)
     && (!query.discipline || disciplineOption(event)?.key === query.discipline)
+    && (!query.vehicle || eventVehicleKey(event) === query.vehicle)
+    && eventMatchesLegacyWhen(event, query.when, directory.today)
     && eventMatchesSearch(event, query.q)
   ));
   const projectedEvents = filteredEvents.map(projectPreviewEvent);
@@ -468,6 +544,7 @@ export function buildTerritoryDetailPageModel(
     provinceOptions,
     query: { ...query, page: pagination.page },
     relatedLinks: content.relatedLinks,
+    routeContext: options.routeContext,
     showDisciplineFilter,
     showProvinceFilter,
     showTextSearch,

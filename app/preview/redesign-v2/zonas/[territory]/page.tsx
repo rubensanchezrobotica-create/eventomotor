@@ -11,6 +11,7 @@ import {
   resolvePreviewTerritory,
   territoryDetailHeroSummary,
 } from "@/components/redesign-v2/zones/territory-detail-model";
+import { buildPreviewTerritoryRouteContext } from "@/components/redesign-v2/zones/territory-route-context";
 import { getVisibleEvents } from "@/lib/public-events";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default async function TerritoryDetailPreviewPage({
   const model = buildTerritoryDetailPageModel(events, territory, {
     now,
     query: parseTerritoryDetailQuery(queryParams),
+    routeContext: buildPreviewTerritoryRouteContext(territory),
   });
 
   return (

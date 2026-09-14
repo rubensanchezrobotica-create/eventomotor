@@ -41,11 +41,25 @@ function FilterSelect({ defaultValue, id, label, name, options }: FilterSelectPr
   );
 }
 
+function LegacyPublicFilters({ model }: { model: TerritoryDetailPageModel }) {
+  if (model.routeContext.mode !== "public") return null;
+  return (
+    <>
+      {model.query.vehicle ? <input name="vehicle" type="hidden" value={model.query.vehicle} /> : null}
+      {model.query.when !== "upcoming" ? <input name="when" type="hidden" value={model.query.when} /> : null}
+    </>
+  );
+}
+
 function ClearFilters({ model }: { model: TerritoryDetailPageModel }) {
-  const active = model.query.q || model.query.province || model.query.discipline;
+  const active = model.query.q
+    || model.query.province
+    || model.query.discipline
+    || model.query.vehicle
+    || model.query.when !== "upcoming";
   if (!active) return null;
   return (
-    <Link className={styles.clearFilters} href={territoryDetailResultsHref(model.territory.slug)}>
+    <Link className={styles.clearFilters} href={territoryDetailResultsHref(model.routeContext)}>
       Limpiar filtros
     </Link>
   );
@@ -58,11 +72,12 @@ function DesktopFilters({ model }: { model: TerritoryDetailPageModel }) {
 
   return (
     <form
-      action={territoryDetailResultsHref(model.territory.slug)}
+      action={territoryDetailResultsHref(model.routeContext)}
       className={`${styles.desktopFilterForm} ${styles.compactFilterForm} ${singleConditionalFilter ? styles.singleFilterForm : ""}`}
       method="get"
     >
       {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
+      <LegacyPublicFilters model={model} />
       {model.showProvinceFilter ? (
         <FilterSelect
           defaultValue={model.query.province}
@@ -96,8 +111,9 @@ function MobileFilters({ model }: { model: TerritoryDetailPageModel }) {
     <div className={styles.mobileFilters}>
       <details className={styles.moreFilters} open={Boolean(model.query.province || model.query.discipline)}>
         <summary>Más filtros</summary>
-        <form action={territoryDetailResultsHref(model.territory.slug)} method="get">
+        <form action={territoryDetailResultsHref(model.routeContext)} method="get">
           {model.query.q ? <input name="q" type="hidden" value={model.query.q} /> : null}
+          <LegacyPublicFilters model={model} />
           {model.showProvinceFilter ? (
             <FilterSelect
               defaultValue={model.query.province}
@@ -133,18 +149,25 @@ function TerritoryFilters({ model }: { model: TerritoryDetailPageModel }) {
     <div className={styles.filters} aria-label={`Filtrar eventos en ${model.territory.displayName}`}>
       {model.showTextSearch ? (
         <TerritorySearchAssist
-          action={territoryDetailResultsHref(model.territory.slug)}
-          activeFilters={{ discipline: model.query.discipline, province: model.query.province }}
-          clearHref={territoryDetailResultsHref(model.territory.slug, {
+          action={territoryDetailResultsHref(model.routeContext)}
+          activeFilters={{
             discipline: model.query.discipline,
             province: model.query.province,
+            vehicle: model.query.vehicle,
+            when: model.query.when,
+          }}
+          clearHref={territoryDetailResultsHref(model.routeContext, {
+            discipline: model.query.discipline,
+            province: model.query.province,
+            vehicle: model.query.vehicle,
+            when: model.query.when,
           })}
           hasSecondaryFilters={hasSecondaryFilters}
           initialQuery={model.query.q}
           key={model.query.q}
           source={model.suggestionIndex}
           territoryName={model.territory.displayName}
-          territorySlug={model.territory.slug}
+          routeContext={model.routeContext}
         />
       ) : null}
       <DesktopFilters model={model} />
@@ -156,7 +179,7 @@ function TerritoryFilters({ model }: { model: TerritoryDetailPageModel }) {
 function Pagination({ model }: { model: TerritoryDetailPageModel }) {
   const items = territoryDetailPaginationItems(model.page, model.pageCount);
   if (!items.length) return null;
-  const href = (page: number) => territoryDetailResultsHref(model.territory.slug, { ...model.query, page });
+  const href = (page: number) => territoryDetailResultsHref(model.routeContext, { ...model.query, page });
 
   return (
     <nav aria-label={`Paginación de eventos en ${model.territory.displayName}`} className={styles.pagination}>
@@ -176,7 +199,13 @@ function Pagination({ model }: { model: TerritoryDetailPageModel }) {
 }
 
 function EmptyResults({ model }: { model: TerritoryDetailPageModel }) {
-  const filtered = Boolean(model.query.q || model.query.province || model.query.discipline);
+  const filtered = Boolean(
+    model.query.q
+    || model.query.province
+    || model.query.discipline
+    || model.query.vehicle
+    || model.query.when !== "upcoming",
+  );
   return (
     <div className={styles.emptyState} role="status">
       <h3>{filtered ? "No hay coincidencias" : "Sin próximos eventos"}</h3>
@@ -186,8 +215,8 @@ function EmptyResults({ model }: { model: TerritoryDetailPageModel }) {
           : "Consulta el calendario nacional o vuelve más adelante para descubrir nuevas fechas."}
       </p>
       <div>
-        {filtered ? <Link href={territoryDetailResultsHref(model.territory.slug)}>Limpiar filtros</Link> : null}
-        <Link href="/preview/redesign-v2/calendario">Ver calendario nacional</Link>
+        {filtered ? <Link href={territoryDetailResultsHref(model.routeContext)}>Limpiar filtros</Link> : null}
+        <Link href={model.routeContext.calendarHref}>Ver calendario nacional</Link>
         <Link href="/publicar-evento">Publicar evento</Link>
       </div>
     </div>

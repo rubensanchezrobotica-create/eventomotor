@@ -11,6 +11,7 @@ const route = source("app/preview/redesign-v2/zonas/[territory]/page.tsx");
 const component = source("components/redesign-v2/zones/TerritoryDetailPage.tsx");
 const searchAssist = source("components/redesign-v2/zones/TerritorySearchAssist.client.tsx");
 const model = source("components/redesign-v2/zones/territory-detail-model.ts");
+const routeContext = source("components/redesign-v2/zones/territory-route-context.ts");
 const styles = source("components/redesign-v2/zones/TerritoryDetailPage.module.css");
 const disciplineSearchAssist = source("components/redesign-v2/discipline-detail/DisciplineSearchAssist.client.tsx");
 const disciplineStyles = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.module.css");
@@ -57,14 +58,17 @@ test("A7.5B reutiliza exactamente EventCard y no introduce una variante territor
   assert.match(component, /resolvedImage=\{item\.image\}/);
 });
 
-test("A7.5B implementa GET SSR, resetea page y limita los filtros al contrato", () => {
+test("A7.6B mantiene GET SSR y limita vehicle/when a compatibilidad pública oculta", () => {
   assert.equal((component.match(/method="get"/g) || []).length + (searchAssist.match(/method="get"/g) || []).length, 3);
   assert.match(searchAssist, /name="q"/);
   assert.match(component, /name="province"/);
   assert.match(component, /name="discipline"/);
   assert.doesNotMatch(component, /name="page"/);
-  assert.doesNotMatch(component, /name="(?:vehicle|date|weekend|next30|show)"/);
-  assert.doesNotMatch(model, /show=all|vehicle|weekend|next30/);
+  assert.match(component, /model\.routeContext\.mode !== "public"/);
+  assert.match(component, /<input name="vehicle" type="hidden"/);
+  assert.match(component, /<input name="when" type="hidden"/);
+  assert.doesNotMatch(component, /<select[^>]+name="(?:vehicle|when|show)"/);
+  assert.doesNotMatch(component + searchAssist, /name="show"/);
   assert.match(component, /<details className=\{styles\.moreFilters\}/);
 });
 
@@ -82,11 +86,11 @@ test("A7.5D-R1 añade typeahead territorial sin filtrar tarjetas en vivo ni alte
 
 test("A7.5E dirige búsquedas, filtros, ubicación y paginación al inicio real de resultados", () => {
   assert.match(model, /export const TERRITORY_DETAIL_RESULTS_ANCHOR_ID = "eventos"/);
-  assert.match(model, /return `\$\{territoryDetailPageHref\(territorySlug, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
-  assert.match(model, /href: territoryDetailResultsHref\(territorySlug,[\s\S]*?q: location\.queryValue/);
-  assert.match(component, /action=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/);
-  assert.equal((component.match(/action=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/g) || []).length, 3);
-  assert.match(component, /const href = \(page: number\) => territoryDetailResultsHref\(model\.territory\.slug, \{ \.\.\.model\.query, page \}\)/);
+  assert.match(model, /return `\$\{territoryDetailPageHref\(routeContext, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
+  assert.match(model, /href: territoryDetailResultsHref\(routeContext,[\s\S]*?q: location\.queryValue/);
+  assert.match(component, /action=\{territoryDetailResultsHref\(model\.routeContext\)\}/);
+  assert.equal((component.match(/action=\{territoryDetailResultsHref\(model\.routeContext\)\}/g) || []).length, 3);
+  assert.match(component, /const href = \(page: number\) => territoryDetailResultsHref\(model\.routeContext, \{ \.\.\.model\.query, page \}\)/);
   assert.match(component, /id=\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}/);
   assert.match(component, /className=\{styles\.resultsLanding\}[\s\S]*?model\.items\.length[\s\S]*?<EmptyResults model=\{model\}/);
   assert.match(styles, /\.resultsLanding\s*\{[\s\S]*?scroll-margin-top:\s*clamp\(24px, 8vw, 116px\)/);
@@ -95,9 +99,9 @@ test("A7.5E dirige búsquedas, filtros, ubicación y paginación al inicio real 
 });
 
 test("A7.5F integra Limpiar filtros como acción secundaria sin cambiar su destino", () => {
-  assert.match(component, /const active = model\.query\.q \|\| model\.query\.province \|\| model\.query\.discipline/);
+  assert.match(component, /const active = model\.query\.q[\s\S]*model\.query\.when !== "upcoming"/);
   assert.match(component, /if \(!active\) return null/);
-  assert.match(component, /className=\{styles\.clearFilters\} href=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/);
+  assert.match(component, /className=\{styles\.clearFilters\} href=\{territoryDetailResultsHref\(model\.routeContext\)\}/);
   assert.doesNotMatch(component, />\s*Restablecer\s*</);
   assert.equal((component.match(/>\s*Limpiar filtros\s*</g) || []).length, 2);
   assert.match(component, /className=\{styles\.filterActions\}[\s\S]*?<ClearFilters model=\{model\} \/>[\s\S]*?Aplicar filtros/);
@@ -119,8 +123,8 @@ test("A7.5G sincroniza los controles visibles con cada estado efectivo de la URL
 
 test("A7.5G conserva GET SSR, historial y ancla de resultados al aplicar o limpiar", () => {
   assert.equal((component.match(/method="get"/g) || []).length + (searchAssist.match(/method="get"/g) || []).length, 3);
-  assert.equal((component.match(/href=\{territoryDetailResultsHref\(model\.territory\.slug\)\}/g) || []).length, 2);
-  assert.match(model, /return `\$\{territoryDetailPageHref\(territorySlug, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
+  assert.equal((component.match(/href=\{territoryDetailResultsHref\(model\.routeContext\)\}/g) || []).length, 2);
+  assert.match(model, /return `\$\{territoryDetailPageHref\(routeContext, query\)\}#\$\{TERRITORY_DETAIL_RESULTS_ANCHOR_ID\}`/);
   assert.match(searchAssist, /router\.push\(suggestion\.href\)/);
   assert.doesNotMatch(component + searchAssist, /router\.replace|history\.replaceState|history\.pushState|location\.reload/);
 });
@@ -142,12 +146,15 @@ test("A7.5D-R1 conserva el contrato de teclado, foco, touch y selección aprobad
   assert.match(searchAssist, /router\.push\(suggestion\.href\)/);
 });
 
-test("A7.5D-R1 usa proyección ligera completa, scopes territoriales y destinos compatibles", () => {
+test("A7.6B usa proyección ligera y destinos explícitos compatibles", () => {
   assert.match(model, /buildDisciplineSearchSuggestionIndex\(territorialEvents\)/);
   assert.match(model, /matchEventToSpanishTerritory\(event\)\?\.id === territory\.id/);
   assert.match(model, /buildTerritorySearchSuggestions/);
-  assert.match(model, /`\/preview\/redesign-v2\/evento\/\$\{event\.slug\}`/);
-  assert.match(model, /territoryDetailPageHref\(territorySlug/);
+  assert.match(model, /territoryRouteEventHref\(routeContext, event\.slug\)/);
+  assert.match(model, /territoryDetailPageHref\(routeContext/);
+  assert.doesNotMatch(model, /window\.location|usePathname|string\.replace/);
+  assert.match(routeContext, /mode: "preview"/);
+  assert.match(routeContext, /mode: "public"/);
   assert.doesNotMatch(searchAssist, /EventItem|description|schedule|officialUrl|organizer|imageUrl|ResolvedEventImage/);
 });
 
@@ -172,7 +179,7 @@ test("A7.5D-R1 deja intacta la búsqueda de Disciplina con sugerencias al escrib
 test("A7.5B ofrece enlaces reales de paginación, empty state y CTA sin anclas falsas", () => {
   assert.match(component, /Paginación de eventos en/);
   assert.match(component, /aria-current=\{item === model\.page \? "page"/);
-  assert.match(component, /\/preview\/redesign-v2\/calendario/);
+  assert.match(component, /model\.routeContext\.calendarHref/);
   assert.match(component, /\/publicar-evento/);
   assert.doesNotMatch(component, /href={["']#["']}|aria-disabled/);
   assert.match(styles, /min-height:\s*44px/);

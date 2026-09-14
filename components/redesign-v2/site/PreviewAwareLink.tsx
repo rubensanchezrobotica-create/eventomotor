@@ -1,22 +1,25 @@
 import Link, { type LinkProps } from "next/link";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import {
-  resolvePreviewNavigationItem,
+  resolveInteriorNavigationItem,
+  type InteriorNavigationMode,
   type PreviewNavigationId,
 } from "./preview-navigation";
 
 type PreviewAwareLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   children?: ReactNode;
+  mode?: InteriorNavigationMode;
   navigationId: PreviewNavigationId;
   prefetch?: LinkProps["prefetch"];
 };
 
 export default function PreviewAwareLink({
   children,
+  mode = "preview",
   navigationId,
   ...props
 }: PreviewAwareLinkProps) {
-  const item = resolvePreviewNavigationItem(navigationId);
+  const item = resolveInteriorNavigationItem(navigationId, mode);
 
   return (
     <Link

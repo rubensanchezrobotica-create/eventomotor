@@ -1,13 +1,21 @@
-import RegionalLanding from "@/components/regions/RegionalLanding";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
+import TerritoryDetailPage from "@/components/redesign-v2/zones/TerritoryDetailPage";
+import {
+  buildTerritoryDetailPageModel,
+  parsePublicTerritoryDetailQuery,
+} from "@/components/redesign-v2/zones/territory-detail-model";
+import { buildPublicTerritoryRouteContext } from "@/components/redesign-v2/zones/territory-route-context";
+import RegionalLandingAnalytics from "@/components/regions/RegionalLandingAnalytics";
 import {
   assertRegionalLandingModelTerritorial,
   buildRegionalLandingModel,
-  parseRegionalLandingQuery,
   type RegionalLandingModel,
   type RegionalRegionId,
 } from "@/lib/regions/regional-landing-model";
 import type { OpportunityPage } from "@/lib/opportunity-pages";
 import { getVisibleEvents } from "@/lib/public-events";
+import { getSpanishTerritoryById } from "@/lib/regions/territory-contract";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -124,16 +132,25 @@ export default async function PublicRegionalLanding({
     searchParams,
   ]);
   const now = new Date();
+  const visibleEvents = events.map((event) => ({ ...event, visible: true }));
   const inventoryModel = assertRegionalLandingModelTerritorial(
     buildRegionalLandingModel(
-      events.map((event) => ({ ...event, visible: true })),
+      visibleEvents,
       region,
       now,
     ),
   );
   const model = publicModel(inventoryModel, page);
-  const pathname = `/${page.slug}`;
-  const query = parseRegionalLandingQuery(queryParams);
+  const territory = getSpanishTerritoryById(region);
+  if (!territory || territory.currentPublicCanonicalHref !== `/${page.slug}`) {
+    throw new Error(`La ruta pública de ${region} no coincide con el contrato territorial.`);
+  }
+  const routeContext = buildPublicTerritoryRouteContext(territory);
+  const detailModel = buildTerritoryDetailPageModel(visibleEvents, territory, {
+    now,
+    query: parsePublicTerritoryDetailQuery(queryParams),
+    routeContext,
+  });
 
   return (
     <>
@@ -157,12 +174,24 @@ export default async function PublicRegionalLanding({
           dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd(page, model)) }}
         />
       ) : null}
-      <RegionalLanding
-        mode="public"
-        model={model}
-        pathname={pathname}
-        query={query}
-      />
+      <RegionalLandingAnalytics region={model.config.id} />
+      <div className={redesignV2DisplayPilot.variable} data-v2-display-font-pilot="archivo">
+        <V2InteriorShell
+          breadcrumbs={[
+            { label: "Inicio", navigationId: "home" },
+            { label: "Zonas", navigationId: "territories" },
+            { label: territory.displayName },
+          ]}
+          currentNavigationId="territories"
+          description={model.config.description}
+          eyebrow={page.eyebrow}
+          navigationMode="public"
+          title={page.h1}
+          upcomingCount={detailModel.siteUpcomingCount}
+        >
+          <TerritoryDetailPage model={detailModel} nowIso={now.toISOString()} />
+        </V2InteriorShell>
+      </div>
     </>
   );
 }

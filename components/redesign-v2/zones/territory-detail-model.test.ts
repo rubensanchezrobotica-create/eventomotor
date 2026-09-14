@@ -11,6 +11,7 @@ import {
   normalizeTerritoryDetailText,
   parseTerritoryDetailPage,
   parseTerritoryDetailQuery,
+  parsePublicTerritoryDetailQuery,
   previewTerritories,
   resolvePreviewTerritory,
   territoryDetailHeroSummary,
@@ -20,6 +21,10 @@ import {
   territoryDetailResultsSummary,
   territoryDetailState,
 } from "./territory-detail-model";
+import {
+  buildPreviewTerritoryRouteContext,
+  buildPublicTerritoryRouteContext,
+} from "./territory-route-context";
 
 const NOW = "2026-09-10T10:00:00+02:00";
 
@@ -51,7 +56,15 @@ function event(index: number, overrides: Partial<EventItem> = {}): EventItem {
 }
 
 function query(overrides: Partial<ReturnType<typeof parseTerritoryDetailQuery>> = {}) {
-  return { discipline: "", page: 1, province: "", q: "", ...overrides };
+  return {
+    discipline: "",
+    page: 1,
+    province: "",
+    q: "",
+    vehicle: "",
+    when: "upcoming" as const,
+    ...overrides,
+  };
 }
 
 function andaluciaModel(events: EventItem[], overrides = {}) {
@@ -60,6 +73,7 @@ function andaluciaModel(events: EventItem[], overrides = {}) {
   return buildTerritoryDetailPageModel(events, territory, {
     now: NOW,
     query: query(overrides),
+    routeContext: buildPreviewTerritoryRouteContext(territory),
   });
 }
 
@@ -168,7 +182,7 @@ test("A7.5D-R1 crea un índice ligero con todo el territorio y sugiere más all�
   const suggestions = buildTerritorySearchSuggestions(
     model.suggestionIndex,
     "moto oculta",
-    model.territory.slug,
+    model.routeContext,
   );
 
   assert.equal(model.items.length, TERRITORY_DETAIL_PAGE_SIZE);
@@ -204,9 +218,9 @@ test("A7.5D-R1 limita sugerencias al territorio español exacto antes del typeah
   const model = andaluciaModel(fixtures);
 
   assert.equal(model.suggestionIndex.length, 10);
-  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Portugal", "andalucia").length, 0);
-  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Madrid Prohibida", "andalucia").length, 0);
-  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Geografía", "andalucia").length, 0);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Portugal", model.routeContext).length, 0);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Madrid Prohibida", model.routeContext).length, 0);
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "Geografía", model.routeContext).length, 0);
   assert.equal(model.suggestionIndex.some(({ slug }) => slug.includes("prohibido") || slug === "geografia-desconocida"), false);
 });
 
@@ -217,16 +231,16 @@ test("A7.5D-R1 replica normalización, límites y destinos de evento y ubicació
     title: index === 0 ? "Concentración Clásica de Écija" : `Rally territorial ${index}`,
   })));
 
-  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "e", "andalucia").length, 0);
-  const eventSuggestions = buildTerritorySearchSuggestions(model.suggestionIndex, "  CLASICA   DE   ECIJA ", "andalucia");
+  assert.equal(buildTerritorySearchSuggestions(model.suggestionIndex, "e", model.routeContext).length, 0);
+  const eventSuggestions = buildTerritorySearchSuggestions(model.suggestionIndex, "  CLASICA   DE   ECIJA ", model.routeContext);
   assert.equal(eventSuggestions[0]?.kind, "event");
   assert.equal(eventSuggestions[0]?.href, "/preview/redesign-v2/evento/territory-detail-0");
 
   const locationSuggestions = buildTerritorySearchSuggestions(
     model.suggestionIndex,
     "malaga",
-    "andalucia",
-    { discipline: "rallyes", province: "malaga" },
+    model.routeContext,
+    { discipline: "rallyes", province: "malaga", vehicle: "", when: "upcoming" },
   );
   const location = locationSuggestions.find(({ kind }) => kind === "location");
   assert.equal(location?.href, "/preview/redesign-v2/zonas/andalucia?q=M%C3%A1laga&province=malaga&discipline=rallyes#eventos");
@@ -275,19 +289,120 @@ test("A7.5B construye query estable, paginación enlazable y reseteo implícito 
   assert.equal(parseTerritoryDetailQuery({ q: `  ${"x".repeat(200)}  ` }).q.length, TERRITORY_DETAIL_QUERY_MAX_LENGTH);
   assert.equal(normalizeTerritoryDetailText("  LA   BAÑEZA  "), "la baneza");
   assert.equal(
-    territoryDetailPageHref("andalucia", { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
+    territoryDetailPageHref(andaluciaModel([]).routeContext, { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
     "/preview/redesign-v2/zonas/andalucia?q=Sierra+%26+Mar&province=malaga&discipline=rallyes&page=2",
   );
   assert.equal(TERRITORY_DETAIL_RESULTS_ANCHOR_ID, "eventos");
   assert.equal(
-    territoryDetailResultsHref("andalucia", { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
+    territoryDetailResultsHref(andaluciaModel([]).routeContext, { q: "Sierra & Mar", province: "malaga", discipline: "rallyes", page: 2 }),
     "/preview/redesign-v2/zonas/andalucia?q=Sierra+%26+Mar&province=malaga&discipline=rallyes&page=2#eventos",
   );
   assert.equal(
-    territoryDetailResultsHref("andalucia", { q: "Nueva búsqueda", page: 1 }),
+    territoryDetailResultsHref(andaluciaModel([]).routeContext, { q: "Nueva búsqueda", page: 1 }),
     "/preview/redesign-v2/zonas/andalucia?q=Nueva+b%C3%BAsqueda#eventos",
   );
   assert.deepEqual(territoryDetailPaginationItems(8, 16), [1, "ellipsis", 7, 8, 9, "ellipsis", 16]);
+});
+
+test("A7.6B separa de forma explícita los destinos Preview y públicos", () => {
+  const territory = getSpanishTerritoryById("andalucia");
+  assert.ok(territory);
+  const preview = buildPreviewTerritoryRouteContext(territory);
+  const publicContext = buildPublicTerritoryRouteContext(territory);
+
+  assert.equal(preview.mode, "preview");
+  assert.equal(preview.territoryHref, "/preview/redesign-v2/zonas/andalucia");
+  assert.equal(preview.calendarHref, "/preview/redesign-v2/calendario");
+  assert.equal(publicContext.mode, "public");
+  assert.equal(publicContext.territoryHref, "/eventos-motor-andalucia");
+  assert.equal(publicContext.calendarHref, "/#calendario");
+  assert.equal(publicContext.zonesHref, "/zonas");
+  assert.equal(
+    territoryDetailResultsHref(publicContext, {
+      discipline: "rallyes",
+      page: 2,
+      province: "cadiz",
+      q: "Sierra",
+      vehicle: "coche",
+      when: "weekend",
+    }),
+    "/eventos-motor-andalucia?q=Sierra&province=cadiz&discipline=rallyes&vehicle=coche&when=weekend&page=2#eventos",
+  );
+});
+
+test("A7.6B conserva vehicle y when públicos, pero Preview y URLs nuevas omiten show", () => {
+  assert.deepEqual(parseTerritoryDetailQuery({ vehicle: "Moto", when: "weekend", show: "all" }), query());
+  assert.deepEqual(
+    parsePublicTerritoryDetailQuery({ vehicle: "Moto", when: "weekend", show: "all" }),
+    query({ vehicle: "moto", when: "weekend" }),
+  );
+
+  const territory = getSpanishTerritoryById("andalucia");
+  assert.ok(territory);
+  const publicContext = buildPublicTerritoryRouteContext(territory);
+  assert.doesNotMatch(
+    territoryDetailPageHref(publicContext, {
+      vehicle: "moto",
+      when: "next30",
+    }),
+    /show=/,
+  );
+});
+
+test("A7.6B aplica la semántica legacy de vehículo y periodo antes de paginar", () => {
+  const territory = getSpanishTerritoryById("andalucia");
+  assert.ok(territory);
+  const fixtures = [
+    event(0, { start: "2026-09-11", end: "2026-09-11", vehicleType: "moto" }),
+    event(1, { start: "2026-09-12", end: "2026-09-12", vehicleType: "coche" }),
+    event(2, { start: "2026-09-13", end: "2026-09-13", vehicleType: "moto" }),
+    event(3, { start: "2026-09-14", end: "2026-09-14", vehicleType: "moto" }),
+  ];
+  const publicContext = buildPublicTerritoryRouteContext(territory);
+  const weekendMotos = buildTerritoryDetailPageModel(fixtures, territory, {
+    now: NOW,
+    query: parsePublicTerritoryDetailQuery({ vehicle: "moto", when: "weekend" }),
+    routeContext: publicContext,
+  });
+  const invalidVehicle = buildTerritoryDetailPageModel(fixtures, territory, {
+    now: NOW,
+    query: parsePublicTerritoryDetailQuery({ vehicle: "camion" }),
+    routeContext: publicContext,
+  });
+
+  assert.deepEqual(weekendMotos.items.map(({ event: item }) => item.start), ["2026-09-11", "2026-09-13"]);
+  assert.equal(weekendMotos.query.vehicle, "moto");
+  assert.equal(weekendMotos.query.when, "weekend");
+  assert.equal(invalidVehicle.query.vehicle, "");
+  assert.equal(invalidVehicle.filteredCount, 4);
+});
+
+test("A7.6B genera typeahead público sin filtrar Preview y conserva legacy en ubicaciones", () => {
+  const previewModel = andaluciaModel(Array.from({ length: 10 }, (_, index) => event(index, {
+    city: "Sevilla",
+    province: "Sevilla",
+    title: index === 0 ? "Rally público Sierra" : `Rally territorial ${index}`,
+  })));
+  const territory = previewModel.territory;
+  const publicContext = buildPublicTerritoryRouteContext(territory);
+  const eventSuggestion = buildTerritorySearchSuggestions(
+    previewModel.suggestionIndex,
+    "Rally público",
+    publicContext,
+  )[0];
+  const locationSuggestion = buildTerritorySearchSuggestions(
+    previewModel.suggestionIndex,
+    "Sevilla",
+    publicContext,
+    { discipline: "rallyes", province: "sevilla", vehicle: "coche", when: "next30" },
+  ).find(({ kind }) => kind === "location");
+
+  assert.equal(eventSuggestion?.href, "/evento/territory-detail-0");
+  assert.equal(
+    locationSuggestion?.href,
+    "/eventos-motor-andalucia?q=Sevilla&province=sevilla&discipline=rallyes&vehicle=coche&when=next30#eventos",
+  );
+  assert.doesNotMatch(`${eventSuggestion?.href}\n${locationSuggestion?.href}`, /\/preview\/redesign-v2/);
 });
 
 test("A7.5G deriva aplicar, limpiar, volver y avanzar sólo del estado URL", () => {
@@ -316,7 +431,7 @@ test("A7.5G deriva aplicar, limpiar, volver y avanzar sólo del estado URL", () 
   assert.equal(states[2]?.filteredCount, 15);
   assert.equal(states[3]?.filteredCount, 1);
   assert.equal(states[4]?.filteredCount, 15);
-  assert.equal(territoryDetailResultsHref("andalucia"), "/preview/redesign-v2/zonas/andalucia#eventos");
+  assert.equal(territoryDetailResultsHref(andaluciaModel([]).routeContext), "/preview/redesign-v2/zonas/andalucia#eventos");
 });
 
 test("A7.5B diferencia resumen corto, paginado, vacío y filtrado", () => {
@@ -356,8 +471,16 @@ test("A7.5B reutiliza el mismo contenido regional y la misma plantilla para La R
   const rioja = getSpanishTerritoryById("laRioja");
   assert.ok(madrid);
   assert.ok(rioja);
-  const madridModel = buildTerritoryDetailPageModel([], madrid, { now: NOW, query: query() });
-  const riojaModel = buildTerritoryDetailPageModel([], rioja, { now: NOW, query: query() });
+  const madridModel = buildTerritoryDetailPageModel([], madrid, {
+    now: NOW,
+    query: query(),
+    routeContext: buildPreviewTerritoryRouteContext(madrid),
+  });
+  const riojaModel = buildTerritoryDetailPageModel([], rioja, {
+    now: NOW,
+    query: query(),
+    routeContext: buildPreviewTerritoryRouteContext(rioja),
+  });
 
   assert.ok(madridModel.guideParagraphs.length > 0);
   assert.ok(madridModel.faqs.length > 0);

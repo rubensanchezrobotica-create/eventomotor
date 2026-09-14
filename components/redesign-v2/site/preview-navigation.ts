@@ -1,3 +1,5 @@
+import { canonicalPublicHref } from "@/lib/public-navigation";
+
 export type PreviewNavigationId =
   | "home"
   | "weekend"
@@ -26,6 +28,8 @@ export type ResolvedPreviewNavigationItem = {
   previewFallback?: "production";
 };
 
+export type InteriorNavigationMode = "preview" | "public";
+
 export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNavigationDefinition>> = {
   home: { id: "home", label: "Inicio", productionHref: "/", previewHref: "/preview/redesign-v2" },
   weekend: { id: "weekend", label: "Este fin de semana", productionHref: "/eventos-motor-este-fin-de-semana" },
@@ -46,6 +50,26 @@ export function resolvePreviewNavigationItem(id: PreviewNavigationId): ResolvedP
   return item.previewHref
     ? { id, label: item.label, href: item.previewHref }
     : { id, label: item.label, href: item.productionHref, previewFallback: "production" };
+}
+
+export function resolveInteriorNavigationItem(
+  id: PreviewNavigationId,
+  mode: InteriorNavigationMode,
+): ResolvedPreviewNavigationItem {
+  if (mode === "preview") return resolvePreviewNavigationItem(id);
+  const item = PREVIEW_NAVIGATION[id];
+  return {
+    id,
+    label: item.label,
+    href: canonicalPublicHref(item.productionHref),
+  };
+}
+
+export function resolveInteriorNavigationItems(
+  ids: readonly PreviewNavigationId[],
+  mode: InteriorNavigationMode,
+): ResolvedPreviewNavigationItem[] {
+  return ids.map((id) => resolveInteriorNavigationItem(id, mode));
 }
 
 export function resolvePreviewNavigationItems(

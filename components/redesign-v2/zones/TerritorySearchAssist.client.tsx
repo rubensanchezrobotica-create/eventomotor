@@ -16,6 +16,7 @@ import {
   type TerritoryDetailQuery,
   type TerritorySearchSuggestion,
 } from "./territory-detail-model";
+import type { TerritoryRouteContext } from "./territory-route-context";
 import styles from "./TerritoryDetailPage.module.css";
 
 const SUGGESTION_KINDS: TerritorySearchSuggestion["kind"][] = ["event", "location"];
@@ -26,13 +27,13 @@ const SUGGESTION_LABELS: Record<TerritorySearchSuggestion["kind"], string> = {
 
 type TerritorySearchAssistProps = {
   action: string;
-  activeFilters: Pick<TerritoryDetailQuery, "discipline" | "province">;
+  activeFilters: Pick<TerritoryDetailQuery, "discipline" | "province" | "vehicle" | "when">;
   clearHref: string;
   hasSecondaryFilters: boolean;
   initialQuery: string;
   source: readonly DisciplineSearchSuggestionSource[];
   territoryName: string;
-  territorySlug: string;
+  routeContext: TerritoryRouteContext;
 };
 
 function SearchIcon() {
@@ -52,7 +53,7 @@ export default function TerritorySearchAssist({
   initialQuery,
   source,
   territoryName,
-  territorySlug,
+  routeContext,
 }: TerritorySearchAssistProps) {
   const router = useRouter();
   const rootRef = useRef<HTMLFormElement>(null);
@@ -63,8 +64,8 @@ export default function TerritorySearchAssist({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const suggestions = useMemo(
-    () => buildTerritorySearchSuggestions(source, query, territorySlug, activeFilters),
-    [activeFilters, query, source, territorySlug],
+    () => buildTerritorySearchSuggestions(source, query, routeContext, activeFilters),
+    [activeFilters, query, routeContext, source],
   );
   const resolvedActiveSuggestion = activeSuggestion < suggestions.length ? activeSuggestion : -1;
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
@@ -138,6 +139,8 @@ export default function TerritorySearchAssist({
     >
       {activeFilters.province ? <input name="province" type="hidden" value={activeFilters.province} /> : null}
       {activeFilters.discipline ? <input name="discipline" type="hidden" value={activeFilters.discipline} /> : null}
+      {activeFilters.vehicle ? <input name="vehicle" type="hidden" value={activeFilters.vehicle} /> : null}
+      {activeFilters.when !== "upcoming" ? <input name="when" type="hidden" value={activeFilters.when} /> : null}
       <label className={searchStyles.srOnly} htmlFor={inputId}>
         Buscar eventos en {territoryName}
       </label>
