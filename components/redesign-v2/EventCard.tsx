@@ -30,7 +30,8 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
 
   return (
     <article className={featured ? `${styles.eventCard} ${styles.eventCardFeatured}` : styles.eventCard}>
-      <Link className={styles.eventCardLink} href={href} aria-label={`Ver ${event.title}`}>
+      <Link className={styles.eventCardHitArea} href={href} aria-label={`Ver ${event.title}`} />
+      <div className={styles.eventCardLink}>
         {featured ? (
           <div className={styles.featuredChrome}>
             <span className={styles.featuredDesktopLabel}>{featuredLabel ?? "Evento destacado"}</span>
@@ -87,6 +88,15 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
               )}
             </span>
           ) : null}
+          <div className={styles.eventSaveAction}>
+            <EventRetentionActions
+              compactIcons
+              directChildren
+              event={savedEvent}
+              saveOnly
+              source="redesign_v2_event_card"
+            />
+          </div>
         </div>
         <div className={styles.eventCardBody}>
           <div className={styles.eventMetaLine}>
@@ -101,15 +111,6 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
             Ver evento <span aria-hidden="true">→</span>
           </span>
         </div>
-      </Link>
-      <div className={styles.eventSaveAction}>
-        <EventRetentionActions
-          compactIcons
-          directChildren
-          event={savedEvent}
-          saveOnly
-          source="redesign_v2_event_card"
-        />
       </div>
     </article>
   );

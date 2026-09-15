@@ -85,13 +85,17 @@ test("A9C-B conserva exactamente el payload SavedEvent disponible en PreviewEven
 });
 
 test("A9C-B integra save en EventCard fuera del enlace primario sin cambiar su href", () => {
-  const linkStart = eventCard.indexOf("<Link className={styles.eventCardLink}");
-  const linkEnd = eventCard.indexOf("</Link>", linkStart);
+  const linkStart = eventCard.indexOf("<Link className={styles.eventCardHitArea}");
+  const linkEnd = eventCard.indexOf("/>", linkStart);
+  const mediaStart = eventCard.indexOf("<div className={styles.eventImageLink}>");
+  const bodyStart = eventCard.indexOf("<div className={styles.eventCardBody}>");
   const saveStart = eventCard.indexOf("<div className={styles.eventSaveAction}>");
 
   assert.notEqual(linkStart, -1);
   assert.ok(linkEnd > linkStart);
-  assert.ok(saveStart > linkEnd);
+  assert.ok(mediaStart > linkEnd);
+  assert.ok(saveStart > mediaStart);
+  assert.ok(saveStart < bodyStart);
   assert.equal((eventCard.match(/<EventRetentionActions/g) || []).length, 1);
   assert.match(eventCard, /compactIcons[\s\S]*?directChildren[\s\S]*?saveOnly/);
   assert.match(eventCard, /const href = previewEventHref\(event\)/);
@@ -114,12 +118,16 @@ test("A9C-B hace que Home y territorio hereden un único save desde EventCard", 
 
 test("A9C-B añade el mismo saveOnly a la tarjeta local de Disciplina", () => {
   const linkStart = discipline.indexOf("<Link aria-label={`Ver ${event.title}`}");
-  const linkEnd = discipline.indexOf("</Link>", linkStart);
+  const linkEnd = discipline.indexOf("/>", linkStart);
+  const mediaStart = discipline.indexOf("<div className={cardStyles.eventImageLink}>");
+  const bodyStart = discipline.indexOf("<div className={cardStyles.eventCardBody}>");
   const saveStart = discipline.indexOf("<div className={cardStyles.eventSaveAction}>");
 
   assert.notEqual(linkStart, -1);
   assert.ok(linkEnd > linkStart);
-  assert.ok(saveStart > linkEnd);
+  assert.ok(mediaStart > linkEnd);
+  assert.ok(saveStart > mediaStart);
+  assert.ok(saveStart < bodyStart);
   assert.equal((discipline.match(/<EventRetentionActions/g) || []).length, 1);
   assert.match(discipline, /compactIcons[\s\S]*?directChildren[\s\S]*?saveOnly/);
   assert.match(discipline, /source="redesign_v2_discipline_detail"/);
@@ -133,10 +141,13 @@ test("A9C-B protege Calendar, Weekend y Event Detail con un solo control existen
 });
 
 test("A9C-B mantiene el corazón dentro de media, separado de fecha y etiqueta", () => {
+  assert.match(styles, /\.eventImageLink\s*\{[\s\S]*?position:\s*relative/);
+  assert.match(styles, /\.eventCardHitArea\s*\{[\s\S]*?position:\s*absolute[\s\S]*?z-index:\s*3[\s\S]*?inset:\s*0/);
   assert.match(styles, /\.eventSaveAction\s*\{[\s\S]*?position:\s*absolute[\s\S]*?z-index:\s*5/);
+  assert.match(styles, /\.eventSaveAction\s*\{[\s\S]*?top:\s*12px[\s\S]*?right:\s*12px/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action\)\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action-saved\)\s*\{[\s\S]*?color:\s*#ff6200 !important/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action:focus-visible\)/);
-  assert.match(styles, /\.eventCardFeatured \.eventSaveAction\s*\{[\s\S]*?top:\s*59px[\s\S]*?right:\s*20px/);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.eventCardFeatured \.eventSaveAction\s*\{[\s\S]*?top:\s*14px[\s\S]*?left:\s*78px/);
+  assert.doesNotMatch(styles, /\.eventCardFeatured \.eventSaveAction/);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.eventSaveAction\s*\{[\s\S]*?top:\s*10px[\s\S]*?right:\s*10px/);
 });

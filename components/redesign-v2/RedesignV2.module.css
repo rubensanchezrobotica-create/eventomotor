@@ -744,6 +744,18 @@
   flex-direction: column;
 }
 
+.eventCardHitArea {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.eventCardHitArea:focus-visible {
+  outline: 3px solid #ff9d5d;
+  outline-offset: 3px;
+}
+
 .eventCard:hover {
   transform: translateY(-4px);
   border-color: rgba(255, 98, 0, 0.6);
@@ -849,11 +861,6 @@
 .eventSaveAction :global(.emc-icon-action:focus-visible) {
   outline: 3px solid #ff9d5d;
   outline-offset: 3px;
-}
-
-.eventCardFeatured .eventSaveAction {
-  top: 59px;
-  right: 20px;
 }
 
 .neutralEventImage {
@@ -1007,7 +1014,7 @@
   line-height: 1.25;
 }
 
-.eventCardLink:hover .eventCardBody h3 {
+.eventCard:hover .eventCardBody h3 {
   color: var(--orange);
 }
 
@@ -1839,10 +1846,9 @@
     grid-template-rows: 29px minmax(0, 1fr);
   }
 
-  .eventCardFeatured .eventSaveAction {
-    top: 14px;
-    right: auto;
-    left: 78px;
+  .eventSaveAction {
+    top: 10px;
+    right: 10px;
   }
 
   .featuredChrome {

@@ -33,7 +33,8 @@ function DisciplineEventCard({ item, nowIso }: { item: DisciplineDetailPageItem;
 
   return (
     <article className={cardStyles.eventCard}>
-      <Link aria-label={`Ver ${event.title}`} className={cardStyles.eventCardLink} href={href}>
+      <Link aria-label={`Ver ${event.title}`} className={cardStyles.eventCardHitArea} href={href} />
+      <div className={cardStyles.eventCardLink}>
         <div className={cardStyles.eventImageLink}>
           {image.src ? (
             <Image
@@ -83,6 +84,15 @@ function DisciplineEventCard({ item, nowIso }: { item: DisciplineDetailPageItem;
               )}
             </span>
           ) : null}
+          <div className={cardStyles.eventSaveAction}>
+            <EventRetentionActions
+              compactIcons
+              directChildren
+              event={savedEvent}
+              saveOnly
+              source="redesign_v2_discipline_detail"
+            />
+          </div>
         </div>
         <div className={cardStyles.eventCardBody}>
           <div className={cardStyles.eventMetaLine}>
@@ -97,15 +107,6 @@ function DisciplineEventCard({ item, nowIso }: { item: DisciplineDetailPageItem;
             Ver evento <span aria-hidden="true">→</span>
           </span>
         </div>
-      </Link>
-      <div className={cardStyles.eventSaveAction}>
-        <EventRetentionActions
-          compactIcons
-          directChildren
-          event={savedEvent}
-          saveOnly
-          source="redesign_v2_discipline_detail"
-        />
       </div>
     </article>
   );
