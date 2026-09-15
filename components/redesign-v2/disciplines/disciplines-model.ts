@@ -5,20 +5,30 @@ import type { EventItem } from "@/types/event";
 
 export type DisciplineHubCard = {
   description: string;
-  href: `/disciplinas/${DisciplineSlug}`;
+  href:
+    | `/disciplinas/${DisciplineSlug}`
+    | `/preview/redesign-v2/disciplinas/${DisciplineSlug}`;
   icon: string;
   label: string;
   slug: DisciplineSlug;
   upcomingCount: number;
 };
 
+export type DisciplinesRouteMode = "preview" | "public";
+
 export type DisciplinesPageModel = {
+  calendarHref: "/calendario" | "/preview/redesign-v2/calendario";
   cards: DisciplineHubCard[];
+  routeMode: DisciplinesRouteMode;
   today: string;
   totalUpcomingEventCount: number;
   totalVisibleEventCount: number;
   unmappedUpcomingCount: number;
 };
+
+export type DisciplinesPageRouteOptions = Readonly<{
+  routeMode?: DisciplinesRouteMode;
+}>;
 
 const DISCIPLINE_ICONS: Record<DisciplineSlug, string> = {
   rallyes: "/images/disciplines/icons/web/discipline-rallyes.png",
@@ -69,7 +79,9 @@ export function disciplineUpcomingCountLabel(count: number) {
 export function buildDisciplinesPageModel(
   events: readonly EventItem[],
   now: string | Date = new Date(),
+  options: DisciplinesPageRouteOptions = {},
 ): DisciplinesPageModel {
+  const routeMode = options.routeMode ?? "public";
   const today = madridCalendarDateKey(now);
   const visibleEvents = deduplicateVisibleEvents(events);
   const upcomingEvents = visibleEvents.filter((event) => isUpcomingDisciplineEvent(event, today));
@@ -86,14 +98,20 @@ export function buildDisciplinesPageModel(
   }
 
   return {
+    calendarHref: routeMode === "public"
+      ? "/calendario"
+      : "/preview/redesign-v2/calendario",
     cards: SEO_DISCIPLINES.map((discipline) => ({
       description: discipline.description,
-      href: `/disciplinas/${discipline.slug}`,
+      href: routeMode === "public"
+        ? `/disciplinas/${discipline.slug}`
+        : `/preview/redesign-v2/disciplinas/${discipline.slug}`,
       icon: DISCIPLINE_ICONS[discipline.slug],
       label: discipline.title,
       slug: discipline.slug,
       upcomingCount: counts.get(discipline.slug) || 0,
     })),
+    routeMode,
     today,
     totalUpcomingEventCount: upcomingEvents.length,
     totalVisibleEventCount: visibleEvents.length,

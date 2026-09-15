@@ -28,7 +28,7 @@ export default async function DisciplinesPreviewPage() {
     ...event,
     vehicleType: getVehicleType(event),
   }));
-  const model = buildDisciplinesPageModel(events, now);
+  const model = buildDisciplinesPageModel(events, now, { routeMode: "preview" });
 
   return (
     <V2PreviewShell

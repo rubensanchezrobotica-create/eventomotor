@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
-import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
+import { connection } from "next/server";
+import DisciplinesPage from "@/components/redesign-v2/disciplines/DisciplinesPage";
+import { buildDisciplinesPageModel } from "@/components/redesign-v2/disciplines/disciplines-model";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
+import { getVehicleType } from "@/lib/event-classification";
+import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -15,36 +16,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DisciplinasPage() {
+export default async function DisciplinasPage() {
+  await connection();
+  const now = new Date();
+  const events = (await getVisibleEvents()).map((event) => ({
+    ...event,
+    vehicleType: getVehicleType(event),
+  }));
+  const model = buildDisciplinesPageModel(events, now, { routeMode: "public" });
+
   return (
-    <div className="emc-page">
-      <ConceptStyles />
-      <ConceptStaticHeader />
-      <main className="emc-contact-page">
-        <section className="emc-contact-hero">
-          <div className="emc-container">
-            <div className="emc-kicker">Disciplinas</div>
-            <h1>Eventos de motor por disciplina</h1>
-            <p className="emc-contact-lead">
-              Encuentra eventos por tipo de experiencia: rallyes, circuito, concentraciones, rutas, offroad, clásicos, karting y ferias.
-            </p>
-          </div>
-        </section>
-        <section className="emc-section emc-publish-section">
-          <div className="emc-container">
-            <div className="emc-publish-grid">
-              {SEO_DISCIPLINES.map((discipline) => (
-                <Link className="emc-publish-card" href={`/disciplinas/${discipline.slug}`} key={discipline.slug}>
-                  <span />
-                  <strong>{discipline.title}</strong>
-                  <small>{discipline.description}</small>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-      <ConceptFooter />
-    </div>
+    <V2InteriorShell
+      breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Disciplinas" }]}
+      currentNavigationId="disciplines"
+      description="Rallyes, circuito, concentraciones y otras formas de vivir el motor, reunidas en una agenda real y actualizada."
+      eyebrow="Agenda por disciplina"
+      navigationMode="public"
+      title="Explora el motor por disciplina"
+      upcomingCount={model.totalUpcomingEventCount}
+    >
+      <DisciplinesPage model={model} />
+    </V2InteriorShell>
   );
 }

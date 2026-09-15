@@ -53,7 +53,7 @@ export default function DisciplinesPage({ model }: DisciplinesPageProps) {
             <h2>¿Prefieres empezar por la fecha?</h2>
             <p>Consulta toda la agenda por fecha y descubre los próximos eventos del motor.</p>
           </div>
-          <Link href="/preview/redesign-v2/calendario">Abrir calendario <span aria-hidden="true">→</span></Link>
+          <Link href={model.calendarHref}>Abrir calendario <span aria-hidden="true">→</span></Link>
         </aside>
 
         <CompactAgendaSignup

@@ -31,7 +31,9 @@ function event(overrides: Partial<EventItem> = {}): EventItem {
 }
 
 test("A5 conserva las ocho disciplinas canónicas, su orden, iconos y rutas públicas", () => {
-  const model = buildDisciplinesPageModel([], "2026-08-17T10:00:00+02:00");
+  const model = buildDisciplinesPageModel([], "2026-08-17T10:00:00+02:00", {
+    routeMode: "public",
+  });
 
   assert.deepEqual(model.cards.map(({ slug }) => slug), [
     "rallyes",
@@ -46,6 +48,21 @@ test("A5 conserva las ocho disciplinas canónicas, su orden, iconos y rutas púb
   assert.deepEqual(model.cards.map(({ href }) => href), model.cards.map(({ slug }) => `/disciplinas/${slug}`));
   assert.ok(model.cards.every(({ icon, slug }) => icon === `/images/disciplines/icons/web/discipline-${slug}.png`));
   assert.ok(model.cards.every(({ upcomingCount }) => upcomingCount === 0));
+  assert.equal(model.calendarHref, "/calendario");
+  assert.equal(model.routeMode, "public");
+});
+
+test("A10B conserva destinos Preview con contexto explícito y sin inferir el pathname", () => {
+  const model = buildDisciplinesPageModel([], "2026-08-17T10:00:00+02:00", {
+    routeMode: "preview",
+  });
+
+  assert.deepEqual(
+    model.cards.map(({ href, slug }) => [slug, href]),
+    model.cards.map(({ slug }) => [slug, `/preview/redesign-v2/disciplinas/${slug}`]),
+  );
+  assert.equal(model.calendarHref, "/preview/redesign-v2/calendario");
+  assert.equal(model.routeMode, "preview");
 });
 
 test("A5 cuenta sólo eventos visibles y próximos, incluidos los multiday activos", () => {
