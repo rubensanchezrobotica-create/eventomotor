@@ -405,10 +405,12 @@ test("off y el canario no exponen superficies públicas ni crean servicio fuera 
   const eventPage = source("app/evento/[slug]/page.tsx");
   const eventView = source("components/events/detail/EventDetailView.tsx");
   const footer = source("components/public/concept/ConceptFooter.tsx");
+  const redesignHome = source("components/redesign-v2/RedesignV2Home.tsx");
   for (const file of [home, eventPage, eventView, footer]) {
     assert.match(file, /newsletterPublicLaunchEnabled/);
   }
-  assert.match(home, /newsletterPublicLaunchEnabled\s*\?\s*<NewsletterCaptureCard/);
+  assert.match(home, /newsletterVisible={newsletterPublicLaunchEnabled}/);
+  assert.match(redesignHome, /newsletterVisible \? <section className={styles\.newsletterSection}/);
   assert.match(eventView, /newsletterPublicLaunchEnabled\s*\?\s*\(/);
   assert.match(
     footer,

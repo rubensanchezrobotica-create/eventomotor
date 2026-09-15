@@ -1,10 +1,7 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { connection } from "next/server";
-import NewsletterCaptureCard from "@/components/newsletter/NewsletterCaptureCard";
-import PreviewHomePage from "@/components/preview/PreviewHomePage";
+import RedesignV2Home from "@/components/redesign-v2/RedesignV2Home";
 import {
   currentNewsletterProductionCanaryEnvironment,
   currentNewsletterPublicLaunchEnvironment,
@@ -12,7 +9,7 @@ import {
   evaluateNewsletterPublicLaunchResendConfiguration,
 } from "@/lib/newsletter/resend-config.server";
 import { isNewsletterPublicLaunchPageRequestAllowed } from "@/lib/newsletter/r5b-guard";
-import { getHomeVisibleEvents } from "@/lib/public-events";
+import { getVisibleEvents } from "@/lib/public-events";
 import { absoluteUrl, DEFAULT_OG_IMAGE, HOME_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -50,7 +47,7 @@ export default async function HomePage() {
   await connection();
   const [requestHeaders, initialEvents] = await Promise.all([
     headers(),
-    getHomeVisibleEvents(),
+    getVisibleEvents(),
   ]);
   const publicConfiguration =
     evaluateNewsletterPublicLaunchResendConfiguration(
@@ -68,20 +65,14 @@ export default async function HomePage() {
       requestHeaders.get("host"),
       requestHeaders.get("x-forwarded-proto"),
     );
-  const hasHeroImage = existsSync(join(process.cwd(), "public/images/hero/eventomotor-hero-motorsport.png"));
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <PreviewHomePage
-        hasHeroImage={hasHeroImage}
-        initialEvents={initialEvents}
-        newsletterCapture={
-          newsletterPublicLaunchEnabled
-            ? <NewsletterCaptureCard placement="home" />
-            : null
-        }
-        newsletterPublicLaunchEnabled={newsletterPublicLaunchEnabled}
+      <RedesignV2Home
+        events={initialEvents}
+        newsletterVisible={newsletterPublicLaunchEnabled}
+        nowIso={new Date().toISOString()}
+        routeMode="public"
       />
     </>
   );

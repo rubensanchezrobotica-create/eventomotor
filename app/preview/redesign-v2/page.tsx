@@ -25,5 +25,12 @@ export default async function RedesignV2PreviewPage() {
   if (!isRedesignPreviewAvailable()) notFound();
 
   const events = await getVisibleEvents();
-  return <RedesignV2Home events={events} nowIso={new Date().toISOString()} />;
+  return (
+    <RedesignV2Home
+      events={events}
+      newsletterVisible
+      nowIso={new Date().toISOString()}
+      routeMode="preview"
+    />
+  );
 }

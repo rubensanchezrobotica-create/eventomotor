@@ -1,6 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
+import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
+import { eventAnalyticsParams } from "@/lib/analytics";
 import styles from "./RedesignV2.module.css";
 import {
   isRemoteImage,
@@ -20,17 +21,27 @@ type EventCardProps = {
   featured?: boolean;
   featuredLabel?: string;
   resolvedImage?: ResolvedEventImage;
+  routeMode?: "preview" | "public";
 };
 
-export default function EventCard({ event, nowIso, featured = false, featuredLabel, resolvedImage }: EventCardProps) {
+export default function EventCard({ event, nowIso, featured = false, featuredLabel, resolvedImage, routeMode = "public" }: EventCardProps) {
   const image = resolvedImage ?? resolveRedesignEventImage(event);
   const date = previewEventDateLabel(event);
-  const href = previewEventHref(event);
+  const publicHref = previewEventHref(event);
+  const href = routeMode === "preview" ? `/preview/redesign-v2${publicHref}` : publicHref;
   const savedEvent = previewEventSavedSnapshot(event);
 
   return (
     <article className={featured ? `${styles.eventCard} ${styles.eventCardFeatured}` : styles.eventCard}>
-      <Link className={styles.eventCardHitArea} href={href} aria-label={`Ver ${event.title}`} />
+      <TrackLink
+        aria-label={`Ver ${event.title}`}
+        className={styles.eventCardHitArea}
+        eventName="click_event_detail"
+        eventParams={{ ...eventAnalyticsParams(event), source: "redesign_v2_home" }}
+        href={href}
+      >
+        <span className={styles.visuallyHidden}>Ver {event.title}</span>
+      </TrackLink>
       <div className={styles.eventCardLink}>
         {featured ? (
           <div className={styles.featuredChrome}>

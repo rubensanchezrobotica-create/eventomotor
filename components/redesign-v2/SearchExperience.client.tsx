@@ -8,6 +8,7 @@ import {
   type PreviewSuggestion,
   type PreviewSuggestionKind,
 } from "@/components/preview/search-preview-model";
+import { currentPagePath, trackEvent } from "@/lib/analytics";
 import EventCard from "./EventCard";
 import styles from "./RedesignV2.module.css";
 import {
@@ -36,13 +37,15 @@ type SearchExperienceProps = {
   excludeEventId?: string | null;
   imageByEventId: Record<string, ResolvedEventImage>;
   nowIso: string;
+  calendarHref: string;
+  routeMode: "preview" | "public";
 };
 
 function suggestionDomId(suggestion: PreviewSuggestion) {
   return `redesign-v2-${suggestion.id.replace(/[^a-z0-9_-]+/gi, "-")}`;
 }
 
-export default function SearchExperience({ events, excludeEventId, imageByEventId, nowIso }: SearchExperienceProps) {
+export default function SearchExperience({ calendarHref, events, excludeEventId, imageByEventId, nowIso, routeMode }: SearchExperienceProps) {
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -118,6 +121,10 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
         className={styles.searchPanel}
         onSubmit={(event) => {
           event.preventDefault();
+          trackEvent("search_events", {
+            search_term: draft.place.trim(),
+            page_path: currentPagePath(),
+          });
           closeSuggestions();
           setFilters(draft);
           setExplicitSearchVersion((current) => current + 1);
@@ -243,7 +250,17 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
 
           <label>
             <span>Disciplina</span>
-            <select name="discipline" onChange={(event) => updateFilter("discipline", event.target.value)} value={draft.discipline}>
+            <select
+              name="discipline"
+              onChange={(event) => {
+                trackEvent("filter_discipline", {
+                  discipline: event.target.value || "all",
+                  page_path: currentPagePath(),
+                });
+                updateFilter("discipline", event.target.value);
+              }}
+              value={draft.discipline}
+            >
               <option value="">Todas</option>
               <option value="rally">Rally</option>
               <option value="circuito">Circuito</option>
@@ -255,7 +272,17 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
           </label>
           <label>
             <span>Vehículo</span>
-            <select name="vehicle" onChange={(event) => updateFilter("vehicle", event.target.value)} value={draft.vehicle}>
+            <select
+              name="vehicle"
+              onChange={(event) => {
+                trackEvent("filter_vehicle_type", {
+                  vehicle_type: event.target.value || "all",
+                  page_path: currentPagePath(),
+                });
+                updateFilter("vehicle", event.target.value);
+              }}
+              value={draft.vehicle}
+            >
               <option value="">Todos</option>
               <option value="moto">Moto</option>
               <option value="coche">Coche</option>
@@ -280,7 +307,7 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
       {visible.length ? (
         <div className={styles.eventGrid}>
           {visible.map((event, index) => (
-            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={visibleImages[index]} />
+            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={visibleImages[index]} routeMode={routeMode} />
           ))}
         </div>
       ) : (
@@ -294,7 +321,7 @@ export default function SearchExperience({ events, excludeEventId, imageByEventI
       )}
 
       <div className={styles.centerAction}>
-        <Link className={styles.outlineButton} href="/#calendario">Ver calendario completo</Link>
+        <Link className={styles.outlineButton} href={calendarHref}>Ver calendario completo</Link>
       </div>
     </>
   );

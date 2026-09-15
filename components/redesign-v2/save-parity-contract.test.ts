@@ -86,8 +86,8 @@ test("A9C-B conserva exactamente el payload SavedEvent disponible en PreviewEven
 });
 
 test("A9C-B integra save en EventCard fuera del enlace primario sin cambiar su href", () => {
-  const linkStart = eventCard.indexOf("<Link className={styles.eventCardHitArea}");
-  const linkEnd = eventCard.indexOf("/>", linkStart);
+  const linkStart = eventCard.indexOf("<TrackLink");
+  const linkEnd = eventCard.indexOf("</TrackLink>", linkStart);
   const mediaStart = eventCard.indexOf("<div className={styles.eventImageLink}>");
   const bodyStart = eventCard.indexOf("<div className={styles.eventCardBody}>");
   const saveStart = eventCard.indexOf("<div className={styles.eventSaveAction}>");
@@ -99,7 +99,8 @@ test("A9C-B integra save en EventCard fuera del enlace primario sin cambiar su h
   assert.ok(saveStart < bodyStart);
   assert.equal((eventCard.match(/<EventRetentionActions/g) || []).length, 1);
   assert.match(eventCard, /compactIcons[\s\S]*?directChildren[\s\S]*?saveOnly/);
-  assert.match(eventCard, /const href = previewEventHref\(event\)/);
+  assert.match(eventCard, /const publicHref = previewEventHref\(event\)/);
+  assert.match(eventCard, /routeMode === "preview"[\s\S]*?: publicHref/);
   assert.match(eventCard, /styles\.dateBlock/);
   assert.match(eventCard, /className=\{styles\.imageLabel\}/);
 });

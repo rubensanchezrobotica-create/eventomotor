@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import TrackLink from "@/components/analytics/TrackLink";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
@@ -20,12 +21,64 @@ import {
 
 type RedesignV2HomeProps = {
   events: EventItem[];
+  newsletterVisible: boolean;
   nowIso: string;
+  routeMode: "preview" | "public";
 };
+
+const HOME_ROUTES = {
+  public: {
+    home: "/",
+    calendar: "/#calendario",
+    disciplines: "/disciplinas",
+    zones: "/zonas",
+    savedEvents: "/mis-eventos",
+    newsletter: "/newsletter",
+    publish: "/publicar-evento",
+    contact: "/contacto",
+  },
+  preview: {
+    home: "/preview/redesign-v2",
+    calendar: "/preview/redesign-v2/calendario",
+    disciplines: "/disciplinas",
+    zones: "/preview/redesign-v2/zonas",
+    savedEvents: "/mis-eventos",
+    newsletter: "/newsletter",
+    publish: "/publicar-evento",
+    contact: "/contacto",
+  },
+} as const;
 
 const yearFormatter = new Intl.DateTimeFormat("es-ES", { year: "numeric" });
 
-export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) {
+export default function RedesignV2Home({ events, newsletterVisible, nowIso, routeMode }: RedesignV2HomeProps) {
+  const routes = HOME_ROUTES[routeMode];
+  const desktopNavigation = routeMode === "public"
+    ? [
+        { href: routes.calendar, label: "Calendario" },
+        { href: routes.disciplines, label: "Disciplinas" },
+        { href: routes.zones, label: "Zonas" },
+        { href: routes.savedEvents, label: "Mis eventos" },
+      ]
+    : [
+        { href: routes.calendar, label: "Calendario" },
+        { href: routes.disciplines, label: "Disciplinas" },
+        { href: routes.zones, label: "Zonas" },
+        { href: routes.contact, label: "Contacto" },
+      ];
+  const mobileNavigation = routeMode === "public"
+    ? [
+        ...desktopNavigation,
+        { href: routes.publish, label: "Publicar evento" },
+        { href: routes.contact, label: "Contacto" },
+      ]
+    : [
+        { href: routes.calendar, label: "Calendario" },
+        { href: routes.disciplines, label: "Disciplinas" },
+        { href: routes.zones, label: "Zonas" },
+        { href: routes.newsletter, label: "Newsletter" },
+        { href: routes.publish, label: "Publicar evento" },
+      ];
   const projected = events.map(projectPreviewEvent);
   const upcoming = upcomingPreviewEvents(projected, nowIso);
   const editorialEvents = prioritizeEditorialEvents(upcoming);
@@ -44,22 +97,19 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
         <div className={styles.utilityBar}>
           <div className={styles.shell}>
             <p><span aria-hidden="true">●</span> {upcoming.length} eventos próximos en la agenda</p>
-            <Link href="/newsletter">La Agenda Motor</Link>
+            {newsletterVisible ? <Link href={routes.newsletter}>La Agenda Motor</Link> : null}
           </div>
         </div>
         <div className={`${styles.shell} ${styles.navbar}`}>
-          <Link className={styles.brand} href="/" aria-label="EventoMotor, inicio">
+          <Link className={styles.brand} href={routes.home} aria-label="EventoMotor, inicio">
             <EventomotorLogo />
           </Link>
           <nav aria-label="Navegación principal" className={styles.desktopNav}>
-            <Link href="/#calendario">Calendario</Link>
-            <Link href="/disciplinas">Disciplinas</Link>
-            <Link href="/zonas">Zonas</Link>
-            <Link href="/contacto">Contacto</Link>
+            {desktopNavigation.map((item) => <Link href={item.href} key={item.label}>{item.label}</Link>)}
           </nav>
           <div className={styles.navActions}>
-            <Link className={styles.publishButton} href="/publicar-evento">Publicar evento</Link>
-            <MobileNavigation />
+            <TrackLink className={styles.publishButton} eventName="click_publish_event" eventParams={{ source: "header_cta" }} href={routes.publish}>Publicar evento</TrackLink>
+            <MobileNavigation items={mobileNavigation} />
           </div>
         </div>
       </header>
@@ -83,7 +133,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
               <p>Rallyes, concentraciones, tandas, rutas, clásicos, ferias y competiciones: encuentra un plan fiable por fecha y zona.</p>
               <div className={styles.heroActions}>
                 <Link className={styles.primaryButton} href="#proximos-eventos">Ver próximos eventos <span aria-hidden="true">→</span></Link>
-                <Link className={styles.heroTextLink} href="/#calendario">Explorar calendario</Link>
+                <Link className={styles.heroTextLink} href={routes.calendar}>Explorar calendario</Link>
               </div>
               <div className={styles.trustLine}>
                 <span><strong>{upcoming.length}</strong> próximos</span>
@@ -99,19 +149,22 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                   featuredLabel={featured.eyebrow}
                   nowIso={nowIso}
                   resolvedImage={imageByEventId[featured.event.id]}
+                  routeMode={routeMode}
                 />
               </aside>
             ) : null}
           </div>
         </section>
 
-        <section className={`${styles.shell} ${styles.eventsSection}`} id="proximos-eventos" aria-labelledby="events-title">
-          <h2 className={styles.visuallyHidden} id="events-title">Buscar y descubrir próximos eventos</h2>
+        <section className={`${styles.shell} ${styles.eventsSection}`} id="calendario" aria-labelledby="proximos-eventos">
+          <h2 className={styles.visuallyHidden} id="proximos-eventos">Buscar y descubrir próximos eventos</h2>
           <SearchExperience
+            calendarHref={routes.calendar}
             events={editorialEvents}
             excludeEventId={featured.event?.id}
             imageByEventId={imageByEventId}
             nowIso={nowIso}
+            routeMode={routeMode}
           />
         </section>
 
@@ -122,11 +175,11 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                 <span className={styles.kicker}>Elige tu pasión</span>
                 <h2 id="disciplines-title">Explora por disciplina</h2>
               </div>
-              <Link href="/disciplinas">Ver todas <span aria-hidden="true">→</span></Link>
+              <Link href={routes.disciplines}>Ver todas <span aria-hidden="true">→</span></Link>
             </div>
             <div aria-label="Disciplinas de motor" className={styles.disciplineRail}>
               {disciplines.map((discipline) => (
-                <Link className={styles.disciplineCard} href={discipline.href} key={discipline.name}>
+                <TrackLink className={styles.disciplineCard} eventName="filter_discipline" eventParams={{ discipline: discipline.name }} href={discipline.href} key={discipline.name}>
                   <span aria-hidden="true" className={styles.disciplineIcon}>
                     <Image
                       alt=""
@@ -141,7 +194,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
                     <strong>{discipline.name}</strong>
                     <span>{discipline.count} {discipline.count === 1 ? "evento" : "eventos"}</span>
                   </span>
-                </Link>
+                </TrackLink>
               ))}
             </div>
           </div>
@@ -156,23 +209,23 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
             </div>
             <div className={styles.territoryGrid}>
               {territories.map((territory) => (
-                <Link className={styles.territoryCard} href={territory.href} key={territory.name}>
+                <TrackLink className={styles.territoryCard} eventName="filter_zone" eventParams={{ zone: territory.name }} href={territory.href} key={territory.name}>
                   <Image alt="" className={styles.coverImage} fill sizes="(max-width: 680px) 50vw, (max-width: 1100px) 33vw, 17vw" src={territory.image} />
                   <span className={styles.photoShade} />
                   <span className={styles.photoCardCopy}>
                     <strong>{territory.name}</strong>
                     <span>{territory.count} {territory.count === 1 ? "evento" : "eventos"}</span>
                   </span>
-                </Link>
+                </TrackLink>
               ))}
             </div>
             <div className={styles.centerAction}>
-              <Link className={styles.outlineButton} href="/zonas">Explorar todas las zonas</Link>
+              <Link className={styles.outlineButton} href={routes.zones}>Explorar todas las zonas</Link>
             </div>
           </div>
         </section>
 
-        <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
+        {newsletterVisible ? <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
           <div className={`${styles.shell} ${styles.newsletterLayout}`}>
             <div className={styles.newsletterCopy}>
               <span className={styles.kicker}>La Agenda Motor, por EventoMotor</span>
@@ -187,7 +240,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
               <Image alt="La Agenda Motor de EventoMotor en un teléfono móvil" fill sizes="(max-width: 800px) 100vw, 45vw" src="/images/redesign-v2/newsletter-phone.webp" />
             </div>
           </div>
-        </section>
+        </section> : null}
 
         <section className={styles.organizerSection} aria-labelledby="organizer-title">
           <div className={`${styles.shell} ${styles.organizerLayout}`}>
@@ -196,7 +249,7 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
               <h2 id="organizer-title">¿Organizas un evento de motor?</h2>
               <p>Publica tu cita en la agenda nacional y llega a una comunidad que ya está buscando su próxima experiencia.</p>
             </div>
-            <Link className={styles.lightButton} href="/publicar-evento">Publicar mi evento <span aria-hidden="true">→</span></Link>
+            <TrackLink className={styles.lightButton} eventName="click_publish_event" eventParams={{ source: "home_organizer_cta" }} href={routes.publish}>Publicar mi evento <span aria-hidden="true">→</span></TrackLink>
           </div>
         </section>
       </main>
@@ -209,15 +262,15 @@ export default function RedesignV2Home({ events, nowIso }: RedesignV2HomeProps) 
           </div>
           <nav aria-label="Enlaces de calendario">
             <strong>Calendario</strong>
-            <Link href="/#calendario">Próximos eventos</Link>
-            <Link href="/disciplinas">Disciplinas</Link>
-            <Link href="/zonas">Zonas</Link>
+            <Link href={routes.calendar}>Próximos eventos</Link>
+            <Link href={routes.disciplines}>Disciplinas</Link>
+            <Link href={routes.zones}>Zonas</Link>
           </nav>
           <nav aria-label="Enlaces para organizadores">
             <strong>EventoMotor</strong>
-            <Link href="/publicar-evento">Publicar evento</Link>
-            <Link href="/newsletter">Newsletter</Link>
-            <Link href="/contacto">Contacto</Link>
+            <TrackLink eventName="click_publish_event" eventParams={{ source: "footer_link" }} href={routes.publish}>Publicar evento</TrackLink>
+            {newsletterVisible ? <Link href={routes.newsletter}>Newsletter</Link> : null}
+            <Link href={routes.contact}>Contacto</Link>
           </nav>
           <nav aria-label="Enlaces legales">
             <strong>Legal</strong>

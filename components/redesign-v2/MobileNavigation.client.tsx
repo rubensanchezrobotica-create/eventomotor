@@ -4,15 +4,12 @@ import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import styles from "./RedesignV2.module.css";
 
-const items = [
-  { href: "/#calendario", label: "Calendario" },
-  { href: "/disciplinas", label: "Disciplinas" },
-  { href: "/zonas", label: "Zonas" },
-  { href: "/newsletter", label: "Newsletter" },
-  { href: "/publicar-evento", label: "Publicar evento" },
-] as const;
+export type MobileNavigationItem = {
+  href: string;
+  label: string;
+};
 
-export default function MobileNavigation() {
+export default function MobileNavigation({ items }: { items: readonly MobileNavigationItem[] }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
