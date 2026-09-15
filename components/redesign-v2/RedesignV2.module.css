@@ -1868,6 +1868,17 @@
     right: 10px;
   }
 
+  .eventCardFeatured .eventSaveAction :global(.emc-save-action-visual) {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  .eventCardFeatured .eventSaveAction :global(.emc-icon-action svg) {
+    width: 16px;
+    height: 16px;
+  }
+
   .featuredChrome {
     min-height: 29px;
     grid-column: 2;

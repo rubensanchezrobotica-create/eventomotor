@@ -141,7 +141,12 @@ test("A9C-B protege Calendar, Weekend y Event Detail con un solo control existen
   }
 });
 
-test("A9C-B mantiene el corazón dentro de media, separado de fecha y etiqueta", () => {
+test("A9C-B mantiene el corazón dentro de media y R5 reduce sólo el destacado móvil", () => {
+  const mobileStart = styles.indexOf("@media (max-width: 760px)");
+  const mobileEnd = styles.indexOf("@media (max-width: 520px)");
+  const desktopStyles = styles.slice(0, mobileStart);
+  const mobileStyles = styles.slice(mobileStart, mobileEnd);
+
   assert.match(styles, /\.eventImageLink\s*\{[\s\S]*?position:\s*relative/);
   assert.match(styles, /\.eventCardHitArea\s*\{[\s\S]*?position:\s*absolute[\s\S]*?z-index:\s*3[\s\S]*?inset:\s*0/);
   assert.match(styles, /\.eventSaveAction\s*\{[\s\S]*?position:\s*absolute[\s\S]*?z-index:\s*5/);
@@ -153,6 +158,8 @@ test("A9C-B mantiene el corazón dentro de media, separado de fecha y etiqueta",
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action svg\)\s*\{[\s\S]*?width:\s*18px[\s\S]*?height:\s*18px/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action-saved\)\s*\{[\s\S]*?color:\s*#ff6200 !important/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action:focus-visible\)/);
-  assert.doesNotMatch(styles, /\.eventCardFeatured \.eventSaveAction/);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.eventSaveAction\s*\{[\s\S]*?top:\s*10px[\s\S]*?right:\s*10px/);
+  assert.doesNotMatch(desktopStyles, /\.eventCardFeatured \.eventSaveAction :global\(\.emc-save-action-visual\)/);
+  assert.match(mobileStyles, /\.eventSaveAction\s*\{[\s\S]*?top:\s*10px[\s\S]*?right:\s*10px/);
+  assert.match(mobileStyles, /\.eventCardFeatured \.eventSaveAction :global\(\.emc-save-action-visual\)\s*\{[\s\S]*?width:\s*28px[\s\S]*?height:\s*28px[\s\S]*?flex-basis:\s*28px/);
+  assert.match(mobileStyles, /\.eventCardFeatured \.eventSaveAction :global\(\.emc-icon-action svg\)\s*\{[\s\S]*?width:\s*16px[\s\S]*?height:\s*16px/);
 });
