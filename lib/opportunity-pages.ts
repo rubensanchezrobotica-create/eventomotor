@@ -389,6 +389,13 @@ export function matchesTrackdayOpportunity(event: EventItem) {
   return TRACKDAY_VEHICLE_TYPES.has(vehicleType);
 }
 
+export function matchesCarTrackdayOpportunity(event: EventItem) {
+  if (!matchesTrackdayOpportunity(event)) return false;
+
+  const vehicleType = normalizeSeoText(event.vehicleType || event.vehicle_type || "").trim();
+  return vehicleType === "coche";
+}
+
 export function matchesFairOpportunity(event: EventItem) {
   const discipline = normalizeSeoText(event.discipline).trim();
   if (FAIR_DISCIPLINES.has(discipline)) return true;
@@ -1651,7 +1658,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
     ],
     relatedLinks: [
       { label: "Circuito", href: "/disciplinas/circuito" },
-      { label: "Trackdays en Espana 2026", href: "/trackdays-espana-2026" },
+      { label: "Trackdays y tandas de coches 2026", href: "/trackdays-espana-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
@@ -1660,40 +1667,40 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
   },
   {
     slug: "trackdays-espana-2026",
-    h1: "Trackdays en Espana 2026",
-    title: "Trackdays en Espana 2026 | Tandas libres y circuito | EventoMotor",
+    h1: "Trackdays y tandas de coches en España 2026",
+    title: "Trackdays y tandas de coches en España 2026 | EventoMotor",
     description:
-      "Consulta trackdays en Espana 2026: tandas libres de coche y moto, circuito, cursos de conduccion, racing experience y drift day.",
-    eyebrow: "Circuito 2026",
+      "Consulta trackdays y tandas de coches en circuitos de España en 2026: calendario de jornadas de participación, cursos de conducción y experiencias en pista.",
+    eyebrow: "Circuito para coches",
     lead:
-      "Calendario de trackdays en Espana 2026 con tandas libres, circuito, cursos de conduccion, experiencias racing y drift day cuando existen.",
-    resultsTitle: "Trackdays y tandas libres 2026",
+      "Calendario 2026 de trackdays y tandas de coches en circuitos de España, con fechas, ubicaciones y fuentes para confirmar cada jornada.",
+    resultsTitle: "Trackdays y tandas de coches 2026",
     intro:
-      "Los trackdays en Espana 2026 reunen tandas libres, eventos de circuito, cursos de conduccion, racing experiences y jornadas para coches o motos orientadas a rodar en pista. Esta landing filtra eventos publicados en EventoMotor relacionados con trackday, circuito, tandas libres, formacion o drift day cuando aparecen en los datos. El objetivo es ofrecer una pagina practica para usuarios que buscan calendario de circuito sin mezclarlo con todo el calendario nacional. Cada evento enlaza a una ficha individual con fecha, ubicacion, disciplina, tipo de vehiculo, fuente oficial y enlaces disponibles. Antes de reservar, revisa siempre la fuente del organizador.",
+      "Los trackdays y tandas de coches en España 2026 reúnen jornadas de participación en circuito para conductores que quieren rodar en pista. Esta página filtra eventos publicados en EventoMotor con señales claras de trackday, tandas, cursos de conducción o experiencias al volante y tipo de vehículo coche. Cada evento enlaza a una ficha individual con fecha, circuito, ubicación, disciplina, fuente oficial y enlaces disponibles. Antes de reservar, revisa siempre la información del organizador.",
     editorialBlocks: [
-      { title: "Tandas y circuito", text: "Agrupa eventos con senales de trackday, tandas libres, circuito, cursos o racing experience." },
-      { title: "Coche y moto", text: "Puede incluir trackdays de coche, moto o mixtos si estan publicados en EventoMotor." },
-      { title: "Datos verificables", text: "La ficha individual ayuda a confirmar fecha, recinto, fuente oficial y posibles enlaces de inscripcion." },
+      { title: "Trackdays y tandas", text: "Agrupa jornadas para coches con señales claras de trackday, tandas, cursos de conducción o experiencias en pista." },
+      { title: "Participación con coche", text: "El listado se limita a eventos publicados con tipo de vehículo coche; las rodadas de moto tienen su propio calendario." },
+      { title: "Datos verificables", text: "La ficha individual ayuda a confirmar fecha, circuito, fuente oficial y posibles enlaces de inscripción." },
     ],
     usageSteps: [
-      { title: "Filtra por fecha", text: "Ordena mentalmente los proximos trackdays y tandas libres disponibles." },
-      { title: "Revisa vehiculo", text: "Comprueba si el evento esta orientado a coche, moto o formato mixto." },
-      { title: "Confirma condiciones", text: "Consulta la fuente oficial para requisitos, horarios, plazas o inscripcion." },
+      { title: "Filtra por fecha", text: "Consulta los próximos trackdays y tandas de coches disponibles." },
+      { title: "Revisa el circuito", text: "Comprueba recinto, ciudad y formato de la jornada antes de desplazarte." },
+      { title: "Confirma condiciones", text: "Consulta la fuente oficial para requisitos, horarios, plazas o inscripción." },
     ],
     faqs: [
-      { question: "Donde ver trackdays en Espana 2026?", answer: "Esta pagina reune trackdays, tandas libres y eventos de circuito publicados en EventoMotor con fecha y ubicacion." },
-      { question: "Incluye trackdays de coche y moto?", answer: "Si, puede incluir eventos de coche, moto o mixtos segun el tipo de vehiculo publicado en los datos." },
-      { question: "Aparecen cursos de conduccion?", answer: "Si el evento menciona curso de conduccion o formacion en circuito y esta visible, puede aparecer listado." },
-      { question: "Como publicar un trackday?", answer: "Los organizadores pueden enviarlo desde publicar evento con fuente oficial y datos verificables." },
+      { question: "¿Dónde ver trackdays de coches en España 2026?", answer: "Esta página reúne trackdays, tandas y jornadas de participación con coche publicadas en EventoMotor con fecha y ubicación." },
+      { question: "¿Incluye tandas de coches en circuito?", answer: "Sí, las tandas con tipo de vehículo coche y señales claras de participación en pista pueden aparecer en el calendario." },
+      { question: "¿Aparecen cursos de conducción para coches?", answer: "Sí, cuando el evento publicado corresponde a un curso o experiencia de conducción para coches en circuito." },
+      { question: "¿Cómo publicar un trackday de coches?", answer: "Los organizadores pueden enviarlo desde publicar evento con fuente oficial y datos verificables." },
     ],
     relatedLinks: [
       { label: "Circuito", href: "/disciplinas/circuito" },
-      { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },
+      { label: "Rodadas y tandas de moto 2026", href: "/rodadas-moto-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && matchesTrackdayOpportunity(event),
+    filter: (event) => isYear(event, 2026) && matchesCarTrackdayOpportunity(event),
   },
   {
     slug: "karting-espana-2026",

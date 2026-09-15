@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getOpportunityPage,
+  matchesCarTrackdayOpportunity,
+  matchesMotorcycleTrackdayOpportunity,
   matchesTrackdayOpportunity,
 } from "@/lib/opportunity-pages";
 import type { EventItem } from "@/types/event";
@@ -131,12 +133,104 @@ for (const fixture of [...NEGATIVE_CASES, ...MIXED_NEGATIVE_CASES]) {
 test("la landing de Trackdays usa el helper y conserva el límite de 2026", () => {
   const page = getOpportunityPage("trackdays-espana-2026");
   assert.ok(page);
-  assert.equal(page.filter(eventFixture({ title: "Trackday nacional" }), new Date("2026-09-04")), true);
+  assert.equal(page.filter(eventFixture({ title: "Trackday nacional", vehicleType: "coche" }), new Date("2026-09-04")), true);
+  assert.equal(page.filter(eventFixture({ title: "Trackday nacional", vehicleType: "moto" }), new Date("2026-09-04")), false);
   assert.equal(
     page.filter(
       eventFixture({ title: "Trackday nacional", start: "2027-09-01", end: "2027-09-01" }),
       new Date("2026-09-04"),
     ),
     false,
+  );
+});
+
+test("separa una rodada de moto de los trackdays de coche", () => {
+  const event = eventFixture({ title: "Rodada de motos", vehicleType: "moto" });
+  assert.equal(matchesMotorcycleTrackdayOpportunity(event), true);
+  assert.equal(matchesCarTrackdayOpportunity(event), false);
+});
+
+test("separa un trackday de coche de las rodadas de moto", () => {
+  const event = eventFixture({ title: "Trackday nacional", vehicleType: "coche" });
+  assert.equal(matchesCarTrackdayOpportunity(event), true);
+  assert.equal(matchesMotorcycleTrackdayOpportunity(event), false);
+});
+
+test("incluye tandas de coche", () => {
+  assert.equal(
+    matchesCarTrackdayOpportunity(eventFixture({ discipline: "Tandas", vehicleType: "coche" })),
+    true,
+  );
+});
+
+test("excluye un trackday textual de moto y lo conserva en Rodadas", () => {
+  const event = eventFixture({ title: "Trackday de moto", vehicleType: "moto" });
+  assert.equal(matchesCarTrackdayOpportunity(event), false);
+  assert.equal(matchesMotorcycleTrackdayOpportunity(event), true);
+});
+
+test("excluye un evento genérico de circuito", () => {
+  assert.equal(
+    matchesCarTrackdayOpportunity(eventFixture({ title: "Evento nacional", discipline: "Circuito" })),
+    false,
+  );
+});
+
+test("excluye una competición de coches sin participación trackday", () => {
+  assert.equal(
+    matchesCarTrackdayOpportunity(
+      eventFixture({ title: "Campeonato RACE", discipline: "Circuito", vehicleType: "coche" }),
+    ),
+    false,
+  );
+});
+
+test("no incluye automáticamente un evento mixto aunque tenga actividad fuerte", () => {
+  assert.equal(
+    matchesCarTrackdayOpportunity(eventFixture({ title: "Tandas libres", vehicleType: "mixto" })),
+    false,
+  );
+});
+
+test("el archivo de Trackdays usa la misma semántica de coche", () => {
+  const page = getOpportunityPage("trackdays-espana-2026");
+  assert.ok(page);
+  assert.equal(
+    page.filter(
+      eventFixture({ title: "Trackday histórico", vehicleType: "coche", start: "2026-06-01", end: "2026-06-01" }),
+      new Date("2026-09-15"),
+    ),
+    true,
+  );
+  assert.equal(
+    page.filter(
+      eventFixture({ title: "Trackday histórico", vehicleType: "moto", start: "2026-06-01", end: "2026-06-01" }),
+      new Date("2026-09-15"),
+    ),
+    false,
+  );
+});
+
+test("Trackdays publica la promesa de coche y un único enlace contextual a Rodadas", () => {
+  const page = getOpportunityPage("trackdays-espana-2026");
+  assert.ok(page);
+  assert.equal(page.title, "Trackdays y tandas de coches en España 2026 | EventoMotor");
+  assert.equal(page.h1, "Trackdays y tandas de coches en España 2026");
+  assert.match(page.description, /trackdays y tandas de coches/i);
+  assert.doesNotMatch(page.description, /moto/i);
+  assert.deepEqual(
+    page.relatedLinks.filter((link) => link.href === "/rodadas-moto-2026"),
+    [{ label: "Rodadas y tandas de moto 2026", href: "/rodadas-moto-2026" }],
+  );
+});
+
+test("Rodadas conserva su promesa y un único enlace contextual a Trackdays", () => {
+  const page = getOpportunityPage("rodadas-moto-2026");
+  assert.ok(page);
+  assert.equal(page.title, "Rodadas moto 2026 | Tandas y circuito | EventoMotor");
+  assert.equal(page.h1, "Rodadas moto 2026");
+  assert.deepEqual(
+    page.relatedLinks.filter((link) => link.href === "/trackdays-espana-2026"),
+    [{ label: "Trackdays y tandas de coches 2026", href: "/trackdays-espana-2026" }],
   );
 });
