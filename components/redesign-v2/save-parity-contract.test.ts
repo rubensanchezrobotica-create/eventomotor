@@ -13,6 +13,7 @@ function source(path: string) {
 }
 
 const eventCard = source("components/redesign-v2/EventCard.tsx");
+const retentionActions = source("components/events/EventRetentionActions.tsx");
 const home = source("components/redesign-v2/RedesignV2Home.tsx");
 const search = source("components/redesign-v2/SearchExperience.client.tsx");
 const styles = source("components/redesign-v2/RedesignV2.module.css");
@@ -146,6 +147,10 @@ test("A9C-B mantiene el corazón dentro de media, separado de fecha y etiqueta",
   assert.match(styles, /\.eventSaveAction\s*\{[\s\S]*?position:\s*absolute[\s\S]*?z-index:\s*5/);
   assert.match(styles, /\.eventSaveAction\s*\{[\s\S]*?top:\s*12px[\s\S]*?right:\s*12px/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action\)\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/);
+  assert.match(retentionActions, /<span aria-hidden="true" className="emc-save-action-visual">[\s\S]*?<HeartIcon filled=\{saved\} \/>[\s\S]*?<\/span>/);
+  assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action\)\s*\{[\s\S]*?display:\s*flex[\s\S]*?align-items:\s*flex-start[\s\S]*?justify-content:\s*flex-end[\s\S]*?background:\s*transparent/);
+  assert.match(styles, /\.eventSaveAction :global\(\.emc-save-action-visual\)\s*\{[\s\S]*?width:\s*32px[\s\S]*?height:\s*32px[\s\S]*?border-radius:\s*999px[\s\S]*?background:\s*rgba\(5, 8, 12, 0\.9\)/);
+  assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action svg\)\s*\{[\s\S]*?width:\s*18px[\s\S]*?height:\s*18px/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action-saved\)\s*\{[\s\S]*?color:\s*#ff6200 !important/);
   assert.match(styles, /\.eventSaveAction :global\(\.emc-icon-action:focus-visible\)/);
   assert.doesNotMatch(styles, /\.eventCardFeatured \.eventSaveAction/);

@@ -837,14 +837,31 @@
   min-width: 44px;
   height: 44px;
   min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
   box-sizing: border-box;
   padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #f7f7f4 !important;
+  cursor: pointer;
+}
+
+.eventSaveAction :global(.emc-save-action-visual) {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 999px;
   background: rgba(5, 8, 12, 0.9);
   color: #f7f7f4 !important;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
-  cursor: pointer;
 }
 
 .eventSaveAction :global(.emc-icon-action-saved) {
@@ -853,8 +870,8 @@
 }
 
 .eventSaveAction :global(.emc-icon-action svg) {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
 }
 

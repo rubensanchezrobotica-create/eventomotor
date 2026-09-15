@@ -85,7 +85,9 @@ export default function EventRetentionActions({
       title={saved ? "Quitar de mis eventos" : "Guardar"}
       type="button"
     >
-      <HeartIcon filled={saved} />
+      <span aria-hidden="true" className="emc-save-action-visual">
+        <HeartIcon filled={saved} />
+      </span>
     </button>
   );
 
