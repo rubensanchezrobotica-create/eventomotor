@@ -1,136 +1,219 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
-import { useEffect, useState } from "react";
-import { downloadIcsFile } from "@/lib/calendar-export";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { currentPagePath, eventAnalyticsParams, trackEvent } from "@/lib/analytics";
-import { getSavedEvents, removeSavedEvent, type SavedEvent } from "@/lib/saved-events";
+import { downloadIcsFile } from "@/lib/calendar-export";
+import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
+import type { SavedEvent } from "@/lib/saved-events";
+import {
+  buildSavedEventsViewModel,
+  formatSavedEventDate,
+  hasValidSavedEventStart,
+  localCivilDateKey,
+  nextSavedEventFocusSlug,
+  readSavedEventsSnapshot,
+  removeSavedEventFromSnapshot,
+  savedEventsCountLabel,
+  type SavedEventDisplayItem,
+} from "./my-events-view-model";
+import styles from "./MyEventsV2.module.css";
 
-export function formatSavedDate(event: SavedEvent) {
-  const formatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" });
-  const start = formatter.format(new Date(`${event.start}T12:00:00`));
-  if (!event.end || event.end === event.start) return start;
-  return `${start} - ${formatter.format(new Date(`${event.end}T12:00:00`))}`;
+type SavedEventCollectionProps = {
+  items: SavedEventDisplayItem[];
+  kind: "past" | "undated" | "upcoming";
+  onAddToCalendar: (event: SavedEvent) => void;
+  onRemove: (event: SavedEvent) => void;
+  onRemoveButtonRef?: (slug: string, node: HTMLButtonElement | null) => void;
+  title: string;
+};
+
+function SavedEventCard({
+  item,
+  kind,
+  onAddToCalendar,
+  onRemove,
+  onRemoveButtonRef,
+}: Omit<SavedEventCollectionProps, "items" | "title"> & { item: SavedEventDisplayItem }) {
+  const { event, image } = item;
+  const location = [event.city, event.province].filter(Boolean).join(", ");
+  const canAddToCalendar = kind === "upcoming" && hasValidSavedEventStart(event);
+
+  return (
+    <article className={`${styles.card} ${kind === "past" ? styles.pastCard : ""}`}>
+      <div className={styles.media}>
+        {image.src ? (
+          <Image
+            alt=""
+            className={styles.mediaImage}
+            height={800}
+            sizes="(max-width: 760px) 100vw, 50vw"
+            src={image.src}
+            width={1200}
+          />
+        ) : (
+          <span aria-hidden="true" className={styles.neutralMedia}>
+            <strong>EventoMotor</strong>
+            <small>Agenda nacional del motor</small>
+          </span>
+        )}
+        {image.label ? <span className={styles.mediaLabel}>Imagen representativa</span> : null}
+      </div>
+      <div className={styles.cardBody}>
+        <div className={styles.metaLine}>
+          {event.discipline ? <span>{event.discipline}</span> : null}
+          {event.vehicle_type ? <span>{event.vehicle_type}</span> : null}
+        </div>
+        <p className={styles.date}>{formatSavedEventDate(event)}</p>
+        <h3>{event.title}</h3>
+        {location ? <p className={styles.location}>{location}</p> : null}
+        {event.venue ? <p className={styles.venue}>{event.venue}</p> : null}
+        <div className={styles.actions}>
+          <Link
+            className={styles.primaryAction}
+            href={`/evento/${event.slug}`}
+            onClick={() => trackEvent("click_event_detail", {
+              ...eventAnalyticsParams(event),
+              discipline: event.discipline,
+              zone: event.province,
+              vehicle_type: event.vehicle_type || "otros",
+              page_path: currentPagePath(),
+              source: "my_events",
+            })}
+          >
+            Ver evento
+          </Link>
+          {canAddToCalendar ? (
+            <button
+              className={styles.secondaryAction}
+              onClick={() => onAddToCalendar(event)}
+              type="button"
+            >
+              Añadir al calendario
+            </button>
+          ) : null}
+          <button
+            aria-label={`Quitar ${event.title} de Mis eventos`}
+            className={styles.removeAction}
+            onClick={() => onRemove(event)}
+            ref={(node) => onRemoveButtonRef?.(event.slug, node)}
+            type="button"
+          >
+            Quitar
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
-export function hasValidCalendarDate(event: SavedEvent) {
-  return Boolean(event.start && !Number.isNaN(new Date(`${event.start}T12:00:00`).getTime()));
-}
+function SavedEventCollection({ items, title, ...props }: SavedEventCollectionProps) {
+  if (!items.length) return null;
 
-export function savedEventsCountLabel(count: number) {
-  return count === 1 ? "1 evento guardado" : `${count} eventos guardados`;
+  return (
+    <section aria-labelledby={`saved-events-${props.kind}`} className={styles.collection}>
+      <div className={styles.collectionHeading}>
+        <h2 id={`saved-events-${props.kind}`}>{title}</h2>
+        <span>{items.length}</span>
+      </div>
+      <div className={styles.cards}>
+        {items.map((item) => (
+          <SavedEventCard item={item} key={item.event.slug} {...props} />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 type SavedEventsViewProps = {
-  events: SavedEvent[];
+  announcement?: string;
+  events: SavedEvent[] | null;
   onAddToCalendar: (event: SavedEvent) => void;
-  onExportAll: () => void;
-  onRemove: (slug: string) => void;
+  onRemove: (event: SavedEvent) => void;
+  onRemoveButtonRef?: (slug: string, node: HTMLButtonElement | null) => void;
+  summaryHeadingRef?: Ref<HTMLHeadingElement>;
+  today: string;
 };
 
 export function SavedEventsView({
+  announcement = "",
   events,
   onAddToCalendar,
-  onExportAll,
   onRemove,
+  onRemoveButtonRef,
+  summaryHeadingRef,
+  today,
 }: SavedEventsViewProps) {
+  if (events === null) {
+    return (
+      <div aria-busy="true" aria-live="polite" className={styles.loading}>
+        <span aria-hidden="true" />
+        <p>Cargando tus eventos guardados…</p>
+      </div>
+    );
+  }
+
+  const model = buildSavedEventsViewModel(events, today);
   const countLabel = savedEventsCountLabel(events.length);
 
   return (
-    <div className="emc-my-events-content">
-      <section className="emc-my-events-toolbar" aria-labelledby="saved-events-summary">
+    <div className={styles.content}>
+      <p aria-live="polite" className={styles.srOnly} role="status">{announcement}</p>
+      <section aria-labelledby="saved-events-summary" className={styles.summary}>
         <div>
-          <strong aria-hidden="true">{events.length}</strong>
-          <div>
-            <span>Tu agenda</span>
-            <h2 id="saved-events-summary">{countLabel}</h2>
-          </div>
+          <span>Guardados en este dispositivo</span>
+          <h2 id="saved-events-summary" ref={summaryHeadingRef} tabIndex={-1}>{countLabel}</h2>
+          <p>Tu selección permanece en este navegador y no necesita una cuenta.</p>
         </div>
-        <div className="emc-my-events-toolbar-actions">
-          {events.length ? (
-            <button className="emc-btn emc-btn-dark emc-my-events-export" onClick={onExportAll} type="button">
-              Exportar todos
-            </button>
-          ) : null}
-          <Link className="emc-btn emc-btn-primary" href={PUBLIC_NAVIGATION.calendar}>
-            Explorar calendario
-          </Link>
-        </div>
+        <strong aria-hidden="true">{events.length}</strong>
       </section>
 
       {events.length ? (
-        <section className="emc-my-events-list" aria-label="Eventos guardados">
-          <div className="emc-my-events-grid">
-            {events.map((event) => (
-              <article className="emc-my-event-card" key={event.slug}>
-                <time className="emc-result-date" dateTime={event.start}>
-                  {new Date(`${event.start}T12:00:00`).getDate()}
-                  <small>
-                    {new Intl.DateTimeFormat("es-ES", { month: "short" }).format(
-                      new Date(`${event.start}T12:00:00`),
-                    )}
-                  </small>
-                </time>
-                <div className="emc-my-event-main">
-                  <div className="emc-result-meta">
-                    <span className="emc-badge">{event.discipline}</span>
-                    {event.vehicle_type ? <span className="emc-badge">{event.vehicle_type}</span> : null}
-                  </div>
-                  <h3>{event.title}</h3>
-                  <div className="emc-my-event-details">
-                    <p className="emc-my-event-location">{event.city}, {event.province}</p>
-                    <p>{formatSavedDate(event)}</p>
-                  </div>
-                </div>
-                <div className="emc-my-event-actions">
-                  <Link
-                    className="emc-card-action"
-                    href={`/evento/${event.slug}`}
-                    onClick={() => trackEvent("click_event_detail", {
-                      ...eventAnalyticsParams(event),
-                      discipline: event.discipline,
-                      zone: event.province,
-                      vehicle_type: event.vehicle_type || "otros",
-                      page_path: currentPagePath(),
-                      source: "my_events",
-                    })}
-                  >
-                    Ver evento
-                  </Link>
-                  {hasValidCalendarDate(event) ? (
-                    <button
-                      className="emc-card-action emc-card-action-dark emc-calendar-card-action"
-                      onClick={() => onAddToCalendar(event)}
-                      type="button"
-                    >
-                      Añadir al calendario
-                    </button>
-                  ) : null}
-                  <button
-                    aria-label={`Quitar ${event.title} de Mis eventos`}
-                    className="emc-link-button emc-my-event-remove"
-                    onClick={() => onRemove(event.slug)}
-                    type="button"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </article>
-            ))}
+        <>
+          <div className={styles.collections}>
+            <SavedEventCollection
+              items={model.upcoming}
+              kind="upcoming"
+              onAddToCalendar={onAddToCalendar}
+              onRemove={onRemove}
+              onRemoveButtonRef={onRemoveButtonRef}
+              title="Próximos"
+            />
+            <SavedEventCollection
+              items={model.undated}
+              kind="undated"
+              onAddToCalendar={onAddToCalendar}
+              onRemove={onRemove}
+              onRemoveButtonRef={onRemoveButtonRef}
+              title="Sin fecha"
+            />
+            <SavedEventCollection
+              items={model.past}
+              kind="past"
+              onAddToCalendar={onAddToCalendar}
+              onRemove={onRemove}
+              onRemoveButtonRef={onRemoveButtonRef}
+              title="Pasados"
+            />
           </div>
-        </section>
+          <section aria-labelledby="saved-events-discovery" className={styles.discovery}>
+            <span>Sigue descubriendo</span>
+            <h2 id="saved-events-discovery">Encuentra tu próximo plan de motor</h2>
+            <Link href={PUBLIC_NAVIGATION.calendar}>Explorar eventos</Link>
+          </section>
+        </>
       ) : (
-        <section className="emc-panel emc-my-events-empty" aria-labelledby="saved-events-empty-title" aria-live="polite">
-          <div className="emc-my-events-empty-icon" aria-hidden="true">+</div>
-          <div>
-            <div className="emc-kicker">Empieza tu agenda</div>
-            <h2 id="saved-events-empty-title">Aún no has guardado ningún evento</h2>
-            <p>Guarda los eventos que te interesen para tenerlos aquí y añadirlos a tu calendario cuando quieras.</p>
+        <section aria-labelledby="saved-events-empty-title" className={styles.emptyState}>
+          <span>Tu agenda</span>
+          <h2 id="saved-events-empty-title">Todavía no has<br />guardado<br />eventos</h2>
+          <p>
+            Guarda los eventos que te interesen con el control «Guardar» o el corazón para encontrarlos aquí rápidamente.
+          </p>
+          <div className={styles.emptyActions}>
+            <Link className={styles.primaryAction} href={PUBLIC_NAVIGATION.calendar}>Explorar eventos</Link>
+            <Link className={styles.secondaryAction} href={PUBLIC_NAVIGATION.disciplines}>Explorar disciplinas</Link>
           </div>
-          <Link className="emc-btn emc-btn-primary" href={PUBLIC_NAVIGATION.calendar}>
-            Explorar eventos
-          </Link>
         </section>
       )}
     </div>
@@ -138,22 +221,38 @@ export function SavedEventsView({
 }
 
 export default function MyEventsClient() {
-  const [events, setEvents] = useState<SavedEvent[]>([]);
+  const [events, setEvents] = useState<SavedEvent[] | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const removeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const summaryHeadingRef = useRef<HTMLHeadingElement>(null);
+  const today = localCivilDateKey();
 
   useEffect(() => {
-    const savedEventsTimer = window.setTimeout(() => setEvents(getSavedEvents()), 0);
+    const hydrationTimer = window.setTimeout(() => {
+      setEvents(readSavedEventsSnapshot(window.localStorage));
+    }, 0);
     trackEvent("open_my_events", { page_path: currentPagePath() });
-    return () => window.clearTimeout(savedEventsTimer);
+    return () => window.clearTimeout(hydrationTimer);
   }, []);
 
-  function remove(slug: string) {
-    const removedEvent = events.find((event) => event.slug === slug);
-    const next = removeSavedEvent(slug);
+  function remove(event: SavedEvent) {
+    if (!events) return;
+    const focusSlug = nextSavedEventFocusSlug(events, event.slug, today);
+    const next = removeSavedEventFromSnapshot(window.localStorage, event.slug);
     setEvents(next);
+    setAnnouncement(`${event.title} se ha quitado de Mis eventos.`);
     trackEvent("remove_saved_event", {
-      ...(removedEvent ? eventAnalyticsParams(removedEvent) : { event_slug: slug }),
+      ...eventAnalyticsParams(event),
       page_path: currentPagePath(),
       source: "my_events",
+    });
+
+    window.requestAnimationFrame(() => {
+      if (focusSlug) {
+        removeButtonRefs.current.get(focusSlug)?.focus();
+      } else {
+        summaryHeadingRef.current?.focus();
+      }
     });
   }
 
@@ -166,21 +265,18 @@ export default function MyEventsClient() {
     });
   }
 
-  function exportAll() {
-    downloadIcsFile("eventomotor-mis-eventos.ics", events);
-    trackEvent("add_to_calendar", {
-      events_count: events.length,
-      page_path: currentPagePath(),
-      source: "my_events_export_all",
-    });
-  }
-
   return (
     <SavedEventsView
+      announcement={announcement}
       events={events}
       onAddToCalendar={addToCalendar}
-      onExportAll={exportAll}
       onRemove={remove}
+      onRemoveButtonRef={(slug, node) => {
+        if (node) removeButtonRefs.current.set(slug, node);
+        else removeButtonRefs.current.delete(slug);
+      }}
+      summaryHeadingRef={summaryHeadingRef}
+      today={today}
     />
   );
 }

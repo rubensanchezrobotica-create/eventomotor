@@ -23,6 +23,21 @@ test("la navegación primaria interior contiene sólo Calendario, Disciplinas, Z
   assert.doesNotMatch(interiorShell, /const desktopNavigation = \[[^\]]*"weekend"/);
 });
 
+test("Mis eventos reutiliza favorites como acción desktop y destino móvil público", () => {
+  assert.match(
+    navigation,
+    /favorites:\s*\{\s*id:\s*"favorites",\s*label:\s*"Mis eventos",\s*productionHref:\s*"\/mis-eventos"\s*\}/,
+  );
+  assert.match(
+    interiorShell,
+    /className=\{styles\.favoritesLink\}[\s\S]*?navigationId="favorites"/,
+  );
+  assert.match(
+    interiorShell,
+    /const mobileNavigation = \[[\s\S]*?"contact",[\s\S]*?"favorites",[\s\S]*?"publish",[\s\S]*?\] as const/,
+  );
+});
+
 test("el registry no define Search como página y marca fallbacks de producción", () => {
   assert.doesNotMatch(navigation, /["']search["']|\/buscar/i);
   assert.match(navigation, /home:[\s\S]*?previewHref:\s*"\/preview\/redesign-v2"/);

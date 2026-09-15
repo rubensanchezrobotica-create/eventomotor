@@ -32,6 +32,7 @@ const mobileNavigation = [
   "disciplines",
   "territories",
   "contact",
+  "favorites",
   "publish",
 ] as const;
 
@@ -78,6 +79,12 @@ export default function V2InteriorShell({
             ))}
           </nav>
           <div className={styles.navActions}>
+            <PreviewAwareLink
+              aria-current={currentNavigationId === "favorites" ? "page" : undefined}
+              className={styles.favoritesLink}
+              mode={navigationMode}
+              navigationId="favorites"
+            />
             <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
             <InteriorMobileNavigation items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)} />
           </div>
