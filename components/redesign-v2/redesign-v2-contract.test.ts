@@ -198,7 +198,7 @@ test("móvil conserva un solo destacado dentro del hero y antes de la búsqueda"
   assert.match(eventCard, /className=\{styles\.featuredDesktopLabel\}/);
   assert.match(eventCard, /className=\{styles\.featuredMobileLabel\}/);
   assert.match(styles, /\.featuredMobileLabel\s*\{[\s\S]*?display:\s*none/);
-  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.eventCardFeatured \.eventCardLink\s*\{[\s\S]*?grid-template-columns:\s*112px minmax\(0, 1fr\)/);
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.eventCardFeatured \.eventCardLink\s*\{[\s\S]*?grid-template-columns:\s*124px minmax\(0, 1fr\)/);
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.eventCardFeatured \.eventCardBody h3\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.searchPanel\s*\{[\s\S]*?margin-top:\s*0/);
 });

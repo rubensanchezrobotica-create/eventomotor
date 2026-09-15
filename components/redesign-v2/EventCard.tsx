@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import EventRetentionActions from "@/components/events/EventRetentionActions";
 import styles from "./RedesignV2.module.css";
 import {
   isRemoteImage,
   previewEventDateLabel,
   previewEventHref,
+  previewEventSavedSnapshot,
   previewEventStatus,
   previewVehicleLabel,
   resolveRedesignEventImage,
@@ -24,6 +26,7 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
   const image = resolvedImage ?? resolveRedesignEventImage(event);
   const date = previewEventDateLabel(event);
   const href = previewEventHref(event);
+  const savedEvent = previewEventSavedSnapshot(event);
 
   return (
     <article className={featured ? `${styles.eventCard} ${styles.eventCardFeatured}` : styles.eventCard}>
@@ -99,6 +102,15 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
           </span>
         </div>
       </Link>
+      <div className={styles.eventSaveAction}>
+        <EventRetentionActions
+          compactIcons
+          directChildren
+          event={savedEvent}
+          saveOnly
+          source="redesign_v2_event_card"
+        />
+      </div>
     </article>
   );
 }

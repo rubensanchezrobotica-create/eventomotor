@@ -1,4 +1,5 @@
 import type { EventItem } from "@/types/event";
+import type { SavedEvent } from "@/lib/saved-events";
 import {
   assignV2HomeEventImages,
   rebalanceVisibleV2EventImages,
@@ -329,6 +330,20 @@ export function buildVisiblePreviewResults(
 
 export function previewEventHref(event: PreviewEvent): string {
   return `/evento/${event.slug || event.id}`;
+}
+
+export function previewEventSavedSnapshot(event: PreviewEvent): SavedEvent {
+  return {
+    slug: event.slug || event.id,
+    title: event.title,
+    start: event.start,
+    end: event.end || event.start,
+    city: event.city,
+    province: event.province,
+    venue: event.venue,
+    discipline: event.discipline,
+    vehicle_type: event.vehicleType,
+  };
 }
 
 export function previewVehicleLabel(event: PreviewEvent): string {

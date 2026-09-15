@@ -10,6 +10,7 @@ type EventRetentionActionsProps = {
   compactIcons?: boolean;
   directChildren?: boolean;
   event: SavedEvent;
+  saveOnly?: boolean;
   source?: string;
 };
 
@@ -35,6 +36,7 @@ export default function EventRetentionActions({
   compactIcons = false,
   directChildren = false,
   event,
+  saveOnly = false,
   source = "event_detail",
 }: EventRetentionActionsProps) {
   const [saved, setSaved] = useState(false);
@@ -74,27 +76,33 @@ export default function EventRetentionActions({
     });
   }
 
+  const compactSaveAction = (
+    <button
+      aria-label={saved ? "Quitar de mis eventos" : "Guardar evento"}
+      aria-pressed={saved}
+      className={`emc-btn emc-btn-dark emc-icon-action${saved ? " emc-icon-action-saved" : ""}`}
+      onClick={saved ? remove : save}
+      title={saved ? "Quitar de mis eventos" : "Guardar"}
+      type="button"
+    >
+      <HeartIcon filled={saved} />
+    </button>
+  );
+
   const compactActions = (
     <>
-      <button
-        aria-label={saved ? "Quitar de mis eventos" : "Guardar evento"}
-        aria-pressed={saved}
-        className={`emc-btn emc-btn-dark emc-icon-action${saved ? " emc-icon-action-saved" : ""}`}
-        onClick={saved ? remove : save}
-        title={saved ? "Quitar de mis eventos" : "Guardar"}
-        type="button"
-      >
-        <HeartIcon filled={saved} />
-      </button>
-      <button
-        aria-label="Añadir al calendario"
-        className="emc-btn emc-btn-dark emc-icon-action"
-        onClick={addToCalendar}
-        title="Añadir al calendario"
-        type="button"
-      >
-        <CalendarPlusIcon />
-      </button>
+      {compactSaveAction}
+      {saveOnly ? null : (
+        <button
+          aria-label="Añadir al calendario"
+          className="emc-btn emc-btn-dark emc-icon-action"
+          onClick={addToCalendar}
+          title="Añadir al calendario"
+          type="button"
+        >
+          <CalendarPlusIcon />
+        </button>
+      )}
     </>
   );
 

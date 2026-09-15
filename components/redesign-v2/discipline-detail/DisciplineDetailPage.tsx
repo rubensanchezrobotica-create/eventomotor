@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import EventRetentionActions from "@/components/events/EventRetentionActions";
 import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
 import {
   DISCIPLINE_DETAIL_PAGE_SIZE,
@@ -12,6 +13,7 @@ import DisciplineSearchAssist from "./DisciplineSearchAssist.client";
 import {
   isRemoteImage,
   previewEventDateLabel,
+  previewEventSavedSnapshot,
   previewEventStatus,
   previewVehicleLabel,
 } from "@/components/redesign-v2/redesign-v2-model";
@@ -27,6 +29,7 @@ function DisciplineEventCard({ item, nowIso }: { item: DisciplineDetailPageItem;
   const { event, image } = item;
   const date = previewEventDateLabel(event);
   const href = `/preview/redesign-v2/evento/${event.slug || event.id}`;
+  const savedEvent = previewEventSavedSnapshot(event);
 
   return (
     <article className={cardStyles.eventCard}>
@@ -95,6 +98,15 @@ function DisciplineEventCard({ item, nowIso }: { item: DisciplineDetailPageItem;
           </span>
         </div>
       </Link>
+      <div className={cardStyles.eventSaveAction}>
+        <EventRetentionActions
+          compactIcons
+          directChildren
+          event={savedEvent}
+          saveOnly
+          source="redesign_v2_discipline_detail"
+        />
+      </div>
     </article>
   );
 }
