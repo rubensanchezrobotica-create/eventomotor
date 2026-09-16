@@ -29,7 +29,7 @@ type RedesignV2HomeProps = {
 const HOME_ROUTES = {
   public: {
     home: "/",
-    calendar: "/#calendario",
+    calendar: "/calendario",
     disciplines: "/disciplinas",
     zones: "/zonas",
     savedEvents: "/mis-eventos",

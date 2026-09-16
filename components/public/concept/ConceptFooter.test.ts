@@ -53,13 +53,13 @@ test("el footer conserva destinos públicos, copyright y navegación segura", ()
   const currentYear = new Date().getFullYear();
 
   assert.equal(hrefs.length, 26);
-  assert.ok(hrefs.includes("/#calendario"));
+  assert.ok(hrefs.includes("/calendario"));
   assert.ok(hrefs.includes("/mis-eventos"));
   assert.ok(hrefs.includes("/publicar-evento"));
   assert.ok(hrefs.includes("/contacto"));
   assert.ok(hrefs.includes("/zonas"));
   assert.ok(!hrefs.some((href) => href.startsWith("/preview/")));
-  assert.ok(!hrefs.includes("/calendario"));
+  assert.ok(!hrefs.includes("/#calendario"));
   assert.match(
     markup,
     new RegExp(`© ${currentYear} EventoMotor\\. Todos los derechos reservados\\.`),

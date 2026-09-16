@@ -97,6 +97,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry("/aviso-legal", now, "yearly", 0.3),
     sitemapEntry("/privacidad", now, "yearly", 0.3),
     sitemapEntry("/cookies", now, "yearly", 0.3),
+    sitemapEntry("/calendario", now, "daily", 0.9),
     sitemapEntry("/disciplinas", now, "weekly", 0.8),
     sitemapEntry("/zonas", now, "weekly", 0.8),
   ];

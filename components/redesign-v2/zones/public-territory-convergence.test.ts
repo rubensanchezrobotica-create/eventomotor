@@ -151,7 +151,7 @@ test("A7.6B-R2 alinea el hero público con la identidad territorial A7.5", () =>
 
 test("A7.6B resuelve navegación de shell y breadcrumb sin fugas Preview", () => {
   assert.equal(resolveInteriorNavigationItem("home", "public").href, "/");
-  assert.equal(resolveInteriorNavigationItem("calendar", "public").href, "/#calendario");
+  assert.equal(resolveInteriorNavigationItem("calendar", "public").href, "/calendario");
   assert.equal(resolveInteriorNavigationItem("territories", "public").href, "/zonas");
   assert.equal(resolveInteriorNavigationItem("home", "preview").href, "/preview/redesign-v2");
   assert.equal(resolveInteriorNavigationItem("calendar", "preview").href, "/preview/redesign-v2/calendario");

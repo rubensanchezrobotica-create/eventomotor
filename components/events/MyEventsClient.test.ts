@@ -88,7 +88,7 @@ test("muestra el estado vacío V2 con destinos públicos y sin exportación masi
 
   assert.match(markup, />0 eventos guardados</);
   assert.match(markup, /Todavía no has<br\/>guardado<br\/>eventos/i);
-  assert.match(markup, /href="\/#calendario"[^>]*>Explorar eventos</);
+  assert.match(markup, /href="\/calendario"[^>]*>Explorar eventos</);
   assert.match(markup, /href="\/disciplinas"[^>]*>Explorar disciplinas</);
   assert.doesNotMatch(markup, /\/preview\/|Exportar todos|Exportar próximos/i);
 });

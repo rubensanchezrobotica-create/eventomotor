@@ -2,26 +2,65 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const page = readFileSync(new URL("../../../app/preview/redesign-v2/calendario/page.tsx", import.meta.url), "utf8");
+const publicPage = readFileSync(new URL("../../../app/calendario/page.tsx", import.meta.url), "utf8");
+const previewPage = readFileSync(new URL("../../../app/preview/redesign-v2/calendario/page.tsx", import.meta.url), "utf8");
 const experience = readFileSync(new URL("./CalendarPageExperience.client.tsx", import.meta.url), "utf8");
+const model = readFileSync(new URL("./calendar-page-model.ts", import.meta.url), "utf8");
 const search = readFileSync(new URL("./CalendarSearchExperience.client.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./CalendarPageExperience.module.css", import.meta.url), "utf8");
 const navigation = readFileSync(new URL("../site/preview-navigation.ts", import.meta.url), "utf8");
+const home = readFileSync(new URL("../RedesignV2Home.tsx", import.meta.url), "utf8");
+const publicNavigation = readFileSync(new URL("../../../lib/public-navigation.ts", import.meta.url), "utf8");
+const nextConfig = readFileSync(new URL("../../../next.config.ts", import.meta.url), "utf8");
+const sitemap = readFileSync(new URL("../../../app/sitemap.ts", import.meta.url), "utf8");
 
 test("Calendar V2 usa page servidor, loader real, shell A1D y cliente interactivo", () => {
-  assert.match(page, /getVisibleEvents/);
-  assert.match(page, /getVehicleType/);
-  assert.match(page, /projectPreviewEvent/);
-  assert.match(page, /<V2PreviewShell/);
-  assert.match(page, /<CalendarPageExperience/);
-  assert.doesNotMatch(page, /["']use client["']/);
+  assert.match(previewPage, /getVisibleEvents/);
+  assert.match(previewPage, /getVehicleType/);
+  assert.match(previewPage, /projectPreviewEvent/);
+  assert.match(previewPage, /<V2PreviewShell/);
+  assert.match(previewPage, /<CalendarPageExperience/);
+  assert.doesNotMatch(previewPage, /["']use client["']/);
   assert.match(experience, /^["']use client["']/);
 });
 
 test("la Preview Calendar es noindex, nofollow y no crea canonical ni JSON-LD", () => {
-  assert.match(page, /index:\s*false/);
-  assert.match(page, /follow:\s*false/);
-  assert.doesNotMatch(page, /canonical|application\/ld\+json/i);
+  assert.match(previewPage, /index:\s*false/);
+  assert.match(previewPage, /follow:\s*false/);
+  assert.doesNotMatch(previewPage, /canonical|application\/ld\+json/i);
+});
+
+test("A10D convierte /calendario en la página V2 pública, dinámica y con contexto explícito", () => {
+  assert.match(publicPage, /await connection\(\)/);
+  assert.match(publicPage, /searchParams:\s*Promise<CalendarQueryRecord>/);
+  assert.match(publicPage, /getVisibleEvents\(\)/);
+  assert.match(publicPage, /<V2InteriorShell[\s\S]*?navigationMode="public"/);
+  assert.match(publicPage, /<CalendarPageExperience/);
+  assert.doesNotMatch(publicPage, /redirect|permanentRedirect|\/preview\//);
+  assert.doesNotMatch(nextConfig, /legacyRedirect\("\/calendario"/);
+});
+
+test("A10D activa SEO y sitemap únicamente para el calendario público real", () => {
+  assert.match(publicPage, /title: "Calendario de eventos de motor"/);
+  assert.match(publicPage, /canonical: `\$\{SITE_URL\}\/calendario`/);
+  assert.match(publicPage, /robots:\s*{[\s\S]*?index:\s*true,[\s\S]*?follow:\s*true/);
+  assert.match(sitemap, /sitemapEntry\("\/calendario", now, "daily", 0\.9\)/);
+});
+
+test("A10D conserva el contrato exacto de query params, incluido el alias place", () => {
+  for (const param of ["date", "q", "place", "discipline", "vehicle", "page", "view"]) {
+    assert.match(model, new RegExp(`read\\("${param}"\\)`));
+  }
+  assert.match(model, /const requestedQuery = read\("q"\) \|\| read\("place"\)/);
+  assert.match(model, /params\.set\("date", state\.date\)/);
+  assert.match(model, /params\.set\("q", state\.q\)/);
+});
+
+test("A10D elimina enlaces hash actuales sin tocar el ancla compatible de Home", () => {
+  assert.match(home, /public:[\s\S]*?calendar: "\/calendario"/);
+  assert.match(home, /<section[^>]*id="calendario"[^>]*aria-labelledby="proximos-eventos"/);
+  assert.match(publicNavigation, /calendar: "\/calendario"/);
+  assert.doesNotMatch(publicNavigation, /if \(href === "\/calendario"/);
 });
 
 test("el registry enlaza Calendar a Preview y Search continúa ausente", () => {

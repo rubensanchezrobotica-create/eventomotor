@@ -24,7 +24,7 @@ export const DIRECTORY_ROUTES = {
 
 export const PUBLIC_NAVIGATION = {
   ...PUBLIC_ROUTES,
-  calendar: HOME_SECTION_LINKS.calendar,
+  calendar: "/calendario",
   disciplines: DIRECTORY_ROUTES.disciplines,
   zones: DIRECTORY_ROUTES.zones,
 } as const;
@@ -38,7 +38,7 @@ export type PublicNavigationSection =
   | "publish";
 
 export const PRIMARY_NAVIGATION_ITEMS = [
-  { id: "calendar", label: "Calendario", href: HOME_SECTION_LINKS.calendar },
+  { id: "calendar", label: "Calendario", href: PUBLIC_NAVIGATION.calendar },
   { id: "disciplines", label: "Disciplinas", href: HOME_SECTION_LINKS.disciplines },
   { id: "zones", label: "Zonas", href: HOME_SECTION_LINKS.zones },
   { id: "contact", label: "Contacto", href: PUBLIC_ROUTES.contact },
@@ -90,9 +90,5 @@ export function getPublicNavigationSection(pathname: string | null | undefined):
 }
 
 export function canonicalPublicHref(href: string) {
-  if (href === "/calendario" || href.startsWith("/calendario#")) return HOME_SECTION_LINKS.calendar;
-  if (href.startsWith("/calendario?")) {
-    return `/${href.slice("/calendario".length)}#${HOME_SECTION_IDS.calendar}`;
-  }
   return href;
 }

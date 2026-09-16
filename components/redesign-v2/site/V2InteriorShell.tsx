@@ -3,6 +3,7 @@ import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import InteriorMobileNavigation from "./InteriorMobileNavigation.client";
 import PreviewAwareLink from "./PreviewAwareLink";
 import {
+  getInteriorNavigationIds,
   resolveInteriorNavigationItems,
   type InteriorNavigationMode,
   type PreviewNavigationId,
@@ -26,16 +27,6 @@ export type V2InteriorShellProps = {
   upcomingCount: number;
 };
 
-const desktopNavigation = ["calendar", "disciplines", "territories", "contact"] as const;
-const mobileNavigation = [
-  "calendar",
-  "disciplines",
-  "territories",
-  "contact",
-  "favorites",
-  "publish",
-] as const;
-
 export default function V2InteriorShell({
   breadcrumbs,
   children,
@@ -48,6 +39,8 @@ export default function V2InteriorShell({
   upcomingCount,
 }: V2InteriorShellProps) {
   const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(new Date());
+  const desktopNavigation = getInteriorNavigationIds(navigationMode, "desktop");
+  const mobileNavigation = getInteriorNavigationIds(navigationMode, "mobile");
 
   return (
     <div className={styles.root} data-v2-route-context={navigationMode}>
@@ -79,12 +72,14 @@ export default function V2InteriorShell({
             ))}
           </nav>
           <div className={styles.navActions}>
-            <PreviewAwareLink
-              aria-current={currentNavigationId === "favorites" ? "page" : undefined}
-              className={styles.favoritesLink}
-              mode={navigationMode}
-              navigationId="favorites"
-            />
+            {navigationMode === "preview" ? (
+              <PreviewAwareLink
+                aria-current={currentNavigationId === "favorites" ? "page" : undefined}
+                className={styles.favoritesLink}
+                mode={navigationMode}
+                navigationId="favorites"
+              />
+            ) : null}
             <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
             <InteriorMobileNavigation items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)} />
           </div>

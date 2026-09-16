@@ -29,6 +29,21 @@ export type ResolvedPreviewNavigationItem = {
 };
 
 export type InteriorNavigationMode = "preview" | "public";
+export type InteriorNavigationSurface = "desktop" | "mobile";
+
+const INTERIOR_NAVIGATION_IDS = {
+  preview: {
+    desktop: ["calendar", "disciplines", "territories", "contact"],
+    mobile: ["calendar", "disciplines", "territories", "contact", "favorites", "publish"],
+  },
+  public: {
+    desktop: ["calendar", "disciplines", "territories", "favorites"],
+    mobile: ["calendar", "disciplines", "territories", "favorites", "publish", "contact"],
+  },
+} as const satisfies Record<
+  InteriorNavigationMode,
+  Record<InteriorNavigationSurface, readonly PreviewNavigationId[]>
+>;
 
 export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNavigationDefinition>> = {
   home: { id: "home", label: "Inicio", productionHref: "/", previewHref: "/preview/redesign-v2" },
@@ -70,6 +85,13 @@ export function resolveInteriorNavigationItems(
   mode: InteriorNavigationMode,
 ): ResolvedPreviewNavigationItem[] {
   return ids.map((id) => resolveInteriorNavigationItem(id, mode));
+}
+
+export function getInteriorNavigationIds(
+  mode: InteriorNavigationMode,
+  surface: InteriorNavigationSurface,
+): readonly PreviewNavigationId[] {
+  return INTERIOR_NAVIGATION_IDS[mode][surface];
 }
 
 export function resolvePreviewNavigationItems(

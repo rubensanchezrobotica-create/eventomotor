@@ -315,7 +315,7 @@ test("A7.6B separa de forma explícita los destinos Preview y públicos", () => 
   assert.equal(preview.calendarHref, "/preview/redesign-v2/calendario");
   assert.equal(publicContext.mode, "public");
   assert.equal(publicContext.territoryHref, "/eventos-motor-andalucia");
-  assert.equal(publicContext.calendarHref, "/#calendario");
+  assert.equal(publicContext.calendarHref, "/calendario");
   assert.equal(publicContext.zonesHref, "/zonas");
   assert.equal(
     territoryDetailResultsHref(publicContext, {

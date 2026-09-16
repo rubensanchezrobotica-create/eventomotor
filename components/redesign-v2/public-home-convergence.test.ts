@@ -37,10 +37,10 @@ test("A10C preserva literalmente el SEO público de Home", () => {
   assert.doesNotMatch(publicRoute, /robots:/);
 });
 
-test("A10C mantiene utilizable el destino #calendario sin tocar el redirect", () => {
+test("A10D mantiene el ancla compatible de Home y converge sus CTA al calendario real", () => {
   assert.match(home, /<section[^>]*id="calendario"[^>]*aria-labelledby="proximos-eventos"/);
-  assert.match(home, /public:[\s\S]*?calendar: "\/#calendario"/);
-  assert.match(nextConfig, /legacyRedirect\("\/calendario", PUBLIC_NAVIGATION\.calendar\)/);
+  assert.match(home, /public:[\s\S]*?calendar: "\/calendario"/);
+  assert.doesNotMatch(nextConfig, /legacyRedirect\("\/calendario"/);
 });
 
 test("A10C aplica la IA pública aprobada sin convertir Contacto en navegación desktop", () => {

@@ -40,10 +40,10 @@ test("separates primary home sections from public directory routes", () => {
   assert.equal(PUBLIC_ROUTES.publish, "/publicar-evento");
 });
 
-test("preserves query strings and hashes when canonicalizing old calendar links", () => {
-  assert.equal(canonicalPublicHref("/calendario"), "/#calendario");
-  assert.equal(canonicalPublicHref("/calendario?zona=norte&vista=mapa"), "/?zona=norte&vista=mapa#calendario");
-  assert.equal(canonicalPublicHref("/calendario#calendario"), "/#calendario");
+test("preserves the real public calendar route and its query strings", () => {
+  assert.equal(canonicalPublicHref("/calendario"), "/calendario");
+  assert.equal(canonicalPublicHref("/calendario?zona=norte&vista=mapa"), "/calendario?zona=norte&vista=mapa");
+  assert.equal(canonicalPublicHref("/calendario#calendario"), "/calendario#calendario");
   assert.equal(canonicalPublicHref("/contacto"), "/contacto");
 });
 
@@ -76,7 +76,7 @@ test("desktop and mobile menus consume the same destinations and expose aria-cur
   const primaryHrefs: readonly string[] = PRIMARY_NAVIGATION_ITEMS.map(({ href }) => href);
   assert.deepEqual(
     primaryHrefs,
-    ["/#calendario", "/#disciplinas", "/#zonas", "/contacto", "/mis-eventos"],
+    ["/calendario", "/#disciplinas", "/#zonas", "/contacto", "/mis-eventos"],
   );
   assert.ok(!primaryHrefs.includes(DIRECTORY_ROUTES.disciplines));
   assert.ok(!primaryHrefs.includes(DIRECTORY_ROUTES.zones));
@@ -146,27 +146,26 @@ test("active public components do not hardcode obsolete calendar hrefs or previe
   }
 });
 
-test("all exported opportunity-page links resolve away from the legacy calendar", () => {
+test("all exported opportunity-page links avoid Preview and may use the real calendar", () => {
   for (const page of OPPORTUNITY_PAGES) {
     for (const link of page.relatedLinks) {
-      assert.notEqual(link.href, "/calendario", `${page.slug}: ${link.label}`);
       assert.ok(!link.href.startsWith("/preview/"), `${page.slug}: ${link.label}`);
     }
     for (const highlight of page.regionalHub?.highlights || []) {
-      assert.notEqual(highlight.href, "/calendario", `${page.slug}: ${highlight.label}`);
       assert.ok(!highlight.href.startsWith("/preview/"), `${page.slug}: ${highlight.label}`);
     }
   }
 });
 
-test("calendar is a permanent redirect to the final canonical route with no chain", () => {
+test("calendar is a real public V2 page with no redirect chain", () => {
   const calendarPage = source("app/calendario/page.tsx");
   const nextConfig = source("next.config.ts");
   const legacyRedirects = source("lib/legacy-redirects.ts");
 
-  assert.match(calendarPage, /permanentRedirect\(PUBLIC_NAVIGATION\.calendar\)/);
-  assert.match(nextConfig, /legacyRedirect\("\/calendario", PUBLIC_NAVIGATION\.calendar\)/);
-  assert.doesNotMatch(nextConfig, /legacyRedirect\([^,\n]+,\s*"\/calendario"\)/);
+  assert.match(calendarPage, /<V2InteriorShell/);
+  assert.match(calendarPage, /navigationMode="public"/);
+  assert.doesNotMatch(calendarPage, /redirect|permanentRedirect/);
+  assert.doesNotMatch(nextConfig, /legacyRedirect\("\/calendario"/);
   assert.doesNotMatch(legacyRedirects, /\|\| "\/calendario"/);
 });
 
@@ -175,6 +174,7 @@ test("canonical destinations exist and sitemap only indexes the canonical calend
     "app/page.tsx",
     "app/disciplinas/page.tsx",
     "app/zonas/page.tsx",
+    "app/calendario/page.tsx",
     "app/contacto/page.tsx",
     "app/mis-eventos/page.tsx",
     "app/publicar-evento/page.tsx",
@@ -187,7 +187,7 @@ test("canonical destinations exist and sitemap only indexes the canonical calend
   const robots = source("app/robots.ts");
 
   assert.match(homePage, /canonical: SITE_URL/);
-  assert.doesNotMatch(sitemap, /sitemapEntry\("\/calendario"/);
+  assert.match(sitemap, /sitemapEntry\("\/calendario"/);
   assert.match(sitemap, /sitemapEntry\("\/"/);
   assert.match(robots, /sitemap: `\$\{SITE_URL\}\/sitemap\.xml`/);
 });
