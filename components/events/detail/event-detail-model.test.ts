@@ -157,7 +157,7 @@ test("Barañáin muestra estado, disciplina y una fuente oficial pública, nunca
   assert.equal(getEventPrimaryAction(event)?.label, "Inscribirse por WhatsApp");
 });
 
-test("la fuente oficial respeta la prioridad de URL y texto", () => {
+test("la fuente oficial respeta la prioridad de URL y el rol de la entidad enlazada", () => {
   const base = eventFixture({
     officialUrl: "https://official.example/evento",
     organizerUrl: "https://organizer.example/evento",
@@ -168,7 +168,7 @@ test("la fuente oficial respeta la prioridad de URL y texto", () => {
 
   assert.deepEqual(getOfficialSource(base), {
     href: "https://official.example/evento",
-    label: "Club oficial",
+    label: "Fuente secundaria",
   });
   assert.deepEqual(getOfficialSource({ ...base, officialUrl: "" }), {
     href: "https://organizer.example/evento",
@@ -176,10 +176,10 @@ test("la fuente oficial respeta la prioridad de URL y texto", () => {
   });
   assert.deepEqual(getOfficialSource({ ...base, officialUrl: "", organizerUrl: "" }), {
     href: "https://source.example/evento",
-    label: "Club oficial",
+    label: "Fuente secundaria",
   });
   assert.equal(getOfficialSource({ ...base, organizerName: "", source: "Fuente secundaria" })?.label, "Fuente secundaria");
-  assert.equal(getOfficialSource({ ...base, organizerName: "", source: "" })?.label, "official.example");
+  assert.equal(getOfficialSource({ ...base, organizerName: "", source: "" })?.label, "Fuente oficial");
   assert.equal(
     getOfficialSource({
       ...base,
@@ -189,12 +189,56 @@ test("la fuente oficial respeta la prioridad de URL y texto", () => {
       organizerName: "",
       source: "",
     })?.label,
-    "Ver fuente oficial",
+    "Fuente oficial",
   );
   assert.equal(
     getOfficialSource({ ...base, officialUrl: "https://official.example/eventos/2026-09-12" })?.href,
     "https://official.example/eventos/2026-09-12",
   );
+});
+
+test("Supercars conserva organizador y fuente como entidades distintas", () => {
+  const event = eventFixture({
+    organizerName: "ROOW™",
+    organizerUrl: "https://www.roow.es/",
+    source: "Circuit Ricardo Tormo",
+    sourceUrl: "https://www.circuitricardotormo.com/eventos/supercars-roow/",
+    officialUrl: "https://www.circuitricardotormo.com/eventos/supercars-roow/",
+  });
+
+  assert.deepEqual(getOfficialSource(event), {
+    href: "https://www.circuitricardotormo.com/eventos/supercars-roow/",
+    label: "Circuit Ricardo Tormo",
+  });
+});
+
+test("el fallback de fuente no atribuye URLs de otro rol al organizador", () => {
+  const base = eventFixture({
+    organizerName: "Organizador",
+    organizerUrl: "https://organizer.example/",
+    source: "Fuente",
+    sourceUrl: "https://source.example/",
+    officialUrl: "https://official.example/",
+  });
+
+  assert.equal(getOfficialSource({ ...base, organizerName: "" })?.label, "Fuente");
+  assert.equal(getOfficialSource({ ...base, source: "" })?.label, "Fuente oficial");
+  assert.deepEqual(getOfficialSource({ ...base, source: "", officialUrl: "" }), {
+    href: "https://organizer.example/",
+    label: "Organizador",
+  });
+  assert.deepEqual(getOfficialSource({ ...base, source: "", officialUrl: "", organizerUrl: "" }), {
+    href: "https://source.example/",
+    label: "Fuente oficial",
+  });
+  assert.equal(getOfficialSource({ ...base, source: "Organizador" })?.label, "Organizador");
+  assert.deepEqual(getOfficialSource({
+    ...base,
+    officialUrl: "https://organizer.example/",
+  }), {
+    href: "https://organizer.example/",
+    label: "Organizador",
+  });
 });
 
 test("el mapeo público conserva official_url vacío para respetar organizer_url antes de source_url", () => {
@@ -248,14 +292,14 @@ test("omite fuentes inválidas, privadas o administrativas sin crear filas vací
       organizerName: "Email contacto: privado@example.com",
       source: "",
     }))?.label,
-    "example.com",
+    "Fuente oficial",
   );
   assert.equal(
     getOfficialSource(eventFixture({
       organizerName: "Teléfono 611 636 103",
       source: "",
     }))?.label,
-    "example.com",
+    "Fuente oficial",
   );
 });
 

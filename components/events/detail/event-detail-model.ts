@@ -112,18 +112,21 @@ function readableDomain(url: URL) {
 }
 
 export function getOfficialSource(event: EventItem): EventOfficialSource | null {
-  const url = [
-    event.officialUrl,
-    event.organizerUrl,
-    event.sourceUrl,
-  ].map((value) => publicSourceUrl(value)).find((candidate): candidate is URL => Boolean(candidate));
+  const officialUrl = publicSourceUrl(event.officialUrl);
+  const organizerUrl = publicSourceUrl(event.organizerUrl);
+  const sourceUrl = publicSourceUrl(event.sourceUrl);
+  const url = officialUrl || organizerUrl || sourceUrl;
 
   if (!url) return null;
 
-  const label = safeSourceLabel(event.organizerName)
-    || safeSourceLabel(event.source)
-    || readableDomain(url)
-    || "Ver fuente oficial";
+  const isOrganizerOnlyTarget = Boolean(
+    organizerUrl
+    && url.href === organizerUrl.href
+    && (!sourceUrl || url.href !== sourceUrl.href)
+  );
+  const label = isOrganizerOnlyTarget
+    ? safeSourceLabel(event.organizerName) || readableDomain(url) || "Fuente oficial"
+    : safeSourceLabel(event.source) || "Fuente oficial";
 
   return { href: url.toString(), label };
 }
