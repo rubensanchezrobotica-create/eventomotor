@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
-import type { ResolvedPreviewNavigationItem } from "./preview-navigation";
+import type { PreviewNavigationId, ResolvedPreviewNavigationItem } from "./preview-navigation";
 import styles from "./V2PreviewShell.module.css";
 
 type InteriorMobileNavigationProps = {
+  currentNavigationId?: PreviewNavigationId;
   items: readonly ResolvedPreviewNavigationItem[];
 };
 
-export default function InteriorMobileNavigation({ items }: InteriorMobileNavigationProps) {
+export default function InteriorMobileNavigation({ currentNavigationId, items }: InteriorMobileNavigationProps) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +47,8 @@ export default function InteriorMobileNavigation({ items }: InteriorMobileNaviga
         <nav aria-label="Navegación móvil" className={styles.mobileMenu} id={panelId}>
           {items.map((item) => (
             <Link
+              aria-current={currentNavigationId === item.id && item.variant !== "primary" ? "page" : undefined}
+              data-navigation-variant={item.variant}
               data-preview-fallback={item.previewFallback}
               href={item.href}
               key={item.id}

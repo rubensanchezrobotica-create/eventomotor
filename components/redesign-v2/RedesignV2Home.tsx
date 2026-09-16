@@ -8,6 +8,7 @@ import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
 import MobileNavigation from "./MobileNavigation.client";
 import SearchExperience from "./SearchExperience.client";
+import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
 import styles from "./RedesignV2.module.css";
 import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
@@ -69,7 +70,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
   const mobileNavigation = routeMode === "public"
     ? [
         ...desktopNavigation,
-        { href: routes.publish, label: "Publicar evento" },
+        { href: routes.publish, label: "Publicar evento", variant: "primary" as const },
         { href: routes.contact, label: "Contacto" },
       ]
     : [
@@ -77,7 +78,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
         { href: routes.disciplines, label: "Disciplinas" },
         { href: routes.zones, label: "Zonas" },
         { href: routes.newsletter, label: "Newsletter" },
-        { href: routes.publish, label: "Publicar evento" },
+        { href: routes.publish, label: "Publicar evento", variant: "primary" as const },
       ];
   const projected = events.map(projectPreviewEvent);
   const upcoming = upcomingPreviewEvents(projected, nowIso);
@@ -91,7 +92,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
   const representedDisciplines = new Set(upcoming.map((event) => event.discipline).filter(Boolean)).size;
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${redesignV2DisplayPilot.variable}`}>
       <a className={styles.skipLink} href="#contenido-redesign-v2">Saltar al contenido</a>
       <header className={styles.header}>
         <div className={styles.utilityBar}>

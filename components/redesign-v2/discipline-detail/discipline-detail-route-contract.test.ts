@@ -314,7 +314,7 @@ test("A6.3.3P2 configura Archivo estática 900 con normal e italic sin ejes vari
   assert.doesNotMatch(fontConfig, /axes|wdth|font-variation-settings/);
 });
 
-test("A6.3.3P2 limita el piloto tipográfico al wrapper servidor de Discipline Detail", () => {
+test("A10D-R6 mantiene aislado Discipline Detail y admite Archivo en el H1 de Calendar", () => {
   assert.match(route, /redesignV2DisplayPilot/);
   assert.match(route, /className=\{redesignV2DisplayPilot\.variable\}/);
   assert.match(route, /data-v2-display-font-pilot="archivo"/);
@@ -323,7 +323,9 @@ test("A6.3.3P2 limita el piloto tipográfico al wrapper servidor de Discipline D
   assert.doesNotMatch(assist, /redesignV2DisplayPilot|font-v2-display-pilot/);
   assert.doesNotMatch(compactSignup, /redesignV2DisplayPilot|font-v2-display-pilot/);
   assert.doesNotMatch(compactStyles, /font-v2-display-pilot/);
-  assert.doesNotMatch(sharedShellStyles, /font-v2-display-pilot/);
+  const calendarH1Styles = sharedShellStyles.match(/\.pageHero h1\[data-v2-display-h1="archivo"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(calendarH1Styles, /font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;/);
+  assert.equal((sharedShellStyles.match(/var\(--font-v2-display-pilot\)/g) ?? []).length, 1);
 });
 
 test("A6.3.3P2 aplica Archivo sólo al H1 compartido y al H2 de resultados", () => {

@@ -7,6 +7,7 @@ import styles from "./RedesignV2.module.css";
 export type MobileNavigationItem = {
   href: string;
   label: string;
+  variant?: "primary";
 };
 
 export default function MobileNavigation({ items }: { items: readonly MobileNavigationItem[] }) {
@@ -45,7 +46,12 @@ export default function MobileNavigation({ items }: { items: readonly MobileNavi
       {open ? (
         <nav aria-label="Navegación móvil" className={styles.mobileMenu} id={panelId}>
           {items.map((item) => (
-            <Link href={item.href} key={item.href} onClick={() => setOpen(false)}>
+            <Link
+              data-navigation-variant={item.variant ?? "default"}
+              href={item.href}
+              key={item.href}
+              onClick={() => setOpen(false)}
+            >
               {item.label}
             </Link>
           ))}

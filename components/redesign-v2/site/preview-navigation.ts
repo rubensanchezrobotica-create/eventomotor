@@ -19,6 +19,7 @@ type PreviewNavigationDefinition = {
   label: string;
   productionHref: string;
   previewHref?: string;
+  variant?: "primary";
 };
 
 export type ResolvedPreviewNavigationItem = {
@@ -26,6 +27,7 @@ export type ResolvedPreviewNavigationItem = {
   label: string;
   href: string;
   previewFallback?: "production";
+  variant: "default" | "primary";
 };
 
 export type InteriorNavigationMode = "preview" | "public";
@@ -53,7 +55,7 @@ export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNav
   territories: { id: "territories", label: "Zonas", productionHref: "/zonas", previewHref: "/preview/redesign-v2/zonas" },
   newsletter: { id: "newsletter", label: "Newsletter", productionHref: "/newsletter" },
   favorites: { id: "favorites", label: "Mis eventos", productionHref: "/mis-eventos" },
-  publish: { id: "publish", label: "Publicar evento", productionHref: "/publicar-evento" },
+  publish: { id: "publish", label: "Publicar evento", productionHref: "/publicar-evento", variant: "primary" },
   contact: { id: "contact", label: "Contacto", productionHref: "/contacto" },
   privacy: { id: "privacy", label: "Privacidad", productionHref: "/privacidad" },
   legal: { id: "legal", label: "Aviso legal", productionHref: "/aviso-legal" },
@@ -63,8 +65,8 @@ export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNav
 export function resolvePreviewNavigationItem(id: PreviewNavigationId): ResolvedPreviewNavigationItem {
   const item = PREVIEW_NAVIGATION[id];
   return item.previewHref
-    ? { id, label: item.label, href: item.previewHref }
-    : { id, label: item.label, href: item.productionHref, previewFallback: "production" };
+    ? { id, label: item.label, href: item.previewHref, variant: item.variant ?? "default" }
+    : { id, label: item.label, href: item.productionHref, previewFallback: "production", variant: item.variant ?? "default" };
 }
 
 export function resolveInteriorNavigationItem(
@@ -77,6 +79,7 @@ export function resolveInteriorNavigationItem(
     id,
     label: item.label,
     href: canonicalPublicHref(item.productionHref),
+    variant: item.variant ?? "default",
   };
 }
 

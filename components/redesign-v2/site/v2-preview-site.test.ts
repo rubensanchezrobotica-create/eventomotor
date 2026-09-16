@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { getInteriorNavigationIds } from "./preview-navigation";
+import { getInteriorNavigationIds, resolveInteriorNavigationItem } from "./preview-navigation";
 
 function source(relativePath: string) {
   return readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
@@ -12,11 +12,16 @@ const interiorShell = readFileSync(new URL("./V2InteriorShell.tsx", import.meta.
 const navigation = readFileSync(new URL("./preview-navigation.ts", import.meta.url), "utf8");
 const mobileNavigation = readFileSync(new URL("./InteriorMobileNavigation.client.tsx", import.meta.url), "utf8");
 const home = source("components/redesign-v2/RedesignV2Home.tsx");
+const homeMobileNavigation = source("components/redesign-v2/MobileNavigation.client.tsx");
+const homeStyles = source("components/redesign-v2/RedesignV2.module.css");
+const interiorStyles = readFileSync(new URL("./V2PreviewShell.module.css", import.meta.url), "utf8");
+const calendarPage = source("app/calendario/page.tsx");
+const displayFont = source("components/redesign-v2/redesign-v2-fonts.ts");
 
 test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer configurables", () => {
   assert.match(shell, /<V2InteriorShell \{\.\.\.props\} navigationMode="preview" \/>/);
   assert.match(interiorShell, /breadcrumbs\.map/);
-  assert.match(interiorShell, /<h1 id="redesign-v2-interior-title">\{title\}<\/h1>/);
+  assert.match(interiorShell, /<h1[\s\S]*?id="redesign-v2-interior-title"[\s\S]*?>\{title\}<\/h1>/);
   assert.match(interiorShell, /<p>\{description\}<\/p>/);
   assert.match(interiorShell, /heroImageSrc/);
   assert.match(interiorShell, /<footer className=\{styles\.footer\}>/);
@@ -122,4 +127,42 @@ test("la navegación móvil interior es independiente del componente sagrado de 
   assert.match(mobileNavigation, /aria-expanded=\{open\}/);
   assert.match(mobileNavigation, /event\.key === "Escape"/);
   assert.match(mobileNavigation, /buttonRef\.current\?\.focus\(\)/);
+});
+
+test("A10D-R4 comparte Archivo 900 italic en los H1 de Home y Calendar sin cambiar otros héroes", () => {
+  assert.match(displayFont, /Archivo\(\{[\s\S]*?weight: "900"[\s\S]*?style: \["normal", "italic"\]/);
+  assert.match(home, /redesignV2DisplayPilot\.variable/);
+  assert.match(calendarPage, /heroTitleFontClassName=\{redesignV2DisplayPilot\.variable\}/);
+  assert.match(interiorShell, /data-v2-display-h1=\{heroTitleFontClassName \? "archivo" : undefined\}/);
+  assert.match(homeStyles, /\.heroCopy h1\s*\{[^}]*font-family:\s*var\(--font-v2-display-pilot\), "Arial Narrow", Arial, sans-serif;[^}]*font-style:\s*italic;[^}]*font-weight:\s*900;/);
+  assert.match(interiorStyles, /\.pageHero h1\s*\{[^}]*font-style:\s*italic;[^}]*font-weight:\s*900;/);
+  assert.match(interiorStyles, /\.pageHero h1\[data-v2-display-h1="archivo"\]\s*\{\s*font-family:\s*var\(--font-v2-display-pilot\), "Arial Narrow", Arial, sans-serif;/);
+});
+
+test("A10D-R4 identifica semánticamente el CTA en ambos menús sin estilos posicionales", () => {
+  assert.equal(resolveInteriorNavigationItem("publish", "public").variant, "primary");
+  assert.equal(resolveInteriorNavigationItem("contact", "public").variant, "default");
+  assert.equal(resolveInteriorNavigationItem("publish", "preview").variant, "primary");
+  assert.match(home, /label: "Publicar evento", variant: "primary" as const/);
+  assert.match(homeMobileNavigation, /data-navigation-variant=\{item\.variant \?\? "default"\}/);
+  assert.match(mobileNavigation, /data-navigation-variant=\{item\.variant\}/);
+  for (const styles of [homeStyles, interiorStyles]) {
+    assert.match(styles, /\.mobileMenu a\[data-navigation-variant="primary"\]/);
+    assert.doesNotMatch(styles, /\.mobileMenu a:last-child/);
+  }
+});
+
+test("A10D-R4 propaga el destino activo al menú móvil sin activar Contacto o el CTA por defecto", () => {
+  assert.match(interiorShell, /<InteriorMobileNavigation[\s\S]*?currentNavigationId=\{currentNavigationId\}/);
+  assert.match(mobileNavigation, /aria-current=\{currentNavigationId === item\.id && item\.variant !== "primary" \? "page" : undefined\}/);
+  assert.match(interiorStyles, /\.mobileMenu a\[aria-current="page"\]/);
+  for (const [route, id] of [
+    ["app/calendario/page.tsx", "calendar"],
+    ["app/disciplinas/page.tsx", "disciplines"],
+    ["app/zonas/page.tsx", "territories"],
+    ["app/mis-eventos/page.tsx", "favorites"],
+    ["components/regions/PublicRegionalLanding.tsx", "territories"],
+  ]) assert.match(source(route), new RegExp(`currentNavigationId="${id}"`));
+  assert.doesNotMatch(getInteriorNavigationIds("public", "desktop").join(","), /contact/);
+  assert.match(getInteriorNavigationIds("public", "mobile").join(","), /contact/);
 });

@@ -246,7 +246,7 @@
 .heroCopy h1 {
   max-width: 650px;
   margin: 13px 0 15px;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   font-size: clamp(3.6rem, 5.4vw, 5.2rem);
   font-stretch: condensed;
   font-style: italic;
@@ -1721,8 +1721,7 @@
     border-bottom: 1px solid #252b32;
   }
 
-  .mobileMenu a:last-child {
-    border-bottom: 0;
+  .mobileMenu a[data-navigation-variant="primary"] {
     background: var(--orange);
     color: #090909;
     font-weight: 800;

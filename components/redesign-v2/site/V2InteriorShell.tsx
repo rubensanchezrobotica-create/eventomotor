@@ -22,6 +22,7 @@ export type V2InteriorShellProps = {
   description: string;
   eyebrow: string;
   heroImageSrc?: string;
+  heroTitleFontClassName?: string;
   navigationMode: InteriorNavigationMode;
   title: string;
   upcomingCount: number;
@@ -34,6 +35,7 @@ export default function V2InteriorShell({
   description,
   eyebrow,
   heroImageSrc,
+  heroTitleFontClassName,
   navigationMode,
   title,
   upcomingCount,
@@ -81,7 +83,10 @@ export default function V2InteriorShell({
               />
             ) : null}
             <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
-            <InteriorMobileNavigation items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)} />
+            <InteriorMobileNavigation
+              currentNavigationId={currentNavigationId}
+              items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)}
+            />
           </div>
         </div>
       </header>
@@ -107,7 +112,11 @@ export default function V2InteriorShell({
               </ol>
             </nav>
             <span className={styles.eyebrow}>{eyebrow}</span>
-            <h1 id="redesign-v2-interior-title">{title}</h1>
+            <h1
+              className={heroTitleFontClassName}
+              data-v2-display-h1={heroTitleFontClassName ? "archivo" : undefined}
+              id="redesign-v2-interior-title"
+            >{title}</h1>
             <p>{description}</p>
           </div>
         </section>

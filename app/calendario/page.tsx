@@ -7,6 +7,7 @@ import {
   type CalendarQueryRecord,
 } from "@/components/redesign-v2/calendar/calendar-page-model";
 import { assignV2HomeEventImages } from "@/components/redesign-v2/discipline-fallback-resolver";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import { projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
 import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import { getVehicleType } from "@/lib/event-classification";
@@ -48,6 +49,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       description="Descubre todos los eventos de motor en España por fecha."
       eyebrow="Agenda motor"
       heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
+      heroTitleFontClassName={redesignV2DisplayPilot.variable}
       navigationMode="public"
       title="Calendario de eventos"
       upcomingCount={upcomingCount}

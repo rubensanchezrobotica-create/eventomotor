@@ -252,6 +252,11 @@
   text-wrap: balance;
 }
 
+.pageHero h1[data-v2-display-h1="archivo"] {
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  max-width: min(820px, 8.5em);
+}
+
 .pageHero p {
   max-width: 690px;
   margin: 20px 0 0;
@@ -405,11 +410,14 @@
     border-bottom: 1px solid #252b32;
   }
 
-  .mobileMenu a:last-child {
-    border-bottom: 0;
+  .mobileMenu a[data-navigation-variant="primary"] {
     background: var(--orange);
     color: #090909;
     font-weight: 800;
+  }
+
+  .mobileMenu a[aria-current="page"] {
+    color: var(--orange);
   }
 }
 
