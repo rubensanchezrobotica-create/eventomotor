@@ -266,8 +266,38 @@ test("clasifica futuro, en curso, finalizado y día único con fecha española",
 
   assert.equal(previewEventStatus(future, now), "Próximamente");
   assert.equal(previewEventStatus(ongoing, now), "En curso");
+  assert.equal(previewEventStatus(past, now), "Finalizado");
   assert.equal(previewEventStatus(today, now), "Hoy");
   assert.deepEqual(upcomingPreviewEvents([future, ongoing, past, today], now).map(({ id }) => id), [ongoing.id, today.id, future.id]);
+});
+
+test("A10D-R7 distingue fin, hoy y futuro con la misma fecha Europe/Madrid", () => {
+  const now = "2026-09-16T08:00:00.000Z";
+  const cases = [
+    ["ayer en un día", "2026-09-15", "2026-09-15", "Finalizado"],
+    ["multidía terminado", "2026-09-10", "2026-09-15", "Finalizado"],
+    ["hoy en un día", "2026-09-16", "2026-09-16", "Hoy"],
+    ["multidía acaba hoy", "2026-09-14", "2026-09-16", "En curso"],
+    ["multidía empieza hoy", "2026-09-16", "2026-09-18", "En curso"],
+    ["multidía abarca hoy", "2026-09-14", "2026-09-18", "En curso"],
+    ["mañana", "2026-09-17", "2026-09-17", "Próximamente"],
+    ["sin fin, ayer", "2026-09-15", "", "Finalizado"],
+    ["sin fin, hoy", "2026-09-16", "", "Hoy"],
+    ["fecha inválida conserva reserva segura", "sin fecha", "", "Próximamente"],
+  ] as const;
+
+  for (const [name, start, end, expected] of cases) {
+    assert.equal(previewEventStatus(projectPreviewEvent(event({ start, end })), now), expected, name);
+  }
+});
+
+test("A10D-R7 conserva el límite de día de Europe/Madrid en verano e invierno", () => {
+  const summerToday = projectPreviewEvent(event({ start: "2026-09-16", end: "2026-09-16" }));
+  assert.equal(previewEventStatus(summerToday, "2026-09-15T21:59:59.000Z"), "Próximamente");
+  assert.equal(previewEventStatus(summerToday, "2026-09-15T22:00:00.000Z"), "Hoy");
+  const winterYesterday = projectPreviewEvent(event({ start: "2026-12-15", end: "2026-12-15" }));
+  assert.equal(previewEventStatus(winterYesterday, "2026-12-15T22:59:59.000Z"), "Hoy");
+  assert.equal(previewEventStatus(winterYesterday, "2026-12-15T23:00:00.000Z"), "Finalizado");
 });
 
 test("resuelve el cambio de día con Europe/Madrid y sin desfase UTC", () => {

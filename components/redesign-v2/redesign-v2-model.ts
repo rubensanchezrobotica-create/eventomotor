@@ -27,7 +27,7 @@ export type PreviewEvent = Pick<
 
 export type ResolvedEventImage = V2AssignedEventImage;
 
-export type PreviewEventStatus = "Hoy" | "En curso" | "Próximamente";
+export type PreviewEventStatus = "Hoy" | "En curso" | "Finalizado" | "Próximamente";
 
 export type SearchFilters = {
   place: string;
@@ -291,6 +291,7 @@ export function previewEventStatus(event: PreviewEvent, nowIso: string): Preview
   const today = spainDateKey(nowIso);
   if (range?.start === today && range.end === today) return "Hoy";
   if (range && range.start <= today && range.end >= today) return "En curso";
+  if (range && range.end < today) return "Finalizado";
   return "Próximamente";
 }
 

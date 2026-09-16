@@ -139,7 +139,7 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
   assert.deepEqual(new Set(mixedMeet.filter(({ tier }) => tier <= 2).map(({ id }) => id)), new Set(["concentraciones-03", "concentraciones-05"]));
 });
 
-test("un vehículo explícito nunca recibe el fallback del vehículo opuesto", () => {
+test("Rally Raid canónico usa sólo el fallback offroad del vehículo explícito", () => {
   const pina = event({
     id: "batch-campeonato-espana-rally-raid-pina-ebro-2026-09-04",
     slug: "campeonato-espana-rally-raid-pina-ebro-2026-09-04",
@@ -149,10 +149,39 @@ test("un vehículo explícito nunca recibe el fallback del vehículo opuesto", (
     tags: ["moto", "rally raid", "rfme"],
     vehicleType: "moto",
   });
-  assert.equal(classificationOf(pina).discipline, "rallyes");
-  assert.equal(resolveV2EventImageCandidates(pina).length, 0);
-  assert.deepEqual(assignV2HomeEventImages([pina]), [{ src: null, kind: "neutral", alt: "" }]);
+  assert.deepEqual(classificationOf(pina), {
+    discipline: "offroad",
+    subtype: "rally-raid",
+    reason: "taxonomia canonica rally raid",
+    vehicle: "moto",
+  });
+  assert.deepEqual(ids(pina), ["offroad-15"]);
+  const [representative] = assignV2HomeEventImages([pina]);
+  assert.equal(representative.kind, "representative");
+  assert.equal(representative.fallbackId, "offroad-15");
+  assert.equal(representative.label, "Imagen representativa");
 
+  const carRaid = event({ discipline: "Rally Raid", vehicleType: "coche" });
+  assert.deepEqual(ids(carRaid), ["offroad-04"]);
+  assert.equal(assignV2HomeEventImages([carRaid])[0]?.fallbackId, "offroad-04");
+
+  const unknownVehicle = event({ discipline: "Rally Raid", vehicleType: "mixto" });
+  assert.equal(classifyV2FallbackEvent(unknownVehicle), null);
+  assert.deepEqual(assignV2HomeEventImages([unknownVehicle]), [{ src: null, kind: "neutral", alt: "" }]);
+
+  const titleOnly = event({ title: "Rally Raid", discipline: "Sin clasificar", vehicleType: "moto" });
+  assert.notEqual(classifyV2FallbackEvent(titleOnly)?.subtype, "rally-raid");
+  assert.equal(ids(titleOnly).includes("offroad-15"), false);
+
+  const withRealImage = event({ ...pina, imageUrl: "/event-images/pina-real.jpg" });
+  assert.deepEqual(assignV2HomeEventImages([withRealImage]), [{
+    src: "/event-images/pina-real.jpg",
+    kind: "event",
+    alt: `Imagen del evento ${pina.title}`,
+  }]);
+});
+
+test("un vehículo explícito nunca recibe el fallback del vehículo opuesto", () => {
   const explicitCar = event({
     title: "Feria de motos y coches",
     discipline: "Ferias",

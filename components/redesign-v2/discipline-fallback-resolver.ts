@@ -461,6 +461,12 @@ function classifyVehicle(text: string, discipline: FallbackDiscipline): Fallback
 }
 
 export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClassification | null {
+  // Rally Raid sólo se resuelve desde la taxonomía explícita y un vehículo conocido.
+  if (normalize(event.discipline) === "rally raid") {
+    const vehicle = normalize(event.vehicleType ?? event.vehicle_type);
+    if (vehicle !== "moto" && vehicle !== "coche") return null;
+    return { ...classification("offroad", "rally-raid", "taxonomia canonica rally raid"), vehicle };
+  }
   const text = classificationText(event);
   const inferredDiscipline = classifyDiscipline(text);
   const primaryText = normalize(event.discipline);
@@ -560,6 +566,7 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "offroad:autocross": ["offroad-13", "offroad-14"],
   "offroad:tramo-tierra": ["offroad-13", "offroad-14"],
   "offroad:cross-country": ["offroad-15", "offroad-16"],
+  "offroad:rally-raid": ["offroad-04", "offroad-15"],
   "offroad:resistencia-tierra": ["offroad-18"],
   "clasicos:motos-clasicas": ["clasicos-03"],
   "clasicos:ruta-club-youngtimer": ["clasicos-04"],
@@ -590,6 +597,7 @@ const CLOSED_SUBTYPE_KEYS = new Set([
   "offroad:autocross",
   "offroad:tramo-tierra",
   "offroad:cross-country",
+  "offroad:rally-raid",
   "offroad:resistencia-tierra",
 ]);
 
@@ -613,7 +621,7 @@ const R2_SUBTYPE_COMPATIBILITY: Readonly<Record<string, readonly string[]>> = {
   "offroad-12": ["trial-indoor"],
   "offroad-13": ["autocross", "tramo-tierra"],
   "offroad-14": ["autocross", "tramo-tierra"],
-  "offroad-15": ["cross-country"],
+  "offroad-15": ["cross-country", "rally-raid"],
   "offroad-16": ["cross-country"],
   "offroad-17": ["enduro-indoor"],
   "offroad-18": ["resistencia-tierra"],

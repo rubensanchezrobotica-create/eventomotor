@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assignV2HomeEventImages } from "../discipline-fallback-resolver";
-import type { PreviewEvent } from "../redesign-v2-model";
+import { previewEventStatus, type PreviewEvent } from "../redesign-v2-model";
 import { paginateVisibleEvents } from "../listing/paginate-visible-events";
 import { addCalendarDays, buildCalendarDayCounts, buildCalendarMonthCells, buildCalendarMonthSummary, calendarEventMatchesDate, calendarEventsForMonth, calendarEventsForSelectedDate, calendarEventsForWeek, calendarWeekDates, countCalendarSecondaryFilters, filterCalendarEvents, formatCalendarCount, formatCalendarDisciplineLabel, formatCalendarMonthCompact, formatCalendarWeekCompact, isCalendarDateKey, madridCalendarDateKey, parseCalendarUrlState, serializeCalendarUrlState, shiftCalendarMonth } from "./calendar-page-model";
 
@@ -134,6 +134,19 @@ test("la agenda semanal usa sólo selectedDate y no duplica un multidía", () =>
   assert.deepEqual(selectedIds("2026-08-16"), ["multi", "only-16"]);
   assert.deepEqual(selectedIds("2026-08-17"), []);
   assert.equal(selectedIds("2026-08-15").filter((id) => id === "multi").length, 1);
+});
+
+test("A10D-R7 mantiene eventos históricos visibles pero su badge depende de hoy", () => {
+  const past = fixture({ id: "past", slug: "past", start: "2026-09-05", end: "2026-09-12" });
+  const pastState = { date: "2026-09-05", q: "", discipline: "", vehicle: "", page: 1, view: "month" as const };
+  const listed = calendarEventsForSelectedDate([past], pastState);
+  assert.deepEqual(listed.map(({ id }) => id), ["past"]);
+  assert.equal(previewEventStatus(listed[0], "2026-09-16T08:00:00.000Z"), "Finalizado");
+
+  const future = fixture({ id: "future", slug: "future", start: "2026-09-20", end: "2026-09-20" });
+  const futureState = { ...pastState, date: "2026-09-20" };
+  assert.deepEqual(calendarEventsForSelectedDate([future], futureState).map(({ id }) => id), ["future"]);
+  assert.equal(previewEventStatus(future, "2026-09-16T08:00:00.000Z"), "Próximamente");
 });
 
 test("el resumen mensual cuenta eventos únicos, días activos y provincias filtradas", () => {
