@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import WeekendPreviewPage, {
-  WEEKEND_FAQS,
-} from "@/components/preview/weekend/WeekendPreviewPage";
+import { WEEKEND_FAQS } from "@/components/preview/weekend/weekend-public-content";
+import { buildWeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
+import { assignV2HomeEventImages } from "@/components/redesign-v2/discipline-fallback-resolver";
+import { projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
+import WeekendPageExperience from "@/components/redesign-v2/weekend/WeekendPageExperience.client";
+import WeekendPublicEditorial from "@/components/redesign-v2/weekend/WeekendPublicEditorial";
 import {
-  buildWeekendPreviewData,
-  parseWeekendFilters,
-} from "@/components/preview/weekend/weekend-preview-model";
+  buildPublicWeekendResults,
+  calculatePublicWeekendRange,
+  paginateWeekendEvents,
+  parsePublicWeekendUrlState,
+} from "@/components/redesign-v2/weekend/weekend-page-model";
+import { getVehicleType } from "@/lib/event-classification";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -77,7 +84,7 @@ function itemListJsonLd(events: ReturnType<typeof buildWeekendPreviewData>["even
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: page?.h1,
-    itemListElement: events.slice(0, 20).map((event, index) => ({
+    itemListElement: events.map((event, index) => ({
       "@type": "ListItem",
       position: index + 1,
       url: `${SITE_URL}/evento/${event.slug || event.id}`,
@@ -93,12 +100,20 @@ export default async function EventosMotorEsteFinDeSemanaPage({
 
   if (!page) notFound();
 
+  const now = new Date();
+  const range = calculatePublicWeekendRange(now);
   const [events, params] = await Promise.all([
     getVisibleEvents(),
     searchParams,
   ]);
-  const data = buildWeekendPreviewData(events, new Date());
-  const initialFilters = parseWeekendFilters(params);
+  const data = buildWeekendPreviewData(events, now, range);
+  const initialState = parsePublicWeekendUrlState(params);
+  const imageEvents = data.events.map((event) => projectPreviewEvent({ ...event, vehicleType: getVehicleType(event) }));
+  const images = assignV2HomeEventImages(imageEvents);
+  const imageByEventId = Object.fromEntries(data.events.map((event, index) => [event.id, images[index]]));
+  const filteredEvents = buildPublicWeekendResults(data.events, initialState, range);
+  const visibleEvents = paginateWeekendEvents(filteredEvents, initialState.page).visible;
+  const upcomingCount = events.filter((event) => (event.end || event.start) >= range.today).length;
 
   return (
     <>
@@ -114,17 +129,37 @@ export default async function EventosMotorEsteFinDeSemanaPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd()) }}
       />
-      {data.events.length ? (
+      {visibleEvents.length ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(data.events)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd(visibleEvents)) }}
         />
       ) : null}
-      <WeekendPreviewPage
-        data={data}
-        initialFilters={initialFilters}
-        pathname={pathname}
-      />
+      <V2InteriorShell
+        breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Este fin de semana" }]}
+        currentNavigationId="calendar"
+        description="Carreras, concentraciones y planes para disfrutar del motor de viernes a domingo."
+        eyebrow="Agenda del fin de semana"
+        heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
+        navigationMode="public"
+        title="Este fin de semana"
+        upcomingCount={upcomingCount}
+      >
+        <WeekendPageExperience
+          events={data.events}
+          imageByEventId={imageByEventId}
+          initialState={initialState}
+          nowIso={now.toISOString()}
+          publicOptions={{
+            disciplineOptions: data.disciplineOptions,
+            families: data.families,
+            provinceOptions: data.provinceOptions,
+          }}
+          range={range}
+          routeContext="public"
+        />
+        <WeekendPublicEditorial />
+      </V2InteriorShell>
     </>
   );
 }

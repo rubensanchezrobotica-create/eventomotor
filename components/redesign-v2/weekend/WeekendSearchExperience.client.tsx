@@ -8,12 +8,14 @@ import {
   type PreviewSuggestionKind,
 } from "@/components/preview/search-preview-model";
 import type { PreviewEvent } from "../redesign-v2-model";
+import type { WeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
 import {
   countWeekendSecondaryFilters,
   formatWeekendDisciplineLabel,
   WEEKEND_DISCIPLINES,
   WEEKEND_VEHICLES,
   type WeekendUrlState,
+  type WeekendRouteContext,
 } from "./weekend-page-model";
 import styles from "./WeekendPageExperience.module.css";
 
@@ -25,13 +27,15 @@ const SUGGESTION_KIND_LABELS: Record<PreviewSuggestionKind, string> = {
   disciplina: "Disciplina",
 };
 
-export type WeekendSearchValues = Pick<WeekendUrlState, "q" | "discipline" | "vehicle">;
+export type WeekendSearchValues = Pick<WeekendUrlState, "q" | "discipline" | "vehicle" | "province" | "family">;
 
 type WeekendSearchExperienceProps = {
   events: readonly PreviewEvent[];
   onApply: (values: WeekendSearchValues) => void;
   onClearAll: () => void;
   onClearQuery: () => void;
+  publicOptions?: Pick<WeekendPreviewData, "disciplineOptions" | "families" | "provinceOptions">;
+  routeContext: WeekendRouteContext;
   state: WeekendUrlState;
 };
 
@@ -40,7 +44,7 @@ function suggestionDomId(suggestion: PreviewSuggestion) {
 }
 
 function valuesFromState(state: WeekendUrlState): WeekendSearchValues {
-  return { q: state.q, discipline: state.discipline, vehicle: state.vehicle };
+  return { q: state.q, discipline: state.discipline, vehicle: state.vehicle, province: state.province ?? "", family: state.family ?? "" };
 }
 
 export default function WeekendSearchExperience({
@@ -48,6 +52,8 @@ export default function WeekendSearchExperience({
   onApply,
   onClearAll,
   onClearQuery,
+  publicOptions,
+  routeContext,
   state,
 }: WeekendSearchExperienceProps) {
   const [draft, setDraft] = useState<WeekendSearchValues>(() => valuesFromState(state));
@@ -63,7 +69,9 @@ export default function WeekendSearchExperience({
     [draft.q, events],
   );
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
-  const advancedFilterCount = countWeekendSecondaryFilters(draft);
+  const advancedFilterCount = routeContext === "public"
+    ? [draft.province, draft.discipline, draft.family].filter(Boolean).length
+    : countWeekendSecondaryFilters(draft);
 
   function updateDraft<Key extends keyof WeekendSearchValues>(
     key: Key,
@@ -111,14 +119,14 @@ export default function WeekendSearchExperience({
   }
 
   function clearAll() {
-    setDraft({ q: "", discipline: "", vehicle: "" });
+    setDraft({ q: "", discipline: "", vehicle: "", province: "", family: "" });
     closeSuggestions();
     setAdvancedOpen(false);
     onClearAll();
   }
 
   return (
-    <form className={styles.searchBar} onSubmit={submit}>
+    <form className={styles.searchBar} data-route-context={routeContext} onSubmit={submit}>
       <div className={styles.searchPrimaryRow}>
         <div className={styles.queryFilter}>
           <label htmlFor="weekend-v2-query">¿Qué buscas?</label>
@@ -201,28 +209,45 @@ export default function WeekendSearchExperience({
       </div>
 
       <div className={styles.secondaryFilterFields} data-open={advancedOpen} id="weekend-v2-advanced-filters">
+        {routeContext === "public" ? (
+          <label>
+            Provincia
+            <select name="provincia" onChange={(event) => updateDraft("province", event.target.value)} value={draft.province}>
+              <option value="">Toda España</option>
+              {publicOptions?.provinceOptions.map((item) => <option key={item.key} value={item.key}>{item.label} ({item.count})</option>)}
+            </select>
+          </label>
+        ) : null}
         <label>
           Disciplina
           <select
-            name="discipline"
+            name={routeContext === "public" ? "disciplina" : "discipline"}
             onChange={(event) => updateDraft("discipline", event.target.value)}
             value={draft.discipline}
           >
             <option value="">Todas</option>
-            {WEEKEND_DISCIPLINES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {routeContext === "public"
+              ? publicOptions?.disciplineOptions.map((item) => <option key={item.key} value={item.key}>{item.label} ({item.count})</option>)
+              : WEEKEND_DISCIPLINES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </label>
-        <label>
-          Vehículo
-          <select
-            name="vehicle"
-            onChange={(event) => updateDraft("vehicle", event.target.value)}
-            value={draft.vehicle}
-          >
-            <option value="">Todos</option>
-            {WEEKEND_VEHICLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-        </label>
+        {routeContext === "public" ? (
+          <label>
+            Tipo
+            <select name="tipo" onChange={(event) => updateDraft("family", event.target.value as WeekendSearchValues["family"])} value={draft.family}>
+              <option value="">Todos</option>
+              {publicOptions?.families.map((item) => <option key={item.id} value={item.id}>{item.label} ({item.count})</option>)}
+            </select>
+          </label>
+        ) : (
+          <label>
+            Vehículo
+            <select name="vehicle" onChange={(event) => updateDraft("vehicle", event.target.value)} value={draft.vehicle}>
+              <option value="">Todos</option>
+              {WEEKEND_VEHICLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+          </label>
+        )}
         <button className={styles.secondaryButton} onClick={clearAll} type="button">Limpiar filtros</button>
       </div>
     </form>

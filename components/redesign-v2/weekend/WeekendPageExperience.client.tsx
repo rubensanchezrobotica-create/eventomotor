@@ -2,24 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
+import type { WeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
 import WeekendEventCard from "./WeekendEventCard";
 import WeekendSearchExperience, { type WeekendSearchValues } from "./WeekendSearchExperience.client";
 import {
   buildWeekendDayCounts,
+  buildPublicWeekendDayCounts,
+  buildPublicWeekendResults,
   buildWeekendResults,
   formatWeekendDayDate,
   formatWeekendRangeLabel,
   paginateWeekendEvents,
+  parsePublicWeekendUrlState,
   parseWeekendUrlState,
+  PUBLIC_WEEKEND_ROUTE,
+  serializePublicWeekendUrlState,
   serializeWeekendUrlState,
   WEEKEND_PAGE_SIZE,
   WEEKEND_ROUTE,
   weekendTodayDay,
   type WeekendDay,
   type WeekendRange,
+  type WeekendRouteContext,
   type WeekendUrlState,
 } from "./weekend-page-model";
 import { diversifyWeekendVisibleImages } from "./weekend-visible-images";
@@ -30,14 +37,20 @@ type WeekendPageExperienceProps = {
   imageByEventId: Record<string, ResolvedEventImage>;
   initialState: WeekendUrlState;
   nowIso: string;
+  publicOptions?: Pick<WeekendPreviewData, "disciplineOptions" | "families" | "provinceOptions">;
   range: WeekendRange;
+  routeContext: WeekendRouteContext;
 };
 
-const dayOptions: ReadonlyArray<{ day: WeekendDay; label: string }> = [
+const previewDayOptions: ReadonlyArray<{ day: WeekendDay; label: string }> = [
   { day: "all", label: "Todos" },
   { day: "fri", label: "Viernes" },
   { day: "sat", label: "Sábado" },
   { day: "sun", label: "Domingo" },
+];
+const publicDayOptions: ReadonlyArray<{ day: WeekendDay; label: string }> = [
+  ...previewDayOptions,
+  { day: "multi", label: "Varios días" },
 ];
 
 const mobileDayLabels: Readonly<Record<WeekendDay, string>> = {
@@ -45,6 +58,7 @@ const mobileDayLabels: Readonly<Record<WeekendDay, string>> = {
   fri: "Vie",
   sat: "Sáb",
   sun: "Dom",
+  multi: "Varios",
 };
 
 const resultHeadingContexts: Readonly<Record<WeekendDay, string>> = {
@@ -52,6 +66,7 @@ const resultHeadingContexts: Readonly<Record<WeekendDay, string>> = {
   fri: "este viernes",
   sat: "este sábado",
   sun: "este domingo",
+  multi: "de varios días",
 };
 
 function formatEventCount(total: number) {
@@ -69,18 +84,26 @@ function dayDate(day: WeekendDay, range: WeekendRange) {
   return null;
 }
 
-export default function WeekendPageExperience({ events, imageByEventId, initialState, nowIso, range }: WeekendPageExperienceProps) {
+export default function WeekendPageExperience({ events, imageByEventId, initialState, nowIso, publicOptions, range, routeContext }: WeekendPageExperienceProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const routePath = routeContext === "public" ? PUBLIC_WEEKEND_ROUTE : WEEKEND_ROUTE;
+  const dayOptions = routeContext === "public" ? publicDayOptions : previewDayOptions;
+  const serializeState = routeContext === "public" ? serializePublicWeekendUrlState : serializeWeekendUrlState;
   const resultsRef = useRef<HTMLElement | null>(null);
   const pendingPaginationScroll = useRef(false);
-  const state = useMemo(
-    () => searchParams.toString() ? parseWeekendUrlState(searchParams) : initialState,
-    [initialState, searchParams],
-  );
-  const dayCounts = useMemo(() => buildWeekendDayCounts(events, state, range), [events, range, state]);
-  const filteredEvents = useMemo(() => buildWeekendResults(events, state, range), [events, range, state]);
+  const state = useMemo(() => {
+    const parsed = routeContext === "public"
+      ? parsePublicWeekendUrlState(searchParams)
+      : parseWeekendUrlState(searchParams);
+    return serializeState(initialState) === searchParams.toString() ? initialState : parsed;
+  }, [initialState, routeContext, searchParams, serializeState]);
+  const dayCounts = useMemo(() => routeContext === "public"
+    ? buildPublicWeekendDayCounts(events, state, range)
+    : { ...buildWeekendDayCounts(events, state, range), multi: 0 }, [events, range, routeContext, state]);
+  const filteredEvents = useMemo(() => routeContext === "public"
+    ? buildPublicWeekendResults(events, state, range)
+    : buildWeekendResults(events, state, range), [events, range, routeContext, state]);
   const pagination = useMemo(
     () => paginateWeekendEvents(filteredEvents, state.page, WEEKEND_PAGE_SIZE),
     [filteredEvents, state.page],
@@ -97,14 +120,14 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
     [pagination.page, state],
   );
   const todayDay = weekendTodayDay(range);
-  const hasSearchFilters = Boolean(state.q || state.discipline || state.vehicle);
+  const hasSearchFilters = Boolean(state.q || state.discipline || state.vehicle || state.province || state.family);
 
   useEffect(() => {
     const currentQuery = searchParams.toString();
-    const canonicalQuery = serializeWeekendUrlState(normalizedState);
+    const canonicalQuery = serializeState(normalizedState);
     if (currentQuery === canonicalQuery) return;
-    router.replace(canonicalQuery ? `${pathname}?${canonicalQuery}` : pathname, { scroll: false });
-  }, [normalizedState, pathname, router, searchParams]);
+    router.replace(canonicalQuery ? `${routePath}?${canonicalQuery}` : routePath, { scroll: false });
+  }, [normalizedState, routePath, router, searchParams, serializeState]);
 
   useEffect(() => {
     if (!pendingPaginationScroll.current) return;
@@ -116,8 +139,8 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   }, [state.page]);
 
   function navigate(next: WeekendUrlState) {
-    const query = serializeWeekendUrlState(next);
-    router.push(query ? `${WEEKEND_ROUTE}?${query}` : WEEKEND_ROUTE, { scroll: false });
+    const query = serializeState(next);
+    router.push(query ? `${routePath}?${query}` : routePath, { scroll: false });
   }
 
   function applySearch(values: WeekendSearchValues) {
@@ -126,12 +149,14 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
       q: values.q.trim().slice(0, 80),
       discipline: values.discipline,
       vehicle: values.vehicle,
+      province: values.province ?? "",
+      family: values.family ?? "",
       page: 1,
     };
     navigate(next);
     trackEvent("search_events", { page_path: currentPagePath(), source: "redesign_v2_weekend" });
     if (next.discipline !== state.discipline) trackEvent("filter_discipline", { discipline: next.discipline || "all", page_path: currentPagePath() });
-    if (next.vehicle !== state.vehicle) trackEvent("filter_vehicle_type", { vehicle_type: next.vehicle || "all", page_path: currentPagePath() });
+    if (routeContext === "preview" && next.vehicle !== state.vehicle) trackEvent("filter_vehicle_type", { vehicle_type: next.vehicle || "all", page_path: currentPagePath() });
   }
 
   function clearFilters() {
@@ -139,7 +164,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   }
 
   function clearEmptySearchFilters() {
-    navigate({ ...state, q: "", discipline: "", vehicle: "", page: 1 });
+    navigate({ ...state, q: "", discipline: "", vehicle: "", province: "", family: "", page: 1 });
   }
 
   function clearQuery() {
@@ -162,13 +187,15 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   }
 
   return (
-    <section aria-label="Eventos de motor del fin de semana" className={styles.weekendSection}>
+    <section aria-label="Eventos de motor del fin de semana" className={styles.weekendSection} data-route-context={routeContext}>
       <WeekendSearchExperience
         events={events}
-        key={`${state.q}|${state.discipline}|${state.vehicle}`}
+        key={`${state.q}|${state.discipline}|${state.vehicle}|${state.province}|${state.family}`}
         onApply={applySearch}
         onClearAll={clearFilters}
         onClearQuery={clearQuery}
+        publicOptions={publicOptions}
+        routeContext={routeContext}
         state={state}
       />
 
@@ -205,7 +232,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
 
         {pagination.visible.length ? (
           <div className={styles.eventGrid}>
-            {pagination.visible.map((event, index) => <WeekendEventCard event={event} image={visibleImages[index]} key={event.id} nowIso={nowIso} />)}
+            {pagination.visible.map((event, index) => <WeekendEventCard event={event} image={visibleImages[index]} key={event.id} nowIso={nowIso} routeContext={routeContext} />)}
           </div>
         ) : (
           <div className={styles.emptyState}>
@@ -218,8 +245,8 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
         {pagination.pageCount > 1 ? (
           <nav aria-label="Paginación de eventos del fin de semana" className={styles.pagination}>
             {Array.from({ length: pagination.pageCount }, (_, index) => index + 1).map((page) => {
-              const query = serializeWeekendUrlState({ ...normalizedState, page });
-              return <a aria-current={page === pagination.page ? "page" : undefined} href={query ? `${pathname}?${query}` : pathname} key={page} onClick={(event) => { event.preventDefault(); changePage(page); }}>{page}</a>;
+              const query = serializeState({ ...normalizedState, page });
+              return <a aria-current={page === pagination.page ? "page" : undefined} href={query ? `${routePath}?${query}` : routePath} key={page} onClick={(event) => { event.preventDefault(); changePage(page); }}>{page}</a>;
             })}
           </nav>
         ) : null}
@@ -227,7 +254,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
 
       <aside className={styles.calendarCta}>
         <div><span>Más allá del domingo</span><h2>Planifica todo el mes</h2><p>Consulta la agenda completa por fecha, disciplina y vehículo.</p></div>
-        <Link href="/preview/redesign-v2/calendario">Abrir calendario <span aria-hidden="true">→</span></Link>
+        <Link href={routeContext === "public" ? "/calendario" : "/preview/redesign-v2/calendario"}>Abrir calendario <span aria-hidden="true">→</span></Link>
       </aside>
       <p aria-live="polite" className={styles.visuallyHidden}>{formatEventCount(pagination.total)} en la selección actual</p>
     </section>

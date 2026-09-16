@@ -9,6 +9,7 @@ import {
   type PreviewEvent,
   type ResolvedEventImage,
 } from "../redesign-v2-model";
+import type { WeekendRouteContext } from "./weekend-page-model";
 import {
   formatWeekendDisciplineLabel,
   formatWeekendEventDate,
@@ -19,10 +20,13 @@ type WeekendEventCardProps = {
   event: PreviewEvent;
   image: ResolvedEventImage;
   nowIso: string;
+  routeContext: WeekendRouteContext;
 };
 
-export default function WeekendEventCard({ event, image, nowIso }: WeekendEventCardProps) {
-  const href = previewEventHref(event);
+export default function WeekendEventCard({ event, image, nowIso, routeContext }: WeekendEventCardProps) {
+  const href = routeContext === "public" ? `/evento/${event.slug || event.id}` : previewEventHref(event);
+  const analyticsSource = routeContext === "public" ? "weekend_public_results" : "redesign_v2_weekend";
+  const eventName = routeContext === "public" ? "click_event_detail" : "view_event";
   const location = [event.venue, event.city, event.province].filter(Boolean).join(" · ");
   const savedEvent = {
     slug: event.slug || event.id,
@@ -41,8 +45,8 @@ export default function WeekendEventCard({ event, image, nowIso }: WeekendEventC
       <TrackLink
         aria-label={`Ver ${event.title}`}
         className={styles.eventImageLink}
-        eventName="view_event"
-        eventParams={{ ...eventAnalyticsParams(event), source: "redesign_v2_weekend" }}
+        eventName={eventName}
+        eventParams={{ ...eventAnalyticsParams(event), source: analyticsSource }}
         href={href}
       >
         <span className={styles.imageSurface}>
@@ -67,17 +71,17 @@ export default function WeekendEventCard({ event, image, nowIso }: WeekendEventC
           <span className={styles.eventStatus}>{previewEventStatus(event, nowIso)}</span>
         </div>
         <p className={styles.eventDate}>{formatWeekendEventDate(event)}</p>
-        <h3><TrackLink eventName="view_event" eventParams={{ ...eventAnalyticsParams(event), source: "redesign_v2_weekend" }} href={href}>{event.title}</TrackLink></h3>
+        <h3><TrackLink eventName={eventName} eventParams={{ ...eventAnalyticsParams(event), source: analyticsSource }} href={href}>{event.title}</TrackLink></h3>
         {location ? <p className={styles.eventLocation}>{location}</p> : null}
         {event.vehicleType ? <p className={styles.vehicleLabel}>{event.vehicleType}</p> : null}
       </div>
 
       <div className={styles.eventCardActions}>
-        <TrackLink className={styles.eventDetailLink} eventName="view_event" eventParams={{ ...eventAnalyticsParams(event), source: "redesign_v2_weekend" }} href={href}>
+        <TrackLink className={styles.eventDetailLink} eventName={eventName} eventParams={{ ...eventAnalyticsParams(event), source: analyticsSource }} href={href}>
           Ver evento <span aria-hidden="true">→</span>
         </TrackLink>
         <div aria-label={`Acciones para ${event.title}`} className={styles.retentionActions}>
-          <EventRetentionActions calendarLabel="Añadir al calendario" compactIcons directChildren event={savedEvent} source="redesign_v2_weekend" />
+          <EventRetentionActions calendarLabel="Añadir al calendario" compactIcons directChildren event={savedEvent} source={analyticsSource} />
         </div>
       </div>
     </article>

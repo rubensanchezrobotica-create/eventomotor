@@ -1,12 +1,22 @@
 import type { PreviewEvent } from "../redesign-v2-model";
 import {
+  filterWeekendEvents as filterLegacyWeekendEvents,
+  getWeekendDayCounts as getLegacyWeekendDayCounts,
+  parseWeekendFilters,
+  type WeekendFamilyId,
+  type WeekendFilters,
+  type WeekendRange as LegacyWeekendRange,
+} from "@/components/preview/weekend/weekend-preview-model";
+import {
   addCalendarDays,
   isCalendarDateKey,
   madridCalendarDateKey,
 } from "../calendar/calendar-page-model";
 
 export const WEEKEND_ROUTE = "/preview/redesign-v2/eventos-motor-este-fin-de-semana";
+export const PUBLIC_WEEKEND_ROUTE = "/eventos-motor-este-fin-de-semana";
 export const WEEKEND_PAGE_SIZE = 12;
+export type WeekendRouteContext = "public" | "preview";
 
 export const WEEKEND_DISCIPLINES = [
   { value: "rallyes", label: "Rallyes", terms: ["rally", "rallye", "rallysprint", "subida", "montana"] },
@@ -26,7 +36,7 @@ export const WEEKEND_VEHICLES = [
   { value: "otros", label: "Otros" },
 ] as const;
 
-export type WeekendDay = "all" | "fri" | "sat" | "sun";
+export type WeekendDay = "all" | "fri" | "sat" | "sun" | "multi";
 
 export type WeekendRange = {
   today: string;
@@ -43,6 +53,13 @@ export type WeekendUrlState = {
   vehicle: string;
   day: WeekendDay;
   page: number;
+  province?: string;
+  family?: WeekendFamilyId | "";
+};
+
+export type PublicWeekendUrlState = WeekendUrlState & {
+  province: string;
+  family: WeekendFamilyId | "";
 };
 
 export type WeekendQueryRecord = Record<string, string | string[] | undefined>;
@@ -143,6 +160,16 @@ export function calculateWeekendRange(now: string | Date = new Date()): WeekendR
   return { today, start: friday, end: sunday, friday, saturday, sunday };
 }
 
+// La ruta pública histórica avanza al siguiente fin de semana al llegar el domingo.
+export function calculatePublicWeekendRange(now: string | Date = new Date()): WeekendRange {
+  const previewRange = calculateWeekendRange(now);
+  if (previewRange.today !== previewRange.sunday) return previewRange;
+  const friday = addCalendarDays(previewRange.friday, 7);
+  const saturday = addCalendarDays(friday, 1);
+  const sunday = addCalendarDays(friday, 2);
+  return { ...previewRange, start: friday, end: sunday, friday, saturday, sunday };
+}
+
 export function eventIntersectsWeekend(event: PreviewEvent, range: WeekendRange): boolean {
   const dates = eventRange(event);
   return Boolean(dates && dates.start <= range.end && dates.end >= range.start);
@@ -150,6 +177,10 @@ export function eventIntersectsWeekend(event: PreviewEvent, range: WeekendRange)
 
 export function eventMatchesWeekendDay(event: PreviewEvent, day: WeekendDay, range: WeekendRange): boolean {
   if (day === "all") return eventIntersectsWeekend(event, range);
+  if (day === "multi") {
+    const dates = eventRange(event);
+    return Boolean(dates && dates.start < dates.end && eventIntersectsWeekend(event, range));
+  }
   const target = day === "fri" ? range.friday : day === "sat" ? range.saturday : range.sunday;
   const dates = eventRange(event);
   return Boolean(dates && dates.start <= target && dates.end >= target);
@@ -185,6 +216,82 @@ export function serializeWeekendUrlState(state: WeekendUrlState): string {
   return params.toString();
 }
 
+const PUBLIC_DAY_TO_V2 = {
+  todos: "all",
+  viernes: "fri",
+  sabado: "sat",
+  domingo: "sun",
+  varios: "multi",
+} as const satisfies Record<WeekendFilters["day"], WeekendDay>;
+
+const V2_DAY_TO_PUBLIC = {
+  all: "todos",
+  fri: "viernes",
+  sat: "sabado",
+  sun: "domingo",
+  multi: "varios",
+} as const satisfies Record<WeekendDay, WeekendFilters["day"]>;
+
+export function parsePublicWeekendUrlState(query: WeekendQueryRecord | URLSearchParams): PublicWeekendUrlState {
+  const legacyQuery: WeekendQueryRecord = Object.fromEntries(
+    ["q", "provincia", "disciplina", "dia", "tipo"].map((name) => [name, readQuery(query, name)]),
+  );
+  const filters = parseWeekendFilters(legacyQuery);
+  const rawPage = Number.parseInt(readQuery(query, "page"), 10);
+  return {
+    q: filters.query.slice(0, 80),
+    discipline: filters.discipline,
+    vehicle: "",
+    day: PUBLIC_DAY_TO_V2[filters.day],
+    page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
+    province: filters.province,
+    family: filters.family,
+  };
+}
+
+export function serializePublicWeekendUrlState(state: WeekendUrlState): string {
+  const params = new URLSearchParams();
+  if (state.q) params.set("q", state.q);
+  if (state.province) params.set("provincia", state.province);
+  if (state.discipline) params.set("disciplina", state.discipline);
+  if (state.day !== "all") params.set("dia", V2_DAY_TO_PUBLIC[state.day]);
+  if (state.family) params.set("tipo", state.family);
+  if (state.page > 1) params.set("page", String(state.page));
+  return params.toString();
+}
+
+function legacyRange(range: WeekendRange): LegacyWeekendRange {
+  return { friday: range.friday, saturday: range.saturday, sunday: range.sunday };
+}
+
+function legacyFilters(state: WeekendUrlState): WeekendFilters {
+  return {
+    query: state.q,
+    province: state.province ?? "",
+    discipline: state.discipline,
+    family: state.family ?? "",
+    day: V2_DAY_TO_PUBLIC[state.day],
+  };
+}
+
+export function buildPublicWeekendResults<T extends PreviewEvent>(
+  events: readonly T[],
+  state: WeekendUrlState,
+  range: WeekendRange,
+): T[] {
+  return filterLegacyWeekendEvents(events, legacyFilters(state), legacyRange(range));
+}
+
+export function buildPublicWeekendDayCounts(
+  events: readonly PreviewEvent[],
+  state: WeekendUrlState,
+  range: WeekendRange,
+): Record<WeekendDay, number> {
+  const filtered = filterLegacyWeekendEvents(events, { ...legacyFilters(state), day: "todos" }, legacyRange(range));
+  const counts = getLegacyWeekendDayCounts(filtered, legacyRange(range));
+  return { all: counts.todos, fri: counts.viernes, sat: counts.sabado, sun: counts.domingo, multi: counts.varios };
+}
+
 export function countWeekendSecondaryFilters(state: Pick<WeekendUrlState, "discipline" | "vehicle">): number {
   return [state.discipline, state.vehicle].filter(Boolean).length;
 }
@@ -212,7 +319,7 @@ export function buildWeekendDayCounts(
   events: readonly PreviewEvent[],
   state: Pick<WeekendUrlState, "q" | "discipline" | "vehicle">,
   range: WeekendRange,
-): Record<WeekendDay, number> {
+): Record<Exclude<WeekendDay, "multi">, number> {
   const filtered = filterWeekendEvents(events, state);
   return {
     all: filtered.length,

@@ -47,6 +47,11 @@ export type WeekendPreviewData = {
   updatedLabel: string;
 };
 
+type WeekendFilterableEvent = Pick<
+  EventItem,
+  "title" | "championship" | "discipline" | "start" | "end" | "venue" | "city" | "province" | "region" | "tags"
+> & { vehicleType?: string; vehicle_type?: string };
+
 export const DEFAULT_WEEKEND_FILTERS: WeekendFilters = {
   day: "todos",
   discipline: "",
@@ -183,29 +188,29 @@ export function getWeekendRange(now: Date): WeekendRange {
   };
 }
 
-function eventStart(event: EventItem) {
+function eventStart(event: WeekendFilterableEvent) {
   return toDate(event.start);
 }
 
-function eventEnd(event: EventItem) {
+function eventEnd(event: WeekendFilterableEvent) {
   return toDate(event.end || event.start);
 }
 
-export function eventOverlapsDate(event: EventItem, date: string) {
+export function eventOverlapsDate(event: WeekendFilterableEvent, date: string) {
   const day = toDate(date).getTime();
   return eventStart(event).getTime() <= day && eventEnd(event).getTime() >= day;
 }
 
-export function isMultiDayWeekendEvent(event: EventItem) {
+export function isMultiDayWeekendEvent(event: WeekendFilterableEvent) {
   return eventEnd(event).getTime() > eventStart(event).getTime();
 }
 
-export function isEventInWeekendRange(event: EventItem, range: WeekendRange) {
+export function isEventInWeekendRange(event: WeekendFilterableEvent, range: WeekendRange) {
   return eventStart(event).getTime() <= toDate(range.sunday).getTime()
     && eventEnd(event).getTime() >= toDate(range.friday).getTime();
 }
 
-function eventSearchText(event: EventItem) {
+function eventSearchText(event: WeekendFilterableEvent) {
   return normalizeWeekendText([
     event.title,
     event.championship,
@@ -224,7 +229,7 @@ function includesAny(text: string, terms: string[]) {
   return terms.some((term) => text.includes(normalizeWeekendText(term)));
 }
 
-function eventFamilyText(event: EventItem) {
+function eventFamilyText(event: WeekendFilterableEvent) {
   return normalizeWeekendText([
     event.discipline,
     event.title,
@@ -232,16 +237,16 @@ function eventFamilyText(event: EventItem) {
   ].join(" "));
 }
 
-export function classifyWeekendFamily(event: EventItem): WeekendFamilyId {
+export function classifyWeekendFamily(event: WeekendFilterableEvent): WeekendFamilyId {
   const text = eventFamilyText(event);
   return FAMILY_TERMS.find(({ terms }) => includesAny(text, terms))?.id || "otros";
 }
 
-export function eventMatchesWeekendFamily(event: EventItem, family: WeekendFamilyId) {
+export function eventMatchesWeekendFamily(event: WeekendFilterableEvent, family: WeekendFamilyId) {
   return classifyWeekendFamily(event) === family;
 }
 
-function dayMatches(event: EventItem, day: WeekendDayFilter, range: WeekendRange) {
+function dayMatches(event: WeekendFilterableEvent, day: WeekendDayFilter, range: WeekendRange) {
   if (day === "todos") return true;
   if (day === "varios") return isMultiDayWeekendEvent(event);
   if (day === "viernes") return eventOverlapsDate(event, range.friday);
@@ -249,7 +254,7 @@ function dayMatches(event: EventItem, day: WeekendDayFilter, range: WeekendRange
   return eventOverlapsDate(event, range.sunday);
 }
 
-export function sortWeekendEvents(events: EventItem[]) {
+export function sortWeekendEvents<T extends WeekendFilterableEvent>(events: readonly T[]): T[] {
   return [...events].sort((left, right) => (
     left.start.localeCompare(right.start)
     || Number(isMultiDayWeekendEvent(right)) - Number(isMultiDayWeekendEvent(left))
@@ -258,11 +263,11 @@ export function sortWeekendEvents(events: EventItem[]) {
   ));
 }
 
-export function filterWeekendEvents(
-  events: EventItem[],
+export function filterWeekendEvents<T extends WeekendFilterableEvent>(
+  events: readonly T[],
   filters: WeekendFilters,
   range: WeekendRange,
-) {
+): T[] {
   const query = normalizeWeekendText(filters.query);
 
   return sortWeekendEvents(events.filter((event) => {
@@ -274,7 +279,7 @@ export function filterWeekendEvents(
   }));
 }
 
-export function getWeekendDayCounts(events: EventItem[], range: WeekendRange) {
+export function getWeekendDayCounts(events: readonly WeekendFilterableEvent[], range: WeekendRange) {
   return {
     todos: events.length,
     viernes: events.filter((event) => dayMatches(event, "viernes", range)).length,
@@ -318,8 +323,11 @@ function formatWeekendRangeLabel(range: WeekendRange) {
   return `Agenda del ${friday.getDate()} de ${fridayMonth} al ${sunday.getDate()} de ${sundayMonth}`;
 }
 
-export function buildWeekendPreviewData(events: EventItem[], now: Date): WeekendPreviewData {
-  const range = getWeekendRange(now);
+export function buildWeekendPreviewData(
+  events: EventItem[],
+  now: Date,
+  range = getWeekendRange(now),
+): WeekendPreviewData {
   const weekendEvents = sortWeekendEvents(events.filter((event) => isEventInWeekendRange(event, range)));
   const provinceOptions = buildOptions(weekendEvents, "province");
   const disciplineOptions = buildOptions(weekendEvents, "discipline");

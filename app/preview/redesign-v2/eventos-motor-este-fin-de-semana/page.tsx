@@ -52,7 +52,7 @@ export default async function WeekendPreviewPage({ searchParams }: WeekendPrevie
       title="Este fin de semana"
       upcomingCount={upcomingCount}
     >
-      <WeekendPageExperience events={weekendEvents} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} range={range} />
+      <WeekendPageExperience events={weekendEvents} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} range={range} routeContext="preview" />
     </V2PreviewShell>
   );
 }

@@ -42,7 +42,7 @@ test("el buscador conserva el lenguaje Home, autocomplete accesible y sólo dos 
   assert.match(search, /Escape/);
   assert.match(search, /role="combobox"/);
   assert.match(search, /role="listbox"/);
-  assert.match(search, /name="discipline"/);
+  assert.match(search, /name=\{routeContext === "public" \? "disciplina" : "discipline"\}/);
   assert.match(search, /name="vehicle"/);
   assert.doesNotMatch(search, /name="date"|name="place"|name="day"/);
 });
@@ -98,17 +98,17 @@ test("A3.1 deja Calendar en el módulo permanente y compacta el empty sin CTA du
   assert.doesNotMatch(experience, /Ver el calendario completo/);
   assert.doesNotMatch(experience, /aria-hidden="true">↗/);
   assert.match(experience, /Planifica todo el mes/);
-  assert.match(experience, /href="\/preview\/redesign-v2\/calendario">Abrir calendario/);
+  assert.match(experience, /routeContext === "public" \? "\/calendario" : "\/preview\/redesign-v2\/calendario"/);
   assert.match(styles, /\.emptyState\s*\{[\s\S]*?padding:\s*44px 20px/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.emptyState\s*\{[\s\S]*?padding:\s*30px 18px/);
 });
 
 test("A3.1 muestra limpiar sólo con filtros de búsqueda y conserva el día", () => {
   const clearEmpty = experience.slice(experience.indexOf("function clearEmptySearchFilters"), experience.indexOf("function clearQuery"));
-  assert.match(experience, /const hasSearchFilters = Boolean\(state\.q \|\| state\.discipline \|\| state\.vehicle\)/);
+  assert.match(experience, /const hasSearchFilters = Boolean\(state\.q \|\| state\.discipline \|\| state\.vehicle \|\| state\.province \|\| state\.family\)/);
   assert.match(experience, /hasSearchFilters \? "Prueba con otro día o elimina los filtros para ampliar la agenda\." : "Prueba con otro día para ampliar la agenda\."/);
   assert.match(experience, /\{hasSearchFilters \? <button[^>]+onClick=\{clearEmptySearchFilters\}[^>]*>Limpiar filtros<\/button> : null\}/);
-  assert.match(clearEmpty, /navigate\(\{ \.\.\.state, q: "", discipline: "", vehicle: "", page: 1 \}\)/);
+  assert.match(clearEmpty, /navigate\(\{ \.\.\.state, q: "", discipline: "", vehicle: "", province: "", family: "", page: 1 \}\)/);
   assert.doesNotMatch(clearEmpty, /day:/);
 });
 
@@ -180,7 +180,7 @@ test("A3.2 presenta un único H2 contextual con pluralización y sin count móvi
 });
 
 test("A3.3 mantiene Calendar y hace visible su flecha mediante currentColor", () => {
-  assert.match(experience, /href="\/preview\/redesign-v2\/calendario">Abrir calendario <span aria-hidden="true">→<\/span>/);
+  assert.match(experience, /routeContext === "public" \? "\/calendario" : "\/preview\/redesign-v2\/calendario"\}>Abrir calendario <span aria-hidden="true">→<\/span>/);
   assert.match(styles, /\.calendarCta a span\s*\{[\s\S]*?color:\s*currentColor/);
   assert.match(styles, /\.eventDetailLink span\s*\{\s*color:\s*#ff6200;\s*\}/);
   assert.match(card, /Ver evento <span aria-hidden="true">→<\/span>/);

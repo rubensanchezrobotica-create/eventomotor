@@ -247,7 +247,7 @@ test("no muestra estados editoriales internos en las tarjetas", async () => {
   assert.equal(weekendEventStatusLabel(eventFixture({ eventStatus: "cancelled" })), "Cancelado");
 });
 
-test("la ruta pública y la preview comparten la implementación sin perder SEO", () => {
+test("la ruta pública converge a Weekend V2 y la preview histórica conserva su implementación", () => {
   const publicRoute = readFileSync(
     path.join(process.cwd(), "app/eventos-motor-este-fin-de-semana/page.tsx"),
     "utf8",
@@ -262,7 +262,9 @@ test("la ruta pública y la preview comparten la implementación sin perder SEO"
   );
 
   assert.match(publicRoute, /buildOpportunityMetadata\(page\)/);
-  assert.match(publicRoute, /<WeekendPreviewPage/);
+  assert.match(publicRoute, /<WeekendPageExperience/);
+  assert.match(publicRoute, /<V2InteriorShell/);
+  assert.match(publicRoute, /<WeekendPublicEditorial/);
   assert.equal((publicRoute.match(/type="application\/ld\+json"/g) || []).length, 4);
   assert.match(previewRoute, /<WeekendPreviewPage/);
   assert.match(previewRoute, /isWeekendPreviewAvailable/);

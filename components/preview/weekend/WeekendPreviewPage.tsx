@@ -4,6 +4,7 @@ import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
 import { PUBLIC_NAVIGATION } from "@/lib/public-navigation";
 import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { WEEKEND_FAQS, WEEKEND_GUIDE_PARAGRAPHS, WEEKEND_SEO_LINKS } from "./weekend-public-content";
 import type { WeekendFilters, WeekendPreviewData } from "./weekend-preview-model";
 import WeekendExplorer from "./WeekendExplorer";
 import styles from "./WeekendPreview.module.css";
@@ -14,35 +15,7 @@ type WeekendPreviewPageProps = {
   pathname: string;
 };
 
-const SEO_LINKS = [
-  { label: "Calendario completo", href: PUBLIC_NAVIGATION.calendar },
-  { label: "Eventos en Madrid", href: "/eventos-motor-madrid" },
-  { label: "Eventos en Cataluña", href: "/eventos-motor-cataluna" },
-  { label: "Eventos en Comunidad Valenciana", href: "/eventos-motor-comunidad-valenciana" },
-  { label: "Eventos en Andalucía", href: "/eventos-motor-andalucia" },
-  { label: "Rallyes en España", href: "/rallyes-espana-2026" },
-  { label: "Concentraciones moteras", href: "/concentraciones-moteras-2026" },
-  { label: "Trackdays", href: "/trackdays-espana-2026" },
-];
-
-export const WEEKEND_FAQS = [
-  {
-    question: "¿Qué eventos de motor hay este fin de semana?",
-    answer: "La agenda reúne los eventos visibles que coinciden con el viernes, sábado o domingo más próximo, incluidos los que abarcan varios días.",
-  },
-  {
-    question: "¿Cómo encontrar eventos por provincia?",
-    answer: "Selecciona una provincia en los filtros o utiliza uno de los accesos territoriales con más actividad para actualizar el listado.",
-  },
-  {
-    question: "¿Cuándo se actualiza la agenda?",
-    answer: "La página utiliza los eventos actualmente publicados en EventoMotor. Antes de desplazarte, consulta siempre la ficha y la fuente oficial disponible.",
-  },
-  {
-    question: "¿Cómo publicar un evento en EventoMotor?",
-    answer: "Utiliza el flujo de Publicar evento. La información enviada se revisa antes de incorporarse al calendario público.",
-  },
-];
+export { WEEKEND_FAQS } from "./weekend-public-content";
 
 export default function WeekendPreviewPage({
   data,
@@ -129,18 +102,9 @@ export default function WeekendPreviewPage({
             <article className={styles.seoCopy}>
               <span className={styles.eyebrow}>Guía de la agenda</span>
               <h2>Sobre esta agenda</h2>
-              <p>
-                Esta selección reúne eventos publicados para el viernes, sábado y domingo más
-                próximo. Incluye competiciones, concentraciones, motoalmuerzos, rutas, tandas,
-                ferias, clásicos y otros encuentros de motor.
-              </p>
-              <p>
-                Los datos proceden de las fichas visibles en EventoMotor. Fechas, programas,
-                inscripciones o ubicaciones pueden cambiar, por lo que recomendamos revisar la
-                fuente oficial de cada evento antes de iniciar el desplazamiento.
-              </p>
+              {WEEKEND_GUIDE_PARAGRAPHS.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
               <div className={styles.seoLinks}>
-                {SEO_LINKS.map((link) => (
+                {WEEKEND_SEO_LINKS.map((link) => (
                   <Link href={link.href} key={link.href}>{link.label}</Link>
                 ))}
                 <Link href="/publicar-evento">Publicar un evento</Link>
