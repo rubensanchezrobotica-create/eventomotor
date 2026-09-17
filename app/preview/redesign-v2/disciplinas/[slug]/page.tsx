@@ -73,7 +73,7 @@ export default async function DisciplineDetailPreviewPage({
         title={definition.title}
         upcomingCount={model.siteUpcomingCount}
       >
-        <DisciplineDetailPage model={model} nowIso={now.toISOString()} />
+        <DisciplineDetailPage model={model} nowIso={now.toISOString()} routeContext="preview" />
       </V2PreviewShell>
     </div>
   );

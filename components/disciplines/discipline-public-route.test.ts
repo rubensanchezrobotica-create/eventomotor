@@ -27,14 +27,20 @@ const sitemapSource = readFileSync(
   "utf8",
 );
 
-test("pública y preview comparten página, modelo, filtros y carga de eventos", () => {
-  for (const source of [publicRouteSource, previewRouteSource]) {
-    assert.match(source, /DisciplinePreviewPage/);
-    assert.match(source, /buildDisciplinePreviewData/);
-    assert.match(source, /parseDisciplineFilters/);
-    assert.match(source, /getVisibleEvents/);
-  }
-  assert.match(publicRouteSource, /mode="public"/);
+test("la pública converge a V2 sin cambiar el contrato de filtros y la preview histórica", () => {
+  assert.match(publicRouteSource, /DisciplineDetailPage/);
+  assert.match(publicRouteSource, /V2InteriorShell/);
+  assert.match(publicRouteSource, /navigationMode="public"/);
+  assert.match(publicRouteSource, /routeContext="public"/);
+  assert.match(publicRouteSource, /buildDisciplinePreviewData/);
+  assert.match(publicRouteSource, /parseDisciplineFilters/);
+  assert.match(publicRouteSource, /buildPublicDisciplineDetailPageModel/);
+  assert.match(publicRouteSource, /getVisibleEvents/);
+  assert.doesNotMatch(publicRouteSource, /DisciplinePreviewPage/);
+  assert.match(previewRouteSource, /DisciplinePreviewPage/);
+  assert.match(previewRouteSource, /buildDisciplinePreviewData/);
+  assert.match(previewRouteSource, /parseDisciplineFilters/);
+  assert.match(previewRouteSource, /getVisibleEvents/);
   assert.match(previewRouteSource, /mode="preview"/);
 });
 
@@ -57,7 +63,7 @@ test("los enlaces y la analítica cambian de base sin duplicar componentes", () 
   assert.match(eventCardSource, /ZoneEventCard/);
 });
 
-test("el contenido editorial, FAQ e históricos permanecen en el árbol SSR compartido", () => {
+test("la preview histórica conserva contenido editorial, FAQ e históricos", () => {
   assert.match(pageSource, /introParagraphs\(data\.discipline\.intro\)/);
   assert.match(pageSource, /DisciplineSeoDisclosure/);
   assert.match(pageSource, /Preguntas frecuentes/);

@@ -150,12 +150,13 @@ test("A6 presenta hero compacto, jerarquía única y eventos antes de conversió
   assert.match(styles, /font-size:\s*clamp\(1\.625rem,\s*8vw,\s*2\.4rem\)/);
   assert.match(styles, /\.resultsHeader h2[\s\S]*overflow-wrap:\s*anywhere/);
   assert.match(styles, /min-height:\s*286px/);
-  assert.match(component, /Próximos eventos de \{model\.definition\.title\}/);
+  assert.match(component, /: `Próximos eventos de \$\{model\.definition\.title\}`/);
+  assert.match(component, /<h2 id="discipline-detail-results">\s*\{resultTitle\}/);
   assert.doesNotMatch(component, /precio|organizador|horario/i);
 });
 
 test("A6.3.2 sitúa el CTA de Calendar después de paginación y antes de Compact Agenda", () => {
-  const paginationPosition = component.indexOf("<Pagination model={model} />");
+  const paginationPosition = component.indexOf("<Pagination model={model} publicFilters={publicFilters} routeContext={routeContext} />");
   const calendarCtaPosition = component.indexOf("className={styles.calendarLink}");
   const compactAgendaPosition = component.indexOf("<CompactAgendaSignup");
 
@@ -164,8 +165,9 @@ test("A6.3.2 sitúa el CTA de Calendar después de paginación y antes de Compac
   assert.ok(calendarCtaPosition < compactAgendaPosition);
   assert.match(
     component,
-    /\{model\.items\.length \? \([\s\S]*className=\{styles\.calendarLink\}[\s\S]*href="\/preview\/redesign-v2\/calendario"[\s\S]*Ver calendario completo <span aria-hidden="true">→<\/span>[\s\S]*\) : null\}/,
+    /\{model\.items\.length \? \([\s\S]*className=\{styles\.calendarLink\}[\s\S]*href=\{calendarHref\}[\s\S]*Ver calendario completo <span aria-hidden="true">→<\/span>[\s\S]*\) : null\}/,
   );
+  assert.match(component, /routeContext === "public" \? "\/calendario" : "\/preview\/redesign-v2\/calendario"/);
   assert.match(styles, /\.calendarLink\s*\{[\s\S]*margin-top:\s*32px/);
   assert.doesNotMatch(
     component,
@@ -229,9 +231,10 @@ test("A6.2 usa un formulario GET accesible, resetea page y conserva la query vis
 });
 
 test("A6.2 preserva q sólo en paginación, mantiene fichas limpias y separa el empty filtrado", () => {
-  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, model\.page - 1, model\.query\)/);
-  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, item, model\.query\)/);
-  assert.match(component, /disciplineDetailPageHref\(model\.definition\.slug, model\.page \+ 1, model\.query\)/);
+  assert.match(component, /: disciplineDetailPageHref\(model\.definition\.slug, page, model\.query\)/);
+  assert.match(component, /href\(model\.page - 1\)/);
+  assert.match(component, /href\(item\)/);
+  assert.match(component, /href\(model\.page \+ 1\)/);
   assert.match(component, /No hemos encontrado próximos eventos para/);
   assert.match(component, /0 resultados para/);
   assert.match(component, /1 resultado para/);
@@ -328,8 +331,8 @@ test("A10D-R6 mantiene aislado Discipline Detail y admite Archivo en el H1 de Ca
   assert.equal((sharedShellStyles.match(/var\(--font-v2-display-pilot\)/g) ?? []).length, 1);
 });
 
-test("A6.3.3P2 aplica Archivo sólo al H1 compartido y al H2 de resultados", () => {
-  assert.equal((styles.match(/var\(--font-v2-display-pilot\)/g) || []).length, 2);
+test("A10F conserva Archivo en H1 y resultados y lo extiende a los H2 editoriales públicos", () => {
+  assert.equal((styles.match(/var\(--font-v2-display-pilot\)/g) || []).length, 3);
   assert.match(
     styles,
     /\.resultsHeader h2\s*\{[\s\S]*font-family:\s*var\(--font-v2-display-pilot\),\s*"Arial Narrow",\s*Arial,\s*sans-serif;[\s\S]*font-style:\s*normal;[\s\S]*font-stretch:\s*condensed;[\s\S]*font-weight:\s*900;/,
