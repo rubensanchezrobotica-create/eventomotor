@@ -44,5 +44,5 @@ export default async function EventDetailPreviewPage({ params }: EventDetailPrev
   });
   if (!model) notFound();
 
-  return <EventDetailV2 model={model} />;
+  return <EventDetailV2 model={model} routeContext="preview" />;
 }

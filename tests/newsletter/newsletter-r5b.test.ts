@@ -403,7 +403,7 @@ test("off y el canario no exponen superficies públicas ni crean servicio fuera 
 
   const home = source("app/page.tsx");
   const eventPage = source("app/evento/[slug]/page.tsx");
-  const eventView = source("components/events/detail/EventDetailView.tsx");
+  const eventView = source("components/redesign-v2/event-detail/EventDetailV2.tsx");
   const footer = source("components/public/concept/ConceptFooter.tsx");
   const redesignHome = source("components/redesign-v2/RedesignV2Home.tsx");
   for (const file of [home, eventPage, eventView, footer]) {
@@ -411,7 +411,7 @@ test("off y el canario no exponen superficies públicas ni crean servicio fuera 
   }
   assert.match(home, /newsletterVisible={newsletterPublicLaunchEnabled}/);
   assert.match(redesignHome, /newsletterVisible \? <section className={styles\.newsletterSection}/);
-  assert.match(eventView, /newsletterPublicLaunchEnabled\s*\?\s*\(/);
+  assert.match(eventView, /routeContext === "preview" \|\| publicContext\?\.newsletterPublicLaunchEnabled \? \(/);
   assert.match(
     footer,
     /newsletterPublicLaunchEnabled && column\.id === "organizers"/,
@@ -426,7 +426,7 @@ test("landing, captación y primera capa legal conservan sus contratos públicos
   const home = source("app/page.tsx");
   const event = [
     source("app/evento/[slug]/page.tsx"),
-    source("components/events/detail/EventDetailView.tsx"),
+    source("components/redesign-v2/event-detail/EventDetailV2.tsx"),
   ].join("\n");
   const footer = source("components/public/concept/ConceptFooter.tsx");
   const emails = [

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
+import { buildRelatedEventDetails } from "@/components/events/detail/event-detail-model";
 import {
   buildEventDetailV2Model,
   distinctChampionship,
@@ -279,6 +280,72 @@ test("reutiliza relacionados reales, excluye el actual y enlaza sólo fichas Pre
   assert.equal(model.related.some(({ slug }) => slug === current.slug), false);
   assert.equal(new Set(model.related.map(({ slug }) => slug)).size, model.related.length);
   assert.equal(model.related.every(({ href }) => href.startsWith("/preview/redesign-v2/evento/")), true);
+});
+
+test("A10G conserva la selección y el orden públicos de seis relacionados con enlaces canónicos", () => {
+  const current = event();
+  const events = [current, ...Array.from({ length: 7 }, (_, index) => event({
+    id: `related-${index}`,
+    slug: `related-${index}`,
+    title: `Rally relacionado ${index}`,
+    province: index < 4 ? "Asturias" : "A Coruña",
+    start: `2026-08-${index < 4 ? 26 + index : 23}`,
+  }))];
+  const model = buildEventDetailV2Model(current, events, {
+    ...options,
+    relatedToday: "2026-08-16",
+    routeContext: "public",
+  });
+  assert.ok(model);
+  const expected = buildRelatedEventDetails(current, events, "2026-08-16")
+    .map(({ event: related }) => related.slug);
+  assert.equal(model.related.length, 6);
+  assert.deepEqual(model.related.map(({ slug }) => slug), expected);
+  assert.deepEqual(model.related.map(({ href }) => href), expected.map((slug) => `/evento/${slug}`));
+  assert.equal(model.related.some(({ href }) => href.includes("/preview/")), false);
+});
+
+test("A10G mantiene los campos públicos opcionales y no inventa CTA, mapa ni fecha", () => {
+  const missing = buildEventDetailV2Model(event({
+    start: "",
+    end: "",
+    officialUrl: "",
+    sourceUrl: "",
+    ticketUrl: "",
+    registrationUrl: "",
+    latitude: null,
+    longitude: null,
+  }), [], { ...options, routeContext: "public" });
+  assert.ok(missing);
+  assert.equal(missing.date.label, "Fecha por confirmar");
+  assert.equal(missing.primaryAction, null);
+  assert.equal(missing.source, null);
+  assert.equal(missing.mapHref, null);
+  assert.equal(missing.savedEvent.vehicle_type, "coche");
+
+  const completeEvent = event({
+    organizerName: "Motor Club",
+    organizerUrl: "https://example.com/evento",
+    latitude: 40.3,
+    longitude: -3.5,
+    registrationUrl: "https://tickets.example.com/evento",
+  }) as EventItem & { category?: string };
+  completeEvent.category = "competición";
+  const complete = buildEventDetailV2Model(completeEvent, [], { ...options, routeContext: "public" });
+  assert.ok(complete);
+  assert.equal(complete.primaryAction?.type, "registration");
+  assert.equal(complete.organizerContext?.href, "https://example.com/evento");
+  assert.equal(complete.mapHref, "https://www.google.com/maps/search/?api=1&query=40.3,-3.5");
+  assert.equal(complete.savedEvent.category, "competición");
+  assert.equal(complete.savedEvent.ticket_url, "https://tickets.example.com/evento");
+});
+
+test("A10G reutiliza la semántica temporal de Europe/Madrid para futuro, activo y pasado", () => {
+  const publicOptions = { ...options, routeContext: "public" as const };
+  assert.equal(buildEventDetailV2Model(event({ start: "2026-08-17", end: "2026-08-17" }), [], publicOptions)?.temporalStatus, "Próximamente");
+  assert.equal(buildEventDetailV2Model(event({ start: "2026-08-15", end: "2026-08-17" }), [], publicOptions)?.temporalStatus, "En curso");
+  assert.equal(buildEventDetailV2Model(event({ start: "2026-08-14", end: "2026-08-14" }), [], publicOptions)?.temporalStatus, "Finalizado");
+  assert.equal(buildEventDetailV2Model(event({ start: "2026-08-16", end: "2026-08-16" }), [], publicOptions)?.temporalStatus, "Hoy");
 });
 
 test("calcula hoy con Europe/Madrid de forma determinista", () => {

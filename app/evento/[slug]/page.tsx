@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
-import EventDetailView from "@/components/events/detail/EventDetailView";
+import EventDetailV2 from "@/components/redesign-v2/event-detail/EventDetailV2";
+import {
+  buildEventDetailV2Model,
+  madridDateKey,
+} from "@/components/redesign-v2/event-detail/event-detail-model";
 import { getEventImage } from "@/lib/event-images";
 import {
   buildEventBreadcrumbJsonLd,
@@ -276,6 +280,14 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const jsonLd = buildEventJsonLd(event, url, imageUrl, buildMetadataDescription(event));
   const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event, url, siteUrl);
   const faqItems = getEventSeoOverride(event.slug)?.faqItems;
+  const now = new Date();
+  const model = buildEventDetailV2Model(event, events, {
+    relatedToday: now.toISOString().slice(0, 10),
+    routeContext: "public",
+    siteUrl,
+    today: madridDateKey(now),
+  });
+  if (!model) notFound();
   const requestHeaders = await headers();
   const publicConfiguration =
     evaluateNewsletterPublicLaunchResendConfiguration(
@@ -304,14 +316,10 @@ export default async function EventPage({ params, searchParams }: EventPageProps
           dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaqPageJsonLd(faqItems)) }}
         />
       ) : null}
-      <EventDetailView
-        analyticsSource={event.source}
-        event={event}
-        events={events}
-        footerContactTrackingLocation="event_detail_footer"
-        newsletterPublicLaunchEnabled={newsletterPublicLaunchEnabled}
-        retentionSource="event_detail"
-        siteUrl={siteUrl}
+      <EventDetailV2
+        model={model}
+        publicContext={{ event, faqItems, newsletterPublicLaunchEnabled }}
+        routeContext="public"
       />
     </>
   );

@@ -1,16 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
+import TrackAnchor from "@/components/analytics/TrackAnchor";
+import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import ShareEventButton from "@/components/ShareEventButton";
 import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import { isRemoteImage } from "@/components/redesign-v2/redesign-v2-model";
-import V2PreviewShell from "@/components/redesign-v2/site/V2PreviewShell";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
+import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
+import type { EventFaqItem } from "@/lib/event-seo-overrides";
+import type { EventItem } from "@/types/event";
 import type { EventDetailV2Model } from "./event-detail-model";
 import styles from "./EventDetailV2.module.css";
 
 type EventDetailV2Props = {
   model: EventDetailV2Model;
-};
+} & (
+  | { routeContext: "preview" }
+  | {
+    routeContext: "public";
+    publicContext: {
+      event: EventItem;
+      faqItems?: readonly EventFaqItem[];
+      newsletterPublicLaunchEnabled: boolean;
+    };
+  }
+);
 
 function ExternalLinkIcon() {
   return (
@@ -28,7 +44,13 @@ function ExternalLinkIcon() {
   );
 }
 
-export default function EventDetailV2({ model }: EventDetailV2Props) {
+export default function EventDetailV2(props: EventDetailV2Props) {
+  const { model, routeContext } = props;
+  const publicContext = props.routeContext === "public" ? props.publicContext : null;
+  const trackingParams = publicContext ? {
+    ...eventAnalyticsParams(publicContext.event, { event_slug: model.slug }),
+    source: publicContext.event.source,
+  } : {};
   const imageAlt = model.image.kind === "event"
     ? model.image.alt
     : model.image.kind === "representative"
@@ -53,8 +75,11 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={styles.shellScope}>
-      <V2PreviewShell
+    <div
+      className={`${styles.shellScope} ${routeContext === "public" ? redesignV2DisplayPilot.variable : ""}`}
+      data-v2-event-context={routeContext}
+    >
+      <V2InteriorShell
         breadcrumbs={[
           { label: "Inicio", navigationId: "home" },
           { label: "Calendario", navigationId: "calendar" },
@@ -62,7 +87,10 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
         ]}
         description={heroDescription as unknown as string}
         eyebrow={model.discipline}
+        heroTitleFontClassName={routeContext === "public" ? redesignV2DisplayPilot.variable : undefined}
+        navigationMode={routeContext}
         title={model.title}
+        trackPublicEventDetailNavigation={routeContext === "public"}
         upcomingCount={model.upcomingCount}
       >
         <article className={styles.article}>
@@ -97,6 +125,10 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                   </div>
                 ) : null}
 
+                {routeContext === "public" ? (
+                  <span className={styles.temporalStatus}>{model.temporalStatus}</span>
+                ) : null}
+
                 {model.vehicle ? (
                   <div className={styles.chips}>
                     <span>{model.vehicle}</span>
@@ -124,9 +156,19 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                         <dt>Organizador</dt>
                         <dd>
                           {model.organizerContext.href ? (
-                            <a href={model.organizerContext.href} rel="noopener noreferrer" target="_blank">
-                              {model.organizerContext.label} <ExternalLinkIcon />
-                            </a>
+                            routeContext === "public" ? (
+                              <TrackAnchor
+                                eventName="click_event_organizer"
+                                eventParams={trackingParams}
+                                href={model.organizerContext.href}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >{model.organizerContext.label} <ExternalLinkIcon /></TrackAnchor>
+                            ) : (
+                              <a href={model.organizerContext.href} rel="noopener noreferrer" target="_blank">
+                                {model.organizerContext.label} <ExternalLinkIcon />
+                              </a>
+                            )
                           ) : model.organizerContext.label}
                         </dd>
                       </div>
@@ -140,21 +182,46 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                     compactIcons
                     directChildren
                     event={model.savedEvent}
-                    source="redesign_v2_event_detail"
+                    source={routeContext === "public" ? "event_detail" : "redesign_v2_event_detail"}
                   />
                   <ShareEventButton directChildren title={model.title} url={model.publicUrl} />
                 </div>
 
                 {model.primaryAction ? (
-                  <a className={styles.primaryAction} href={model.primaryAction.href} rel="noopener noreferrer" target="_blank">
-                    {model.primaryAction.label} <ExternalLinkIcon />
-                  </a>
+                  routeContext === "public" ? (
+                    <TrackAnchor
+                      className={styles.primaryAction}
+                      eventName={model.primaryAction.type === "official" ? "click_official_source" : "click_tickets"}
+                      eventParams={{
+                        ...trackingParams,
+                        ...(model.primaryAction.type === "official" ? {} : { ticket_url_domain: urlDomain(model.primaryAction.href) }),
+                      }}
+                      href={model.primaryAction.href}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >{model.primaryAction.label} <ExternalLinkIcon /></TrackAnchor>
+                  ) : (
+                    <a className={styles.primaryAction} href={model.primaryAction.href} rel="noopener noreferrer" target="_blank">
+                      {model.primaryAction.label} <ExternalLinkIcon />
+                    </a>
+                  )
                 ) : null}
 
                 {model.source ? (
                   <a className={styles.sourceLink} href={model.source.href} rel="noopener noreferrer" target="_blank">
                     Fuente: {model.source.label} <ExternalLinkIcon />
                   </a>
+                ) : null}
+
+                {routeContext === "public" && model.mapHref ? (
+                  <TrackAnchor
+                    className={styles.mapAction}
+                    eventName="click_event_maps"
+                    eventParams={trackingParams}
+                    href={model.mapHref}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >Cómo llegar <ExternalLinkIcon /></TrackAnchor>
                 ) : null}
               </aside>
             </section>
@@ -198,11 +265,30 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
               </div>
             ) : null}
 
-            <CompactAgendaSignup
-              description="Una selección de próximos eventos para vivir el motor."
-              eyebrow="LA AGENDA MOTOR"
-              title="TU AGENDA DE MOTOR, CADA SEMANA"
-            />
+            {publicContext?.faqItems?.length ? (
+              <section aria-labelledby="event-faq-title" className={styles.faq}>
+                <div className={styles.sectionHeading}>
+                  <span className={styles.eyebrow}>Preguntas frecuentes</span>
+                  <h2 id="event-faq-title">Preguntas frecuentes sobre {model.title}</h2>
+                </div>
+                <div className={styles.faqGrid}>
+                  {publicContext.faqItems.map((item) => (
+                    <article className={styles.faqItem} key={item.question}>
+                      <h3>{item.question}</h3>
+                      <p>{item.answer}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {routeContext === "preview" || publicContext?.newsletterPublicLaunchEnabled ? (
+              <CompactAgendaSignup
+                description="Una selección de próximos eventos para vivir el motor."
+                eyebrow="LA AGENDA MOTOR"
+                title="TU AGENDA DE MOTOR, CADA SEMANA"
+              />
+            ) : null}
 
             {model.related.length ? (
               <section className={`${styles.related} ${model.compactRelatedFlow ? styles.relatedCompact : ""}`}>
@@ -211,9 +297,9 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                   <h2>También te puede interesar</h2>
                 </div>
                 <div className={styles.relatedGrid}>
-                  {model.related.map((related) => (
-                    <article className={styles.relatedCard} key={related.slug}>
-                      <Link aria-label={`Ver ${related.title}`} href={related.href}>
+                  {model.related.map((related) => {
+                    const content = (
+                      <>
                         <div className={styles.relatedMedia}>
                           {related.image.src ? (
                             <Image
@@ -234,15 +320,34 @@ export default function EventDetailV2({ model }: EventDetailV2Props) {
                           <p>{related.date.label}{related.location ? ` · ${related.location}` : ""}</p>
                           <strong>Ver evento <span aria-hidden="true">→</span></strong>
                         </div>
-                      </Link>
-                    </article>
-                  ))}
+                      </>
+                    );
+                    return (
+                      <article className={styles.relatedCard} key={related.slug}>
+                        {routeContext === "public" ? (
+                          <TrackLink
+                            aria-label={`Ver ${related.title}`}
+                            eventName="click_related_event"
+                            eventParams={{
+                              ...eventAnalyticsParams(related.trackingEvent),
+                              related_event_slug: related.slug,
+                              source_event_slug: model.slug,
+                              source: related.context,
+                            }}
+                            href={related.href}
+                          >{content}</TrackLink>
+                        ) : (
+                          <Link aria-label={`Ver ${related.title}`} href={related.href}>{content}</Link>
+                        )}
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
           </div>
         </article>
-      </V2PreviewShell>
+      </V2InteriorShell>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
+import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import InteriorMobileNavigation from "./InteriorMobileNavigation.client";
 import PreviewAwareLink from "./PreviewAwareLink";
 import {
   getInteriorNavigationIds,
+  resolveInteriorNavigationItem,
   resolveInteriorNavigationItems,
   type InteriorNavigationMode,
   type PreviewNavigationId,
@@ -25,6 +27,7 @@ export type V2InteriorShellProps = {
   heroTitleFontClassName?: string;
   navigationMode: InteriorNavigationMode;
   title: string;
+  trackPublicEventDetailNavigation?: boolean;
   upcomingCount: number;
 };
 
@@ -38,6 +41,7 @@ export default function V2InteriorShell({
   heroTitleFontClassName,
   navigationMode,
   title,
+  trackPublicEventDetailNavigation = false,
   upcomingCount,
 }: V2InteriorShellProps) {
   const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(new Date());
@@ -82,7 +86,16 @@ export default function V2InteriorShell({
                 navigationId="favorites"
               />
             ) : null}
-            <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
+            {trackPublicEventDetailNavigation && navigationMode === "public" ? (
+              <TrackLink
+                className={styles.publishButton}
+                eventName="click_publish_event"
+                eventParams={{ source: "static_header_cta" }}
+                href={resolveInteriorNavigationItem("publish", navigationMode).href}
+              >Publicar evento</TrackLink>
+            ) : (
+              <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
+            )}
             <InteriorMobileNavigation
               currentNavigationId={currentNavigationId}
               items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)}
@@ -138,7 +151,15 @@ export default function V2InteriorShell({
           </nav>
           <nav aria-label="Enlaces de EventoMotor">
             <strong>EventoMotor</strong>
-            <PreviewAwareLink mode={navigationMode} navigationId="publish" />
+            {trackPublicEventDetailNavigation && navigationMode === "public" ? (
+              <TrackLink
+                eventName="click_publish_event"
+                eventParams={{ source: "footer_link" }}
+                href={resolveInteriorNavigationItem("publish", navigationMode).href}
+              >Publicar evento</TrackLink>
+            ) : (
+              <PreviewAwareLink mode={navigationMode} navigationId="publish" />
+            )}
             <PreviewAwareLink mode={navigationMode} navigationId="newsletter" />
             <PreviewAwareLink mode={navigationMode} navigationId="contact" />
           </nav>

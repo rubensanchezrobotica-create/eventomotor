@@ -128,11 +128,14 @@ test("el override no cambia el fallback de otros eventos", () => {
 });
 
 test("el H1 y las migas conservan el título oficial y el slug canónico", () => {
-  const source = readFileSync(new URL("../components/events/detail/EventDetailView.tsx", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../components/redesign-v2/event-detail/EventDetailV2.tsx", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../components/redesign-v2/site/V2InteriorShell.tsx", import.meta.url), "utf8");
   const breadcrumbs = buildEventBreadcrumbJsonLd(eventFixture(), CANONICAL, SITE_URL);
 
-  assert.match(source, /<h1[^>]*>\{event\.title\}<\/h1>/);
-  assert.match(source, /<li aria-current="page">\{event\.title\}<\/li>/);
+  assert.match(source, /title=\{model\.title\}/);
+  assert.match(source, /\{ label: model\.title \}/);
+  assert.match(shell, /<h1[\s\S]*?>\{title\}<\/h1>/);
+  assert.match(shell, /<span aria-current="page">\{item\.label\}<\/span>/);
   assert.deepEqual(breadcrumbs.itemListElement.map(({ name }) => name), [
     "Inicio",
     "Calendario",
@@ -146,12 +149,12 @@ test("FAQ visible y FAQPage nacen de las mismas preguntas y respuestas", () => {
   assert.ok(faqItems);
 
   const faqSource = readFileSync(
-    new URL("../components/events/detail/EventFaq.tsx", import.meta.url),
+    new URL("../components/redesign-v2/event-detail/EventDetailV2.tsx", import.meta.url),
     "utf8",
   );
   const faqJsonLd = buildFaqPageJsonLd(faqItems);
 
-  assert.match(faqSource, /items\.map/);
+  assert.match(faqSource, /publicContext\.faqItems\.map/);
   assert.match(faqSource, /<h3>\{item\.question\}<\/h3>/);
   assert.match(faqSource, /<p>\{item\.answer\}<\/p>/);
   assert.deepEqual(

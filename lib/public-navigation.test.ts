@@ -82,16 +82,18 @@ test("desktop and mobile menus consume the same destinations and expose aria-cur
   assert.ok(!primaryHrefs.includes(DIRECTORY_ROUTES.zones));
 });
 
-test("event details for Boiromotos and RPM FEST inherit the canonical static header", () => {
+test("event details for Boiromotos and RPM FEST use the public V2 shell and canonical navigation", () => {
   const eventPage = source("app/evento/[slug]/page.tsx");
-  const eventView = source("components/events/detail/EventDetailView.tsx");
-  const staticHeader = source("components/public/concept/ConceptStaticHeader.tsx");
+  const eventView = source("components/redesign-v2/event-detail/EventDetailV2.tsx");
+  const shell = source("components/redesign-v2/site/V2InteriorShell.tsx");
+  const navigation = source("components/redesign-v2/site/preview-navigation.ts");
 
-  assert.match(eventPage, /<EventDetailView/);
-  assert.match(eventView, /<ConceptStaticHeader \/>/);
-  assert.match(eventView, /PUBLIC_NAVIGATION\.calendar/);
-  assert.doesNotMatch(eventView, /href="\/calendario"/);
-  assert.match(staticHeader, /href=\{PUBLIC_NAVIGATION\.calendar\}/);
+  assert.match(eventPage, /<EventDetailV2/);
+  assert.match(eventPage, /routeContext="public"/);
+  assert.match(eventView, /<V2InteriorShell/);
+  assert.match(eventView, /navigationMode=\{routeContext\}/);
+  assert.match(shell, /<PreviewAwareLink mode=\{navigationMode\} navigationId="calendar"/);
+  assert.match(navigation, /canonicalPublicHref\(item\.productionHref\)/);
 });
 
 test("logo, agenda, disciplines, zones, contact, saved events and publish stay canonical", () => {

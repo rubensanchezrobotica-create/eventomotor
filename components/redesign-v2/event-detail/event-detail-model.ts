@@ -7,8 +7,11 @@ import {
   getEventPrimaryAction,
   getEventStatusStyle,
   getOfficialSource,
+  vehicleTypeOf,
+  type EventPrimaryAction,
 } from "@/components/events/detail/event-detail-model";
 import { formatCalendarDisciplineLabel } from "@/components/redesign-v2/calendar/calendar-page-model";
+import { previewEventStatus, projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
 import {
   assignV2HomeEventImages,
   type V2AssignedEventImage,
@@ -23,6 +26,8 @@ export type EventDetailLink = {
   href: string;
   label: string;
 };
+
+export type EventDetailPrimaryLink = EventDetailLink & { type: EventPrimaryAction["type"] };
 
 export type EventDetailInfo = {
   label: string;
@@ -49,6 +54,7 @@ export type EventDetailRelated = {
   location: string;
   slug: string;
   title: string;
+  trackingEvent: EventItem;
 };
 
 export type EventDetailV2Model = {
@@ -63,9 +69,10 @@ export type EventDetailV2Model = {
   image: V2AssignedEventImage;
   intro: string;
   location: string;
+  mapHref: string | null;
   organizerContext: EventDetailOrganizerContext | null;
   practicalItems: EventDetailInfo[];
-  primaryAction: EventDetailLink | null;
+  primaryAction: EventDetailPrimaryLink | null;
   programSection: string;
   publicUrl: string;
   related: EventDetailRelated[];
@@ -73,6 +80,7 @@ export type EventDetailV2Model = {
   slug: string;
   source: EventDetailLink | null;
   title: string;
+  temporalStatus: string;
   upcomingCount: number;
   vehicle: string;
   venue: string;
@@ -314,8 +322,10 @@ function buildRelated(
   event: EventItem,
   events: EventItem[],
   today: string,
+  routeContext: "preview" | "public",
 ): EventDetailRelated[] {
-  const sourceRelated = buildRelatedEventDetails(event, events, today).slice(0, 3);
+  const sourceRelated = buildRelatedEventDetails(event, events, today)
+    .slice(0, routeContext === "public" ? 6 : 3);
   const relatedEvents = sourceRelated.map(({ event: related }) => related);
   const images = assignV2HomeEventImages(relatedEvents);
 
@@ -328,12 +338,13 @@ function buildRelated(
       context,
       date,
       discipline,
-      href: `/preview/redesign-v2/evento/${slug}`,
+      href: routeContext === "public" ? `/evento/${slug}` : `/preview/redesign-v2/evento/${slug}`,
       image: images[index],
       label: formatRelatedEventLabel(context, discipline),
       location: formatEventDetailLocation(related),
       slug,
       title: related.title,
+      trackingEvent: related,
     }];
   });
 }
@@ -352,9 +363,16 @@ export function madridDateKey(now: Date) {
 export function buildEventDetailV2Model(
   event: EventItem,
   events: EventItem[],
-  options: { siteUrl: string; today: string },
+  options: {
+    relatedToday?: string;
+    routeContext?: "preview" | "public";
+    siteUrl: string;
+    today: string;
+  },
 ): EventDetailV2Model | null {
-  const date = formatEventDetailDate(event.start, event.end);
+  const routeContext = options.routeContext ?? "preview";
+  const date = formatEventDetailDate(event.start, event.end)
+    ?? (routeContext === "public" ? { dateTime: "", label: "Fecha por confirmar" } : null);
   const slug = cleanText(event.slug || event.id);
   if (!date || !slug || !cleanText(event.title)) return null;
 
@@ -391,14 +409,18 @@ export function buildEventDetailV2Model(
     image,
     intro,
     location,
-    organizerContext: organizerContext(event, sourceHref),
+    organizerContext: organizerContext(event, routeContext === "public" ? null : sourceHref),
+    mapHref: typeof event.latitude === "number" && Number.isFinite(event.latitude)
+      && typeof event.longitude === "number" && Number.isFinite(event.longitude)
+      ? `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`
+      : null,
     practicalItems,
     primaryAction: rawPrimaryAction && primaryHref
-      ? { href: primaryHref, label: rawPrimaryAction.type === "official" ? "Más información" : rawPrimaryAction.label }
+      ? { href: primaryHref, label: rawPrimaryAction.type === "official" ? "Más información" : rawPrimaryAction.label, type: rawPrimaryAction.type }
       : null,
     publicUrl,
     programSection,
-    related: buildRelated(event, events, options.today),
+    related: buildRelated(event, events, options.relatedToday ?? options.today, routeContext),
     savedEvent: {
       slug,
       title: event.title,
@@ -408,15 +430,19 @@ export function buildEventDetailV2Model(
       province: event.province,
       venue: event.venue,
       discipline: event.discipline,
-      vehicle_type: event.vehicleType || event.vehicle_type,
+      ...(routeContext === "public" ? { category: (event as EventItem & { category?: string }).category } : {}),
+      vehicle_type: routeContext === "public" ? vehicleTypeOf(event) : event.vehicleType || event.vehicle_type,
       source_url: officialSource?.href || "",
-      ticket_url: safeExternalHref(event.registrationUrl) || safeExternalHref(event.ticketUrl),
+      ticket_url: routeContext === "public"
+        ? cleanText(event.registrationUrl) || cleanText(event.ticketUrl)
+        : safeExternalHref(event.registrationUrl) || safeExternalHref(event.ticketUrl),
     },
     slug,
     source: officialSource && sourceHref
       ? { href: sourceHref, label: officialSource.label }
       : null,
     title: event.title,
+    temporalStatus: previewEventStatus(projectPreviewEvent(event), `${options.today}T12:00:00.000Z`),
     upcomingCount: events.filter((candidate) => {
       const end = dateKey(candidate.end) || dateKey(candidate.start);
       return Boolean(end && end >= options.today);

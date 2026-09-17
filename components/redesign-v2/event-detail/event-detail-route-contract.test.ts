@@ -31,7 +31,9 @@ test("la Preview es noindex, nofollow y nocache sin canonical ni JSON-LD", () =>
 });
 
 test("A4 reutiliza el shell, favorito, ICS y compartir existentes", () => {
-  assert.match(component, /V2PreviewShell/);
+  assert.match(component, /V2InteriorShell/);
+  assert.match(component, /navigationMode=\{routeContext\}/);
+  assert.match(route, /routeContext="preview"/);
   assert.match(component, /EventRetentionActions/);
   assert.match(component, /calendarLabel="Añadir al calendario"/);
   assert.match(component, /compactIcons/);
