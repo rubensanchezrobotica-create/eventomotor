@@ -29,7 +29,7 @@ export const NEWSLETTER_EDITION_07_UNSUBSCRIBE_ORIGIN =
   "https://www.eventomotor.com";
 
 const DEFAULT_LIMIT = 25;
-const MAX_LIMIT = 100;
+const MAX_LIMIT = 500;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH_PATTERN = /^[0-9a-f]{64}$/;

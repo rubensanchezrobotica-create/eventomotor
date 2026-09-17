@@ -768,6 +768,149 @@ test("send-prepared consumes exactly the frozen deliveries without preview or pr
   assert.doesNotMatch(payloads[5]?.html ?? "", /Hot Wheels Legends Tour España 2026/);
 });
 
+test("send-prepared processes a sealed 116-delivery snapshot in one logical run", async () => {
+  const source = await sourceFixture();
+  const seal: NewsletterEdition07PreparedCampaignSeal = {
+    campaignId: PREPARED_CAMPAIGN_ID,
+    deliveryCount: 116,
+    variantCounts: { national: 89, madrid: 20, "a-coruna": 1, barcelona: 6 },
+  };
+  let previewCalls = 0;
+  let prepareCalls = 0;
+  let claimCalls = 0;
+  let clientFactoryCalls = 0;
+  let mockProviderCalls = 0;
+  let acceptedCalls = 0;
+
+  const result = await sendPreparedNewsletterEdition07Campaign({
+    request: sendPreparedRequest({ limit: seal.deliveryCount }),
+    environment: sendPreparedEnvironment(),
+    source,
+    repository: repositoryFixture({
+      previewCampaign: async () => {
+        previewCalls += 1;
+        throw new Error("live audience must not be recalculated");
+      },
+      prepareCampaign: async () => {
+        prepareCalls += 1;
+        throw new Error("a second prepare must not run");
+      },
+      claimDelivery: async ({ campaignId, allowRetry }) => {
+        assert.equal(campaignId, PREPARED_CAMPAIGN_ID);
+        assert.equal(allowRetry, false);
+        const index = claimCalls;
+        claimCalls += 1;
+        const contentVariant: NewsletterEdition07ContentVariant =
+          index < 89 ? "national" :
+          index < 109 ? "madrid" :
+          index < 110 ? "a-coruna" : "barcelona";
+        return {
+          deliveryId: fixtureUuid(1, index),
+          campaignId: PREPARED_CAMPAIGN_ID,
+          subscriberId: fixtureUuid(2, index),
+          recipientEmail: `edition07-${index}@example.invalid`,
+          claimId: fixtureUuid(3, index),
+          attemptCount: 1,
+          idempotencyKey: `newsletter/${PREPARED_CAMPAIGN_ID}/${fixtureUuid(1, index)}/1`,
+          contentVariant,
+        };
+      },
+      recordAccepted: async () => {
+        acceptedCalls += 1;
+      },
+    }),
+    sender: NEWSLETTER_EDITION_07_SENDER,
+    replyTo: NEWSLETTER_EDITION_07_REPLY_TO,
+    clientFactory: () => {
+      clientFactoryCalls += 1;
+      return {
+        sendEmail: async () => {
+          mockProviderCalls += 1;
+          return {
+            status: "accepted",
+            providerMessageId: `edition07-fixture-${mockProviderCalls}`,
+          };
+        },
+      };
+    },
+    tokenFactory: () => Buffer.alloc(32, claimCalls + 1).toString("base64url"),
+    tokenHasher: (token) => sha256(token),
+    preparedCampaignSeal: seal,
+  });
+
+  assert.equal(result.status, "prepared_sent");
+  assert.equal(result.processedCount, 116);
+  assert.deepEqual(result.processedVariantCounts, seal.variantCounts);
+  assert.equal(clientFactoryCalls, 1);
+  assert.equal(previewCalls, 0);
+  assert.equal(prepareCalls, 0);
+  assert.equal(claimCalls, 116);
+  assert.equal(mockProviderCalls, 116);
+  assert.equal(acceptedCalls, 116);
+});
+
+test("prepared seal accepts 500 and rejects 501 before claiming", async () => {
+  const source = await sourceFixture();
+  let claimCalls = 0;
+  let mockProviderCalls = 0;
+  const options = {
+    environment: sendPreparedEnvironment(),
+    source,
+    repository: repositoryFixture({
+      previewCampaign: async () => { throw new Error("unexpected preview"); },
+      prepareCampaign: async () => { throw new Error("unexpected prepare"); },
+      claimDelivery: async () => {
+        claimCalls += 1;
+        return null;
+      },
+    }),
+    sender: NEWSLETTER_EDITION_07_SENDER,
+    replyTo: NEWSLETTER_EDITION_07_REPLY_TO,
+    clientFactory: () => ({
+      sendEmail: async () => {
+        mockProviderCalls += 1;
+        throw new Error("no claim must reach the mock provider");
+      },
+    }),
+    tokenFactory: () => Buffer.alloc(32, 1).toString("base64url"),
+    tokenHasher: (token: string) => sha256(token),
+  };
+
+  await assert.rejects(
+    sendPreparedNewsletterEdition07Campaign({
+      ...options,
+      request: sendPreparedRequest({ limit: 500 }),
+      preparedCampaignSeal: {
+        campaignId: PREPARED_CAMPAIGN_ID,
+        deliveryCount: 500,
+        variantCounts: { national: 500, madrid: 0, "a-coruna": 0, barcelona: 0 },
+      },
+    }),
+    (error) =>
+      error instanceof NewsletterEdition07CampaignError &&
+      error.code === "frozen_delivery_count_mismatch",
+  );
+  assert.equal(claimCalls, 1, "a 500-delivery seal passes validation and reaches the claim boundary");
+  assert.equal(mockProviderCalls, 0);
+
+  await assert.rejects(
+    sendPreparedNewsletterEdition07Campaign({
+      ...options,
+      request: sendPreparedRequest({ limit: 501 }),
+      preparedCampaignSeal: {
+        campaignId: PREPARED_CAMPAIGN_ID,
+        deliveryCount: 501,
+        variantCounts: { national: 501, madrid: 0, "a-coruna": 0, barcelona: 0 },
+      },
+    }),
+    (error) =>
+      error instanceof NewsletterEdition07CampaignError &&
+      error.code === "prepared_campaign_seal_invalid",
+  );
+  assert.equal(claimCalls, 1, "a 501-delivery seal is rejected before claiming");
+  assert.equal(mockProviderCalls, 0);
+});
+
 test("send-prepared fails before provider when the frozen campaign is unavailable", async () => {
   const source = await sourceFixture();
   for (const claimDelivery of [
@@ -924,6 +1067,21 @@ test("campaign parser is dry-run by default and rejects unsafe combinations", ()
     (error) =>
       error instanceof NewsletterEdition07CampaignError &&
       error.code === "send_prepared_mode_conflict",
+  );
+});
+
+test("campaign parser keeps a bounded Edition 07 safety cap of 500", () => {
+  for (const limit of [100, 116, 500]) {
+    assert.equal(
+      parseNewsletterEdition07CampaignArguments(["--limit", String(limit)]).limit,
+      limit,
+    );
+  }
+  assert.throws(
+    () => parseNewsletterEdition07CampaignArguments(["--limit", "501"]),
+    (error) =>
+      error instanceof NewsletterEdition07CampaignError &&
+      error.code === "limit_invalid",
   );
 });
 
