@@ -5,6 +5,7 @@ import { WEEKEND_FAQS } from "@/components/preview/weekend/weekend-public-conten
 import { buildWeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
 import { assignV2HomeEventImages } from "@/components/redesign-v2/discipline-fallback-resolver";
 import { projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import WeekendPageExperience from "@/components/redesign-v2/weekend/WeekendPageExperience.client";
 import WeekendPublicEditorial from "@/components/redesign-v2/weekend/WeekendPublicEditorial";
@@ -141,6 +142,7 @@ export default async function EventosMotorEsteFinDeSemanaPage({
         description="Carreras, concentraciones y planes para disfrutar del motor de viernes a domingo."
         eyebrow="Agenda del fin de semana"
         heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
+        heroTitleFontClassName={redesignV2DisplayPilot.variable}
         navigationMode="public"
         title="Este fin de semana"
         upcomingCount={upcomingCount}

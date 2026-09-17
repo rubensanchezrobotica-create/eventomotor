@@ -173,3 +173,33 @@ test("A10E-R2 limita la nueva jerarquía editorial al bloque público y conserva
   assert.match(styles, /\.editorialFaq summary:focus-visible/);
   assert.match(styles, /\.editorialLinks a:focus-visible|\.publicEditorial a:focus-visible/);
 });
+
+test("A10E-R3 comparte Archivo 900 italic con Calendar en ambos héroes Weekend", () => {
+  const publicRoute = readFileSync(new URL("../../../app/eventos-motor-este-fin-de-semana/page.tsx", import.meta.url), "utf8");
+  const previewRoute = readFileSync(new URL("../../../app/preview/redesign-v2/eventos-motor-este-fin-de-semana/page.tsx", import.meta.url), "utf8");
+  const calendarRoute = readFileSync(new URL("../../../app/calendario/page.tsx", import.meta.url), "utf8");
+  const font = readFileSync(new URL("../redesign-v2-fonts.ts", import.meta.url), "utf8");
+  for (const route of [publicRoute, previewRoute, calendarRoute]) {
+    assert.match(route, /heroTitleFontClassName=\{redesignV2DisplayPilot\.variable\}/);
+  }
+  assert.match(font, /Archivo\(\{[\s\S]*?weight: "900"[\s\S]*?style: \["normal", "italic"\]/);
+  assert.match(publicRoute, /title="Este fin de semana"/);
+  assert.match(previewRoute, /title="Este fin de semana"/);
+});
+
+test("A10E-R3 alinea los cuatro H2 y conserva FAQ, copy y flujo Weekend", () => {
+  const experience = readFileSync(new URL("./WeekendPageExperience.client.tsx", import.meta.url), "utf8");
+  const editorial = readFileSync(new URL("./WeekendPublicEditorial.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("./WeekendPageExperience.module.css", import.meta.url), "utf8");
+  assert.match(experience, /className=\{`\$\{styles\.weekendSection\} \$\{redesignV2DisplayPilot\.variable\}`\}/);
+  assert.match(styles, /\.resultsHeader h2,\s*\.calendarCta h2\s*\{[^}]*font-family: var\(--font-v2-display-pilot\)[^}]*font-style: normal;[^}]*font-weight: 900;/);
+  assert.match(styles, /\.publicEditorial h2\s*\{[^}]*font-family: var\(--font-v2-display-pilot\)[^}]*font-style: normal;[^}]*font-weight: 900;/);
+  assert.match(styles, /@media \(max-width: 700px\)\s*\{\s*\.publicEditorial h2\s*\{[^}]*font-size: clamp\(/);
+  assert.match(styles, /\.editorialFaq summary\s*\{[^}]*font-family: var\(--font-v2-weekend-faq\)[^}]*font-weight: 800;/);
+  assert.match(editorial, /<h2>¿Organizas un evento de motor\?<\/h2>/);
+  assert.match(editorial, /<h2>Sobre esta agenda<\/h2>/);
+  assert.match(experience, /<h2>Planifica todo el mes<\/h2>/);
+  assert.match(experience, /routeContext === "public" \? PUBLIC_WEEKEND_ROUTE : WEEKEND_ROUTE/);
+  assert.match(experience, /routeContext === "public" \? serializePublicWeekendUrlState : serializeWeekendUrlState/);
+  assert.match(experience, /<WeekendEventCard event=\{event\} image=\{visibleImages\[index\]\}/);
+});

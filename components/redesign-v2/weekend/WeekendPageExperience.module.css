@@ -209,7 +209,7 @@
 .resultsHeader h2,
 .calendarCta h2 {
   margin: 7px 0 0;
-  font-family: "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
   font-style: normal;
   font-weight: 900;
   line-height: 1;
@@ -868,6 +868,17 @@
 }
 
 @media (max-width: 700px) {
+  .publicEditorial h2 {
+    font-size: clamp(1.3rem, 5.8vw, 1.55rem);
+    line-height: 1.12;
+    letter-spacing: -0.025em;
+  }
+
+  .calendarCta h2 {
+    font-size: clamp(1.4rem, 6vw, 1.65rem);
+    line-height: 1.08;
+  }
+
   .publicEditorial {
     width: min(100% - 32px, 620px);
     margin-bottom: 64px;
@@ -976,8 +987,8 @@
   }
 
   .resultsHeader h2 {
-    font-size: clamp(1.65rem, 7.2vw, 1.9rem);
-    line-height: 1.02;
+    font-size: clamp(1.45rem, 6.1vw, 1.65rem);
+    line-height: 1.06;
   }
 
   .desktopResultsTitle {

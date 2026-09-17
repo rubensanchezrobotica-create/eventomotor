@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { assignV2HomeEventImages } from "@/components/redesign-v2/discipline-fallback-resolver";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import { isRedesignPreviewAvailable, projectPreviewEvent } from "@/components/redesign-v2/redesign-v2-model";
 import V2PreviewShell from "@/components/redesign-v2/site/V2PreviewShell";
 import WeekendPageExperience from "@/components/redesign-v2/weekend/WeekendPageExperience.client";
@@ -49,6 +50,7 @@ export default async function WeekendPreviewPage({ searchParams }: WeekendPrevie
       description="Carreras, concentraciones y planes para disfrutar del motor de viernes a domingo."
       eyebrow="Agenda del fin de semana"
       heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
+      heroTitleFontClassName={redesignV2DisplayPilot.variable}
       title="Este fin de semana"
       upcomingCount={upcomingCount}
     >

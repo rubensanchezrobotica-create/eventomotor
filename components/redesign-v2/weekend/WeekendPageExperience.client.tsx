@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
 import type { WeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
 import WeekendEventCard from "./WeekendEventCard";
 import WeekendSearchExperience, { type WeekendSearchValues } from "./WeekendSearchExperience.client";
@@ -187,7 +188,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   }
 
   return (
-    <section aria-label="Eventos de motor del fin de semana" className={styles.weekendSection} data-route-context={routeContext}>
+    <section aria-label="Eventos de motor del fin de semana" className={`${styles.weekendSection} ${redesignV2DisplayPilot.variable}`} data-route-context={routeContext}>
       <WeekendSearchExperience
         events={events}
         key={`${state.q}|${state.discipline}|${state.vehicle}|${state.province}|${state.family}`}
