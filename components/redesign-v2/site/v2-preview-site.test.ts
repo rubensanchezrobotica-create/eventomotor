@@ -27,7 +27,7 @@ test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer con
   assert.match(interiorShell, /<footer className=\{styles\.footer\}>/);
 });
 
-test("la navegación interior distingue el contrato público del Preview por superficie", () => {
+test("la navegación interior mantiene los destinos Preview y la jerarquía pública por superficie", () => {
   assert.deepEqual(getInteriorNavigationIds("public", "desktop"), [
     "calendar",
     "disciplines",
@@ -46,16 +46,22 @@ test("la navegación interior distingue el contrato público del Preview por sup
     "calendar",
     "disciplines",
     "territories",
-    "contact",
   ]);
   assert.deepEqual(getInteriorNavigationIds("preview", "mobile"), [
     "calendar",
     "disciplines",
     "territories",
-    "contact",
     "favorites",
     "publish",
+    "contact",
   ]);
+  assert.deepEqual(
+    [...getInteriorNavigationIds("preview", "desktop"), "favorites"],
+    getInteriorNavigationIds("public", "desktop"),
+  );
+  assert.deepEqual(getInteriorNavigationIds("preview", "mobile"), getInteriorNavigationIds("public", "mobile"));
+  assert.equal(resolveInteriorNavigationItem("publish", "preview").variant, "primary");
+  assert.equal(resolveInteriorNavigationItem("contact", "preview").variant, "default");
   assert.match(navigation, /territories:[\s\S]*?label:\s*"Zonas"[\s\S]*?productionHref:\s*"\/zonas"/);
   assert.match(interiorShell, /getInteriorNavigationIds\(navigationMode, "desktop"\)/);
   assert.match(interiorShell, /getInteriorNavigationIds\(navigationMode, "mobile"\)/);

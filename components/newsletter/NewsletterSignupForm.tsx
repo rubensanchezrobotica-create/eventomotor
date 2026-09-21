@@ -31,6 +31,7 @@ export type NewsletterSignupState = (typeof NEWSLETTER_SIGNUP_STATES)[number];
 type NewsletterSignupFormProps = {
   appearance?: "default" | "homeEditorial";
   initialState?: NewsletterPreviewFormState;
+  previewOnly?: boolean;
   variant?: "product" | "lab";
 };
 
@@ -111,8 +112,10 @@ function NewsletterSignupLab({ initialState }: { initialState: NewsletterPreview
 
 function NewsletterProductSignupForm({
   appearance,
+  previewOnly,
 }: {
   appearance: NonNullable<NewsletterSignupFormProps["appearance"]>;
+  previewOnly: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [province, setProvince] = useState("");
@@ -133,6 +136,7 @@ function NewsletterProductSignupForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (previewOnly) return;
     if (submissionLock.current) return;
 
     setState("validating");
@@ -210,6 +214,7 @@ function NewsletterProductSignupForm({
               aria-describedby={fieldErrors.email ? "newsletter-email-error" : undefined}
               aria-invalid={Boolean(fieldErrors.email)}
               autoComplete="email"
+              disabled={previewOnly}
               id="newsletter-preview-email"
               inputMode="email"
               maxLength={254}
@@ -239,6 +244,7 @@ function NewsletterProductSignupForm({
                 fieldErrors.province ? "newsletter-province-error" : "",
               ].filter(Boolean).join(" ")}
               aria-invalid={Boolean(fieldErrors.province)}
+              disabled={previewOnly}
               id="newsletter-preview-province"
               onChange={(event) => {
                 setProvince(event.target.value);
@@ -249,14 +255,14 @@ function NewsletterProductSignupForm({
               ref={provinceRef}
               value={province}
             >
-              <option value="">Selección general de España</option>
+              <option value="">Toda España</option>
               {NEWSLETTER_PROVINCE_OPTIONS.map((option) => (
                 <option key={option.slug} value={option.slug}>{option.name}</option>
               ))}
             </select>
             <small id="newsletter-province-help">
-              La utilizaremos únicamente para recomendarte eventos cercanos. Si no
-              eliges ninguna, recibirás una selección general de España.
+              Nos ayuda a conocer qué zonas te interesan. La selección seguirá
+              incluyendo planes de toda España.
             </small>
             {fieldErrors.province ? (
               <small className={styles.fieldError} id="newsletter-province-error">
@@ -271,6 +277,7 @@ function NewsletterProductSignupForm({
             aria-describedby={fieldErrors.consent ? "newsletter-consent-error" : undefined}
             aria-invalid={Boolean(fieldErrors.consent)}
             checked={consent}
+            disabled={previewOnly}
             id="newsletter-preview-consent"
             onChange={(event) => {
               setConsent(event.target.checked);
@@ -313,7 +320,7 @@ function NewsletterProductSignupForm({
           <Link href="/privacidad">información sobre protección de datos</Link>.
         </p>
 
-        <button className={styles.primaryButton} disabled={busy} type="submit">
+        <button className={styles.primaryButton} disabled={busy || previewOnly} type="submit">
           {state === "validating"
             ? "Revisando datos…"
             : state === "submitting"
@@ -354,8 +361,9 @@ function NewsletterProductSignupForm({
 export default function NewsletterSignupForm({
   appearance = "default",
   initialState = "idle",
+  previewOnly = false,
   variant = "product",
 }: NewsletterSignupFormProps) {
   if (variant === "lab") return <NewsletterSignupLab initialState={initialState} />;
-  return <NewsletterProductSignupForm appearance={appearance} />;
+  return <NewsletterProductSignupForm appearance={appearance} previewOnly={previewOnly} />;
 }

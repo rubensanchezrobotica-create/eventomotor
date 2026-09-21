@@ -44,7 +44,7 @@ const HOME_ROUTES = {
     disciplines: "/disciplinas",
     zones: "/preview/redesign-v2/zonas",
     savedEvents: "/mis-eventos",
-    newsletter: "/newsletter",
+    newsletter: "/preview/redesign-v2/newsletter",
     publish: "/publicar-evento",
     contact: "/contacto",
   },

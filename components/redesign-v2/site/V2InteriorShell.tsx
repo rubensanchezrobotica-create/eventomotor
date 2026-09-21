@@ -1,6 +1,14 @@
+import { headers } from "next/headers";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
+import {
+  currentNewsletterProductionCanaryEnvironment,
+  currentNewsletterPublicLaunchEnvironment,
+  evaluateNewsletterProductionCanaryResendConfiguration,
+  evaluateNewsletterPublicLaunchResendConfiguration,
+} from "@/lib/newsletter/resend-config.server";
+import { isNewsletterPublicLaunchPageRequestAllowed } from "@/lib/newsletter/r5b-guard";
 import InteriorMobileNavigation from "./InteriorMobileNavigation.client";
 import PreviewAwareLink from "./PreviewAwareLink";
 import {
@@ -24,20 +32,22 @@ export type V2InteriorShellProps = {
   description: string;
   eyebrow: string;
   heroImageSrc?: string;
+  heroAside?: React.ReactNode;
   heroTitleFontClassName?: string;
   navigationMode: InteriorNavigationMode;
   title: string;
   trackPublicEventDetailNavigation?: boolean;
-  upcomingCount: number;
+  upcomingCount?: number;
 };
 
-export default function V2InteriorShell({
+export default async function V2InteriorShell({
   breadcrumbs,
   children,
   currentNavigationId,
   description,
   eyebrow,
   heroImageSrc,
+  heroAside,
   heroTitleFontClassName,
   navigationMode,
   title,
@@ -47,6 +57,22 @@ export default function V2InteriorShell({
   const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(new Date());
   const desktopNavigation = getInteriorNavigationIds(navigationMode, "desktop");
   const mobileNavigation = getInteriorNavigationIds(navigationMode, "mobile");
+  const newsletterVisible = navigationMode === "preview" || await (async () => {
+    const requestHeaders = await headers();
+    const publicConfiguration = evaluateNewsletterPublicLaunchResendConfiguration(
+      currentNewsletterPublicLaunchEnvironment(),
+    );
+    const canaryConfiguration = evaluateNewsletterProductionCanaryResendConfiguration(
+      currentNewsletterProductionCanaryEnvironment(),
+    );
+    return publicConfiguration.enabled &&
+      !canaryConfiguration.enabled &&
+      isNewsletterPublicLaunchPageRequestAllowed(
+        publicConfiguration,
+        requestHeaders.get("host"),
+        requestHeaders.get("x-forwarded-proto"),
+      );
+  })();
 
   return (
     <div className={styles.root} data-v2-route-context={navigationMode}>
@@ -54,8 +80,8 @@ export default function V2InteriorShell({
       <header className={styles.header}>
         <div className={styles.utilityBar}>
           <div className={styles.shell}>
-            <p><span aria-hidden="true">●</span> {upcomingCount} eventos próximos en la agenda</p>
-            <PreviewAwareLink mode={navigationMode} navigationId="newsletter">La Agenda Motor</PreviewAwareLink>
+            <p><span aria-hidden="true">●</span> {upcomingCount === undefined ? "La agenda nacional del motor" : `${upcomingCount} eventos próximos en la agenda`}</p>
+            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter">La Agenda Motor</PreviewAwareLink> : null}
           </div>
         </div>
         <div className={`${styles.shell} ${styles.navbar}`}>
@@ -107,7 +133,7 @@ export default function V2InteriorShell({
       <main id="contenido-redesign-v2-interior">
         <section
           aria-labelledby="redesign-v2-interior-title"
-          className={styles.pageHero}
+          className={`${styles.pageHero} ${heroAside ? styles.pageHeroWithAside : ""}`}
           style={heroImageSrc ? { backgroundImage: `linear-gradient(90deg, rgba(5, 7, 10, 0.96) 0%, rgba(5, 7, 10, 0.8) 48%, rgba(5, 7, 10, 0.28) 100%), url(${heroImageSrc})` } : undefined}
         >
           <div className={`${styles.shell} ${styles.pageHeroInner}`}>
@@ -131,6 +157,7 @@ export default function V2InteriorShell({
               id="redesign-v2-interior-title"
             >{title}</h1>
             <p>{description}</p>
+            {heroAside ? <div className={styles.heroAside}>{heroAside}</div> : null}
           </div>
         </section>
 
@@ -160,7 +187,7 @@ export default function V2InteriorShell({
             ) : (
               <PreviewAwareLink mode={navigationMode} navigationId="publish" />
             )}
-            <PreviewAwareLink mode={navigationMode} navigationId="newsletter" />
+            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter" /> : null}
             <PreviewAwareLink mode={navigationMode} navigationId="contact" />
           </nav>
           <nav aria-label="Enlaces legales">

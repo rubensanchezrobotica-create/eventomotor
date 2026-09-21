@@ -4,6 +4,12 @@ import { SITE_URL } from "@/lib/seo";
 import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
 import { SEO_DISCIPLINES, SEO_ZONES } from "@/lib/seo-taxonomy";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import {
+  currentNewsletterProductionCanaryEnvironment,
+  currentNewsletterPublicLaunchEnvironment,
+  evaluateNewsletterProductionCanaryResendConfiguration,
+  evaluateNewsletterPublicLaunchResendConfiguration,
+} from "@/lib/newsletter/resend-config.server";
 import type { EventRow } from "@/lib/supabase";
 
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
@@ -90,6 +96,12 @@ async function getSitemapEvents(): Promise<SitemapEvent[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const events = await getSitemapEvents();
   const now = new Date();
+  const publicNewsletter = evaluateNewsletterPublicLaunchResendConfiguration(
+    currentNewsletterPublicLaunchEnvironment(),
+  );
+  const canaryNewsletter = evaluateNewsletterProductionCanaryResendConfiguration(
+    currentNewsletterProductionCanaryEnvironment(),
+  );
   const staticEntries = [
     sitemapEntry("/", now, "daily", 1),
     sitemapEntry("/contacto", now, "monthly", 0.6),
@@ -100,6 +112,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry("/calendario", now, "daily", 0.9),
     sitemapEntry("/disciplinas", now, "weekly", 0.8),
     sitemapEntry("/zonas", now, "weekly", 0.8),
+    ...(publicNewsletter.enabled && !canaryNewsletter.enabled
+      ? [sitemapEntry("/newsletter", now, "weekly", 0.6)]
+      : []),
   ];
   const taxonomyEntries = [
     ...SEO_DISCIPLINES.map((discipline) =>

@@ -17,7 +17,7 @@ import { SITE_URL } from "@/lib/seo";
 
 const NEWSLETTER_TITLE = "La Agenda Motor | EventoMotor";
 const NEWSLETTER_DESCRIPTION =
-  "Recibe cada semana una selección de eventos, rutas y planes de motor cerca de ti.";
+  "Recibe cada semana una selección de eventos, rutas y planes de motor de toda España.";
 
 export function generateMetadata(): Metadata {
   const publicConfiguration =
@@ -92,6 +92,8 @@ export default async function NewsletterProductionCanaryLayout({
   if (!canaryAllowed && !publicLaunchAllowed) {
     notFound();
   }
+
+  if (publicLaunchAllowed) return children;
 
   return (
     <div className={`emc-page ${styles.page}`}>

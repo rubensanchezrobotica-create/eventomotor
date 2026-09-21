@@ -74,7 +74,8 @@ test("el estado aceptado sustituye el formulario y conserva accesibilidad", () =
   assert.match(form, /tabIndex=\{-1\}/);
   assert.match(form, /resultRef\.current\?\.focus\(\)/);
   assert.match(form, /aria-busy=\{busy\}/);
-  assert.match(form, /disabled=\{busy\}/);
+  assert.match(form, /disabled=\{busy \|\| previewOnly\}/);
+  assert.match(form, /if \(previewOnly\) return/);
   assert.match(form, /runNewsletterMutationOnce\(submissionLock/);
   assert.doesNotMatch(
     form.slice(acceptedBranch, formBranch),

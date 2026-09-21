@@ -445,8 +445,9 @@ test("landing, captación y primera capa legal conservan sus contratos públicos
   assert.match(layout, /index: false/);
   assert.match(layout, /notFound\(\)/);
   assert.match(layout, /await connection\(\)/);
-  assert.match(page, /experience=\{publicConfiguration\.enabled \? "public" : "production-canary"\}/);
-  assert.match(page, /emails\.filter\(\(email\) => email\.kind === "weekly"\)/);
+  assert.match(page, /if \(publicConfiguration\.enabled\) return <NewsletterLandingV2 context="public" \/>/);
+  assert.match(page, /experience="production-canary"/);
+  assert.match(layout, /if \(publicLaunchAllowed\) return children/);
 
   assert.match(card, /href="\/newsletter"/);
   assert.match(card, /data-newsletter-capture=\{placement\}/);
@@ -471,6 +472,51 @@ test("landing, captación y primera capa legal conservan sus contratos públicos
     assert.doesNotMatch(surface, /Rubén(?: Ginés)? Sánchez/);
   }
   assert.match(footer, /La Agenda Motor/);
+});
+
+test("A12B separa landing pública V2 y Preview visual sin alterar la guarda ni el backend", () => {
+  const page = source("app/newsletter/page.tsx");
+  const layout = source("app/newsletter/layout.tsx");
+  const preview = source("app/preview/redesign-v2/newsletter/page.tsx");
+  const landing = source("components/redesign-v2/newsletter/NewsletterLandingV2.tsx");
+  const landingStyles = source("components/redesign-v2/newsletter/NewsletterLandingV2.module.css");
+  const shell = source("components/redesign-v2/site/V2InteriorShell.tsx");
+  const navigation = source("components/redesign-v2/site/preview-navigation.ts");
+  const home = source("components/redesign-v2/RedesignV2Home.tsx");
+  const sitemap = source("app/sitemap.ts");
+  const form = source("components/newsletter/NewsletterSignupForm.tsx");
+
+  assert.match(layout, /if \(!canaryAllowed && !publicLaunchAllowed\)[\s\S]*?notFound\(\)/);
+  assert.match(layout, /if \(publicLaunchAllowed\) return children/);
+  assert.match(page, /<NewsletterLandingV2 context="public"/);
+  assert.match(page, /experience="production-canary"/);
+  assert.match(preview, /if \(!isRedesignPreviewAvailable\(\)\) notFound\(\)/);
+  assert.match(preview, /<NewsletterLandingV2 context="preview"/);
+  assert.match(preview, /index: false/);
+  assert.match(landing, /navigationMode=\{context\}/);
+  assert.match(landing, /<NewsletterSignupForm appearance="homeEditorial" previewOnly=\{context === "preview"\} \/>/);
+  assert.match(landing, /No se realizan suscripciones desde Preview/);
+  assert.doesNotMatch(landing, /requestNewsletterSubscription|<iframe|srcDoc|weeklyEmail|última edición|archivo de ediciones/i);
+  assert.match(landing, /Eventos destacados/);
+  assert.match(landing, /El fin de semana/);
+  assert.match(landing, /Lo que viene/);
+  assert.match(landing, /Confirma por email/);
+  assert.match(landing, /href="\/privacidad"/);
+  assert.match(landing, /href="\/aviso-legal"/);
+  assert.match(form, /requestNewsletterSubscription\(/);
+  assert.match(form, /if \(previewOnly\) return/);
+  assert.match(form, /disabled=\{busy \|\| previewOnly\}/);
+  assert.match(form, /if \(!consent\)/);
+  assert.match(form, /Provincia — opcional/);
+  assert.match(form, /runNewsletterMutationOnce/);
+  assert.match(shell, /newsletterVisible = navigationMode === "preview"/);
+  assert.match(shell, /isNewsletterPublicLaunchPageRequestAllowed/);
+  assert.match(shell, /\{newsletterVisible \? <PreviewAwareLink mode=\{navigationMode\} navigationId="newsletter"/);
+  assert.match(navigation, /newsletter:[\s\S]*?previewHref: "\/preview\/redesign-v2\/newsletter"/);
+  assert.match(home, /newsletter: "\/preview\/redesign-v2\/newsletter"/);
+  assert.match(sitemap, /publicNewsletter\.enabled && !canaryNewsletter\.enabled/);
+  assert.match(landingStyles, /@media \(max-width: 760px\)/);
+  assert.doesNotMatch(landingStyles, /display:\s*none/);
 });
 
 test("la captación compacta conserva responsive, foco y jerarquía sin segunda hero", () => {

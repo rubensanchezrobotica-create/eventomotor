@@ -35,8 +35,8 @@ export type InteriorNavigationSurface = "desktop" | "mobile";
 
 const INTERIOR_NAVIGATION_IDS = {
   preview: {
-    desktop: ["calendar", "disciplines", "territories", "contact"],
-    mobile: ["calendar", "disciplines", "territories", "contact", "favorites", "publish"],
+    desktop: ["calendar", "disciplines", "territories"],
+    mobile: ["calendar", "disciplines", "territories", "favorites", "publish", "contact"],
   },
   public: {
     desktop: ["calendar", "disciplines", "territories", "favorites"],
@@ -53,7 +53,7 @@ export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNav
   calendar: { id: "calendar", label: "Calendario", productionHref: "/calendario", previewHref: "/preview/redesign-v2/calendario" },
   disciplines: { id: "disciplines", label: "Disciplinas", productionHref: "/disciplinas" },
   territories: { id: "territories", label: "Zonas", productionHref: "/zonas", previewHref: "/preview/redesign-v2/zonas" },
-  newsletter: { id: "newsletter", label: "Newsletter", productionHref: "/newsletter" },
+  newsletter: { id: "newsletter", label: "Newsletter", productionHref: "/newsletter", previewHref: "/preview/redesign-v2/newsletter" },
   favorites: { id: "favorites", label: "Mis eventos", productionHref: "/mis-eventos" },
   publish: { id: "publish", label: "Publicar evento", productionHref: "/publicar-evento", variant: "primary" },
   contact: { id: "contact", label: "Contacto", productionHref: "/contacto" },

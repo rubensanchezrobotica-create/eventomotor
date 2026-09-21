@@ -169,7 +169,7 @@ test("el formulario integra la primera capa, edad y consentimiento literal desma
   assert.match(form, /Legitimación:/);
   assert.match(form, /Consulta la/);
   assert.match(form, /Provincia — opcional/);
-  assert.match(form, /selección general de España/);
+  assert.match(form, /La selección seguirá\s+incluyendo planes de toda España/);
   assert.match(
     form,
     /Quiero recibir cada semana “La Agenda Motor”, la newsletter de\s+EventoMotor/,
