@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import { SITE_URL } from "@/lib/seo";
+import legalStyles from "../legal-document.module.css";
 
 export const metadata: Metadata = {
   title: "Política de cookies",
@@ -33,46 +33,35 @@ const cookieSections = [
 
 export default function CookiesPage() {
   return (
-    <div className="emc-page">
-      <ConceptStyles />
-      <ConceptStaticHeader compactActions />
-      <main className="emc-contact-page emc-publish-page">
-        <section className="emc-contact-hero">
-          <div className="emc-container">
-            <div className="emc-kicker">Legal</div>
-            <h1>Política de cookies</h1>
-            <p className="emc-contact-lead">
-              Aquí puedes consultar qué categorías de cookies usa EventoMotor y cómo cambiar o retirar tu consentimiento.
-            </p>
-          </div>
-        </section>
-
-        <section className="emc-section emc-contact-section">
-          <div className="emc-container">
-            <div className="emc-panel emc-contact-list-panel">
-              <div>
-                <div className="emc-kicker">Consentimiento</div>
-                <h2>Uso de cookies</h2>
-                <p className="emc-contact-list-copy">
-                  Puedes cambiar tu elección en cualquier momento desde el enlace “Configurar cookies” del pie de página.
-                </p>
-              </div>
-              <div className="emc-contact-list">
-                {cookieSections.map((section) => (
-                  <div className="emc-contact-list-item" key={section.title}>
-                    <span />
-                    <div>
-                      <strong>{section.title}</strong>
-                      <small>{section.text}</small>
-                    </div>
-                  </div>
-                ))}
-              </div>
+    <div className={`${legalStyles.legalPage} ${redesignV2DisplayPilot.variable}`}>
+      <V2InteriorShell
+        breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Cookies" }]}
+        description="Aquí puedes consultar qué categorías de cookies usa EventoMotor y cómo cambiar o retirar tu consentimiento."
+        eyebrow="Legal"
+        heroTitleFontClassName={redesignV2DisplayPilot.variable}
+        navigationMode="public"
+        title="Política de cookies"
+      >
+        <div className={legalStyles.content}>
+          <article className={legalStyles.document}>
+            <section>
+              <span className={legalStyles.sectionEyebrow}>Consentimiento</span>
+              <h2>Uso de cookies</h2>
+              <p>
+                Puedes cambiar tu elección en cualquier momento desde el enlace “Configurar cookies” del pie de página.
+              </p>
+            </section>
+            <div className={legalStyles.cookieCategories}>
+              {cookieSections.map((section) => (
+                <section key={section.title}>
+                  <h3>{section.title}</h3>
+                  <p>{section.text}</p>
+                </section>
+              ))}
             </div>
-          </div>
-        </section>
-      </main>
-      <ConceptFooter />
+          </article>
+        </div>
+      </V2InteriorShell>
     </div>
   );
 }

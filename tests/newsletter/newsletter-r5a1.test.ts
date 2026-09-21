@@ -188,14 +188,17 @@ test("privacidad y aviso legal identifican al responsable sin sociedad inventada
   const privacy = source("app/privacidad/page.tsx");
   const legalNotice = source("app/aviso-legal/page.tsx");
   const visualStyles = source("app/legal-document.module.css");
+  const v2Shell = source("components/redesign-v2/site/V2InteriorShell.tsx");
 
   for (const page of [privacy, legalNotice]) {
     assert.match(page, /Rubén Ginés Sánchez García/);
     assert.match(page, /info@eventomotor\.com/);
     assert.doesNotMatch(page, /S\.L\.|EventoMotor es una sociedad mercantil/);
-    assert.equal((page.match(/<h1/g) ?? []).length, 1);
+    assert.match(page, /<V2InteriorShell/);
+    assert.equal((page.match(/<h1/g) ?? []).length, 0);
     assert.match(page, /legalStyles\.document/);
   }
+  assert.equal((v2Shell.match(/<h1/g) ?? []).length, 1);
   assert.match(privacy, /Política de privacidad de EventoMotor/);
   assert.match(privacy, /<h2>13\. Cambios en la política<\/h2>/);
   assert.match(legalNotice, /<h2>Titularidad<\/h2>/);

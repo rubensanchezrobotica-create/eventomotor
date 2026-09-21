@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import { SITE_URL } from "@/lib/seo";
 import legalStyles from "../legal-document.module.css";
 
@@ -15,24 +14,17 @@ export const metadata: Metadata = {
 
 export default function AvisoLegalPage() {
   return (
-    <div className={`emc-page ${legalStyles.legalPage}`}>
-      <ConceptStyles />
-      <ConceptStaticHeader compactActions />
-      <main className="emc-contact-page emc-publish-page">
-        <section className={`emc-contact-hero ${legalStyles.hero}`}>
-          <div className={`emc-container ${legalStyles.heroInner}`}>
-            <div className="emc-kicker">Legal</div>
-            <h1>Aviso legal</h1>
-            <p className={`emc-contact-lead ${legalStyles.lead}`}>
-              Información general sobre el uso de EventoMotor y la naturaleza
-              informativa del calendario de eventos.
-            </p>
-          </div>
-        </section>
-
-        <section className={`emc-section emc-contact-section ${legalStyles.content}`}>
-          <div className={`emc-container ${legalStyles.contentInner}`}>
-            <article className={`emc-panel emc-contact-list-panel emc-legal-document ${legalStyles.document}`}>
+    <div className={`${legalStyles.legalPage} ${redesignV2DisplayPilot.variable}`}>
+      <V2InteriorShell
+        breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Aviso legal" }]}
+        description="Información general sobre el uso de EventoMotor y la naturaleza informativa del calendario de eventos."
+        eyebrow="Legal"
+        heroTitleFontClassName={redesignV2DisplayPilot.variable}
+        navigationMode="public"
+        title="Aviso legal"
+      >
+        <div className={legalStyles.content}>
+          <article className={legalStyles.document}>
               <section>
                 <h2>Titularidad</h2>
                 <p>
@@ -134,11 +126,9 @@ export default function AvisoLegalPage() {
                 monetización, debe revisarse la aplicación de la LSSI y la posible
                 publicación de domicilio y NIF.
               </aside>
-            </article>
-          </div>
-        </section>
-      </main>
-      <ConceptFooter />
+          </article>
+        </div>
+      </V2InteriorShell>
     </div>
   );
 }

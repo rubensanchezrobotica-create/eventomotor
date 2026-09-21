@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import ConceptFooter from "@/components/public/concept/ConceptFooter";
-import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
-import ConceptStyles from "@/components/public/concept/ConceptStyles";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import { SITE_URL } from "@/lib/seo";
 import legalStyles from "../legal-document.module.css";
 
@@ -17,23 +16,17 @@ export const metadata: Metadata = {
 
 export default function PrivacidadPage() {
   return (
-    <div className={`emc-page ${legalStyles.legalPage}`}>
-      <ConceptStyles />
-      <ConceptStaticHeader compactActions />
-      <main className="emc-contact-page emc-publish-page">
-        <section className={`emc-contact-hero ${legalStyles.hero}`}>
-          <div className={`emc-container ${legalStyles.heroInner}`}>
-            <div className="emc-kicker">Legal</div>
-            <h1>Política de privacidad de EventoMotor</h1>
-            <p className={`emc-contact-lead ${legalStyles.lead}`}>
-              Última actualización: 29 de julio de 2026.
-            </p>
-          </div>
-        </section>
-
-        <section className={`emc-section emc-contact-section ${legalStyles.content}`}>
-          <div className={`emc-container ${legalStyles.contentInner}`}>
-            <article className={`emc-panel emc-contact-list-panel emc-legal-document ${legalStyles.document}`}>
+    <div className={`${legalStyles.legalPage} ${redesignV2DisplayPilot.variable}`}>
+      <V2InteriorShell
+        breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Privacidad" }]}
+        description="Última actualización: 29 de julio de 2026."
+        eyebrow="Legal"
+        heroTitleFontClassName={redesignV2DisplayPilot.variable}
+        navigationMode="public"
+        title="Política de privacidad de EventoMotor"
+      >
+        <div className={legalStyles.content}>
+          <article className={legalStyles.document}>
               <section>
                 <h2>1. Responsable del tratamiento</h2>
                 <p><strong>Responsable:</strong> Rubén Ginés Sánchez García</p>
@@ -429,11 +422,9 @@ export default function PrivacidadPage() {
                   y el <Link href="/aviso-legal">Aviso legal</Link>.
                 </p>
               </section>
-            </article>
-          </div>
-        </section>
-      </main>
-      <ConceptFooter />
+          </article>
+        </div>
+      </V2InteriorShell>
     </div>
   );
 }
