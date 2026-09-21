@@ -95,7 +95,12 @@ export default function NewsletterLandingV2({ context }: { context: NewsletterLa
                 <Link href="/aviso-legal">Aviso legal</Link>.
               </p>
             </div>
-            <a className={styles.closeButton} href="#suscribete-agenda">Quiero recibir La Agenda Motor <span aria-hidden="true">↗</span></a>
+            <a className={styles.closeButton} href="#suscribete-agenda">
+              Quiero recibir La Agenda Motor
+              <svg aria-hidden="true" fill="none" focusable="false" height="16" viewBox="0 0 16 16" width="16">
+                <path d="M6 4h6v6M12 4 4 12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+              </svg>
+            </a>
           </div>
         </section>
       </div>

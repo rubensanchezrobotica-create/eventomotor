@@ -20,6 +20,7 @@ export const NEWSLETTER_SIGNUP_STATES = [
   "validating",
   "submitting",
   "accepted",
+  "preview_submitted",
   "invalid",
   "unavailable",
   "rate_limited",
@@ -66,6 +67,10 @@ const RESULT_COPY: Partial<Record<NewsletterSignupState, { title: string; copy: 
     title: "Solicitud recibida",
     copy:
       "Si la dirección indicada puede completar la suscripción, recibirás un correo de confirmación en unos minutos. Revisa también las carpetas de Spam y Promociones.",
+  },
+  preview_submitted: {
+    title: "Vista de diseño",
+    copy: "No se ha enviado ninguna suscripción.",
   },
   invalid: {
     title: "Revisa los datos",
@@ -136,7 +141,6 @@ function NewsletterProductSignupForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (previewOnly) return;
     if (submissionLock.current) return;
 
     setState("validating");
@@ -158,6 +162,10 @@ function NewsletterProductSignupForm({
     }
 
     setFieldErrors({});
+    if (previewOnly) {
+      setState("preview_submitted");
+      return;
+    }
     setState("submitting");
     const nextState = await runNewsletterMutationOnce(submissionLock, () =>
       requestNewsletterSubscription({
@@ -214,7 +222,6 @@ function NewsletterProductSignupForm({
               aria-describedby={fieldErrors.email ? "newsletter-email-error" : undefined}
               aria-invalid={Boolean(fieldErrors.email)}
               autoComplete="email"
-              disabled={previewOnly}
               id="newsletter-preview-email"
               inputMode="email"
               maxLength={254}
@@ -244,7 +251,6 @@ function NewsletterProductSignupForm({
                 fieldErrors.province ? "newsletter-province-error" : "",
               ].filter(Boolean).join(" ")}
               aria-invalid={Boolean(fieldErrors.province)}
-              disabled={previewOnly}
               id="newsletter-preview-province"
               onChange={(event) => {
                 setProvince(event.target.value);
@@ -277,7 +283,6 @@ function NewsletterProductSignupForm({
             aria-describedby={fieldErrors.consent ? "newsletter-consent-error" : undefined}
             aria-invalid={Boolean(fieldErrors.consent)}
             checked={consent}
-            disabled={previewOnly}
             id="newsletter-preview-consent"
             onChange={(event) => {
               setConsent(event.target.checked);
@@ -320,7 +325,7 @@ function NewsletterProductSignupForm({
           <Link href="/privacidad">información sobre protección de datos</Link>.
         </p>
 
-        <button className={styles.primaryButton} disabled={busy || previewOnly} type="submit">
+        <button className={styles.primaryButton} disabled={busy} type="submit">
           {state === "validating"
             ? "Revisando datos…"
             : state === "submitting"

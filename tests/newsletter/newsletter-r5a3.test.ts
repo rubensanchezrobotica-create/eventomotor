@@ -74,13 +74,33 @@ test("el estado aceptado sustituye el formulario y conserva accesibilidad", () =
   assert.match(form, /tabIndex=\{-1\}/);
   assert.match(form, /resultRef\.current\?\.focus\(\)/);
   assert.match(form, /aria-busy=\{busy\}/);
-  assert.match(form, /disabled=\{busy \|\| previewOnly\}/);
-  assert.match(form, /if \(previewOnly\) return/);
+  assert.match(form, /disabled=\{busy\}/);
+  assert.match(form, /if \(previewOnly\) \{[\s\S]*?setState\("preview_submitted"\);[\s\S]*?return;/);
   assert.match(form, /runNewsletterMutationOnce\(submissionLock/);
   assert.doesNotMatch(
     form.slice(acceptedBranch, formBranch),
     /newsletter-preview-email|signupForm/,
   );
+});
+
+test("Preview permite editar y valida localmente antes de interceptar el envío", () => {
+  const form = source("components/newsletter/NewsletterSignupForm.tsx");
+  const submit = form.slice(form.indexOf("async function submit("), form.indexOf("function resetResult()"));
+  const preventDefault = submit.indexOf("event.preventDefault()");
+  const validation = submit.indexOf("validateNewsletterPreviewForm(email, province)");
+  const consent = submit.indexOf("if (!consent)");
+  const previewExit = submit.indexOf("if (previewOnly)");
+  const publicRequest = submit.indexOf("requestNewsletterSubscription({");
+
+  assert.doesNotMatch(form, /disabled=\{previewOnly\}|disabled=\{busy \|\| previewOnly\}/);
+  assert.match(form, /preview_submitted:[\s\S]*?No se ha enviado ninguna suscripción/);
+  assert.ok([preventDefault, validation, consent, previewExit, publicRequest].every((index) => index >= 0));
+  assert.ok(preventDefault < validation);
+  assert.ok(validation < consent && consent < previewExit);
+  assert.ok(previewExit < publicRequest);
+  assert.match(submit, /if \(previewOnly\) \{\s*setState\("preview_submitted"\);\s*return;\s*\}/);
+  assert.match(form, /<form[\s\S]*?onSubmit=\{submit\}/);
+  assert.match(form, /aria-live="polite"[\s\S]*?className=\{styles\.formResult\}/);
 });
 
 test("la primera capa legal es breve, completa y no muestra identidad personal", () => {

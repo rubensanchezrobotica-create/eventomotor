@@ -504,8 +504,13 @@ test("A12B separa landing pública V2 y Preview visual sin alterar la guarda ni 
   assert.match(landing, /href="\/privacidad"/);
   assert.match(landing, /href="\/aviso-legal"/);
   assert.match(form, /requestNewsletterSubscription\(/);
-  assert.match(form, /if \(previewOnly\) return/);
-  assert.match(form, /disabled=\{busy \|\| previewOnly\}/);
+  assert.match(form, /if \(previewOnly\) \{\s*setState\("preview_submitted"\);\s*return;\s*\}/);
+  assert.match(form, /disabled=\{busy\}/);
+  assert.doesNotMatch(form, /disabled=\{previewOnly\}/);
+  assert.match(form, /No se ha enviado ninguna suscripción/);
+  assert.match(landing, /<svg aria-hidden="true" fill="none" focusable="false" height="16" viewBox="0 0 16 16" width="16">/);
+  assert.match(landing, /stroke="currentColor"/);
+  assert.doesNotMatch(landing, /↗|➡️|→/u);
   assert.match(form, /if \(!consent\)/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /runNewsletterMutationOnce/);
