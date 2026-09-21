@@ -1,4 +1,4 @@
-const CACHE_VERSION = "eventomotor-pwa-v1";
+const CACHE_VERSION = "eventomotor-pwa-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline";
 const STATIC_ASSETS = [
