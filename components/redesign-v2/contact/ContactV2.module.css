@@ -1,0 +1,224 @@
+.pageScope {
+  min-width: 0;
+  overflow-x: clip;
+  background: #05070a;
+}
+
+.pageScope :global(#contenido-redesign-v2-interior) > section:first-child {
+  min-height: 290px;
+}
+
+.pageScope :global(#contenido-redesign-v2-interior) > section:first-child > div {
+  padding-top: 22px;
+  padding-bottom: 48px;
+}
+
+.pageScope :global(#contenido-redesign-v2-interior) > section:first-child > div > nav + span {
+  margin-top: 30px;
+}
+
+.pageScope :global(#redesign-v2-interior-title),
+.content h2 {
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-weight: 900;
+}
+
+.content {
+  min-width: 0;
+  padding: clamp(32px, 4.4vw, 56px) 0 clamp(56px, 6.2vw, 80px);
+  background: #070a0e;
+}
+
+.emailSection,
+.reasonsSection {
+  width: min(1060px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.emailSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 60px);
+  padding: clamp(25px, 4vw, 42px);
+  border: 1px solid #323a44;
+  border-top: 3px solid #ff6200;
+  border-radius: 9px;
+  background: #11171e;
+}
+
+.emailCopy,
+.emailActions {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: #ff7728;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.content h2 {
+  margin: 10px 0 0;
+  color: #f7f7f4;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-style: normal;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.emailCopy p,
+.sectionHeading p,
+.reason p {
+  color: #aeb5bf;
+  line-height: 1.6;
+}
+
+.emailCopy p {
+  max-width: 490px;
+  margin: 13px 0 0;
+  font-size: 0.94rem;
+}
+
+.emailTextLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 8px;
+  color: #ffb27e !important;
+  font-size: 0.9rem;
+  text-decoration: underline !important;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+
+.emailActions {
+  display: grid;
+  gap: 10px;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 17px;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.primaryAction {
+  background: #ff6200;
+  color: #090b0f !important;
+}
+
+.primaryAction:hover { background: #ff8132; }
+
+.primaryAction svg,
+.reason svg { flex: 0 0 auto; }
+
+.secondaryAction {
+  border: 1px solid #505963;
+  color: #f7f7f4 !important;
+}
+
+.secondaryAction:hover { border-color: #ff7728; }
+
+.reasonsSection { margin-top: clamp(42px, 5.3vw, 64px); }
+
+.sectionHeading p {
+  margin: 12px 0 0;
+  font-size: 0.92rem;
+}
+
+.reasonsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 30px;
+  border-top: 1px solid #303842;
+}
+
+.reason {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 23px 28px 18px 0;
+}
+
+.reason + .reason {
+  padding-left: 28px;
+  border-left: 1px solid #303842;
+}
+
+.number {
+  color: #ff7728;
+  font-family: var(--font-v2-display-pilot), Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.reason h3 {
+  margin: 16px 0 0;
+  color: #f7f7f4;
+  font-family: var(--font-v2-display-pilot), Arial, sans-serif;
+  font-size: 1.13rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.reason p {
+  margin: 10px 0 12px;
+  font-size: 0.87rem;
+}
+
+.reason a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  color: #ffb27e !important;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.reason a:hover { color: #ff8132 !important; }
+
+@media (max-width: 760px) {
+  .emailSection,
+  .reasonsSection { width: min(100% - 32px, 620px); }
+
+  .emailSection { grid-template-columns: minmax(0, 1fr); }
+
+  .reasonsGrid { grid-template-columns: minmax(0, 1fr); }
+
+  .reason,
+  .reason + .reason {
+    padding: 19px 0;
+    border-left: 0;
+    border-bottom: 1px solid #303842;
+  }
+
+  .reason h3 { margin-top: 9px; }
+}
+
+@media (max-width: 350px) {
+  .emailSection,
+  .reasonsSection { width: calc(100% - 28px); }
+
+  .emailSection { padding: 20px; }
+
+  .primaryAction { gap: 7px; padding-inline: 9px; font-size: 0.8rem; }
+}
