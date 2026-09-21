@@ -1,0 +1,68 @@
+LA AGENDA MOTOR · EDICIÓN 02
+14–16 DE AGOSTO DE 2026
+
+Campaign key
+agenda_motor_2026_08_13
+
+Asunto
+Drift nocturno, rally y 4 planes más para este fin de semana
+
+Remitente
+La Agenda Motor · EventoMotor <agenda@news.eventomotor.com>
+
+Reply-To
+info@eventomotor.com
+
+ARTEFACTOS CANÓNICOS
+
+- email-production.html: HTML de producción. Conserva exactamente un
+  {{territorial_block}} y un {{unsubscribe_url}} para render por destinatario.
+- email-texto-plano.txt: equivalente text/plain con los mismos placeholders.
+- asset-manifest.json: identidad ordenada de los siete assets usados por el email.
+- assets/: copias documentales byte a byte de los assets públicos.
+
+PREVIEWS SIN ENVÍO
+
+- preview-national.html
+- preview-madrid.html
+- preview-a-coruna.html
+- preview-barcelona.html
+
+Las previews usan un token ficticio sin valor operativo. No son plantillas
+alternativas: se generan desde los artefactos canónicos mediante el mismo renderer.
+
+PERSONALIZACIÓN
+
+La variante se congela al preparar cada delivery:
+
+- province_slug madrid -> madrid
+- province_slug a-coruna -> a-coruna
+- province_slug barcelona -> barcelona
+- cualquier otro valor -> national
+
+El claim devuelve sólo content_variant. No recalcula province_slug.
+
+FREEZE Y FRONTERA V1/V2
+
+PostgreSQL impide insertar nuevas deliveries cuando audience_frozen_at ya está
+definido, incluso mediante service_role o un INSERT directo. El orden de locks es:
+
+1. fila de newsletter_campaigns;
+2. inserción o claim de newsletter_campaign_deliveries;
+3. fila de newsletter_subscribers cuando el claim revalida elegibilidad.
+
+Prepare v2 conserva ese orden: bloquea campaña, crea el snapshot inicial con su
+content_variant y sólo entonces fija audience_frozen_at. Prepare v1 y claim v1
+rechazan cualquier campaña identificada como v2 por content_manifest_digest no
+nulo. Las RPC compartidas posteriores al claim (accepted, failed, unknown y baja)
+siguen siendo variant-agnostic y compatibles con Edition 02.
+
+SEGURIDAD OPERATIVA
+
+El runner scripts/send-newsletter-edition-02.ts es dry-run por defecto. Un futuro
+envío real requiere --send, confirmación de edición, frase exacta, entorno live,
+transporte Resend, lanzamiento público armado y la variable de armado propia de
+Edition 02. CI, Vercel y NODE_ENV=production permanecen bloqueados.
+
+Esta preparación local no crea campañas, no consulta Supabase de producción y no
+llama a Resend.

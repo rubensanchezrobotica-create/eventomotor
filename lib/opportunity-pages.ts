@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import type { EventItem } from "@/types/event";
+import {
+  effectiveMotorcycleEventEnd,
+  isMotorcycleEvent,
+  isMotorcycleGatheringEvent,
+  motorcycleWeekendRange,
+} from "@/lib/concentrations/motorcycle-event-core";
 import { absoluteMetadataTitle, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { SEO_COMMUNITIES, matchesSeoCommunity } from "@/lib/seo-communities";
 import { normalizeSeoText } from "@/lib/seo-taxonomy";
@@ -137,10 +143,271 @@ const extendedConcentrationTerms = [
   "solidario",
   "yuncler",
 ];
-const circuitTerms = ["circuito", "trackday", "track day", "rodada", "rodadas", "tandas", "tandas libres", "curso de conduccion", "curso de conducción", "racing experience", "drift day"];
-const motoCircuitTerms = ["moto", "motos", "motociclismo", "rodada moto", "rodadas moto", "tandas moto"];
+const RECREATIONAL_MOTORCYCLE_ROUTE_DISCIPLINES = new Set([
+  "ruta",
+  "rutas",
+  "ruta motera",
+  "rutas moteras",
+  "mototurismo",
+]);
+const EXPLICIT_RECREATIONAL_MOTORCYCLE_ROUTE_PHRASES = [
+  "ruta motera",
+  "rutas moteras",
+  "ruta de motos",
+  "rutas de motos",
+  "ruta en moto",
+  "rutas en moto",
+];
 const kartingTerms = ["karting", "kart", "endurance karting", "karting alquiler", "campeonato de karting", "carrera de karting"];
-const feriaTerms = ["feria", "ferias", "salon", "salón", "automovil", "automóvil", "moto", "clasicos", "clásicos", "recambios", "exposicion", "exposición", "motor show", "expo"];
+const MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES = [
+  "tandas libres",
+  "tandas de motos",
+  "tandas moto",
+  "tandas para motos",
+  "rodada",
+  "rodadas",
+  "rodada de motos",
+  "rodadas de motos",
+  "trackday",
+  "trackdays",
+  "track day",
+  "track days",
+  "trackday moto",
+  "trackdays motos",
+  "curso y tandas",
+  "curso tandas",
+  "curso de conduccion y tandas",
+  "curso de conduccion tandas",
+];
+const TRACKDAY_ACTIVITY_PHRASES = [
+  "trackday",
+  "track day",
+  "trackdays",
+  "track days",
+  "tandas",
+  "tandas libres",
+  "rodada",
+  "rodadas",
+  "open pit lane",
+  "curso de conduccion",
+  "racing experience",
+  "drift day",
+];
+const TRACKDAY_VEHICLE_TYPES = new Set(["coche", "moto", "mixto"]);
+const AUTOMOTIVE_RALLY_VEHICLES = new Set(["coche", "coches", "automovil", "automovilismo"]);
+const EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES = new Set([
+  "moto",
+  "motos",
+  "motocicleta",
+  "motocicletas",
+  "mixto",
+]);
+
+function isExplicitRecreationalMotorcycleRoute(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline);
+  if (!RECREATIONAL_MOTORCYCLE_ROUTE_DISCIPLINES.has(discipline)) return false;
+
+  const text = normalizeSeoText([
+    event.title,
+    event.championship,
+    ...event.tags,
+  ].join(" "));
+
+  return EXPLICIT_RECREATIONAL_MOTORCYCLE_ROUTE_PHRASES.some((phrase) => (
+    text.includes(normalizeSeoText(phrase))
+  ));
+}
+
+export function matchesMotorcycleWeekendOpportunity(event: EventItem, now: Date) {
+  if (!isMotorcycleEvent(event)) return false;
+
+  const { friday, sunday } = motorcycleWeekendRange(now);
+  if (event.start > sunday || effectiveMotorcycleEventEnd(event) < friday) return false;
+
+  return isMotorcycleGatheringEvent(event) || isExplicitRecreationalMotorcycleRoute(event);
+}
+const AUTOMOTIVE_RALLY_STRUCTURED_TERMS = [
+  "automovil",
+  "automovilismo",
+  "automovilistico",
+  "coche",
+  "coches",
+];
+const COMPETITIVE_RALLY_DISCIPLINES = new Set([
+  "rally",
+  "rallye",
+  "rallyes",
+  "rallysprint",
+  "rally sprint",
+  "rally tierra",
+  "rally historico",
+  "rally tt",
+  "rallymix",
+  "rallycrono",
+  "eco rally",
+  "montana",
+  "subida",
+  "regularidad",
+  "regularidad clasicos",
+  "tramo cronometrado de subida",
+]);
+const GENERIC_RALLY_DISCIPLINES = new Set([
+  "",
+  "otro",
+  "otros",
+  "automovilismo",
+  "clasico",
+  "clasicos",
+  "competicion",
+  "motor",
+]);
+const COMPETITIVE_RALLY_FALLBACK_PHRASES = [
+  "rally",
+  "rallye",
+  "rallysprint",
+  "rally sprint",
+  "rally historico",
+  "rallye historico",
+  "rally de tierra",
+  "rallye de tierra",
+  "rally tt",
+  "baja",
+  "subida",
+  "montana",
+  "regularidad",
+];
+const FAIR_DISCIPLINES = new Set(["feria", "ferias"]);
+const FAIR_EXACT_TAGS = new Set(["feria", "ferias", "exposicion"]);
+const FAIR_STRONG_PHRASES = [
+  "feria del motor",
+  "feria de motos",
+  "feria de motocicletas",
+  "feria de la moto",
+  "feria del automovil",
+  "feria de automoviles",
+  "feria de coches",
+  "feria del coche",
+  "feria de vehiculos de ocasion",
+  "feria del vehiculo de ocasion",
+  "feria profesional",
+  "salon del automovil",
+  "salon de la moto",
+  "salon de motos",
+  "salon del motor",
+  "motor show",
+  "auto show",
+  "expo motor",
+  "exposicion de vehiculos",
+];
+
+function normalizedPhraseText(values: Array<string | undefined>) {
+  const normalized = normalizeSeoText(values.filter(Boolean).join(" "))
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+  return ` ${normalized} `;
+}
+
+function includesNormalizedPhrase(text: string, phrase: string) {
+  return text.includes(normalizedPhraseText([phrase]));
+}
+
+function hasAutomotiveRallySignal(event: EventItem) {
+  const vehicles = [event.vehicleType, event.vehicle_type]
+    .filter((vehicle): vehicle is string => Boolean(vehicle))
+    .map((vehicle) => normalizeSeoText(vehicle).trim());
+
+  if (vehicles.some((vehicle) => EXPLICIT_NON_AUTOMOTIVE_RALLY_VEHICLES.has(vehicle))) {
+    return false;
+  }
+  if (vehicles.some((vehicle) => AUTOMOTIVE_RALLY_VEHICLES.has(vehicle))) return true;
+  if (vehicles.some((vehicle) => vehicle !== "otros" && vehicle !== "otro")) return false;
+
+  const structuredText = normalizedPhraseText([
+    event.discipline,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return AUTOMOTIVE_RALLY_STRUCTURED_TERMS.some((term) =>
+    includesNormalizedPhrase(structuredText, term),
+  );
+}
+
+export function matchesCompetitiveAutomotiveRallyOpportunity(event: EventItem) {
+  if (!hasAutomotiveRallySignal(event)) return false;
+
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (COMPETITIVE_RALLY_DISCIPLINES.has(discipline)) return true;
+  if (!GENERIC_RALLY_DISCIPLINES.has(discipline)) return false;
+
+  const fallbackText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return COMPETITIVE_RALLY_FALLBACK_PHRASES.some((phrase) =>
+    includesNormalizedPhrase(fallbackText, phrase),
+  );
+}
+
+export function matchesMotorcycleTrackdayOpportunity(event: EventItem) {
+  const hasMotorcycleVehicle = [event.vehicleType, event.vehicle_type]
+    .filter((vehicleType): vehicleType is string => Boolean(vehicleType))
+    .some((vehicleType) => normalizeSeoText(vehicleType).trim() === "moto");
+
+  if (!hasMotorcycleVehicle) return false;
+
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (discipline === "tandas") return true;
+
+  const activityText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+
+  return MOTORCYCLE_TRACKDAY_ACTIVITY_PHRASES.some((phrase) =>
+    activityText.includes(normalizedPhraseText([phrase])),
+  );
+}
+
+export function matchesTrackdayOpportunity(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline).trim();
+  const activityText = normalizedPhraseText([
+    event.title,
+    event.championship,
+    ...(event.tags || []),
+  ]);
+  const hasTrackdayActivity = discipline === "tandas"
+    || TRACKDAY_ACTIVITY_PHRASES.some((phrase) => includesNormalizedPhrase(activityText, phrase));
+
+  if (!hasTrackdayActivity) return false;
+
+  const vehicleType = normalizeSeoText(event.vehicleType || event.vehicle_type || "").trim();
+  return TRACKDAY_VEHICLE_TYPES.has(vehicleType);
+}
+
+export function matchesCarTrackdayOpportunity(event: EventItem) {
+  if (!matchesTrackdayOpportunity(event)) return false;
+
+  const vehicleType = normalizeSeoText(event.vehicleType || event.vehicle_type || "").trim();
+  return vehicleType === "coche";
+}
+
+export function matchesFairOpportunity(event: EventItem) {
+  const discipline = normalizeSeoText(event.discipline).trim();
+  if (FAIR_DISCIPLINES.has(discipline)) return true;
+
+  const tags = (event.tags || []).map((tag) => normalizeSeoText(tag).trim());
+  if (tags.some((tag) => FAIR_EXACT_TAGS.has(tag))) return true;
+
+  const semanticText = normalizedPhraseText([event.title, event.championship, ...tags]);
+  return FAIR_STRONG_PHRASES.some((phrase) =>
+    semanticText.includes(normalizedPhraseText([phrase])),
+  );
+}
 
 const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
   {
@@ -219,7 +486,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Rutas moteras", href: "/disciplinas/rutas" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event, now) => weekendOpportunity(event, now) && includesAny(event, concentrationTerms),
+    filter: matchesMotorcycleWeekendOpportunity,
   },
   {
     slug: "concentraciones-moteras-2026",
@@ -343,7 +610,8 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Eventos en el norte", href: "/zonas/norte" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, rallyTerms),
+    filter: (event) =>
+      isYear(event, 2026) && matchesCompetitiveAutomotiveRallyOpportunity(event),
   },
   {
     slug: "rallysprint-espana-2026",
@@ -1390,52 +1658,49 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
     ],
     relatedLinks: [
       { label: "Circuito", href: "/disciplinas/circuito" },
-      { label: "Trackdays en Espana 2026", href: "/trackdays-espana-2026" },
+      { label: "Trackdays y tandas de coches 2026", href: "/trackdays-espana-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) =>
-      isYear(event, 2026) &&
-      includesAny(event, circuitTerms) &&
-      includesAny(event, motoCircuitTerms),
+    filter: (event) => isYear(event, 2026) && matchesMotorcycleTrackdayOpportunity(event),
   },
   {
     slug: "trackdays-espana-2026",
-    h1: "Trackdays en Espana 2026",
-    title: "Trackdays en Espana 2026 | Tandas libres y circuito | EventoMotor",
+    h1: "Trackdays y tandas de coches en España 2026",
+    title: "Trackdays y tandas de coches en España 2026 | EventoMotor",
     description:
-      "Consulta trackdays en Espana 2026: tandas libres de coche y moto, circuito, cursos de conduccion, racing experience y drift day.",
-    eyebrow: "Circuito 2026",
+      "Consulta trackdays y tandas de coches en circuitos de España en 2026: calendario de jornadas de participación, cursos de conducción y experiencias en pista.",
+    eyebrow: "Circuito para coches",
     lead:
-      "Calendario de trackdays en Espana 2026 con tandas libres, circuito, cursos de conduccion, experiencias racing y drift day cuando existen.",
-    resultsTitle: "Trackdays y tandas libres 2026",
+      "Calendario 2026 de trackdays y tandas de coches en circuitos de España, con fechas, ubicaciones y fuentes para confirmar cada jornada.",
+    resultsTitle: "Trackdays y tandas de coches 2026",
     intro:
-      "Los trackdays en Espana 2026 reunen tandas libres, eventos de circuito, cursos de conduccion, racing experiences y jornadas para coches o motos orientadas a rodar en pista. Esta landing filtra eventos publicados en EventoMotor relacionados con trackday, circuito, tandas libres, formacion o drift day cuando aparecen en los datos. El objetivo es ofrecer una pagina practica para usuarios que buscan calendario de circuito sin mezclarlo con todo el calendario nacional. Cada evento enlaza a una ficha individual con fecha, ubicacion, disciplina, tipo de vehiculo, fuente oficial y enlaces disponibles. Antes de reservar, revisa siempre la fuente del organizador.",
+      "Los trackdays y tandas de coches en España 2026 reúnen jornadas de participación en circuito para conductores que quieren rodar en pista. Esta página filtra eventos publicados en EventoMotor con señales claras de trackday, tandas, cursos de conducción o experiencias al volante y tipo de vehículo coche. Cada evento enlaza a una ficha individual con fecha, circuito, ubicación, disciplina, fuente oficial y enlaces disponibles. Antes de reservar, revisa siempre la información del organizador.",
     editorialBlocks: [
-      { title: "Tandas y circuito", text: "Agrupa eventos con senales de trackday, tandas libres, circuito, cursos o racing experience." },
-      { title: "Coche y moto", text: "Puede incluir trackdays de coche, moto o mixtos si estan publicados en EventoMotor." },
-      { title: "Datos verificables", text: "La ficha individual ayuda a confirmar fecha, recinto, fuente oficial y posibles enlaces de inscripcion." },
+      { title: "Trackdays y tandas", text: "Agrupa jornadas para coches con señales claras de trackday, tandas, cursos de conducción o experiencias en pista." },
+      { title: "Participación con coche", text: "El listado se limita a eventos publicados con tipo de vehículo coche; las rodadas de moto tienen su propio calendario." },
+      { title: "Datos verificables", text: "La ficha individual ayuda a confirmar fecha, circuito, fuente oficial y posibles enlaces de inscripción." },
     ],
     usageSteps: [
-      { title: "Filtra por fecha", text: "Ordena mentalmente los proximos trackdays y tandas libres disponibles." },
-      { title: "Revisa vehiculo", text: "Comprueba si el evento esta orientado a coche, moto o formato mixto." },
-      { title: "Confirma condiciones", text: "Consulta la fuente oficial para requisitos, horarios, plazas o inscripcion." },
+      { title: "Filtra por fecha", text: "Consulta los próximos trackdays y tandas de coches disponibles." },
+      { title: "Revisa el circuito", text: "Comprueba recinto, ciudad y formato de la jornada antes de desplazarte." },
+      { title: "Confirma condiciones", text: "Consulta la fuente oficial para requisitos, horarios, plazas o inscripción." },
     ],
     faqs: [
-      { question: "Donde ver trackdays en Espana 2026?", answer: "Esta pagina reune trackdays, tandas libres y eventos de circuito publicados en EventoMotor con fecha y ubicacion." },
-      { question: "Incluye trackdays de coche y moto?", answer: "Si, puede incluir eventos de coche, moto o mixtos segun el tipo de vehiculo publicado en los datos." },
-      { question: "Aparecen cursos de conduccion?", answer: "Si el evento menciona curso de conduccion o formacion en circuito y esta visible, puede aparecer listado." },
-      { question: "Como publicar un trackday?", answer: "Los organizadores pueden enviarlo desde publicar evento con fuente oficial y datos verificables." },
+      { question: "¿Dónde ver trackdays de coches en España 2026?", answer: "Esta página reúne trackdays, tandas y jornadas de participación con coche publicadas en EventoMotor con fecha y ubicación." },
+      { question: "¿Incluye tandas de coches en circuito?", answer: "Sí, las tandas con tipo de vehículo coche y señales claras de participación en pista pueden aparecer en el calendario." },
+      { question: "¿Aparecen cursos de conducción para coches?", answer: "Sí, cuando el evento publicado corresponde a un curso o experiencia de conducción para coches en circuito." },
+      { question: "¿Cómo publicar un trackday de coches?", answer: "Los organizadores pueden enviarlo desde publicar evento con fuente oficial y datos verificables." },
     ],
     relatedLinks: [
       { label: "Circuito", href: "/disciplinas/circuito" },
-      { label: "Rodadas moto 2026", href: "/rodadas-moto-2026" },
+      { label: "Rodadas y tandas de moto 2026", href: "/rodadas-moto-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, circuitTerms),
+    filter: (event) => isYear(event, 2026) && matchesCarTrackdayOpportunity(event),
   },
   {
     slug: "karting-espana-2026",
@@ -1507,7 +1772,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    filter: (event) => isYear(event, 2026) && includesAny(event, feriaTerms),
+    filter: (event) => isYear(event, 2026) && matchesFairOpportunity(event),
   },
 
 ];

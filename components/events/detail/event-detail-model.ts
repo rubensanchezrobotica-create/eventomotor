@@ -99,16 +99,8 @@ function publicSourceUrl(value: string | null | undefined) {
   const url = parseHttpUrl(value);
   if (!url || url.username || url.password) return null;
 
-  const decoded = (() => {
-    try {
-      return decodeURIComponent(url.href);
-    } catch {
-      return url.href;
-    }
-  })();
   const hostnameDigits = url.hostname.replace(/\D/g, "");
 
-  if (UUID_PATTERN.test(decoded) || EMAIL_PATTERN.test(decoded) || containsPhoneLikeValue(decoded)) return null;
   if (hostnameDigits.length >= 9 && !/[a-z]/i.test(url.hostname)) return null;
 
   return url;
@@ -120,18 +112,21 @@ function readableDomain(url: URL) {
 }
 
 export function getOfficialSource(event: EventItem): EventOfficialSource | null {
-  const url = [
-    event.officialUrl,
-    event.organizerUrl,
-    event.sourceUrl,
-  ].map((value) => publicSourceUrl(value)).find((candidate): candidate is URL => Boolean(candidate));
+  const officialUrl = publicSourceUrl(event.officialUrl);
+  const organizerUrl = publicSourceUrl(event.organizerUrl);
+  const sourceUrl = publicSourceUrl(event.sourceUrl);
+  const url = officialUrl || organizerUrl || sourceUrl;
 
   if (!url) return null;
 
-  const label = safeSourceLabel(event.organizerName)
-    || safeSourceLabel(event.source)
-    || readableDomain(url)
-    || "Ver fuente oficial";
+  const isOrganizerOnlyTarget = Boolean(
+    organizerUrl
+    && url.href === organizerUrl.href
+    && (!sourceUrl || url.href !== sourceUrl.href)
+  );
+  const label = isOrganizerOnlyTarget
+    ? safeSourceLabel(event.organizerName) || readableDomain(url) || "Fuente oficial"
+    : safeSourceLabel(event.source) || "Fuente oficial";
 
   return { href: url.toString(), label };
 }

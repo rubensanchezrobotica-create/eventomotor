@@ -8,8 +8,9 @@ import ConceptStyles from "@/components/public/concept/ConceptStyles";
 import { dayLabel, eventHref } from "@/components/public/concept/concept-model";
 import { eventAnalyticsParams } from "@/lib/analytics";
 import { formatRange, getDisciplineColor } from "@/lib/date-utils";
+import { buildOpportunityEventCountStat } from "@/lib/opportunity-page-stats";
 import { OPPORTUNITY_PAGES, type OpportunityPage as OpportunityPageConfig } from "@/lib/opportunity-pages";
-import { getVisibleEvents } from "@/lib/public-events";
+import { getVisibleEvents, getVisibleEventsStrict } from "@/lib/public-events";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import type { EventItem } from "@/types/event";
 
@@ -701,9 +702,17 @@ function emptyAgendaText(page: OpportunityPageConfig) {
   return "Estamos actualizando esta agenda de eventos de motor. Puedes consultar próximos eventos en otras zonas o publicar tu evento para que aparezca en EventoMotor.";
 }
 
-export default async function OpportunityPage({ page }: { page: OpportunityPageConfig }) {
+export default async function OpportunityPage({
+  page,
+  strictData = false,
+}: {
+  page: OpportunityPageConfig;
+  strictData?: boolean;
+}) {
   const now = new Date();
-  const visibleEvents = await getVisibleEvents();
+  const visibleEvents = strictData
+    ? await getVisibleEventsStrict()
+    : await getVisibleEvents();
   const primaryEvents = visibleEvents.filter((event) => page.filter(event, now));
   const fallbackEvents =
     page.fallbackFilter && primaryEvents.length < 6
@@ -726,7 +735,10 @@ export default async function OpportunityPage({ page }: { page: OpportunityPageC
   const hasItemListSchema = mainEvents.length > 0;
   const relatedOpportunityLinks = OPPORTUNITY_PAGES.filter((item) => item.slug !== page.slug).slice(0, 4);
   const stats = [
-    { label: "Eventos", value: displayEvents.length.toString() },
+    buildOpportunityEventCountStat({
+      totalCount: displayEvents.length,
+      upcomingCount: mainEvents.length,
+    }),
     { label: "Provincias", value: uniqueCount(displayEvents.map((event) => event.province)).toString() },
     { label: "Disciplinas", value: uniqueCount(displayEvents.map((event) => event.discipline)).toString() },
     { label: "Próxima cita", value: nextEventLabel(displayEvents, now) },

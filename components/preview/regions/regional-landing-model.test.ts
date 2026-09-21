@@ -10,6 +10,7 @@ import {
   buildRegionalNoUpcomingFixture,
   buildRegionalPreviewMetadata,
   eventBelongsToRegionalLanding,
+  filterRegionalEventCollection,
   filterRegionalLandingEvents,
   isRegionalPreviewAvailable,
   parseRegionalLandingQuery,
@@ -96,7 +97,10 @@ test("separa el inventario territorial futuro e histórico sin inflar el hero", 
   assert.equal(model.upcomingTotal, 88);
   assert.equal(model.pastEvents.length, 34);
 
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   assert.doesNotMatch(component, /inventoryPill|upcomingCountLabel/);
   assert.match(component, /filteredTotal=\{filteredEvents\.length\}/);
   assert.match(component, /Aplicar filtros/);
@@ -343,6 +347,143 @@ test("los filtros SSR incluyen una segunda defensa territorial", () => {
   });
 });
 
+test("aplica la misma query a próximos e histórico sin alterar el estado sin filtros", () => {
+  const events = [
+    eventFixture({ id: "future-rally", slug: "future-rally", discipline: "Rally", vehicleType: "coche" }),
+    eventFixture({ id: "future-mountain", slug: "future-mountain", discipline: "Montaña", vehicleType: "coche" }),
+    eventFixture({ id: "past-rally", slug: "past-rally", discipline: "Rally", vehicleType: "coche", start: "2026-06-01", end: "2026-06-01" }),
+    eventFixture({ id: "past-mountain", slug: "past-mountain", discipline: "Montaña", vehicleType: "coche", start: "2026-06-02", end: "2026-06-02" }),
+  ];
+  const model = buildRegionalLandingModel(events, "cataluna", now);
+  const noFilters = parseRegionalLandingQuery({});
+  const mountain = parseRegionalLandingQuery({ discipline: "MONTAÑA" });
+
+  assert.deepEqual(
+    filterRegionalEventCollection(model.upcomingEvents, model, noFilters).map((event) => event.slug),
+    model.upcomingEvents.map((event) => event.slug),
+  );
+  assert.deepEqual(
+    filterRegionalEventCollection(model.pastEvents, model, noFilters).map((event) => event.slug),
+    model.pastEvents.map((event) => event.slug),
+  );
+  assert.deepEqual(filterRegionalLandingEvents(model, mountain).map((event) => event.slug), ["future-mountain"]);
+  assert.deepEqual(
+    filterRegionalEventCollection(model.pastEvents, model, mountain).map((event) => event.slug),
+    ["past-mountain"],
+  );
+});
+
+test("Cantabria + montana excluye Falda de Cabarga Rallysprint del archivo", () => {
+  const model = buildRegionalLandingModel([
+    eventFixture({
+      id: "cantabria-mountain-future",
+      slug: "cantabria-mountain-future",
+      city: "Laredo",
+      province: "Cantabria",
+      region: "Cantabria",
+      discipline: "Montaña",
+    }),
+    eventFixture({
+      id: "cantabria-mountain-past",
+      slug: "cantabria-mountain-past",
+      city: "Laredo",
+      province: "Cantabria",
+      region: "Cantabria",
+      discipline: "Montaña",
+      start: "2026-06-02",
+      end: "2026-06-02",
+    }),
+    eventFixture({
+      id: "falda-cabarga",
+      slug: "falda-cabarga",
+      title: "III Rallysprint Falda de Cabarga - Sergio Gomez",
+      city: "Heras",
+      province: "Cantabria",
+      region: "Cantabria",
+      discipline: "Rallysprint",
+      start: "2026-06-01",
+      end: "2026-06-01",
+    }),
+  ], "cantabria", now);
+  const query = parseRegionalLandingQuery({ discipline: "montana" });
+  const archive = filterRegionalEventCollection(model.pastEvents, model, query);
+
+  assert.deepEqual(filterRegionalLandingEvents(model, query).map((event) => event.slug), ["cantabria-mountain-future"]);
+  assert.deepEqual(archive.map((event) => event.slug), ["cantabria-mountain-past"]);
+  assert.ok(archive.every((event) => event.discipline === "Montaña"));
+  assert.ok(!archive.some((event) => event.slug === "falda-cabarga"));
+});
+
+test("el filtro compartido cubre segunda región, vehículo, combinación, búsqueda y cero resultados", () => {
+  const model = buildRegionalLandingModel([
+    eventFixture({
+      id: "madrid-future-car",
+      slug: "madrid-future-car",
+      title: "Subida Clásica Madrid",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Montaña",
+      vehicleType: "coche",
+    }),
+    eventFixture({
+      id: "madrid-future-moto",
+      slug: "madrid-future-moto",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Montaña",
+      vehicleType: "moto",
+    }),
+    eventFixture({
+      id: "madrid-past-car",
+      slug: "madrid-past-car",
+      title: "Subida Clásica Madrid",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Montaña",
+      vehicleType: "coche",
+      start: "2026-06-01",
+      end: "2026-06-01",
+    }),
+    eventFixture({
+      id: "madrid-past-moto",
+      slug: "madrid-past-moto",
+      city: "Madrid",
+      province: "Madrid",
+      region: "Madrid",
+      discipline: "Montaña",
+      vehicleType: "moto",
+      start: "2026-06-02",
+      end: "2026-06-02",
+    }),
+  ], "madrid", now);
+  const combined = parseRegionalLandingQuery({ discipline: "MONTAÑA", vehicle: "COCHE", q: "CLÁSICA" });
+  const future = filterRegionalLandingEvents(model, combined);
+  const archive = filterRegionalEventCollection(model.pastEvents, model, combined);
+
+  assert.deepEqual(future.map((event) => event.slug), ["madrid-future-car"]);
+  assert.deepEqual(archive.map((event) => event.slug), ["madrid-past-car"]);
+  assert.ok([...future, ...archive].every((event) => event.vehicleType === "coche"));
+  assert.deepEqual(
+    filterRegionalEventCollection(model.pastEvents, model, parseRegionalLandingQuery({ q: "sin resultados" })),
+    [],
+  );
+});
+
+test("los periodos futuros no hacen fallback al archivo completo", () => {
+  const model = buildRegionalLandingModel([
+    eventFixture({ id: "future", slug: "future" }),
+    eventFixture({ id: "past", slug: "past", start: "2026-06-01", end: "2026-06-01" }),
+  ], "cataluna", now);
+
+  for (const when of ["weekend", "next30"] as const) {
+    const query = parseRegionalLandingQuery({ when });
+    assert.deepEqual(filterRegionalEventCollection(model.pastEvents, model, query), []);
+  }
+});
+
 test("ordena eventos en curso primero y después por fecha", () => {
   const sorted = sortRegionalUpcomingEvents([
     eventFixture({ id: "later", slug: "later", start: "2026-08-03", end: "2026-08-03" }),
@@ -442,7 +583,10 @@ test("no quedan campos, lógica ni etiquetas de alternativas externas", () => {
 });
 
 test("el finder móvil está plegado y abre un panel completo sin overflow", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
   const disclosure = source("components/preview/regions/RegionalFilterDisclosure.tsx");
 
@@ -452,7 +596,7 @@ test("el finder móvil está plegado y abre un panel completo sin overflow", () 
   assert.match(disclosure, /Filtrar/);
   assert.match(disclosure, /<strong>\{totalLabel\}<\/strong>/);
   assert.match(disclosure, /sortLabel.*Ordenados por fecha/);
-  assert.match(component, /\{showSearch \? \([\s\S]*\{showProvince \? \([\s\S]*<span>Cuándo<\/span>[\s\S]*styles\.applyFilters/);
+  assert.match(component, /\{showSearch \? \([\s\S]*provinceCounts\.length > 1 \? \([\s\S]*<span>Cuándo<\/span>[\s\S]*styles\.applyFilters/);
   assert.match(component, /styles\.filterFooter[\s\S]*styles\.applyFilters[\s\S]*styles\.resetFilters/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.filterFooter\s*\{[\s\S]*order:\s*2/);
   assert.match(css, /@media \(max-width: 1023px\)[\s\S]*\.applyFilters\s*\{[\s\S]*order:\s*3/);
@@ -510,7 +654,10 @@ test("el breadcrumb usa Inicio / Zonas / región y la tarjeta mantiene accesibil
 });
 
 test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /model\.finderMode === "full" \|\| model\.finderMode === "compact"/);
@@ -524,7 +671,8 @@ test("el finder compacto usa elecciones reales y conserva GET SSR", () => {
   assert.match(component, /Restablecer/);
   assert.match(component, /model\.weekendEvents\.length > 0/);
   assert.match(component, /model\.nextThirtyDaysEvents\.length !== model\.upcomingTotal/);
-  assert.match(component, /\{showDiscipline \|\| showVehicle \? \([\s\S]*<details className=\{styles\.moreFilters\}/);
+  assert.match(component, /extraFilters=\{\[[\s\S]*showDiscipline[\s\S]*showVehicle/);
+  assert.match(component, /\{extraFilters\.length > 0 \? \([\s\S]*<details className=\{styles\.moreFilters\}/);
   assert.match(css, /\.finderPanel\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto/);
   assert.match(css, /\.page \.applyFilters\s*\{[\s\S]*height:\s*46px[\s\S]*min-height:\s*46px/);
   assert.doesNotMatch(component, /Encuentra un evento|Agenda a tu medida|Ver \{countLabel\(filteredTotal\)\}/);
@@ -561,10 +709,11 @@ test("la guía usa copy natural, details móviles y solo grupos con datos", () =
 test("el histórico resuelve singular y plural y permanece plegado", () => {
   const component = source("components/preview/regions/RegionalLandingPreview.tsx");
 
-  assert.match(component, /model\.pastEvents\.length === 1 \? "evento celebrado" : "eventos celebrados"/);
+  assert.match(component, /filteredPastEvents\.length === 1 \? "evento celebrado" : "eventos celebrados"/);
   assert.doesNotMatch(component, /<(?:details|RegionalTrackedDetails)[^>]*open[^>]*className=\{styles\.historyDetails\}/);
   assert.doesNotMatch(component, /Ver \{model\.pastEvents\.length\} eventos celebrados/);
-  assert.ok(component.indexOf("<RegionalHistory model={model} />") < component.indexOf("styles.editorialSection"));
+  assert.match(component, /filterRegionalEventCollection\(model\.pastEvents, model, query\)/);
+  assert.ok(component.indexOf("<RegionalHistory model={model} query={query} />") < component.indexOf("styles.editorialSection"));
 });
 
 test("la preview es noindex, sin canonical, sitemap ni navegación pública", () => {
@@ -623,7 +772,10 @@ test("las rutas regionales son de solo lectura y no escriben en Supabase", () =>
 });
 
 test("la jerarquía y los controles conservan accesibilidad básica", () => {
-  const component = source("components/preview/regions/RegionalLandingPreview.tsx");
+  const component = source(
+    "components/preview/regions/RegionalLandingPreview.tsx",
+    "components/public/listing/PublicListingFinder.tsx",
+  );
   const css = source("components/preview/regions/RegionalLandingPreview.module.css");
 
   assert.match(component, /<h1>/);

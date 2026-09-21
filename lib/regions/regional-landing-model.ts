@@ -301,18 +301,23 @@ export function parseRegionalLandingQuery(
   };
 }
 
-export function filterRegionalLandingEvents(
+export function filterRegionalEventCollection(
+  events: EventItem[],
   model: RegionalLandingModel,
   query: RegionalLandingQuery,
 ) {
-  const events = query.when === "weekend"
+  const periodEvents = query.when === "weekend"
     ? model.weekendEvents
     : query.when === "next30"
       ? model.nextThirtyDaysEvents
-      : model.upcomingEvents;
+      : null;
+  const periodEventKeys = periodEvents
+    ? new Set(periodEvents.map((event) => event.slug || event.id))
+    : null;
   const normalizedQuery = normalizeRegionalText(query.query);
   return events.filter((event) => {
     if (!eventBelongsToRegionalLanding(event, model.config.id)) return false;
+    if (periodEventKeys && !periodEventKeys.has(event.slug || event.id)) return false;
     if (query.province && regionalFilterKey(normalizeRegionalProvince(event.province)) !== query.province) return false;
     if (query.discipline && regionalFilterKey(normalizeRegionalDiscipline(event.discipline)) !== query.discipline) return false;
     if (query.vehicle && regionalFilterKey(canonicalVehicleLabel(event)) !== query.vehicle) return false;
@@ -327,6 +332,13 @@ export function filterRegionalLandingEvents(
     }
     return true;
   });
+}
+
+export function filterRegionalLandingEvents(
+  model: RegionalLandingModel,
+  query: RegionalLandingQuery,
+) {
+  return filterRegionalEventCollection(model.upcomingEvents, model, query);
 }
 
 export function regionalEventStatusLabel(event: EventItem) {

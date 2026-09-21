@@ -118,7 +118,7 @@ test("separa la información práctica real sin repetir hero ni action context",
   assert.equal(model.venue, "Recinto Motor");
   assert.equal(model.practicalItems.some(({ label }) => ["Fecha", "Lugar", "Espacio", "Disciplina", "Vehículo", "Fuente"].includes(label)), false);
   assert.equal(model.vehicle, "Coche");
-  assert.equal(model.source?.label, "Motor Club del Norte");
+  assert.equal(model.source?.label, "Organización del evento");
 });
 
 test("no repite valores prácticos ya visibles y conserva una única fuente en action context", () => {

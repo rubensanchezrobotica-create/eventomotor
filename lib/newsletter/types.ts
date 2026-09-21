@@ -263,6 +263,8 @@ export type NewsletterCampaignRow = {
   prepared_at: string;
   started_at: string | null;
   completed_at: string | null;
+  audience_frozen_at: string | null;
+  content_manifest_digest: string | null;
 };
 export type NewsletterCampaignInsert = {
   id?: string;
@@ -276,6 +278,8 @@ export type NewsletterCampaignInsert = {
   prepared_at?: string;
   started_at?: string | null;
   completed_at?: string | null;
+  audience_frozen_at?: string | null;
+  content_manifest_digest?: string | null;
 };
 
 export type NewsletterCampaignDeliveryRow = {
@@ -297,6 +301,7 @@ export type NewsletterCampaignDeliveryRow = {
   accepted_at: string | null;
   failed_at: string | null;
   unknown_at: string | null;
+  content_variant: "national" | "madrid" | "a-coruna" | "barcelona";
 };
 export type NewsletterCampaignDeliveryInsert = {
   id?: string;
@@ -317,6 +322,7 @@ export type NewsletterCampaignDeliveryInsert = {
   accepted_at?: string | null;
   failed_at?: string | null;
   unknown_at?: string | null;
+  content_variant?: "national" | "madrid" | "a-coruna" | "barcelona";
 };
 
 export type NewsletterCampaignUnsubscribeTokenRow = {
