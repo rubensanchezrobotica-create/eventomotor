@@ -19,8 +19,8 @@ test("404 usa el shell público V2 y su estado neutro sin cuenta ni navegación 
   assert.doesNotMatch(page, /upcomingCount=|currentNavigationId=/);
   assert.match(shell, /upcomingCount === undefined \? "La agenda nacional del motor"/);
   assert.match(shell, /aria-current=\{currentNavigationId === id \? "page" : undefined\}/);
-  assert.deepEqual(getInteriorNavigationIds("public", "desktop"), ["calendar", "disciplines", "territories", "favorites"]);
-  assert.deepEqual(getInteriorNavigationIds("public", "mobile"), ["calendar", "disciplines", "territories", "favorites", "publish", "contact"]);
+  assert.deepEqual(getInteriorNavigationIds("public", "desktop"), ["calendar", "weekend", "disciplines", "territories", "favorites"]);
+  assert.deepEqual(getInteriorNavigationIds("public", "mobile"), ["calendar", "weekend", "disciplines", "territories", "favorites", "publish", "contact"]);
   assert.match(shell, /<footer className=\{styles\.footer\}>/);
 });
 

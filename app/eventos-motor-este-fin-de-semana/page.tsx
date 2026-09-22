@@ -138,7 +138,7 @@ export default async function EventosMotorEsteFinDeSemanaPage({
       ) : null}
       <V2InteriorShell
         breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: "Este fin de semana" }]}
-        currentNavigationId="calendar"
+        currentNavigationId="weekend"
         description="Carreras, concentraciones y planes para disfrutar del motor de viernes a domingo."
         eyebrow="Agenda del fin de semana"
         heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"

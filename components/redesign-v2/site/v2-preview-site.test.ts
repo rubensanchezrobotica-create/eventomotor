@@ -12,7 +12,6 @@ const interiorShell = readFileSync(new URL("./V2InteriorShell.tsx", import.meta.
 const navigation = readFileSync(new URL("./preview-navigation.ts", import.meta.url), "utf8");
 const mobileNavigation = readFileSync(new URL("./InteriorMobileNavigation.client.tsx", import.meta.url), "utf8");
 const home = source("components/redesign-v2/RedesignV2Home.tsx");
-const homeMobileNavigation = source("components/redesign-v2/MobileNavigation.client.tsx");
 const homeStyles = source("components/redesign-v2/RedesignV2.module.css");
 const interiorStyles = readFileSync(new URL("./V2PreviewShell.module.css", import.meta.url), "utf8");
 const calendarPage = source("app/calendario/page.tsx");
@@ -30,12 +29,14 @@ test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer con
 test("la navegación interior mantiene los destinos Preview y la jerarquía pública por superficie", () => {
   assert.deepEqual(getInteriorNavigationIds("public", "desktop"), [
     "calendar",
+    "weekend",
     "disciplines",
     "territories",
     "favorites",
   ]);
   assert.deepEqual(getInteriorNavigationIds("public", "mobile"), [
     "calendar",
+    "weekend",
     "disciplines",
     "territories",
     "favorites",
@@ -44,22 +45,25 @@ test("la navegación interior mantiene los destinos Preview y la jerarquía púb
   ]);
   assert.deepEqual(getInteriorNavigationIds("preview", "desktop"), [
     "calendar",
+    "weekend",
     "disciplines",
     "territories",
+    "favorites",
   ]);
   assert.deepEqual(getInteriorNavigationIds("preview", "mobile"), [
     "calendar",
+    "weekend",
     "disciplines",
     "territories",
     "favorites",
     "publish",
     "contact",
   ]);
-  assert.deepEqual(
-    [...getInteriorNavigationIds("preview", "desktop"), "favorites"],
-    getInteriorNavigationIds("public", "desktop"),
-  );
+  assert.deepEqual(getInteriorNavigationIds("preview", "desktop"), getInteriorNavigationIds("public", "desktop"));
   assert.deepEqual(getInteriorNavigationIds("preview", "mobile"), getInteriorNavigationIds("public", "mobile"));
+  assert.equal(resolveInteriorNavigationItem("weekend", "public").href, "/eventos-motor-este-fin-de-semana");
+  assert.equal(resolveInteriorNavigationItem("weekend", "preview").href, "/eventos-motor-este-fin-de-semana");
+  assert.equal(resolveInteriorNavigationItem("weekend", "public").label, "Fin de semana");
   assert.equal(resolveInteriorNavigationItem("publish", "preview").variant, "primary");
   assert.equal(resolveInteriorNavigationItem("contact", "preview").variant, "default");
   assert.match(navigation, /territories:[\s\S]*?label:\s*"Zonas"[\s\S]*?productionHref:\s*"\/zonas"/);
@@ -68,18 +72,18 @@ test("la navegación interior mantiene los destinos Preview y la jerarquía púb
   assert.doesNotMatch(interiorShell, /usePathname|pathname/);
 });
 
-test("la cabecera pública conserva Mis eventos, Publicar evento y Contacto en sus superficies aprobadas", () => {
+test("la cabecera compartida conserva Mis eventos, Publicar evento y Contacto en sus superficies aprobadas", () => {
   assert.match(
     navigation,
     /favorites:\s*\{\s*id:\s*"favorites",\s*label:\s*"Mis eventos",\s*productionHref:\s*"\/mis-eventos"\s*\}/,
   );
-  assert.match(
-    interiorShell,
-    /navigationMode === "preview"[\s\S]*?className=\{styles\.favoritesLink\}[\s\S]*?navigationId="favorites"/,
-  );
+  assert.match(interiorShell, /export function V2GlobalHeader/);
+  assert.match(interiorShell, /desktopNavigation\.map\(\(id\) =>/);
   assert.match(interiorShell, /className=\{styles\.publishButton\}[\s\S]*?navigationId="publish"/);
   assert.match(interiorShell, /<strong>EventoMotor<\/strong>[\s\S]*?navigationId="contact"/);
-  assert.match(home, /routeMode === "public"[\s\S]*?label: "Calendario"[\s\S]*?label: "Disciplinas"[\s\S]*?label: "Zonas"[\s\S]*?label: "Mis eventos"/);
+  assert.match(home, /<V2GlobalHeader[\s\S]*?navigationMode=\{routeMode\}/);
+  assert.match(interiorShell, /<V2GlobalHeader[\s\S]*?navigationMode=\{navigationMode\}/);
+  assert.doesNotMatch(home, /<header\b|<MobileNavigation/);
 });
 
 test("todas las superficies públicas V2 convergidas reciben el mismo shell público", () => {
@@ -127,9 +131,10 @@ test("el registry no define Search como página y marca fallbacks de producción
   assert.match(navigation, /previewFallback:\s*"production"/);
 });
 
-test("la navegación móvil interior es independiente del componente sagrado de Home", () => {
+test("Home e interiores comparten la misma navegación móvil accesible", () => {
+  assert.match(home, /import \{ V2GlobalHeader \} from "\.\/site\/V2InteriorShell"/);
   assert.match(interiorShell, /import InteriorMobileNavigation/);
-  assert.doesNotMatch(interiorShell, /\.\.\/MobileNavigation\.client/);
+  assert.match(interiorShell, /<InteriorMobileNavigation/);
   assert.match(mobileNavigation, /aria-expanded=\{open\}/);
   assert.match(mobileNavigation, /event\.key === "Escape"/);
   assert.match(mobileNavigation, /buttonRef\.current\?\.focus\(\)/);
@@ -149,13 +154,10 @@ test("A10D-R4 identifica semánticamente el CTA en ambos menús sin estilos posi
   assert.equal(resolveInteriorNavigationItem("publish", "public").variant, "primary");
   assert.equal(resolveInteriorNavigationItem("contact", "public").variant, "default");
   assert.equal(resolveInteriorNavigationItem("publish", "preview").variant, "primary");
-  assert.match(home, /label: "Publicar evento", variant: "primary" as const/);
-  assert.match(homeMobileNavigation, /data-navigation-variant=\{item\.variant \?\? "default"\}/);
+  assert.match(home, /publishTrackingSource="header_cta"/);
   assert.match(mobileNavigation, /data-navigation-variant=\{item\.variant\}/);
-  for (const styles of [homeStyles, interiorStyles]) {
-    assert.match(styles, /\.mobileMenu a\[data-navigation-variant="primary"\]/);
-    assert.doesNotMatch(styles, /\.mobileMenu a:last-child/);
-  }
+  assert.match(interiorStyles, /\.mobileMenu a\[data-navigation-variant="primary"\]/);
+  assert.doesNotMatch(interiorStyles, /\.mobileMenu a:last-child/);
 });
 
 test("A10D-R4 propaga el destino activo al menú móvil sin activar Contacto o el CTA por defecto", () => {

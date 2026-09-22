@@ -128,7 +128,7 @@ test("A10E conserva el contrato SEO público y su ItemList sigue el resultado vi
   assert.match(page, /export const metadata: Metadata = buildOpportunityMetadata\(page\)/);
   assert.match(page, /await connection\(\)/);
   assert.match(page, /<V2InteriorShell[\s\S]*?navigationMode="public"/);
-  assert.match(page, /currentNavigationId="calendar"/);
+  assert.match(page, /currentNavigationId="weekend"/);
   assert.match(page, /<WeekendPageExperience[\s\S]*?routeContext="public"/);
   assert.equal((page.match(/type="application\/ld\+json"/g) ?? []).length, 4);
   for (const schema of ["BreadcrumbList", "CollectionPage", "FAQPage", "ItemList"]) assert.match(page, new RegExp(schema));

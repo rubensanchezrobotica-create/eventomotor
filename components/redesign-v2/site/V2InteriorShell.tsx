@@ -40,6 +40,80 @@ export type V2InteriorShellProps = {
   upcomingCount?: number;
 };
 
+type V2GlobalHeaderProps = {
+  currentNavigationId?: PreviewNavigationId;
+  navigationMode: InteriorNavigationMode;
+  newsletterVisible: boolean;
+  publishTrackingSource?: "header_cta" | "static_header_cta";
+  skipTargetId: string;
+  upcomingCount?: number;
+};
+
+export function V2GlobalHeader({
+  currentNavigationId,
+  navigationMode,
+  newsletterVisible,
+  publishTrackingSource,
+  skipTargetId,
+  upcomingCount,
+}: V2GlobalHeaderProps) {
+  const desktopNavigation = getInteriorNavigationIds(navigationMode, "desktop");
+  const mobileNavigation = getInteriorNavigationIds(navigationMode, "mobile");
+  const publishTrackingParams = publishTrackingSource === "static_header_cta"
+    ? { source: "static_header_cta" }
+    : { source: "header_cta" };
+
+  return (
+    <>
+      <a className={styles.skipLink} href={`#${skipTargetId}`}>Saltar al contenido</a>
+      <header className={styles.header}>
+        <div className={styles.utilityBar}>
+          <div className={styles.shell}>
+            <p><span aria-hidden="true">●</span> {upcomingCount === undefined ? "La agenda nacional del motor" : `${upcomingCount} eventos próximos en la agenda`}</p>
+            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter">La Agenda Motor</PreviewAwareLink> : null}
+          </div>
+        </div>
+        <div className={`${styles.shell} ${styles.navbar}`}>
+          <PreviewAwareLink
+            aria-label="EventoMotor, inicio"
+            className={styles.brand}
+            mode={navigationMode}
+            navigationId="home"
+          >
+            <EventomotorLogo />
+          </PreviewAwareLink>
+          <nav aria-label="Navegación principal" className={styles.desktopNav}>
+            {desktopNavigation.map((id) => (
+              <PreviewAwareLink
+                aria-current={currentNavigationId === id ? "page" : undefined}
+                key={id}
+                mode={navigationMode}
+                navigationId={id}
+              />
+            ))}
+          </nav>
+          <div className={styles.navActions}>
+            {publishTrackingSource ? (
+              <TrackLink
+                className={styles.publishButton}
+                eventName="click_publish_event"
+                eventParams={publishTrackingParams}
+                href={resolveInteriorNavigationItem("publish", navigationMode).href}
+              >Publicar evento</TrackLink>
+            ) : (
+              <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
+            )}
+            <InteriorMobileNavigation
+              currentNavigationId={currentNavigationId}
+              items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)}
+            />
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
+
 export default async function V2InteriorShell({
   breadcrumbs,
   children,
@@ -55,8 +129,6 @@ export default async function V2InteriorShell({
   upcomingCount,
 }: V2InteriorShellProps) {
   const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(new Date());
-  const desktopNavigation = getInteriorNavigationIds(navigationMode, "desktop");
-  const mobileNavigation = getInteriorNavigationIds(navigationMode, "mobile");
   const newsletterVisible = navigationMode === "preview" || await (async () => {
     const requestHeaders = await headers();
     const publicConfiguration = evaluateNewsletterPublicLaunchResendConfiguration(
@@ -76,59 +148,14 @@ export default async function V2InteriorShell({
 
   return (
     <div className={styles.root} data-v2-route-context={navigationMode}>
-      <a className={styles.skipLink} href="#contenido-redesign-v2-interior">Saltar al contenido</a>
-      <header className={styles.header}>
-        <div className={styles.utilityBar}>
-          <div className={styles.shell}>
-            <p><span aria-hidden="true">●</span> {upcomingCount === undefined ? "La agenda nacional del motor" : `${upcomingCount} eventos próximos en la agenda`}</p>
-            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter">La Agenda Motor</PreviewAwareLink> : null}
-          </div>
-        </div>
-        <div className={`${styles.shell} ${styles.navbar}`}>
-          <PreviewAwareLink
-            aria-label="EventoMotor V2, inicio"
-            className={styles.brand}
-            mode={navigationMode}
-            navigationId="home"
-          >
-            <EventomotorLogo />
-          </PreviewAwareLink>
-          <nav aria-label="Navegación principal" className={styles.desktopNav}>
-            {desktopNavigation.map((id) => (
-              <PreviewAwareLink
-                aria-current={currentNavigationId === id ? "page" : undefined}
-                key={id}
-                mode={navigationMode}
-                navigationId={id}
-              />
-            ))}
-          </nav>
-          <div className={styles.navActions}>
-            {navigationMode === "preview" ? (
-              <PreviewAwareLink
-                aria-current={currentNavigationId === "favorites" ? "page" : undefined}
-                className={styles.favoritesLink}
-                mode={navigationMode}
-                navigationId="favorites"
-              />
-            ) : null}
-            {trackPublicEventDetailNavigation && navigationMode === "public" ? (
-              <TrackLink
-                className={styles.publishButton}
-                eventName="click_publish_event"
-                eventParams={{ source: "static_header_cta" }}
-                href={resolveInteriorNavigationItem("publish", navigationMode).href}
-              >Publicar evento</TrackLink>
-            ) : (
-              <PreviewAwareLink className={styles.publishButton} mode={navigationMode} navigationId="publish" />
-            )}
-            <InteriorMobileNavigation
-              currentNavigationId={currentNavigationId}
-              items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)}
-            />
-          </div>
-        </div>
-      </header>
+      <V2GlobalHeader
+        currentNavigationId={currentNavigationId}
+        navigationMode={navigationMode}
+        newsletterVisible={newsletterVisible}
+        publishTrackingSource={trackPublicEventDetailNavigation && navigationMode === "public" ? "static_header_cta" : undefined}
+        skipTargetId="contenido-redesign-v2-interior"
+        upcomingCount={upcomingCount}
+      />
 
       <main id="contenido-redesign-v2-interior">
         <section

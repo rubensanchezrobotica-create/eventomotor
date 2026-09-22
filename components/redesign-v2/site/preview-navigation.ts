@@ -33,14 +33,17 @@ export type ResolvedPreviewNavigationItem = {
 export type InteriorNavigationMode = "preview" | "public";
 export type InteriorNavigationSurface = "desktop" | "mobile";
 
+const GLOBAL_DESKTOP_NAVIGATION_IDS = ["calendar", "weekend", "disciplines", "territories", "favorites"] as const;
+const GLOBAL_MOBILE_NAVIGATION_IDS = [...GLOBAL_DESKTOP_NAVIGATION_IDS, "publish", "contact"] as const;
+
 const INTERIOR_NAVIGATION_IDS = {
   preview: {
-    desktop: ["calendar", "disciplines", "territories"],
-    mobile: ["calendar", "disciplines", "territories", "favorites", "publish", "contact"],
+    desktop: GLOBAL_DESKTOP_NAVIGATION_IDS,
+    mobile: GLOBAL_MOBILE_NAVIGATION_IDS,
   },
   public: {
-    desktop: ["calendar", "disciplines", "territories", "favorites"],
-    mobile: ["calendar", "disciplines", "territories", "favorites", "publish", "contact"],
+    desktop: GLOBAL_DESKTOP_NAVIGATION_IDS,
+    mobile: GLOBAL_MOBILE_NAVIGATION_IDS,
   },
 } as const satisfies Record<
   InteriorNavigationMode,
@@ -49,7 +52,7 @@ const INTERIOR_NAVIGATION_IDS = {
 
 export const PREVIEW_NAVIGATION: Readonly<Record<PreviewNavigationId, PreviewNavigationDefinition>> = {
   home: { id: "home", label: "Inicio", productionHref: "/", previewHref: "/preview/redesign-v2" },
-  weekend: { id: "weekend", label: "Este fin de semana", productionHref: "/eventos-motor-este-fin-de-semana" },
+  weekend: { id: "weekend", label: "Fin de semana", productionHref: "/eventos-motor-este-fin-de-semana" },
   calendar: { id: "calendar", label: "Calendario", productionHref: "/calendario", previewHref: "/preview/redesign-v2/calendario" },
   disciplines: { id: "disciplines", label: "Disciplinas", productionHref: "/disciplinas" },
   territories: { id: "territories", label: "Zonas", productionHref: "/zonas", previewHref: "/preview/redesign-v2/zonas" },

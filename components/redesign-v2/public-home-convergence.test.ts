@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { getInteriorNavigationIds, resolveInteriorNavigationItem } from "./site/preview-navigation";
 
 const publicRoute = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
 const previewRoute = readFileSync(new URL("../../app/preview/redesign-v2/page.tsx", import.meta.url), "utf8");
 const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
-const mobileNavigation = readFileSync(new URL("./MobileNavigation.client.tsx", import.meta.url), "utf8");
+const mobileNavigation = readFileSync(new URL("./site/InteriorMobileNavigation.client.tsx", import.meta.url), "utf8");
 const search = readFileSync(new URL("./SearchExperience.client.tsx", import.meta.url), "utf8");
 const eventCard = readFileSync(new URL("./EventCard.tsx", import.meta.url), "utf8");
 const model = readFileSync(new URL("./redesign-v2-model.ts", import.meta.url), "utf8");
@@ -44,26 +45,22 @@ test("A10D mantiene el ancla compatible de Home y converge sus CTA al calendario
 });
 
 test("A10C aplica la IA pública aprobada sin convertir Contacto en navegación desktop", () => {
-  const publicDesktop = home.match(/const desktopNavigation = routeMode === "public"[\s\S]*?: \[/)?.[0] ?? "";
-  const publicMobile = home.match(/const mobileNavigation = routeMode === "public"[\s\S]*?: \[/)?.[0] ?? "";
-
-  for (const label of ["Calendario", "Disciplinas", "Zonas", "Mis eventos"]) {
-    assert.match(publicDesktop, new RegExp(`label: "${label}"`));
-  }
-  assert.doesNotMatch(publicDesktop, /label: "Contacto"/);
-  for (const label of ["Publicar evento", "Contacto"]) {
-    assert.match(publicMobile, new RegExp(`label: "${label}"`));
-  }
-  assert.match(home, /<MobileNavigation items={mobileNavigation} \/>/);
-  assert.match(mobileNavigation, /items: readonly MobileNavigationItem\[\]/);
+  assert.deepEqual(getInteriorNavigationIds("public", "desktop"), ["calendar", "weekend", "disciplines", "territories", "favorites"]);
+  assert.deepEqual(getInteriorNavigationIds("public", "mobile"), ["calendar", "weekend", "disciplines", "territories", "favorites", "publish", "contact"]);
+  assert.equal(resolveInteriorNavigationItem("weekend", "public").label, "Fin de semana");
+  assert.equal(resolveInteriorNavigationItem("weekend", "public").href, "/eventos-motor-este-fin-de-semana");
+  assert.match(home, /<V2GlobalHeader[\s\S]*?navigationMode=\{routeMode\}/);
+  assert.doesNotMatch(home, /<MobileNavigation|<header\b/);
+  assert.match(mobileNavigation, /items: readonly ResolvedPreviewNavigationItem\[\]/);
 });
 
 test("A10C impide fugas Preview desde Home pública y conserva destinos públicos", () => {
   const publicRoutes = home.match(/public: \{[\s\S]*?\n  \},\n  preview:/)?.[0] ?? "";
   assert.doesNotMatch(publicRoutes, /\/preview\//);
-  for (const href of ["/mis-eventos", "/disciplinas", "/zonas", "/publicar-evento", "/contacto"]) {
+  for (const href of ["/disciplinas", "/zonas", "/publicar-evento", "/contacto"]) {
     assert.match(publicRoutes, new RegExp(href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  assert.equal(resolveInteriorNavigationItem("favorites", "public").href, "/mis-eventos");
   assert.match(eventCard, /routeMode === "preview" \? `\/preview\/redesign-v2\$\{publicHref\}` : publicHref/);
   assert.match(model, /return `\/evento\/\$\{event\.slug \|\| event\.id\}`/);
   assert.match(model, /href: "\/disciplinas\/rallyes"/);

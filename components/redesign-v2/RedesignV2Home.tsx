@@ -6,9 +6,9 @@ import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
 import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
-import MobileNavigation from "./MobileNavigation.client";
 import SearchExperience from "./SearchExperience.client";
 import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
+import { V2GlobalHeader } from "./site/V2InteriorShell";
 import styles from "./RedesignV2.module.css";
 import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
@@ -29,21 +29,17 @@ type RedesignV2HomeProps = {
 
 const HOME_ROUTES = {
   public: {
-    home: "/",
     calendar: "/calendario",
     disciplines: "/disciplinas",
     zones: "/zonas",
-    savedEvents: "/mis-eventos",
     newsletter: "/newsletter",
     publish: "/publicar-evento",
     contact: "/contacto",
   },
   preview: {
-    home: "/preview/redesign-v2",
     calendar: "/preview/redesign-v2/calendario",
     disciplines: "/disciplinas",
     zones: "/preview/redesign-v2/zonas",
-    savedEvents: "/mis-eventos",
     newsletter: "/preview/redesign-v2/newsletter",
     publish: "/publicar-evento",
     contact: "/contacto",
@@ -54,32 +50,6 @@ const yearFormatter = new Intl.DateTimeFormat("es-ES", { year: "numeric" });
 
 export default function RedesignV2Home({ events, newsletterVisible, nowIso, routeMode }: RedesignV2HomeProps) {
   const routes = HOME_ROUTES[routeMode];
-  const desktopNavigation = routeMode === "public"
-    ? [
-        { href: routes.calendar, label: "Calendario" },
-        { href: routes.disciplines, label: "Disciplinas" },
-        { href: routes.zones, label: "Zonas" },
-        { href: routes.savedEvents, label: "Mis eventos" },
-      ]
-    : [
-        { href: routes.calendar, label: "Calendario" },
-        { href: routes.disciplines, label: "Disciplinas" },
-        { href: routes.zones, label: "Zonas" },
-        { href: routes.contact, label: "Contacto" },
-      ];
-  const mobileNavigation = routeMode === "public"
-    ? [
-        ...desktopNavigation,
-        { href: routes.publish, label: "Publicar evento", variant: "primary" as const },
-        { href: routes.contact, label: "Contacto" },
-      ]
-    : [
-        { href: routes.calendar, label: "Calendario" },
-        { href: routes.disciplines, label: "Disciplinas" },
-        { href: routes.zones, label: "Zonas" },
-        { href: routes.newsletter, label: "Newsletter" },
-        { href: routes.publish, label: "Publicar evento", variant: "primary" as const },
-      ];
   const projected = events.map(projectPreviewEvent);
   const upcoming = upcomingPreviewEvents(projected, nowIso);
   const editorialEvents = prioritizeEditorialEvents(upcoming);
@@ -93,27 +63,13 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
 
   return (
     <div className={`${styles.root} ${redesignV2DisplayPilot.variable}`}>
-      <a className={styles.skipLink} href="#contenido-redesign-v2">Saltar al contenido</a>
-      <header className={styles.header}>
-        <div className={styles.utilityBar}>
-          <div className={styles.shell}>
-            <p><span aria-hidden="true">●</span> {upcoming.length} eventos próximos en la agenda</p>
-            {newsletterVisible ? <Link href={routes.newsletter}>La Agenda Motor</Link> : null}
-          </div>
-        </div>
-        <div className={`${styles.shell} ${styles.navbar}`}>
-          <Link className={styles.brand} href={routes.home} aria-label="EventoMotor, inicio">
-            <EventomotorLogo />
-          </Link>
-          <nav aria-label="Navegación principal" className={styles.desktopNav}>
-            {desktopNavigation.map((item) => <Link href={item.href} key={item.label}>{item.label}</Link>)}
-          </nav>
-          <div className={styles.navActions}>
-            <TrackLink className={styles.publishButton} eventName="click_publish_event" eventParams={{ source: "header_cta" }} href={routes.publish}>Publicar evento</TrackLink>
-            <MobileNavigation items={mobileNavigation} />
-          </div>
-        </div>
-      </header>
+      <V2GlobalHeader
+        navigationMode={routeMode}
+        newsletterVisible={newsletterVisible}
+        publishTrackingSource="header_cta"
+        skipTargetId="contenido-redesign-v2"
+        upcomingCount={upcoming.length}
+      />
 
       <main id="contenido-redesign-v2">
         <section className={styles.hero} aria-labelledby="redesign-v2-title">
