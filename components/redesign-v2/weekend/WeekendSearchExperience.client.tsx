@@ -189,17 +189,24 @@ export default function WeekendSearchExperience({
         </div>
 
         <button
+          aria-label={advancedFilterCount ? `Más filtros, ${advancedFilterCount} ${advancedFilterCount === 1 ? "filtro activo" : "filtros activos"}` : "Más filtros"}
           aria-controls="weekend-v2-advanced-filters"
           aria-expanded={advancedOpen}
-          className={styles.advancedFilterToggle}
+          className={`${styles.advancedFilterToggle} max-[760px]:gap-1! max-[760px]:px-2!`}
           onClick={() => setAdvancedOpen((current) => !current)}
           type="button"
         >
           <span>Más filtros</span>
-          <span>
-            {advancedFilterCount
-              ? `${advancedFilterCount} ${advancedFilterCount === 1 ? "activo" : "activos"}`
-              : advancedOpen ? "−" : "+"}
+          <span aria-hidden="true">
+            <span className="max-[760px]:hidden">
+              {advancedFilterCount
+                ? `${advancedFilterCount} ${advancedFilterCount === 1 ? "activo" : "activos"}`
+                : advancedOpen ? "−" : "+"}
+            </span>
+            <span className={advancedFilterCount
+              ? "hidden min-w-5 h-5 items-center justify-center rounded-full border border-[#ff7a27]/50 px-1 leading-none max-[760px]:inline-flex"
+              : "hidden max-[760px]:inline"}
+            >{advancedFilterCount || (advancedOpen ? "−" : "+")}</span>
           </span>
         </button>
 

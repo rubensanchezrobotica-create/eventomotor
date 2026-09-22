@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildPreviewSuggestions } from "@/components/preview/search-preview-model";
+import { countCalendarSecondaryFilters } from "./calendar-page-model";
+import { countWeekendSecondaryFilters } from "../weekend/weekend-page-model";
 import type { PreviewEvent } from "../redesign-v2-model";
 
 const calendarSearch = readFileSync(new URL("./CalendarSearchExperience.client.tsx", import.meta.url), "utf8");
+const weekendSearch = readFileSync(new URL("../weekend/WeekendSearchExperience.client.tsx", import.meta.url), "utf8");
 const homeSearch = readFileSync(new URL("../SearchExperience.client.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./CalendarPageExperience.module.css", import.meta.url), "utf8");
 
@@ -74,4 +77,22 @@ test("Más filtros sincroniza fecha, disciplina y vehículo con targets táctile
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?grid-template-columns:\s*minmax\(0, 0\.82fr\) minmax\(0, 1\.18fr\)/);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.suggestions\s*\{[\s\S]*?position:\s*static[\s\S]*?margin-top:\s*8px/);
   assert.match(styles, /\.dateHint\s*\{[\s\S]*?position:\s*absolute[\s\S]*?clip:\s*rect\(0, 0, 0, 0\)/);
+});
+
+test("Calendar y Weekend conservan el count y la semántica accesible con badge compacto sólo en móvil", () => {
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-09-22", discipline: "", vehicle: "" }), 0);
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-09-22", discipline: "rallyes", vehicle: "" }), 1);
+  assert.equal(countCalendarSecondaryFilters({ q: "", date: "2026-09-22", discipline: "rallyes", vehicle: "moto" }), 2);
+  assert.equal(countWeekendSecondaryFilters({ discipline: "", vehicle: "" }), 0);
+  assert.equal(countWeekendSecondaryFilters({ discipline: "rallyes", vehicle: "" }), 1);
+  assert.equal(countWeekendSecondaryFilters({ discipline: "rallyes", vehicle: "moto" }), 2);
+
+  for (const source of [calendarSearch, weekendSearch]) {
+    assert.match(source, /aria-label=\{advancedFilterCount \? `Más filtros, \$\{advancedFilterCount\} \$\{advancedFilterCount === 1 \? "filtro activo" : "filtros activos"\}` : "Más filtros"\}/);
+    assert.match(source, /\$\{advancedFilterCount\} \$\{advancedFilterCount === 1 \? "activo" : "activos"\}/);
+    assert.match(source, /<span aria-hidden="true">[\s\S]*?<span className="max-\[760px\]:hidden">/);
+    assert.match(source, /rounded-full[^"\n]*max-\[760px\]:inline-flex/);
+    assert.match(source, /max-\[760px\]:gap-1! max-\[760px\]:px-2!/);
+  }
+  assert.match(weekendSearch, /\[draft\.province, draft\.discipline, draft\.family\]\.filter\(Boolean\)\.length/);
 });
