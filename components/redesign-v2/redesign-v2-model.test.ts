@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { getVehicleType } from "@/lib/event-classification";
 import type { EventItem } from "@/types/event";
@@ -578,11 +578,11 @@ test("la franja R5 usa la taxonomía pública exacta, conteos reales e iconos we
   }
 });
 
-test("cada territorio enlaza a su landing pública real", () => {
+test("las seis tarjetas territoriales de Home enlazan directamente a sus experiencias V2", () => {
   const expectedHrefs = new Map([
     ["Madrid", "/eventos-motor-madrid"],
     ["Barcelona", "/eventos-motor-cataluna"],
-    ["Valencia", "/eventos-motor-valencia"],
+    ["Valencia", "/eventos-motor-comunidad-valenciana"],
     ["Asturias", "/eventos-motor-asturias"],
     ["Murcia", "/eventos-motor-murcia"],
     ["Andalucía", "/eventos-motor-andalucia"],
@@ -590,7 +590,17 @@ test("cada territorio enlaza a su landing pública real", () => {
 
   const cards = buildTerritoryCards([]);
   assert.equal(cards.length, expectedHrefs.size);
-  for (const card of cards) assert.equal(card.href, expectedHrefs.get(card.name));
+  for (const card of cards) {
+    assert.equal(card.href, expectedHrefs.get(card.name), card.name);
+    const route = readFileSync(new URL(`../../app${card.href}/page.tsx`, import.meta.url), "utf8");
+    assert.match(route, /<PublicRegionalLanding/, card.name);
+    assert.doesNotMatch(route, /<OpportunityPage/, card.name);
+  }
+
+  const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
+  assert.match(home, /territories = buildTerritoryCards\(upcoming\)/);
+  assert.match(home, /zones: "\/zonas"/);
+  assert.match(home, /href=\{routes\.zones\}>Explorar todas las zonas/);
 });
 
 test("las landings territoriales existen y no recuperan el patrón inexistente", () => {
