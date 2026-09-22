@@ -17,6 +17,9 @@ const homeStyles = source("components/redesign-v2/RedesignV2.module.css");
 const interiorStyles = readFileSync(new URL("./V2PreviewShell.module.css", import.meta.url), "utf8");
 const calendarPage = source("app/calendario/page.tsx");
 const weekendPage = source("app/eventos-motor-este-fin-de-semana/page.tsx");
+const disciplinesPage = source("components/redesign-v2/disciplines/DisciplinesPage.tsx");
+const disciplineDetail = source("components/redesign-v2/discipline-detail/DisciplineDetailPage.tsx");
+const compactAgenda = source("components/redesign-v2/newsletter/CompactAgendaSignup.client.tsx");
 const displayFont = source("components/redesign-v2/redesign-v2-fonts.ts");
 
 test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer configurables", () => {
@@ -87,15 +90,13 @@ test("A14C-5 expone La Agenda Motor sin alterar la navegación primaria ni la al
   assert.doesNotMatch(getV2MobileNavigationIds("public", false).join(","), /newsletter/);
   assert.match(interiorShell, /newsletterVisible \? <PreviewAwareLink mode=\{newsletterLinkMode\} navigationId="newsletter">La Agenda Motor/);
   assert.match(interiorShell, /getV2MobileNavigationIds\(navigationMode, newsletterVisible\)/);
-  assert.match(interiorShell, /<V2NewsletterFooterBlock newsletterLinkMode=\{newsletterLinkMode\}/);
-  assert.match(home, /<V2NewsletterFooterBlock newsletterLinkMode=\{newsletterLinkMode\}/);
-  assert.match(interiorShell, /<strong>LA AGENDA MOTOR<\/strong>/);
-  assert.match(interiorShell, /Los próximos eventos de motor, cada semana\./);
-  assert.match(interiorShell, /navigationId="newsletter">Suscribirme/);
+  assert.match(interiorShell, /<PreviewAwareLink mode=\{newsletterLinkMode\} navigationId="newsletter" \/>/);
+  assert.match(home, /<PreviewAwareLink mode=\{newsletterLinkMode\} navigationId="newsletter" \/>/);
   assert.match(calendarPage, /newsletterContextualCta/);
   assert.match(weekendPage, /newsletterContextualCta/);
-  assert.match(interiorShell, /¿Quieres recibir la agenda cada semana\?/);
-  assert.match(interiorShell, /navigationId="newsletter">La Agenda Motor/);
+  assert.match(interiorShell, /<CompactAgendaSignup[\s\S]*?previewOnly=\{!newsletterSurface\.canSubmitLive\}/);
+  assert.doesNotMatch(interiorShell, /¿Quieres recibir la agenda cada semana\?/);
+  assert.doesNotMatch(interiorShell, /V2NewsletterFooterBlock|Los próximos eventos de motor, cada semana\./);
   assert.match(interiorStyles, /\.utilityBar\s*\{\s*min-height: 34px;/);
   assert.match(interiorStyles, /\.navbar\s*\{[\s\S]*?min-height: 70px;/);
   assert.doesNotMatch(getInteriorNavigationIds("public", "desktop").join(","), /newsletter/);
@@ -133,6 +134,25 @@ test("A14C-5C separa QA local/Preview de la autorización pública live", () => 
   assert.match(interiorShell, /resolveInteriorNavigationItems\(mobileNavigation, navigationMode, newsletterLinkMode\)/);
   assert.match(interiorShell, /newsletterContextualCta && newsletterVisible/);
   assert.match(interiorShell, /mode=\{newsletterLinkMode\} navigationId="newsletter"/);
+});
+
+test("A14C-7 reutiliza la composición editorial de Disciplinas y elimina promos duplicadas", () => {
+  assert.equal((disciplinesPage.match(/<CompactAgendaSignup/g) || []).length, 1);
+  assert.equal((disciplineDetail.match(/<CompactAgendaSignup/g) || []).length, 1);
+  assert.equal((interiorShell.match(/<CompactAgendaSignup/g) || []).length, 1);
+  assert.match(compactAgenda, /data-newsletter-surface="v2-compact"/);
+  assert.match(compactAgenda, /className=\{styles\.panel\}/);
+  assert.match(interiorShell, /newsletterContextualCta && newsletterVisible/);
+  assert.match(interiorShell, /previewOnly=\{!newsletterSurface\.canSubmitLive\}/);
+  assert.match(interiorShell, /<footer className=\{styles\.footer\}>[\s\S]*?navigationId="newsletter"/);
+  assert.match(home, /<footer className=\{styles\.footer\}>[\s\S]*?navigationId="newsletter"/);
+  assert.doesNotMatch(interiorShell, /V2NewsletterFooterBlock|newsletterContextualCta a|¿Quieres recibir la agenda cada semana\?/);
+  assert.doesNotMatch(home, /V2NewsletterFooterBlock|<CompactAgendaSignup/);
+  assert.doesNotMatch(interiorStyles, /\.footerNewsletter|\.newsletterContextualCta/);
+  assert.doesNotMatch(getInteriorNavigationIds("public", "desktop").join(","), /newsletter/);
+  const submit = compactAgenda.slice(compactAgenda.indexOf("async function submit("), compactAgenda.indexOf("function resetResult()"));
+  assert.match(submit, /if \(previewOnly\) \{\s*setState\("preview_submitted"\);\s*return;\s*\}/);
+  assert.ok(submit.indexOf("if (previewOnly)") < submit.indexOf("requestNewsletterSubscription({"));
 });
 
 test("la cabecera compartida conserva Mis eventos, Publicar evento y Contacto en sus superficies aprobadas", () => {
@@ -195,7 +215,7 @@ test("el registry no define Search como página y marca fallbacks de producción
 });
 
 test("Home e interiores comparten la misma navegación móvil accesible", () => {
-  assert.match(home, /import \{ V2GlobalHeader, V2NewsletterFooterBlock \} from "\.\/site\/V2InteriorShell"/);
+  assert.match(home, /import \{ V2GlobalHeader \} from "\.\/site\/V2InteriorShell"/);
   assert.match(interiorShell, /import InteriorMobileNavigation/);
   assert.match(interiorShell, /<InteriorMobileNavigation/);
   assert.match(mobileNavigation, /aria-expanded=\{open\}/);

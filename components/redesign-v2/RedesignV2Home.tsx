@@ -8,7 +8,8 @@ import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
 import SearchExperience from "./SearchExperience.client";
 import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
-import { V2GlobalHeader, V2NewsletterFooterBlock } from "./site/V2InteriorShell";
+import { V2GlobalHeader } from "./site/V2InteriorShell";
+import PreviewAwareLink from "./site/PreviewAwareLink";
 import styles from "./RedesignV2.module.css";
 import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
@@ -218,7 +219,6 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
       </main>
 
       <footer className={styles.footer}>
-        {newsletterVisible ? <V2NewsletterFooterBlock newsletterLinkMode={newsletterLinkMode} /> : null}
         <div className={`${styles.shell} ${styles.footerGrid}`}>
           <div className={styles.footerBrand}>
             <EventomotorLogo />
@@ -233,6 +233,7 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
           <nav aria-label="Enlaces para organizadores">
             <strong>EventoMotor</strong>
             <TrackLink eventName="click_publish_event" eventParams={{ source: "footer_link" }} href={routes.publish}>Publicar evento</TrackLink>
+            {newsletterVisible ? <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter" /> : null}
             <Link href={routes.contact}>Contacto</Link>
           </nav>
           <nav aria-label="Enlaces legales">

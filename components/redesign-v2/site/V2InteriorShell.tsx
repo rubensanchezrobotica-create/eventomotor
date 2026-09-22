@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import TrackLink from "@/components/analytics/TrackLink";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
+import CompactAgendaSignup from "@/components/redesign-v2/newsletter/CompactAgendaSignup.client";
 import {
   currentNewsletterProductionCanaryEnvironment,
   currentNewsletterPublicLaunchEnvironment,
@@ -119,18 +120,6 @@ export function V2GlobalHeader({
   );
 }
 
-export function V2NewsletterFooterBlock({ newsletterLinkMode }: { newsletterLinkMode: InteriorNavigationMode }) {
-  return (
-    <aside aria-label="La Agenda Motor" className={`${styles.shell} ${styles.footerNewsletter}`}>
-      <div>
-        <strong>LA AGENDA MOTOR</strong>
-        <p>Los próximos eventos de motor, cada semana.</p>
-      </div>
-      <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter">Suscribirme <span aria-hidden="true">→</span></PreviewAwareLink>
-    </aside>
-  );
-}
-
 export default async function V2InteriorShell({
   breadcrumbs,
   children,
@@ -217,15 +206,18 @@ export default async function V2InteriorShell({
 
         {children}
         {newsletterContextualCta && newsletterVisible ? (
-          <aside aria-label="La Agenda Motor" className={`${styles.shell} ${styles.newsletterContextualCta}`}>
-            <p>¿Quieres recibir la agenda cada semana?</p>
-            <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter">La Agenda Motor <span aria-hidden="true">→</span></PreviewAwareLink>
-          </aside>
+          <div className={`${styles.shell} ${styles.newsletterPromo}`}>
+            <CompactAgendaSignup
+              description="Una selección de próximos eventos para vivir el motor."
+              eyebrow="La Agenda Motor"
+              previewOnly={!newsletterSurface.canSubmitLive}
+              title="Tu agenda de motor, cada semana"
+            />
+          </div>
         ) : null}
       </main>
 
       <footer className={styles.footer}>
-        {newsletterVisible ? <V2NewsletterFooterBlock newsletterLinkMode={newsletterLinkMode} /> : null}
         <div className={`${styles.shell} ${styles.footerGrid}`}>
           <div className={styles.footerBrand}>
             <EventomotorLogo />
@@ -248,6 +240,7 @@ export default async function V2InteriorShell({
             ) : (
               <PreviewAwareLink mode={navigationMode} navigationId="publish" />
             )}
+            {newsletterVisible ? <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter" /> : null}
             <PreviewAwareLink mode={navigationMode} navigationId="contact" />
           </nav>
           <nav aria-label="Enlaces legales">

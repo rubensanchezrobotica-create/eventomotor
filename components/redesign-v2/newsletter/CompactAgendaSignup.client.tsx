@@ -14,6 +14,7 @@ import styles from "./CompactAgendaSignup.module.css";
 type CompactAgendaSignupProps = {
   description: string;
   eyebrow: string;
+  previewOnly?: boolean;
   title: string;
 };
 
@@ -21,6 +22,7 @@ type CompactAgendaSignupState =
   | "idle"
   | "validating"
   | "submitting"
+  | "preview_submitted"
   | NewsletterRequestClientResult;
 
 type FieldErrors = {
@@ -31,6 +33,10 @@ type FieldErrors = {
 const RESULT_COPY: Partial<
   Record<CompactAgendaSignupState, { copy: string; title: string }>
 > = {
+  preview_submitted: {
+    title: "Vista de diseño",
+    copy: "No se ha enviado ninguna suscripción.",
+  },
   accepted: {
     title: "Solicitud recibida",
     copy: "Si la dirección indicada puede completar la suscripción, recibirás un correo de confirmación en unos minutos.",
@@ -56,6 +62,7 @@ const RESULT_COPY: Partial<
 export default function CompactAgendaSignup({
   description,
   eyebrow,
+  previewOnly = false,
   title,
 }: CompactAgendaSignupProps) {
   const id = useId();
@@ -100,6 +107,10 @@ export default function CompactAgendaSignup({
     }
 
     setFieldErrors({});
+    if (previewOnly) {
+      setState("preview_submitted");
+      return;
+    }
     setState("submitting");
     const nextState = await runNewsletterMutationOnce(submissionLock, () =>
       requestNewsletterSubscription({
