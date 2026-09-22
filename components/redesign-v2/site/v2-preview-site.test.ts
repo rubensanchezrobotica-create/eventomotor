@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { getInteriorNavigationIds, resolveInteriorNavigationItem } from "./preview-navigation";
+import { getInteriorNavigationIds, getV2MobileNavigationIds, resolveInteriorNavigationItem, resolveInteriorNavigationItems, resolveNewsletterSurface } from "./preview-navigation";
 
 function source(relativePath: string) {
   return readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
@@ -12,9 +12,11 @@ const interiorShell = readFileSync(new URL("./V2InteriorShell.tsx", import.meta.
 const navigation = readFileSync(new URL("./preview-navigation.ts", import.meta.url), "utf8");
 const mobileNavigation = readFileSync(new URL("./InteriorMobileNavigation.client.tsx", import.meta.url), "utf8");
 const home = source("components/redesign-v2/RedesignV2Home.tsx");
+const publicHome = source("app/page.tsx");
 const homeStyles = source("components/redesign-v2/RedesignV2.module.css");
 const interiorStyles = readFileSync(new URL("./V2PreviewShell.module.css", import.meta.url), "utf8");
 const calendarPage = source("app/calendario/page.tsx");
+const weekendPage = source("app/eventos-motor-este-fin-de-semana/page.tsx");
 const displayFont = source("components/redesign-v2/redesign-v2-fonts.ts");
 
 test("el shell interior conserva breadcrumbs, PageHero fotográfico y footer configurables", () => {
@@ -66,10 +68,71 @@ test("la navegación interior mantiene los destinos Preview y la jerarquía púb
   assert.equal(resolveInteriorNavigationItem("weekend", "public").label, "Fin de semana");
   assert.equal(resolveInteriorNavigationItem("publish", "preview").variant, "primary");
   assert.equal(resolveInteriorNavigationItem("contact", "preview").variant, "default");
+  assert.equal(resolveInteriorNavigationItem("newsletter", "public").href, "/newsletter");
+  assert.equal(resolveInteriorNavigationItem("newsletter", "preview").href, "/preview/redesign-v2/newsletter");
+  assert.equal(resolveInteriorNavigationItem("newsletter", "public").label, "La Agenda Motor");
   assert.match(navigation, /territories:[\s\S]*?label:\s*"Zonas"[\s\S]*?productionHref:\s*"\/zonas"/);
   assert.match(interiorShell, /getInteriorNavigationIds\(navigationMode, "desktop"\)/);
-  assert.match(interiorShell, /getInteriorNavigationIds\(navigationMode, "mobile"\)/);
+  assert.match(interiorShell, /getV2MobileNavigationIds\(navigationMode, newsletterVisible\)/);
   assert.doesNotMatch(interiorShell, /usePathname|pathname/);
+});
+
+test("A14C-5 expone La Agenda Motor sin alterar la navegación primaria ni la altura de cabecera", () => {
+  assert.deepEqual(getInteriorNavigationIds("public", "desktop"), [
+    "calendar", "weekend", "disciplines", "territories", "favorites",
+  ]);
+  const mobile = getV2MobileNavigationIds("public", true);
+  assert.equal(mobile.filter((id) => id === "newsletter").length, 1);
+  assert.equal(mobile.indexOf("newsletter") + 1, mobile.indexOf("contact"));
+  assert.doesNotMatch(getV2MobileNavigationIds("public", false).join(","), /newsletter/);
+  assert.match(interiorShell, /newsletterVisible \? <PreviewAwareLink mode=\{newsletterLinkMode\} navigationId="newsletter">La Agenda Motor/);
+  assert.match(interiorShell, /getV2MobileNavigationIds\(navigationMode, newsletterVisible\)/);
+  assert.match(interiorShell, /<V2NewsletterFooterBlock newsletterLinkMode=\{newsletterLinkMode\}/);
+  assert.match(home, /<V2NewsletterFooterBlock newsletterLinkMode=\{newsletterLinkMode\}/);
+  assert.match(interiorShell, /<strong>LA AGENDA MOTOR<\/strong>/);
+  assert.match(interiorShell, /Los próximos eventos de motor, cada semana\./);
+  assert.match(interiorShell, /navigationId="newsletter">Suscribirme/);
+  assert.match(calendarPage, /newsletterContextualCta/);
+  assert.match(weekendPage, /newsletterContextualCta/);
+  assert.match(interiorShell, /¿Quieres recibir la agenda cada semana\?/);
+  assert.match(interiorShell, /navigationId="newsletter">La Agenda Motor/);
+  assert.match(interiorStyles, /\.utilityBar\s*\{\s*min-height: 34px;/);
+  assert.match(interiorStyles, /\.navbar\s*\{[\s\S]*?min-height: 70px;/);
+  assert.doesNotMatch(getInteriorNavigationIds("public", "desktop").join(","), /newsletter/);
+  assert.doesNotMatch(source("app/newsletter/page.tsx"), /\/preview\/redesign-v2\/newsletter/);
+});
+
+test("A14C-5C separa QA local/Preview de la autorización pública live", () => {
+  const cases = [
+    { label: "local", nodeEnv: "development", vercelEnv: undefined, publicLaunchAllowed: false, visible: true, canSubmitLive: false, href: "/preview/redesign-v2/newsletter" },
+    { label: "Vercel Preview", nodeEnv: "production", vercelEnv: "preview", publicLaunchAllowed: false, visible: true, canSubmitLive: false, href: "/preview/redesign-v2/newsletter" },
+    { label: "production live", nodeEnv: "production", vercelEnv: "production", publicLaunchAllowed: true, visible: true, canSubmitLive: true, href: "/newsletter" },
+    { label: "production disabled", nodeEnv: "production", vercelEnv: "production", publicLaunchAllowed: false, visible: false, canSubmitLive: false, href: null },
+  ] as const;
+
+  for (const scenario of cases) {
+    const surface = resolveNewsletterSurface({ navigationMode: "public", ...scenario });
+    assert.equal(surface.visible, scenario.visible, scenario.label);
+    assert.equal(surface.canSubmitLive, scenario.canSubmitLive, scenario.label);
+    const mobile = getV2MobileNavigationIds("public", surface.visible);
+    const items = resolveInteriorNavigationItems(mobile, "public", surface.linkMode);
+    assert.equal(items.find((item) => item.id === "newsletter")?.href ?? null, scenario.href, scenario.label);
+    assert.equal(items.find((item) => item.id === "contact")?.href, "/contacto", scenario.label);
+    assert.equal(getInteriorNavigationIds("public", "desktop").includes("newsletter"), false);
+  }
+
+  assert.deepEqual(resolveNewsletterSurface({ navigationMode: "public", publicLaunchAllowed: true, nodeEnv: "production", vercelEnv: "preview" }), {
+    visible: true, canSubmitLive: false, linkMode: "preview",
+  });
+  assert.equal(resolveNewsletterSurface({ navigationMode: "preview", publicLaunchAllowed: false, nodeEnv: "production", vercelEnv: "production" }).visible, false);
+  assert.match(publicHome, /publicLaunchAllowed: newsletterPublicLaunchEnabled/);
+  assert.match(publicHome, /newsletterQaVisible=\{newsletterSurface\.visible && !newsletterPublicLaunchEnabled\}/);
+  assert.match(home, /const canSubmitLive = routeMode === "public" && newsletterCanSubmitLive/);
+  assert.match(home, /previewOnly=\{!canSubmitLive\}/);
+  assert.match(interiorShell, /resolveNewsletterSurface\(\{/);
+  assert.match(interiorShell, /resolveInteriorNavigationItems\(mobileNavigation, navigationMode, newsletterLinkMode\)/);
+  assert.match(interiorShell, /newsletterContextualCta && newsletterVisible/);
+  assert.match(interiorShell, /mode=\{newsletterLinkMode\} navigationId="newsletter"/);
 });
 
 test("la cabecera compartida conserva Mis eventos, Publicar evento y Contacto en sus superficies aprobadas", () => {
@@ -132,7 +195,7 @@ test("el registry no define Search como página y marca fallbacks de producción
 });
 
 test("Home e interiores comparten la misma navegación móvil accesible", () => {
-  assert.match(home, /import \{ V2GlobalHeader \} from "\.\/site\/V2InteriorShell"/);
+  assert.match(home, /import \{ V2GlobalHeader, V2NewsletterFooterBlock \} from "\.\/site\/V2InteriorShell"/);
   assert.match(interiorShell, /import InteriorMobileNavigation/);
   assert.match(interiorShell, /<InteriorMobileNavigation/);
   assert.match(mobileNavigation, /aria-expanded=\{open\}/);

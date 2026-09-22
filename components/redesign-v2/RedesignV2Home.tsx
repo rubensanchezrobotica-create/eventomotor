@@ -8,7 +8,7 @@ import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
 import SearchExperience from "./SearchExperience.client";
 import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
-import { V2GlobalHeader } from "./site/V2InteriorShell";
+import { V2GlobalHeader, V2NewsletterFooterBlock } from "./site/V2InteriorShell";
 import styles from "./RedesignV2.module.css";
 import { assignV2HomeEventImages } from "./discipline-fallback-resolver";
 import {
@@ -22,6 +22,8 @@ import {
 
 type RedesignV2HomeProps = {
   events: EventItem[];
+  newsletterCanSubmitLive?: boolean;
+  newsletterQaVisible?: boolean;
   newsletterVisible: boolean;
   nowIso: string;
   routeMode: "preview" | "public";
@@ -48,8 +50,11 @@ const HOME_ROUTES = {
 
 const yearFormatter = new Intl.DateTimeFormat("es-ES", { year: "numeric" });
 
-export default function RedesignV2Home({ events, newsletterVisible, nowIso, routeMode }: RedesignV2HomeProps) {
+export default function RedesignV2Home({ events, newsletterCanSubmitLive = false, newsletterQaVisible = false, newsletterVisible: publicNewsletterVisible, nowIso, routeMode }: RedesignV2HomeProps) {
+  const newsletterVisible = publicNewsletterVisible || newsletterQaVisible;
   const routes = HOME_ROUTES[routeMode];
+  const canSubmitLive = routeMode === "public" && newsletterCanSubmitLive;
+  const newsletterLinkMode = canSubmitLive ? "public" : "preview";
   const projected = events.map(projectPreviewEvent);
   const upcoming = upcomingPreviewEvents(projected, nowIso);
   const editorialEvents = prioritizeEditorialEvents(upcoming);
@@ -65,6 +70,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
     <div className={`${styles.root} ${redesignV2DisplayPilot.variable}`}>
       <V2GlobalHeader
         navigationMode={routeMode}
+        newsletterLinkMode={newsletterLinkMode}
         newsletterVisible={newsletterVisible}
         publishTrackingSource="header_cta"
         skipTargetId="contenido-redesign-v2"
@@ -189,7 +195,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
               <h2 id="newsletter-title">Tu próximo plan de motor, cada semana en tu correo.</h2>
               <p>Concentraciones, rallyes, clásicos, motos, circuitos y mucho más, seleccionados cerca de ti.</p>
               <div className={styles.newsletterForm}>
-                <NewsletterSignupForm appearance="homeEditorial" />
+                <NewsletterSignupForm appearance="homeEditorial" previewOnly={!canSubmitLive} />
               </div>
             </div>
             <div className={styles.newsletterVisual}>
@@ -212,6 +218,7 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
       </main>
 
       <footer className={styles.footer}>
+        {newsletterVisible ? <V2NewsletterFooterBlock newsletterLinkMode={newsletterLinkMode} /> : null}
         <div className={`${styles.shell} ${styles.footerGrid}`}>
           <div className={styles.footerBrand}>
             <EventomotorLogo />
@@ -226,7 +233,6 @@ export default function RedesignV2Home({ events, newsletterVisible, nowIso, rout
           <nav aria-label="Enlaces para organizadores">
             <strong>EventoMotor</strong>
             <TrackLink eventName="click_publish_event" eventParams={{ source: "footer_link" }} href={routes.publish}>Publicar evento</TrackLink>
-            {newsletterVisible ? <Link href={routes.newsletter}>Newsletter</Link> : null}
             <Link href={routes.contact}>Contacto</Link>
           </nav>
           <nav aria-label="Enlaces legales">

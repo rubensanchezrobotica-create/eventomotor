@@ -144,6 +144,7 @@ export default async function EventosMotorEsteFinDeSemanaPage({
         heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
         heroTitleFontClassName={redesignV2DisplayPilot.variable}
         navigationMode="public"
+        newsletterContextualCta
         title="Este fin de semana"
         upcomingCount={upcomingCount}
       >

@@ -514,9 +514,10 @@ test("A12B separa landing pública V2 y Preview visual sin alterar la guarda ni 
   assert.match(form, /if \(!consent\)/);
   assert.match(form, /Provincia — opcional/);
   assert.match(form, /runNewsletterMutationOnce/);
-  assert.match(shell, /newsletterVisible = navigationMode === "preview"/);
+  assert.match(shell, /publicLaunchAllowed: newsletterPublicLaunchEnabled/);
+  assert.match(shell, /newsletterVisible = newsletterSurface\.visible/);
   assert.match(shell, /isNewsletterPublicLaunchPageRequestAllowed/);
-  assert.match(shell, /\{newsletterVisible \? <PreviewAwareLink mode=\{navigationMode\} navigationId="newsletter"/);
+  assert.match(shell, /\{newsletterVisible \? <PreviewAwareLink mode=\{newsletterLinkMode\} navigationId="newsletter"/);
   assert.match(navigation, /newsletter:[\s\S]*?previewHref: "\/preview\/redesign-v2\/newsletter"/);
   assert.match(home, /newsletter: "\/preview\/redesign-v2\/newsletter"/);
   assert.match(sitemap, /publicNewsletter\.enabled && !canaryNewsletter\.enabled/);

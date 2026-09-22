@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const route = readFileSync(new URL("../../app/preview/redesign-v2/page.tsx", import.meta.url), "utf8");
+const publicRoute = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
 const home = readFileSync(new URL("./RedesignV2Home.tsx", import.meta.url), "utf8");
+const newsletterLanding = readFileSync(new URL("./newsletter/NewsletterLandingV2.tsx", import.meta.url), "utf8");
 const disciplineSection = home.slice(
   home.indexOf("className={styles.disciplineSection}"),
   home.indexOf("className={styles.territorySection}"),
@@ -56,7 +58,7 @@ test("la home conserva el límite servidor y delega la interactividad", () => {
 test("newsletter unifica contenido, formulario real y fotografía aprobada", () => {
   assert.match(home, /import NewsletterSignupForm/);
   assert.match(home, /La Agenda Motor, por EventoMotor/);
-  assert.match(home, /<NewsletterSignupForm appearance="homeEditorial" \/>/);
+  assert.match(home, /<NewsletterSignupForm appearance="homeEditorial" previewOnly=\{!canSubmitLive\} \/>/);
   assert.match(home, /newsletter-phone\.webp/);
   assert.match(home, /sizes="\(max-width: 800px\) 100vw, 45vw"/);
   assert.doesNotMatch(home, /NewsletterCaptureCard|Descubrir la newsletter/);
@@ -68,6 +70,22 @@ test("newsletter unifica contenido, formulario real y fotografía aprobada", () 
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterVisual\s*\{[\s\S]*?grid-row:\s*1/);
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterCopy\s*\{[\s\S]*?grid-row:\s*2/);
   assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*?\.newsletterVisual::after[\s\S]*?linear-gradient/);
+});
+
+test("A14C-5B limita el formulario de Home Preview sin alterar la suscripción pública", () => {
+  assert.match(route, /routeMode="preview"/);
+  assert.match(publicRoute, /routeMode="public"/);
+  assert.match(home, /const canSubmitLive = routeMode === "public" && newsletterCanSubmitLive/);
+  assert.match(home, /<NewsletterSignupForm appearance="homeEditorial" previewOnly=\{!canSubmitLive\} \/>/);
+  assert.match(publicRoute, /publicLaunchAllowed: newsletterPublicLaunchEnabled/);
+  assert.match(publicRoute, /newsletterVisible=\{newsletterPublicLaunchEnabled\}/);
+  assert.match(publicRoute, /newsletterQaVisible=\{newsletterSurface\.visible && !newsletterPublicLaunchEnabled\}/);
+  assert.match(publicRoute, /newsletterCanSubmitLive=\{newsletterSurface\.canSubmitLive\}/);
+  assert.match(newsletterLanding, /<NewsletterSignupForm appearance="homeEditorial" previewOnly=\{context === "preview"\} \/>/);
+  const submit = signup.slice(signup.indexOf("async function submit("), signup.indexOf("function resetResult()"));
+  assert.match(submit, /if \(previewOnly\) \{\s*setState\("preview_submitted"\);\s*return;\s*\}/);
+  assert.ok(submit.indexOf("if (previewOnly)") < submit.indexOf("requestNewsletterSubscription({"));
+  assert.match(signup, /preview_submitted:[\s\S]*?No se ha enviado ninguna suscripción/);
 });
 
 test("el buscador V2 reutiliza el motor de sugerencias y deja los filtros en segunda capa", () => {

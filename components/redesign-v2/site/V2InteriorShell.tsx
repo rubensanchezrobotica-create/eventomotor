@@ -13,8 +13,10 @@ import InteriorMobileNavigation from "./InteriorMobileNavigation.client";
 import PreviewAwareLink from "./PreviewAwareLink";
 import {
   getInteriorNavigationIds,
+  getV2MobileNavigationIds,
   resolveInteriorNavigationItem,
   resolveInteriorNavigationItems,
+  resolveNewsletterSurface,
   type InteriorNavigationMode,
   type PreviewNavigationId,
 } from "./preview-navigation";
@@ -35,6 +37,7 @@ export type V2InteriorShellProps = {
   heroAside?: React.ReactNode;
   heroTitleFontClassName?: string;
   navigationMode: InteriorNavigationMode;
+  newsletterContextualCta?: boolean;
   title: string;
   trackPublicEventDetailNavigation?: boolean;
   upcomingCount?: number;
@@ -43,6 +46,7 @@ export type V2InteriorShellProps = {
 type V2GlobalHeaderProps = {
   currentNavigationId?: PreviewNavigationId;
   navigationMode: InteriorNavigationMode;
+  newsletterLinkMode: InteriorNavigationMode;
   newsletterVisible: boolean;
   publishTrackingSource?: "header_cta" | "static_header_cta";
   skipTargetId: string;
@@ -52,13 +56,14 @@ type V2GlobalHeaderProps = {
 export function V2GlobalHeader({
   currentNavigationId,
   navigationMode,
+  newsletterLinkMode,
   newsletterVisible,
   publishTrackingSource,
   skipTargetId,
   upcomingCount,
 }: V2GlobalHeaderProps) {
   const desktopNavigation = getInteriorNavigationIds(navigationMode, "desktop");
-  const mobileNavigation = getInteriorNavigationIds(navigationMode, "mobile");
+  const mobileNavigation = getV2MobileNavigationIds(navigationMode, newsletterVisible);
   const publishTrackingParams = publishTrackingSource === "static_header_cta"
     ? { source: "static_header_cta" }
     : { source: "header_cta" };
@@ -70,7 +75,7 @@ export function V2GlobalHeader({
         <div className={styles.utilityBar}>
           <div className={styles.shell}>
             <p><span aria-hidden="true">●</span> {upcomingCount === undefined ? "La agenda nacional del motor" : `${upcomingCount} eventos próximos en la agenda`}</p>
-            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter">La Agenda Motor</PreviewAwareLink> : null}
+            {newsletterVisible ? <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter">La Agenda Motor <span aria-hidden="true">→</span></PreviewAwareLink> : null}
           </div>
         </div>
         <div className={`${styles.shell} ${styles.navbar}`}>
@@ -105,12 +110,24 @@ export function V2GlobalHeader({
             )}
             <InteriorMobileNavigation
               currentNavigationId={currentNavigationId}
-              items={resolveInteriorNavigationItems(mobileNavigation, navigationMode)}
+              items={resolveInteriorNavigationItems(mobileNavigation, navigationMode, newsletterLinkMode)}
             />
           </div>
         </div>
       </header>
     </>
+  );
+}
+
+export function V2NewsletterFooterBlock({ newsletterLinkMode }: { newsletterLinkMode: InteriorNavigationMode }) {
+  return (
+    <aside aria-label="La Agenda Motor" className={`${styles.shell} ${styles.footerNewsletter}`}>
+      <div>
+        <strong>LA AGENDA MOTOR</strong>
+        <p>Los próximos eventos de motor, cada semana.</p>
+      </div>
+      <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter">Suscribirme <span aria-hidden="true">→</span></PreviewAwareLink>
+    </aside>
   );
 }
 
@@ -124,12 +141,13 @@ export default async function V2InteriorShell({
   heroAside,
   heroTitleFontClassName,
   navigationMode,
+  newsletterContextualCta = false,
   title,
   trackPublicEventDetailNavigation = false,
   upcomingCount,
 }: V2InteriorShellProps) {
   const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(new Date());
-  const newsletterVisible = navigationMode === "preview" || await (async () => {
+  const newsletterPublicLaunchEnabled = navigationMode === "public" && await (async () => {
     const requestHeaders = await headers();
     const publicConfiguration = evaluateNewsletterPublicLaunchResendConfiguration(
       currentNewsletterPublicLaunchEnvironment(),
@@ -145,12 +163,21 @@ export default async function V2InteriorShell({
         requestHeaders.get("x-forwarded-proto"),
       );
   })();
+  const newsletterSurface = resolveNewsletterSurface({
+    navigationMode,
+    publicLaunchAllowed: newsletterPublicLaunchEnabled,
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+  });
+  const newsletterVisible = newsletterSurface.visible;
+  const newsletterLinkMode = newsletterSurface.linkMode;
 
   return (
     <div className={styles.root} data-v2-route-context={navigationMode}>
       <V2GlobalHeader
         currentNavigationId={currentNavigationId}
         navigationMode={navigationMode}
+        newsletterLinkMode={newsletterLinkMode}
         newsletterVisible={newsletterVisible}
         publishTrackingSource={trackPublicEventDetailNavigation && navigationMode === "public" ? "static_header_cta" : undefined}
         skipTargetId="contenido-redesign-v2-interior"
@@ -189,9 +216,16 @@ export default async function V2InteriorShell({
         </section>
 
         {children}
+        {newsletterContextualCta && newsletterVisible ? (
+          <aside aria-label="La Agenda Motor" className={`${styles.shell} ${styles.newsletterContextualCta}`}>
+            <p>¿Quieres recibir la agenda cada semana?</p>
+            <PreviewAwareLink mode={newsletterLinkMode} navigationId="newsletter">La Agenda Motor <span aria-hidden="true">→</span></PreviewAwareLink>
+          </aside>
+        ) : null}
       </main>
 
       <footer className={styles.footer}>
+        {newsletterVisible ? <V2NewsletterFooterBlock newsletterLinkMode={newsletterLinkMode} /> : null}
         <div className={`${styles.shell} ${styles.footerGrid}`}>
           <div className={styles.footerBrand}>
             <EventomotorLogo />
@@ -214,7 +248,6 @@ export default async function V2InteriorShell({
             ) : (
               <PreviewAwareLink mode={navigationMode} navigationId="publish" />
             )}
-            {newsletterVisible ? <PreviewAwareLink mode={navigationMode} navigationId="newsletter" /> : null}
             <PreviewAwareLink mode={navigationMode} navigationId="contact" />
           </nav>
           <nav aria-label="Enlaces legales">

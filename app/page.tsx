@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import RedesignV2Home from "@/components/redesign-v2/RedesignV2Home";
+import { resolveNewsletterSurface } from "@/components/redesign-v2/site/preview-navigation";
 import {
   currentNewsletterProductionCanaryEnvironment,
   currentNewsletterPublicLaunchEnvironment,
@@ -65,12 +66,20 @@ export default async function HomePage() {
       requestHeaders.get("host"),
       requestHeaders.get("x-forwarded-proto"),
     );
+  const newsletterSurface = resolveNewsletterSurface({
+    navigationMode: "public",
+    publicLaunchAllowed: newsletterPublicLaunchEnabled,
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+  });
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <RedesignV2Home
         events={initialEvents}
         newsletterVisible={newsletterPublicLaunchEnabled}
+        newsletterQaVisible={newsletterSurface.visible && !newsletterPublicLaunchEnabled}
+        newsletterCanSubmitLive={newsletterSurface.canSubmitLive}
         nowIso={new Date().toISOString()}
         routeMode="public"
       />

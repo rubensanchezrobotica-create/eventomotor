@@ -51,6 +51,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       heroImageSrc="/images/redesign-v2/hero-eventomotor.webp"
       heroTitleFontClassName={redesignV2DisplayPilot.variable}
       navigationMode="public"
+      newsletterContextualCta
       title="Calendario de eventos"
       upcomingCount={upcomingCount}
     >
