@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [
+      legacyRedirect(
+        "/evento/rallyracc-catalunya-costa-daurada-2026-10-16",
+        "/evento/rallyracc-catalunya-2026-10-17",
+      ),
       legacyRedirect("/events/:path*", PUBLIC_NAVIGATION.calendar),
       legacyRedirect("/event-organizer/:path*", "/publicar-evento"),
       legacyRedirect("/event-location/osuna", "/zonas/sur"),
