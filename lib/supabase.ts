@@ -488,6 +488,62 @@ export type Database = {
           invalid_count: number;
         }>;
       };
+      preview_newsletter_campaign_edition_08: {
+        Args: {
+          p_edition_key: string;
+          p_subject: string;
+          p_html_sha256: string;
+          p_text_sha256: string;
+          p_content_manifest_digest: string;
+        };
+        Returns: Array<{
+          campaign_id: string | null;
+          campaign_status: string;
+          audience_frozen_at: string | null;
+          eligible_count: number;
+          prepared_count: number;
+          sending_count: number;
+          accepted_count: number;
+          failed_count: number;
+          unknown_count: number;
+          retryable_count: number;
+          national_count: number;
+          madrid_count: number;
+          cataluna_count: number;
+          comunidad_valenciana_count: number;
+          excluded_count: number;
+          duplicate_count: number;
+          invalid_count: number;
+        }>;
+      };
+      prepare_newsletter_campaign_edition_08: {
+        Args: {
+          p_edition_key: string;
+          p_subject: string;
+          p_html_sha256: string;
+          p_text_sha256: string;
+          p_content_manifest_digest: string;
+        };
+        Returns: Array<{
+          campaign_id: string;
+          campaign_status: string;
+          audience_frozen_at: string;
+          eligible_count: number;
+          prepared_count: number;
+          sending_count: number;
+          accepted_count: number;
+          failed_count: number;
+          unknown_count: number;
+          retryable_count: number;
+          national_count: number;
+          madrid_count: number;
+          cataluna_count: number;
+          comunidad_valenciana_count: number;
+          excluded_count: number;
+          duplicate_count: number;
+          invalid_count: number;
+        }>;
+      };
       claim_newsletter_campaign_delivery_v2: {
         Args: {
           p_campaign_id: string;
