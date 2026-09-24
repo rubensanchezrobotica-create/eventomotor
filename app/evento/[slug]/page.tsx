@@ -22,7 +22,10 @@ import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
-import { eventSlugRedirectHref } from "@/lib/event-slug-redirects";
+import {
+  eventSlugRedirectHref,
+  shouldRedirectEventSlugBeforeLookup,
+} from "@/lib/event-slug-redirects";
 import {
   currentNewsletterProductionCanaryEnvironment,
   currentNewsletterPublicLaunchEnvironment,
@@ -76,13 +79,15 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
 export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
+  const redirectHref = eventSlugRedirectHref(slug, await searchParams);
+  if (redirectHref && shouldRedirectEventSlugBeforeLookup(slug)) {
+    permanentRedirect(redirectHref);
+  }
+
   const events = await getVisibleEvents();
   const event = events.find((item) => item.slug === slug);
 
-  if (!event) {
-    const redirectHref = eventSlugRedirectHref(slug, await searchParams);
-    if (redirectHref) permanentRedirect(redirectHref);
-  }
+  if (!event && redirectHref) permanentRedirect(redirectHref);
   if (!event) notFound();
 
   const siteUrl = getSiteUrl();

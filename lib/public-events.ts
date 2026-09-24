@@ -116,8 +116,12 @@ function mapHomeEventRow(row: HomeEventRow): EventItem {
   };
 }
 
+export function isPublicEventVisible(event: { visible?: boolean | null }) {
+  return event.visible !== false;
+}
+
 function fallbackVisibleEvents(): EventItem[] {
-  return FALLBACK_EVENTS.filter((event) => event.visible !== false).map((event) => ({
+  return FALLBACK_EVENTS.filter(isPublicEventVisible).map((event) => ({
     ...event,
     slug: event.slug || createEventSlug(event.title, event.start),
   }));
