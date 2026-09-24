@@ -56,7 +56,7 @@ function eventLastModified(event: SitemapEvent) {
   return validDate(event.updated_at) || validDate(event.created_at) || validDate(event.start_date) || new Date();
 }
 
-function isIndexableFutureEvent(event: SitemapEvent) {
+export function isIndexableFutureEvent(event: SitemapEvent) {
   const slug = event.slug?.trim() || "";
   const status = event.event_status?.trim() || "confirmed";
 
