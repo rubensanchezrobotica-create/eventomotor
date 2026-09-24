@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import {
   isRemoteImage,
@@ -12,6 +13,7 @@ import { formatCalendarDisciplineLabel } from "./calendar-page-model";
 import styles from "./CalendarEventRow.module.css";
 
 type CalendarEventRowProps = {
+  commercialLabel?: ReactNode;
   event: PreviewEvent;
   image: ResolvedEventImage;
   nowIso: string;
@@ -30,7 +32,7 @@ function formatEventDate(event: PreviewEvent): string {
   return `${start} — ${dateFormatter.format(new Date(`${event.end}T12:00:00Z`))}`;
 }
 
-export default function CalendarEventRow({ event, image, nowIso }: CalendarEventRowProps) {
+export default function CalendarEventRow({ commercialLabel, event, image, nowIso }: CalendarEventRowProps) {
   const href = previewEventHref(event);
   const location = [event.venue, event.city, event.province].filter(Boolean).join(" · ");
   const savedEvent = {
@@ -49,6 +51,7 @@ export default function CalendarEventRow({ event, image, nowIso }: CalendarEvent
     <article className={styles.row}>
       <div className={styles.content}>
         <div className={styles.mainContent}>
+          {commercialLabel}
           <h3><Link className={styles.primaryLink} href={href}>{event.title}</Link></h3>
           <p className={styles.date}>{formatEventDate(event)}</p>
           {location ? <p className={styles.location}>{location}</p> : null}

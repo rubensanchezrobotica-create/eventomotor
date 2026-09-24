@@ -3,6 +3,14 @@
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
+import {
+  buildCommercialSequence,
+  preserveCommercialDemoState,
+  readCommercialDemoState,
+  resolveCommercialPlacement,
+} from "@/lib/commercial/commercial-resolver";
+import type { CommercialCampaign } from "@/lib/commercial/commercial-types";
+import { SponsoredEventCard, useCommercialBreakpoint } from "../commercial/CommercialPlacement.client";
 import { paginateVisibleEvents } from "../listing/paginate-visible-events";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
 import CalendarEventRow from "./CalendarEventRow";
@@ -35,6 +43,7 @@ import { diversifyCalendarVisibleImages } from "./calendar-visible-images";
 import styles from "./CalendarPageExperience.module.css";
 
 type CalendarPageExperienceProps = {
+  commercialCampaigns?: readonly CommercialCampaign[];
   events: PreviewEvent[];
   imageByEventId: Record<string, ResolvedEventImage>;
   initialState: CalendarUrlState;
@@ -66,16 +75,18 @@ function formatSelectedDay(date: string) {
   return { weekday: weekday.charAt(0).toLocaleUpperCase("es-ES") + weekday.slice(1), day: read("day"), month: read("month") };
 }
 
-export default function CalendarPageExperience({ events, imageByEventId, initialState, nowIso, today }: CalendarPageExperienceProps) {
+export default function CalendarPageExperience({ commercialCampaigns = [], events, imageByEventId, initialState, nowIso, today }: CalendarPageExperienceProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const commercialBreakpoint = useCommercialBreakpoint();
   const dayButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const pendingFocusDate = useRef<string | null>(null);
   const pendingAgendaScroll = useRef(false);
   const pendingPaginationScroll = useRef(false);
   const agendaRef = useRef<HTMLElement | null>(null);
   const state = useMemo(() => searchParams.toString() ? parseCalendarUrlState(searchParams, today) : initialState, [initialState, searchParams, today]);
+  const commercialDemoState = readCommercialDemoState(searchParams);
 
   const monthCells = useMemo(() => buildCalendarMonthCells(state.date), [state.date]);
   const dayCounts = useMemo(() => buildCalendarDayCounts(events, state.date, state), [events, state]);
@@ -125,13 +136,18 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
 
   useEffect(() => {
     const currentQuery = searchParams.toString();
-    const canonicalQuery = serializeCalendarUrlState(normalizedState);
+    const canonicalQuery = preserveCommercialDemoState(
+      serializeCalendarUrlState(normalizedState),
+      commercialDemoState,
+      commercialCampaigns.length > 0,
+    );
     if (currentQuery === canonicalQuery) return;
     router.replace(`${pathname}?${canonicalQuery}`, { scroll: false });
-  }, [normalizedState, pathname, router, searchParams]);
+  }, [commercialCampaigns.length, commercialDemoState, normalizedState, pathname, router, searchParams]);
 
   function navigate(next: CalendarUrlState, replace = false) {
-    const url = `${pathname}?${serializeCalendarUrlState(next)}`;
+    const query = preserveCommercialDemoState(serializeCalendarUrlState(next), commercialDemoState, commercialCampaigns.length > 0);
+    const url = `${pathname}?${query}`;
     if (replace) router.replace(url, { scroll: false });
     else router.push(url, { scroll: false });
   }
@@ -210,7 +226,46 @@ export default function CalendarPageExperience({ events, imageByEventId, initial
   }
 
   function renderRows(rowEvents: readonly PreviewEvent[], rowImages: readonly ResolvedEventImage[]) {
-    return <div className={styles.eventRows}>{rowEvents.map((event, index) => <CalendarEventRow event={event} image={rowImages[index]} key={event.id} nowIso={nowIso} />)}</div>;
+    const placement = resolveCommercialPlacement(commercialCampaigns, {
+      surface: "calendar",
+      nowIso,
+      demoState: commercialDemoState,
+      visibleEvents: rowEvents,
+      filters: {
+        query: state.q,
+        discipline: state.discipline,
+        vehicle: state.vehicle,
+        selectedDate: state.view === "list" ? undefined : state.date,
+        dateFrom: state.view === "list" ? `${state.date.slice(0, 7)}-01` : undefined,
+        dateTo: state.view === "list" ? addCalendarDays(`${shiftCalendarMonth(state.date, 1).slice(0, 7)}-01`, -1) : undefined,
+      },
+    }).sponsoredEvent;
+    const sequence = buildCommercialSequence(rowEvents, placement, commercialBreakpoint);
+    return (
+      <div className={styles.eventRows}>
+        {sequence.map((item) => {
+          if (item.kind === "inserted") {
+            return (
+              <SponsoredEventCard key={`commercial-${item.placement.campaign.campaignId}`} labelLocation="content" placement={item.placement}>
+                {(commercialLabel) => (
+                  <CalendarEventRow commercialLabel={commercialLabel} event={item.placement.event} image={item.placement.image} nowIso={nowIso} />
+                )}
+              </SponsoredEventCard>
+            );
+          }
+          const index = rowEvents.findIndex((event) => event.id === item.event.id);
+          return item.enhanced
+            ? (
+              <SponsoredEventCard key={item.event.id} labelLocation="content" placement={item.enhanced}>
+                {(commercialLabel) => (
+                  <CalendarEventRow commercialLabel={commercialLabel} event={item.event} image={rowImages[index]} nowIso={nowIso} />
+                )}
+              </SponsoredEventCard>
+            )
+            : <CalendarEventRow event={item.event} image={rowImages[index]} key={item.event.id} nowIso={nowIso} />;
+        })}
+      </div>
+    );
   }
 
   const nextMonthDate = shiftCalendarMonth(state.date, 1);

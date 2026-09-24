@@ -8,6 +8,7 @@ import { isRedesignPreviewAvailable, projectPreviewEvent } from "@/components/re
 import V2PreviewShell from "@/components/redesign-v2/site/V2PreviewShell";
 import { getVehicleType } from "@/lib/event-classification";
 import { getVisibleEvents } from "@/lib/public-events";
+import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 
 export const metadata: Metadata = {
   title: "Calendario V2 Preview | EventoMotor",
@@ -47,7 +48,7 @@ export default async function CalendarPreviewPage({ searchParams }: CalendarPrev
       title="Calendario de eventos"
       upcomingCount={upcomingCount}
     >
-      <CalendarPageExperience events={events} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} today={today} />
+      <CalendarPageExperience commercialCampaigns={getCommercialCampaignRegistry({ now, demoEventDate: initialState.date })} events={events} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} today={today} />
     </V2PreviewShell>
   );
 }

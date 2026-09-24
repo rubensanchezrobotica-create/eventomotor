@@ -13,6 +13,7 @@ import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import { getVehicleType } from "@/lib/event-classification";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
+import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 
 export const metadata: Metadata = {
   title: "Calendario de eventos de motor",
@@ -56,6 +57,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       upcomingCount={upcomingCount}
     >
       <CalendarPageExperience
+        commercialCampaigns={getCommercialCampaignRegistry({ now, demoEventDate: initialState.date })}
         events={events}
         imageByEventId={imageByEventId}
         initialState={initialState}

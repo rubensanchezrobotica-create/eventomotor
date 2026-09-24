@@ -1,0 +1,167 @@
+.eventBoundary {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+
+.eventBoundary > article {
+  min-height: 100%;
+}
+
+.promotedLabel,
+.promotedLabelContent {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(7, 10, 14, 0.9);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.promotedLabel {
+  position: absolute;
+  z-index: 7;
+  top: 12px;
+  left: 12px;
+}
+
+.promotedLabelContent {
+  align-self: flex-start;
+  margin-bottom: 10px;
+  border-color: rgba(255, 98, 0, 0.42);
+  background: rgba(255, 98, 0, 0.09);
+  color: #ff9d5d;
+}
+
+.sponsorBoundary {
+  width: 100%;
+  margin: clamp(22px, 4vw, 36px) 0;
+}
+
+.sectionSponsor {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: clamp(18px, 3vw, 25px);
+  border: 1px solid #343c46;
+  border-left: 4px solid #ff6200;
+  border-radius: 10px;
+  background: linear-gradient(115deg, #151b22, #0a0e13);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+}
+
+.sponsorEyebrow {
+  grid-column: 1 / -1;
+  color: #ff7a27;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sponsorBrand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.sponsorBrand img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.sponsorBrand strong {
+  color: #f7f7f4;
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 900;
+  letter-spacing: -0.015em;
+}
+
+.sectionSponsor p {
+  margin: 0;
+  color: #aeb4bb;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sectionSponsor a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: #ff6200;
+  color: #090b0e;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sectionSponsor a:focus-visible {
+  outline: 3px solid #ffb27f;
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .promotedLabel {
+    top: 9px;
+    left: 9px;
+  }
+
+  .sponsorBoundary {
+    margin-block: 18px;
+  }
+
+  .sectionSponsor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .sponsorEyebrow {
+    grid-column: auto;
+  }
+
+  .sponsorBrand {
+    gap: 10px;
+  }
+
+  .sponsorBrand img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sectionSponsor p {
+    font-size: 0.78rem;
+    line-height: 1.42;
+  }
+
+  .sectionSponsor a {
+    width: auto;
+    max-width: 100%;
+    min-height: 44px;
+    justify-self: start;
+    padding-inline: 14px;
+    border: 1px solid rgba(255, 98, 0, 0.58);
+    background: #151b22;
+    color: #f7f7f4;
+  }
+
+  .sectionSponsor a span {
+    color: #ff7a27;
+  }
+}

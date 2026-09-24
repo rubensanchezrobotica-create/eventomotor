@@ -4,6 +4,7 @@ import TrackLink from "@/components/analytics/TrackLink";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
 import CookieSettingsButton from "@/components/cookies/CookieSettingsButton";
 import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
+import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
 import SearchExperience from "./SearchExperience.client";
@@ -66,6 +67,7 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
   const territories = buildTerritoryCards(upcoming);
   const representedTerritories = new Set(upcoming.map((event) => event.region).filter(Boolean)).size;
   const representedDisciplines = new Set(upcoming.map((event) => event.discipline).filter(Boolean)).size;
+  const commercialCampaigns = getCommercialCampaignRegistry();
 
   return (
     <div className={`${styles.root} ${redesignV2DisplayPilot.variable}`}>
@@ -124,6 +126,7 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
           <h2 className={styles.visuallyHidden} id="proximos-eventos">Buscar y descubrir próximos eventos</h2>
           <SearchExperience
             calendarHref={routes.calendar}
+            commercialCampaigns={commercialCampaigns}
             events={editorialEvents}
             excludeEventId={featured.event?.id}
             imageByEventId={imageByEventId}

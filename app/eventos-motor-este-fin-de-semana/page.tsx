@@ -19,6 +19,7 @@ import { getVehicleType } from "@/lib/event-classification";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 
 const page = getOpportunityPage("eventos-motor-este-fin-de-semana");
 const pathname = "/eventos-motor-este-fin-de-semana";
@@ -150,6 +151,7 @@ export default async function EventosMotorEsteFinDeSemanaPage({
       >
         <WeekendPageExperience
           events={data.events}
+          commercialCampaigns={getCommercialCampaignRegistry({ now, weekendDemoEventDate: range.saturday })}
           imageByEventId={imageByEventId}
           initialState={initialState}
           nowIso={now.toISOString()}

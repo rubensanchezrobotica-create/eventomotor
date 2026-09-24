@@ -3,13 +3,21 @@
 import Link from "next/link";
 import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   buildPreviewSuggestions,
   type PreviewSuggestion,
   type PreviewSuggestionKind,
 } from "@/components/preview/search-preview-model";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
+import {
+  buildCommercialSequence,
+  readCommercialDemoState,
+  resolveCommercialPlacement,
+} from "@/lib/commercial/commercial-resolver";
+import type { CommercialCampaign } from "@/lib/commercial/commercial-types";
 import EventCard from "./EventCard";
+import { SponsoredEventCard, useCommercialBreakpoint } from "./commercial/CommercialPlacement.client";
 import styles from "./RedesignV2.module.css";
 import {
   buildVisiblePreviewResults,
@@ -33,6 +41,7 @@ const SUGGESTION_KIND_LABELS: Record<PreviewSuggestionKind, string> = {
 };
 
 type SearchExperienceProps = {
+  commercialCampaigns?: readonly CommercialCampaign[];
   events: PreviewEvent[];
   excludeEventId?: string | null;
   imageByEventId: Record<string, ResolvedEventImage>;
@@ -45,7 +54,9 @@ function suggestionDomId(suggestion: PreviewSuggestion) {
   return `redesign-v2-${suggestion.id.replace(/[^a-z0-9_-]+/gi, "-")}`;
 }
 
-export default function SearchExperience({ calendarHref, events, excludeEventId, imageByEventId, nowIso, routeMode }: SearchExperienceProps) {
+export default function SearchExperience({ calendarHref, commercialCampaigns = [], events, excludeEventId, imageByEventId, nowIso, routeMode }: SearchExperienceProps) {
+  const searchParams = useSearchParams();
+  const commercialBreakpoint = useCommercialBreakpoint();
   const [draft, setDraft] = useState<SearchFilters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -63,6 +74,23 @@ export default function SearchExperience({ calendarHref, events, excludeEventId,
   const advancedFilterCount = [draft.date, draft.discipline, draft.vehicle].filter(Boolean).length;
   const showSuggestions = suggestionsOpen && suggestions.length > 0;
   const selectedDateLabel = formatPreviewSelectedDate(draft.date);
+  const demoState = readCommercialDemoState(searchParams);
+  const commercialPlacement = useMemo(() => resolveCommercialPlacement(commercialCampaigns, {
+    surface: "home",
+    nowIso,
+    demoState,
+    visibleEvents: visible,
+    filters: {
+      query: filters.place,
+      discipline: filters.discipline,
+      vehicle: filters.vehicle,
+      selectedDate: filters.date,
+    },
+  }), [commercialCampaigns, demoState, filters, nowIso, visible]);
+  const commercialSequence = useMemo(
+    () => buildCommercialSequence(visible, commercialPlacement.sponsoredEvent, commercialBreakpoint),
+    [commercialBreakpoint, commercialPlacement.sponsoredEvent, visible],
+  );
 
   useEffect(() => {
     if (explicitSearchVersion === 0) return;
@@ -306,9 +334,25 @@ export default function SearchExperience({ calendarHref, events, excludeEventId,
 
       {visible.length ? (
         <div className={styles.eventGrid}>
-          {visible.map((event, index) => (
-            <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={visibleImages[index]} routeMode={routeMode} />
-          ))}
+          {commercialSequence.map((item) => {
+            if (item.kind === "inserted") {
+              const placement = item.placement;
+              return (
+                <SponsoredEventCard key={`commercial-${placement.campaign.campaignId}`} labelLocation="content" placement={placement}>
+                  {(commercialLabel) => <EventCard commercialLabel={commercialLabel} event={placement.event} nowIso={nowIso} resolvedImage={placement.image} routeMode={routeMode} />}
+                </SponsoredEventCard>
+              );
+            }
+            const event = item.event;
+            const index = visible.findIndex((visibleEvent) => visibleEvent.id === event.id);
+            return item.enhanced
+              ? (
+                  <SponsoredEventCard key={event.id} labelLocation="content" placement={item.enhanced}>
+                    {(commercialLabel) => <EventCard commercialLabel={commercialLabel} event={event} nowIso={nowIso} resolvedImage={visibleImages[index]} routeMode={routeMode} />}
+                  </SponsoredEventCard>
+                )
+              : <EventCard event={event} key={event.id} nowIso={nowIso} resolvedImage={visibleImages[index]} routeMode={routeMode} />;
+          })}
         </div>
       ) : (
         <div className={styles.emptyState}>

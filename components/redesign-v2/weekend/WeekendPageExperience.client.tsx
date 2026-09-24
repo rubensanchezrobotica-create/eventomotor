@@ -4,9 +4,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { currentPagePath, trackEvent } from "@/lib/analytics";
+import {
+  buildCommercialSequence,
+  preserveCommercialDemoState,
+  readCommercialDemoState,
+  resolveCommercialPlacement,
+} from "@/lib/commercial/commercial-resolver";
+import type { CommercialCampaign } from "@/lib/commercial/commercial-types";
 import type { WeekendPreviewData } from "@/components/preview/weekend/weekend-preview-model";
 import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import type { PreviewEvent, ResolvedEventImage } from "../redesign-v2-model";
+import { SectionSponsor, SponsoredEventCard, useCommercialBreakpoint } from "../commercial/CommercialPlacement.client";
 import WeekendEventCard from "./WeekendEventCard";
 import WeekendSearchExperience, { type WeekendSearchValues } from "./WeekendSearchExperience.client";
 import {
@@ -34,6 +42,7 @@ import { diversifyWeekendVisibleImages } from "./weekend-visible-images";
 import styles from "./WeekendPageExperience.module.css";
 
 type WeekendPageExperienceProps = {
+  commercialCampaigns?: readonly CommercialCampaign[];
   events: PreviewEvent[];
   imageByEventId: Record<string, ResolvedEventImage>;
   initialState: WeekendUrlState;
@@ -85,12 +94,14 @@ function dayDate(day: WeekendDay, range: WeekendRange) {
   return null;
 }
 
-export default function WeekendPageExperience({ events, imageByEventId, initialState, nowIso, publicOptions, range, routeContext }: WeekendPageExperienceProps) {
+export default function WeekendPageExperience({ commercialCampaigns = [], events, imageByEventId, initialState, nowIso, publicOptions, range, routeContext }: WeekendPageExperienceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const commercialBreakpoint = useCommercialBreakpoint();
   const routePath = routeContext === "public" ? PUBLIC_WEEKEND_ROUTE : WEEKEND_ROUTE;
   const dayOptions = routeContext === "public" ? publicDayOptions : previewDayOptions;
   const serializeState = routeContext === "public" ? serializePublicWeekendUrlState : serializeWeekendUrlState;
+  const commercialDemoState = readCommercialDemoState(searchParams);
   const resultsRef = useRef<HTMLElement | null>(null);
   const pendingPaginationScroll = useRef(false);
   const state = useMemo(() => {
@@ -122,13 +133,37 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   );
   const todayDay = weekendTodayDay(range);
   const hasSearchFilters = Boolean(state.q || state.discipline || state.vehicle || state.province || state.family);
+  const selectedCommercialDate = state.day === "all" || state.day === "multi" ? undefined : dayDate(state.day, range) ?? undefined;
+  const commercialPlacement = useMemo(() => resolveCommercialPlacement(commercialCampaigns, {
+    surface: "weekend",
+    nowIso,
+    demoState: commercialDemoState,
+    visibleEvents: pagination.visible,
+    filters: {
+      query: state.q,
+      discipline: state.discipline,
+      territory: state.province,
+      vehicle: state.vehicle,
+      selectedDate: selectedCommercialDate,
+      dateFrom: range.friday,
+      dateTo: range.sunday,
+    },
+  }), [commercialCampaigns, commercialDemoState, nowIso, pagination.visible, range.friday, range.sunday, selectedCommercialDate, state.discipline, state.province, state.q, state.vehicle]);
+  const commercialSequence = useMemo(
+    () => buildCommercialSequence(pagination.visible, commercialPlacement.sponsoredEvent, commercialBreakpoint),
+    [commercialBreakpoint, commercialPlacement.sponsoredEvent, pagination.visible],
+  );
 
   useEffect(() => {
     const currentQuery = searchParams.toString();
-    const canonicalQuery = serializeState(normalizedState);
+    const canonicalQuery = preserveCommercialDemoState(
+      serializeState(normalizedState),
+      commercialDemoState,
+      commercialCampaigns.length > 0,
+    );
     if (currentQuery === canonicalQuery) return;
     router.replace(canonicalQuery ? `${routePath}?${canonicalQuery}` : routePath, { scroll: false });
-  }, [normalizedState, routePath, router, searchParams, serializeState]);
+  }, [commercialCampaigns.length, commercialDemoState, normalizedState, routePath, router, searchParams, serializeState]);
 
   useEffect(() => {
     if (!pendingPaginationScroll.current) return;
@@ -140,7 +175,7 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
   }, [state.page]);
 
   function navigate(next: WeekendUrlState) {
-    const query = serializeState(next);
+    const query = preserveCommercialDemoState(serializeState(next), commercialDemoState, commercialCampaigns.length > 0);
     router.push(query ? `${routePath}?${query}` : routePath, { scroll: false });
   }
 
@@ -200,6 +235,8 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
         state={state}
       />
 
+      {commercialPlacement.sectionSponsor ? <SectionSponsor campaign={commercialPlacement.sectionSponsor} /> : null}
+
       <section aria-labelledby="weekend-v2-results-title" className={styles.resultsSection} ref={(element) => { resultsRef.current = element; }}>
         <div className={styles.resultsHeader}>
           <div className={styles.resultsMeta}>
@@ -233,7 +270,21 @@ export default function WeekendPageExperience({ events, imageByEventId, initialS
 
         {pagination.visible.length ? (
           <div className={styles.eventGrid}>
-            {pagination.visible.map((event, index) => <WeekendEventCard event={event} image={visibleImages[index]} key={event.id} nowIso={nowIso} routeContext={routeContext} />)}
+            {commercialPlacement.sponsoredEvent ? commercialSequence.map((item) => {
+              if (item.kind === "inserted") {
+                return (
+                  <SponsoredEventCard key={`commercial-${item.placement.campaign.campaignId}`} labelLocation="overlay" placement={item.placement}>
+                    <WeekendEventCard event={item.placement.event} image={item.placement.image} nowIso={nowIso} routeContext={routeContext} />
+                  </SponsoredEventCard>
+                );
+              }
+              const event = item.event;
+              const index = pagination.visible.findIndex((visibleEvent) => visibleEvent.id === event.id);
+              const card = <WeekendEventCard event={event} image={visibleImages[index]} nowIso={nowIso} routeContext={routeContext} />;
+              return item.enhanced
+                ? <SponsoredEventCard key={event.id} labelLocation="overlay" placement={item.enhanced}>{card}</SponsoredEventCard>
+                : <WeekendEventCard event={event} image={visibleImages[index]} key={event.id} nowIso={nowIso} routeContext={routeContext} />;
+            }) : pagination.visible.map((event, index) => <WeekendEventCard event={event} image={visibleImages[index]} key={event.id} nowIso={nowIso} routeContext={routeContext} />)}
           </div>
         ) : (
           <div className={styles.emptyState}>

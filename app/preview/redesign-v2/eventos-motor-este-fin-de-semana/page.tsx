@@ -14,6 +14,7 @@ import {
 } from "@/components/redesign-v2/weekend/weekend-page-model";
 import { getVehicleType } from "@/lib/event-classification";
 import { getVisibleEvents } from "@/lib/public-events";
+import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 
 export const metadata: Metadata = {
   title: "Este fin de semana V2 Preview | EventoMotor",
@@ -54,7 +55,7 @@ export default async function WeekendPreviewPage({ searchParams }: WeekendPrevie
       title="Este fin de semana"
       upcomingCount={upcomingCount}
     >
-      <WeekendPageExperience events={weekendEvents} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} range={range} routeContext="preview" />
+      <WeekendPageExperience events={weekendEvents} commercialCampaigns={getCommercialCampaignRegistry({ now, weekendDemoEventDate: range.saturday })} imageByEventId={imageByEventId} initialState={initialState} nowIso={now.toISOString()} range={range} routeContext="preview" />
     </V2PreviewShell>
   );
 }

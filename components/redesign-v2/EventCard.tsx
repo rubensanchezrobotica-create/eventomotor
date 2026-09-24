@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventRetentionActions from "@/components/events/EventRetentionActions";
 import { eventAnalyticsParams } from "@/lib/analytics";
@@ -16,6 +17,7 @@ import {
 } from "./redesign-v2-model";
 
 type EventCardProps = {
+  commercialLabel?: ReactNode;
   event: PreviewEvent;
   nowIso: string;
   featured?: boolean;
@@ -24,7 +26,7 @@ type EventCardProps = {
   routeMode?: "preview" | "public";
 };
 
-export default function EventCard({ event, nowIso, featured = false, featuredLabel, resolvedImage, routeMode = "public" }: EventCardProps) {
+export default function EventCard({ commercialLabel, event, nowIso, featured = false, featuredLabel, resolvedImage, routeMode = "public" }: EventCardProps) {
   const image = resolvedImage ?? resolveRedesignEventImage(event);
   const date = previewEventDateLabel(event);
   const publicHref = previewEventHref(event);
@@ -110,6 +112,7 @@ export default function EventCard({ event, nowIso, featured = false, featuredLab
           </div>
         </div>
         <div className={styles.eventCardBody}>
+          {commercialLabel}
           <div className={styles.eventMetaLine}>
             <span className={styles.statusDot} aria-hidden="true" />
             <span>{previewEventStatus(event, nowIso)}</span>
