@@ -508,32 +508,33 @@
 .taxonomyLinks {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-top: clamp(48px, 7vw, 80px);
-  padding-top: clamp(24px, 3vw, 34px);
-  border-top: 1px solid #292f37;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px 14px;
+  margin-top: 16px;
 }
 
 .taxonomyLinks > span {
   color: #8f969f;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .taxonomyLinkList {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
 }
 
 .taxonomyLinkList a {
+  min-height: 44px;
   max-width: 100%;
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
   border: 1px solid #343b45;
   border-radius: 999px;
   color: #d8dadd;
@@ -546,10 +547,6 @@
 .taxonomyLinkList a:hover {
   border-color: #ff7a28;
   color: #fff;
-}
-
-.taxonomyLinks + .related {
-  margin-top: clamp(36px, 5vw, 58px);
 }
 
 .related {
@@ -764,10 +761,7 @@
   .taxonomyLinks {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .taxonomyLinkList {
-    justify-content: flex-start;
+    gap: 8px;
   }
 
   .relatedCompact {
