@@ -36,6 +36,9 @@ type EventPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const EVENT_DETAIL_SELECT =
+  "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,country,level,source,source_url,ticket_url,official_url,registration_url,image_url,image_source_url,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
+
 async function getVisibleEvents(): Promise<EventItem[]> {
   const supabase = createSupabaseServerClient();
 
@@ -53,8 +56,20 @@ async function getVisibleEvents(): Promise<EventItem[]> {
 }
 
 async function getEventBySlug(slug: string): Promise<EventItem | null> {
-  const events = await getVisibleEvents();
-  return events.find((event) => event.slug === slug) || null;
+  const supabase = createSupabaseServerClient();
+
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_DETAIL_SELECT)
+    .eq("slug", slug)
+    .eq("visible", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return mapEventRowToEventItem(data as unknown as EventRow);
 }
 
 function absoluteImageUrl(value: string, siteUrl: string) {
@@ -76,8 +91,10 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
 export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
-  const events = await getVisibleEvents();
-  const event = events.find((item) => item.slug === slug);
+  const [event, events] = await Promise.all([
+    getEventBySlug(slug),
+    getVisibleEvents(),
+  ]);
 
   if (!event) {
     const redirectHref = eventSlugRedirectHref(slug, await searchParams);
