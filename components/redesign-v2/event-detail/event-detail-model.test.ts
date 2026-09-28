@@ -97,6 +97,75 @@ test("proyecta únicamente información real y oculta campos opcionales ausentes
   assert.equal(model.compactRelatedFlow, true);
 });
 
+test("expone enlaces canónicos de disciplina y comunidad cuando ambos destinos existen", () => {
+  const model = buildEventDetailV2Model(event(), [], options);
+
+  assert.ok(model);
+  assert.deepEqual(model.disciplineLink, { href: "/disciplinas/rallyes", label: "Rally" });
+  assert.deepEqual(model.territoryLink, { href: "/eventos-motor-asturias", label: "Asturias" });
+});
+
+test("expone sólo la disciplina cuando no existe una comunidad SEO válida", () => {
+  const model = buildEventDetailV2Model(event({
+    city: "Lisboa",
+    province: "Lisboa",
+    region: "Lisboa",
+  }), [], options);
+
+  assert.ok(model);
+  assert.deepEqual(model.disciplineLink, { href: "/disciplinas/rallyes", label: "Rally" });
+  assert.equal(model.territoryLink, null);
+});
+
+test("expone sólo la comunidad cuando la disciplina no tiene mapping canónico", () => {
+  const model = buildEventDetailV2Model(event({ discipline: "Exhibición dinámica" }), [], options);
+
+  assert.ok(model);
+  assert.equal(model.disciplineLink, null);
+  assert.deepEqual(model.territoryLink, { href: "/eventos-motor-asturias", label: "Asturias" });
+});
+
+test("no crea destinos vacíos cuando no puede resolver disciplina ni comunidad", () => {
+  const model = buildEventDetailV2Model(event({
+    city: "Lisboa",
+    discipline: "Exhibición dinámica",
+    province: "Lisboa",
+    region: "Lisboa",
+  }), [], options);
+
+  assert.ok(model);
+  assert.equal(model.disciplineLink, null);
+  assert.equal(model.territoryLink, null);
+});
+
+test("RallyRACC conserva la disciplina canónica de rallyes", () => {
+  const model = buildEventDetailV2Model(event({
+    city: "Salou",
+    discipline: "Rally",
+    province: "Tarragona",
+    region: "Cataluña",
+    slug: "rallyracc-catalunya-costa-daurada-2026-10-16",
+    title: "RallyRACC Catalunya 2026",
+  }), [], options);
+
+  assert.ok(model);
+  assert.equal(model.disciplineLink?.href, "/disciplinas/rallyes");
+});
+
+test("Tamaimo conserva el destino territorial canónico de Canarias", () => {
+  const model = buildEventDetailV2Model(event({
+    city: "Santiago del Teide",
+    discipline: "Montaña",
+    province: "Santa Cruz de Tenerife",
+    region: "Canarias",
+    slug: "subida-tamaimo-2026-10-09",
+    title: "Subida Tamaimo 2026",
+  }), [], options);
+
+  assert.ok(model);
+  assert.deepEqual(model.territoryLink, { href: "/eventos-motor-canarias", label: "Canarias" });
+});
+
 test("separa la información práctica real sin repetir hero ni action context", () => {
   const model = buildEventDetailV2Model(event({
     scheduleText: "09:00–18:00",

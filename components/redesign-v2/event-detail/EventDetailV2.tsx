@@ -290,6 +290,20 @@ export default function EventDetailV2(props: EventDetailV2Props) {
               />
             ) : null}
 
+            {model.disciplineLink || model.territoryLink ? (
+              <nav aria-label="Más eventos relacionados" className={styles.taxonomyLinks}>
+                <span>Más eventos</span>
+                <div className={styles.taxonomyLinkList}>
+                  {model.disciplineLink ? (
+                    <Link href={model.disciplineLink.href}>{model.disciplineLink.label}</Link>
+                  ) : null}
+                  {model.territoryLink ? (
+                    <Link href={model.territoryLink.href}>{model.territoryLink.label}</Link>
+                  ) : null}
+                </div>
+              </nav>
+            ) : null}
+
             {model.related.length ? (
               <section className={`${styles.related} ${model.compactRelatedFlow ? styles.relatedCompact : ""}`}>
                 <div className={styles.sectionHeading}>
