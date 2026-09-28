@@ -115,6 +115,15 @@ test("A10G no filtra la captación pública y no filtra destinos Preview al cont
   assert.match(model, /routeContext === "public" \? `\/evento\/\$\{slug\}` : `\/preview\/redesign-v2\/evento\/\$\{slug\}`/);
 });
 
+test("los enlaces taxonómicos V2 usan resolvers canónicos y se renderizan como anchors", () => {
+  assert.match(model, /getCanonicalDisciplineHref/);
+  assert.match(model, /getSeoCommunityForEvent/);
+  assert.match(component, /<nav aria-label="Explorar eventos por categoría y zona"/);
+  assert.match(component, /<Link href=\{model\.disciplineLink\.href\}>/);
+  assert.match(component, /<Link href=\{model\.territoryLink\.href\}>/);
+  assert.match(component, /model\.disciplineLink \|\| model\.territoryLink/);
+});
+
 test("A10G conserva imagen y temporalidad compartidas y diferencia sólo la presentación pública", () => {
   assert.match(model, /assignV2HomeEventImages\(\[event\]\)/);
   assert.match(model, /previewEventStatus\(projectPreviewEvent\(event\)/);

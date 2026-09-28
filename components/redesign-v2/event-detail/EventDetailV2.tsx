@@ -73,6 +73,19 @@ export default function EventDetailV2(props: EventDetailV2Props) {
     !model.practicalItems.length ? styles.contentGridEditorialOnly : "",
     !model.description && !model.programSection ? styles.contentGridPracticalOnly : "",
   ].filter(Boolean).join(" ");
+  const taxonomyLinks = model.disciplineLink || model.territoryLink ? (
+    <nav aria-label="Explorar eventos por categoría y zona" className={styles.taxonomyLinks}>
+      <span>Explora más eventos</span>
+      <div className={styles.taxonomyLinkList}>
+        {model.disciplineLink ? (
+          <Link href={model.disciplineLink.href}>Eventos de {model.disciplineLink.label}</Link>
+        ) : null}
+        {model.territoryLink ? (
+          <Link href={model.territoryLink.href}>Eventos en {model.territoryLink.label}</Link>
+        ) : null}
+      </div>
+    </nav>
+  ) : null;
 
   return (
     <div
@@ -290,11 +303,22 @@ export default function EventDetailV2(props: EventDetailV2Props) {
               />
             ) : null}
 
+            {!model.related.length && taxonomyLinks ? (
+              <section className={`${styles.related} ${styles.relatedCompact}`}>
+                <div className={styles.sectionHeading}>
+                  <span className={styles.eyebrow}>Sigue explorando</span>
+                  <h2>Descubre más eventos</h2>
+                  {taxonomyLinks}
+                </div>
+              </section>
+            ) : null}
+
             {model.related.length ? (
               <section className={`${styles.related} ${model.compactRelatedFlow ? styles.relatedCompact : ""}`}>
                 <div className={styles.sectionHeading}>
                   <span className={styles.eyebrow}>Sigue explorando</span>
                   <h2>También te puede interesar</h2>
+                  {taxonomyLinks}
                 </div>
                 <div className={styles.relatedGrid}>
                   {model.related.map((related) => {

@@ -16,6 +16,8 @@ import {
   assignV2HomeEventImages,
   type V2AssignedEventImage,
 } from "@/components/redesign-v2/discipline-fallback-resolver";
+import { getCanonicalDisciplineHref } from "@/lib/event-listing-slugs";
+import { getSeoCommunityForEvent } from "@/lib/seo-communities";
 
 export type EventDetailDate = {
   dateTime: string;
@@ -63,6 +65,7 @@ export type EventDetailV2Model = {
   date: EventDetailDate;
   description: string;
   discipline: string;
+  disciplineLink: EventDetailLink | null;
   distinctChampionship: string;
   exceptionalStatus: EventDetailExceptionalStatus | null;
   heroDescription: string;
@@ -81,6 +84,7 @@ export type EventDetailV2Model = {
   source: EventDetailLink | null;
   title: string;
   temporalStatus: string;
+  territoryLink: EventDetailLink | null;
   upcomingCount: number;
   vehicle: string;
   venue: string;
@@ -380,6 +384,11 @@ export function buildEventDetailV2Model(
   const venue = distinctVenue(event, location);
   const discipline = formatCalendarDisciplineLabel(event.discipline);
   const vehicle = vehicleLabel(event);
+  const disciplineHref = getCanonicalDisciplineHref({
+    discipline: event.discipline,
+    vehicleType: vehicleTypeOf(event),
+  });
+  const community = getSeoCommunityForEvent(event);
   const officialSource = getOfficialSource(event);
   const rawPrimaryAction = getEventPrimaryAction(event);
   const primaryHref = safeExternalHref(rawPrimaryAction?.href);
@@ -403,6 +412,7 @@ export function buildEventDetailV2Model(
     date,
     description,
     discipline,
+    disciplineLink: disciplineHref ? { href: disciplineHref, label: discipline } : null,
     distinctChampionship: distinctChampionship(event.championship, event.discipline),
     exceptionalStatus: exceptionalEventStatus(event),
     heroDescription: [date.label, location].filter(Boolean).join(" · "),
@@ -443,6 +453,12 @@ export function buildEventDetailV2Model(
       : null,
     title: event.title,
     temporalStatus: previewEventStatus(projectPreviewEvent(event), `${options.today}T12:00:00.000Z`),
+    territoryLink: community
+      ? {
+          href: `/${community.landingSlug}`,
+          label: isUseful(event.region) ? cleanText(event.region) : community.name,
+        }
+      : null,
     upcomingCount: events.filter((candidate) => {
       const end = dateKey(candidate.end) || dateKey(candidate.start);
       return Boolean(end && end >= options.today);
