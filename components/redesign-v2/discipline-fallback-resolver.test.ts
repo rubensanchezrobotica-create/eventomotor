@@ -132,11 +132,116 @@ test("respeta vehículo y compatibilidad dentro de circuito y concentraciones", 
   assert.deepEqual(new Set(motoMeet.map(({ id }) => id)), new Set(["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]));
 
   const carMeet = resolveV2EventImageCandidates(event({ title: "Concentración de coches", vehicleType: "Coche" }));
-  assert.deepEqual(new Set(carMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-01", "concentraciones-04"]));
+  assert.deepEqual(new Set(carMeet.filter(({ tier }) => tier === 1).map(({ id }) => id)), new Set(["concentraciones-01"]));
+  assert.deepEqual(new Set(carMeet.filter(({ tier }) => tier === 2).map(({ id }) => id)), new Set(["concentraciones-04"]));
   assert.equal(carMeet.findIndex(({ vehicle }) => vehicle === "mixto") > carMeet.findLastIndex(({ vehicle }) => vehicle === "coche"), true);
 
   const mixedMeet = resolveV2EventImageCandidates(event({ title: "Concentración mixta de coches y motos", vehicleType: "Mixto" }));
   assert.deepEqual(new Set(mixedMeet.filter(({ tier }) => tier <= 2).map(({ id }) => id)), new Set(["concentraciones-03", "concentraciones-05"]));
+});
+
+test("P1A normaliza Concentraciones y prioriza su fallback de coche sin afectar otras familias", () => {
+  for (const discipline of ["Concentraciones", "Concentración"]) {
+    const carMeet = event({
+      id: `car-meet-${discipline}`,
+      slug: `car-meet-${discipline}`,
+      title: "Evento de aficionados",
+      discipline,
+      vehicleType: "Coche",
+      tags: ["exposición"],
+    });
+    assert.equal(classificationOf(carMeet).discipline, "concentraciones");
+    assert.deepEqual(resolveV2EventImageCandidates(carMeet).slice(0, 2).map(({ id, tier }) => [id, tier]), [
+      ["concentraciones-01", 1],
+      ["concentraciones-04", 2],
+    ]);
+    assert.equal(assignV2HomeEventImages([carMeet])[0]?.fallbackId, "concentraciones-01");
+  }
+
+  const motoMeet = event({
+    title: "Evento motero anual",
+    discipline: "Concentraciones",
+    vehicleType: "Moto",
+    tags: ["exposición"],
+  });
+  assert.equal(classificationOf(motoMeet).discipline, "concentraciones");
+  assert.deepEqual(
+    new Set(ids(motoMeet)),
+    new Set(["concentraciones-02", "concentraciones-06", "concentraciones-10", "concentraciones-11"]),
+  );
+
+  const mixedMeet = event({
+    title: "Evento de aficionados",
+    discipline: "Concentraciones",
+    vehicleType: "Mixto",
+    tags: ["exposición"],
+  });
+  assert.equal(classificationOf(mixedMeet).discipline, "concentraciones");
+  assert.deepEqual(
+    new Set(resolveV2EventImageCandidates(mixedMeet).filter(({ tier }) => tier <= 2).map(({ id }) => id)),
+    new Set(["concentraciones-03", "concentraciones-05"]),
+  );
+
+  const fair = event({
+    title: "Exposición profesional del automóvil",
+    discipline: "Ferias",
+    vehicleType: "Coche",
+    tags: ["exposición"],
+  });
+  assert.equal(classificationOf(fair).discipline, "ferias");
+  assert.equal(resolveV2EventImageCandidates(fair).every(({ discipline }) => discipline === "ferias"), true);
+
+  const unrelatedFamilies: Array<[V2FallbackEvent, string]> = [
+    [event({ title: "Exposición de clásicos", discipline: "Clásicos", vehicleType: "Coche" }), "clasicos"],
+    [event({ title: "Rally de asfalto", discipline: "Rally", vehicleType: "Coche" }), "rallyes"],
+    [event({ title: "Tandas en circuito", discipline: "Circuito", vehicleType: "Coche" }), "circuito"],
+    [event({ title: "Trial 4x4", discipline: "Offroad", vehicleType: "Coche" }), "offroad"],
+  ];
+  for (const [fixture, expectedDiscipline] of unrelatedFamilies) {
+    assert.equal(classificationOf(fixture).discipline, expectedDiscipline);
+  }
+});
+
+test("P1A Basauri usa concentraciones-01 con imageUrl nulo", () => {
+  const basauri = event({
+    id: "batch-basauri-motorday-2026-10-12",
+    slug: "basauri-motorday-2026-10-12",
+    title: "Basauri Motorday",
+    championship: "Concentraciones",
+    discipline: "Concentraciones",
+    start: "2026-10-12",
+    venue: "Parque Bizkotxalde",
+    city: "Basauri",
+    province: "Bizkaia",
+    region: "País Vasco",
+    tags: ["motor", "basauri", "bizkaia", "exposición", "coche"],
+    vehicleType: undefined,
+    vehicle_type: "coche",
+    imageUrl: null,
+  });
+
+  assert.deepEqual(classificationOf(basauri), {
+    discipline: "concentraciones",
+    subtype: "concentracion",
+    reason: "concentracion o encuentro",
+    vehicle: "coche",
+  });
+  assert.deepEqual(resolveV2EventImageCandidates(basauri).slice(0, 2).map(({ id, tier }) => [id, tier]), [
+    ["concentraciones-01", 1],
+    ["concentraciones-04", 2],
+  ]);
+  assert.deepEqual(assignV2HomeEventImages([basauri])[0], {
+    src: "/images/disciplines/fallbacks/concentraciones/concentraciones-01-coches-encuentro-exterior.webp",
+    kind: "representative",
+    alt: "",
+    label: "Imagen representativa",
+    fallbackId: "concentraciones-01",
+    fallbackTier: 1,
+    fallbackReason: "disciplina, vehiculo y subtipo exactos",
+    interpretedDiscipline: "concentraciones",
+    interpretedVehicle: "coche",
+    interpretedSubtype: "concentracion",
+  });
 });
 
 test("Rally Raid canónico usa sólo el fallback offroad del vehículo explícito", () => {

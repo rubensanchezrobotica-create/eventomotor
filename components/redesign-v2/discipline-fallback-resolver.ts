@@ -275,7 +275,7 @@ function classifyDiscipline(text: string): DisciplineClassification | null {
   if (includesAny(text, ["circuito", "circuit", "gt", "racing weekend"])) {
     return classification("circuito", "circuito", "circuito");
   }
-  if (includesAny(text, ["concentracion", "encuentro", "quedada", "motoalmuerzo", "almuerzo motero", "matinal motera", "xuntanza", "festival motero", "biker", "bikers"])) {
+  if (includesAny(text, ["concentracion", "concentraciones", "encuentro", "quedada", "motoalmuerzo", "almuerzo motero", "matinal motera", "xuntanza", "festival motero", "biker", "bikers"])) {
     const subtype = includesAny(text, ["motoalmuerzo", "almuerzo motero", "matinal motera"])
       ? "motoalmuerzo"
       : includesAny(text, ["biker", "bikers", "custom", "nocturna"])
@@ -473,6 +473,7 @@ export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClass
   const primaryDiscipline = classifyDiscipline(primaryText);
   const primaryIsRutas = primaryDiscipline?.discipline === "rutas";
   const primaryIsFerias = primaryDiscipline?.discipline === "ferias";
+  const primaryIsConcentraciones = primaryDiscipline?.discipline === "concentraciones";
   if (primaryIsFerias) return classifyPrimaryFerias(event, text);
   const primaryIsP0 = PRIMARY_P0_SUBTYPES.has(primaryDiscipline?.subtype ?? "")
     || (primaryText === "enduret" && primaryDiscipline?.subtype === "enduro");
@@ -480,6 +481,8 @@ export function classifyV2FallbackEvent(event: V2FallbackEvent): V2FallbackClass
     ? includesAny(text, RUTAS_TRAIL_ROADBOOK_SIGNALS)
       ? classification("rutas", "trail-roadbook", "ruta trail, roadbook o navegacion adventure")
       : primaryDiscipline
+    : primaryIsConcentraciones && inferredDiscipline?.discipline === "ferias" && inferredDiscipline.subtype === "feria"
+      ? primaryDiscipline
     : primaryDiscipline
     && inferredDiscipline?.discipline === primaryDiscipline.discipline
     && primaryIsP0
@@ -553,7 +556,7 @@ const EXACT_SUBTYPE_FALLBACK_IDS: Readonly<Record<string, readonly string[]>> = 
   "circuito:minimotard": ["circuito-10"],
   "circuito:supermotard": ["circuito-10"],
   "circuito:slalom": ["circuito-11", "circuito-12"],
-  "concentraciones:concentracion": ["concentraciones-06"],
+  "concentraciones:concentracion": ["concentraciones-01", "concentraciones-06"],
   "concentraciones:motoalmuerzo": ["concentraciones-07", "concentraciones-09"],
   "concentraciones:custom-biker": ["concentraciones-08"],
   "offroad:enduro": ["offroad-02", "offroad-07"],
