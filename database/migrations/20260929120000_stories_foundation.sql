@@ -388,7 +388,7 @@ as $$
 declare
   is_used_by_public_story boolean;
 begin
-  select pg_catalog.coalesce(pg_catalog.bool_or(
+  select coalesce(pg_catalog.bool_or(
     story.hero_media_id = old.id
     or exists (
       select 1
