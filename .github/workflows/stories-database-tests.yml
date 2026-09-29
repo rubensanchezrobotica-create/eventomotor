@@ -1,0 +1,74 @@
+name: Stories database tests
+
+on:
+  push:
+    branches:
+      - codex/historias-a16a1
+    paths:
+      - ".github/workflows/stories-database-tests.yml"
+      - "database/migrations/20260929120000_stories_foundation.sql"
+      - "database/schema.sql"
+      - "scripts/prepare-stories-supabase-ci.mjs"
+      - "tests/stories/sql/stories_foundation.test.sql"
+      - "tests/stories/sql/story_publication_gate.test.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stories-database-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stories-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      STORIES_CI_WORKDIR: .tmp/stories-supabase-ci
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Configure pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.101.0
+
+      - name: Verify local tooling
+        run: |
+          node --version
+          test "$(supabase --version)" = "2.101.0"
+
+      - name: Prepare isolated Stories workspace
+        run: node scripts/prepare-stories-supabase-ci.mjs
+
+      - name: Start ephemeral Supabase and apply Stories migration
+        run: |
+          supabase --workdir "$STORIES_CI_WORKDIR" start > /dev/null
+          touch "$STORIES_CI_WORKDIR/.stack-started"
+
+      - name: Run 132 pgTAP assertions
+        run: supabase --workdir "$STORIES_CI_WORKDIR" test db --local
+
+      - name: Stop and destroy ephemeral workspace
+        if: always()
+        shell: bash
+        run: |
+          cleanup_status=0
+          if [ -f "$STORIES_CI_WORKDIR/.stack-started" ]; then
+            supabase --workdir "$STORIES_CI_WORKDIR" stop --no-backup || cleanup_status=$?
+          else
+            supabase --workdir "$STORIES_CI_WORKDIR" stop --no-backup || true
+          fi
+          node scripts/prepare-stories-supabase-ci.mjs --clean || cleanup_status=$?
+          exit "$cleanup_status"
