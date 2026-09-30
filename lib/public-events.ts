@@ -1,8 +1,9 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getVehicleType } from "@/lib/event-classification";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
-import type { EventRow } from "@/lib/supabase";
+import type { Database, EventRow } from "@/lib/supabase";
 import { FALLBACK_EVENTS } from "@/lib/fallback-events";
 import { createEventSlug } from "@/lib/slug";
 import { resolveFeaturedStatus } from "@/lib/temporary-featured-events";
@@ -125,6 +126,51 @@ function fallbackVisibleEvents(): EventItem[] {
 
 type VisibleEventsFailureMode = "fallback" | "strict";
 
+export const VISIBLE_EVENTS_PAGE_SIZE = 500;
+
+type PaginatedRowsResult<Row> = {
+  data: Row[] | null;
+  error: unknown;
+};
+
+type PageLoader<Row> = (
+  from: number,
+  to: number,
+) => PromiseLike<PaginatedRowsResult<Row>>;
+
+export async function collectPaginatedRows<Row>(
+  loadPage: PageLoader<Row>,
+  pageSize = VISIBLE_EVENTS_PAGE_SIZE,
+): Promise<PaginatedRowsResult<Row>> {
+  const rows: Row[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const page = await loadPage(from, from + pageSize - 1);
+
+    if (page.error || !page.data) {
+      return { data: null, error: page.error };
+    }
+
+    rows.push(...page.data);
+
+    if (page.data.length < pageSize) {
+      return { data: rows, error: null };
+    }
+  }
+}
+
+export function fetchAllVisibleEventRows(
+  supabase: SupabaseClient<Database>,
+) {
+  return collectPaginatedRows<EventRow>((from, to) => supabase
+    .from("events")
+    .select("*")
+    .eq("visible", true)
+    .order("start_date", { ascending: true })
+    .order("id", { ascending: true })
+    .range(from, to));
+}
+
 function handleVisibleEventsFailure(
   failureMode: VisibleEventsFailureMode,
   message: string,
@@ -146,11 +192,7 @@ async function loadVisibleEvents(failureMode: VisibleEventsFailureMode) {
     );
   }
 
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("visible", true)
-    .order("start_date", { ascending: true });
+  const { data, error } = await fetchAllVisibleEventRows(supabase);
 
   if (error || !data) {
     return handleVisibleEventsFailure(
@@ -187,11 +229,20 @@ export async function getHomeVisibleEvents() {
     return fallbackEvents;
   }
 
-  const { data, error } = await supabase
-    .from("events")
-    .select(HOME_EVENT_SELECT)
-    .eq("visible", true)
-    .order("start_date", { ascending: true });
+  const { data, error } = await collectPaginatedRows<HomeEventRow>(async (from, to) => {
+    const page = await supabase
+      .from("events")
+      .select(HOME_EVENT_SELECT)
+      .eq("visible", true)
+      .order("start_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+
+    return {
+      data: page.data as unknown as HomeEventRow[] | null,
+      error: page.error,
+    };
+  });
 
   if (error || !data) {
     return fallbackEvents;
