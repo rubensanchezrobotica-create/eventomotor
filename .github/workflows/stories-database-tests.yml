@@ -1,16 +1,32 @@
 name: Stories database tests
 
 on:
-  push:
-    branches:
-      - codex/historias-a16a1
+  pull_request:
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
+      - "database/migrations/20260930120000_story_media_storage.sql"
       - "database/schema.sql"
+      - "lib/stories/story-media*.ts"
+      - "lib/supabase.ts"
+      - "package.json"
+      - "package-lock.json"
       - "scripts/prepare-stories-supabase-ci.mjs"
-      - "tests/stories/sql/stories_foundation.test.sql"
-      - "tests/stories/sql/story_publication_gate.test.sql"
+      - "tests/stories/**"
+  push:
+    branches:
+      - codex/historias-a16b1
+    paths:
+      - ".github/workflows/stories-database-tests.yml"
+      - "database/migrations/20260929120000_stories_foundation.sql"
+      - "database/migrations/20260930120000_story_media_storage.sql"
+      - "database/schema.sql"
+      - "lib/stories/story-media*.ts"
+      - "lib/supabase.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/prepare-stories-supabase-ci.mjs"
+      - "tests/stories/**"
   workflow_dispatch:
 
 permissions:
@@ -49,16 +65,46 @@ jobs:
           node --version
           test "$(supabase --version)" = "2.101.0"
 
+      - name: Install locked Node.js dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run A16B1 unit tests
+        run: |
+          node --import tsx --test lib/stories/story-media-validation.test.ts
+          node --conditions=react-server --import tsx --test lib/stories/story-media.server.test.ts
+
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs
 
-      - name: Start ephemeral Supabase and apply Stories migration
+      - name: Start ephemeral Supabase and apply Stories migrations
         run: |
           supabase --workdir "$STORIES_CI_WORKDIR" start > /dev/null
           touch "$STORIES_CI_WORKDIR/.stack-started"
 
-      - name: Run 132 pgTAP assertions
+      - name: Run Stories pgTAP assertions
         run: supabase --workdir "$STORIES_CI_WORKDIR" test db --local
+
+      - name: Run ephemeral Story media Storage integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_file="$RUNNER_TEMP/stories-supabase.env"
+          supabase --workdir "$STORIES_CI_WORKDIR" status -o env > "$env_file"
+          set -a
+          source "$env_file"
+          set +a
+          export NEXT_PUBLIC_SUPABASE_URL="${API_URL:-${SUPABASE_URL:-}}"
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="${ANON_KEY:-}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-}"
+          export STORIES_STORAGE_INTEGRATION=1
+          node --conditions=react-server --import tsx --test \
+            tests/stories/story-media-storage.integration.test.ts
+          rm -f "$env_file"
+
+      - name: Lint isolated Stories schema
+        run: >-
+          supabase --workdir "$STORIES_CI_WORKDIR" db lint --local
+          --schema public --level error --fail-on error
 
       - name: Stop and destroy ephemeral workspace
         if: always()

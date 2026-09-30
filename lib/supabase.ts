@@ -12,6 +12,13 @@ import type {
 } from "@/lib/event-candidates/types";
 import type { EventDataQuality, EventItem } from "@/types/event";
 import type {
+  StoryCollection,
+  StoryContentBlock,
+  StoryRightsType,
+  StoryStatus,
+  StoryType,
+} from "@/lib/stories/story-types";
+import type {
   NewsletterCampaignDeliveryInsert,
   NewsletterCampaignDeliveryRow,
   NewsletterCampaignInsert,
@@ -167,6 +174,104 @@ export type EventSubmissionInsert = {
   status?: string;
 };
 
+export type StoryRow = {
+  id: string;
+  slug: string;
+  status: StoryStatus;
+  type: StoryType;
+  collection: StoryCollection;
+  title: string;
+  dek: string;
+  context_location: string | null;
+  content_blocks: StoryContentBlock[];
+  schema_version: number;
+  hero_media_id: string | null;
+  seo_title: string;
+  seo_description: string;
+  discipline_slugs: string[];
+  territory_ids: string[];
+  published_at: string | null;
+  home_rank: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StoryInsert = {
+  id?: string;
+  slug?: string;
+  status?: StoryStatus;
+  type: StoryType;
+  collection: StoryCollection;
+  title?: string;
+  dek?: string;
+  context_location?: string | null;
+  content_blocks?: StoryContentBlock[];
+  schema_version?: number;
+  hero_media_id?: string | null;
+  seo_title?: string;
+  seo_description?: string;
+  discipline_slugs?: string[];
+  territory_ids?: string[];
+  published_at?: string | null;
+  home_rank?: number | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type StoryMediaRow = {
+  id: string;
+  story_id: string;
+  bucket_id: string;
+  object_path: string;
+  width: number;
+  height: number;
+  mime_type: string;
+  byte_size: number;
+  alt_text: string;
+  caption: string | null;
+  credit: string | null;
+  rights_type: StoryRightsType;
+  rights_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StoryMediaInsert = {
+  id: string;
+  story_id: string;
+  bucket_id: string;
+  object_path: string;
+  width: number;
+  height: number;
+  mime_type: string;
+  byte_size: number;
+  alt_text?: string;
+  caption?: string | null;
+  credit?: string | null;
+  rights_type?: StoryRightsType;
+  rights_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type StoryMediaUpdate = Partial<
+  Pick<
+    StoryMediaRow,
+    | "bucket_id"
+    | "object_path"
+    | "width"
+    | "height"
+    | "mime_type"
+    | "byte_size"
+    | "alt_text"
+    | "caption"
+    | "credit"
+    | "rights_type"
+    | "rights_notes"
+    | "updated_at"
+  >
+>;
+
 export type Database = {
   public: {
     Tables: {
@@ -180,6 +285,18 @@ export type Database = {
         Row: EventSubmissionRow;
         Insert: EventSubmissionInsert;
         Update: Partial<EventSubmissionInsert>;
+        Relationships: [];
+      };
+      stories: {
+        Row: StoryRow;
+        Insert: StoryInsert;
+        Update: Partial<StoryInsert>;
+        Relationships: [];
+      };
+      story_media: {
+        Row: StoryMediaRow;
+        Insert: StoryMediaInsert;
+        Update: StoryMediaUpdate;
         Relationships: [];
       };
       agent_runs: {
