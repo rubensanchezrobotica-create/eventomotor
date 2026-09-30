@@ -1,0 +1,9 @@
+[
+  { "file": "01-festival-velocidad-barcelona-hero.webp", "width": 1200, "height": 675, "bytes": 145516, "sha256": "cc163aa67cd4ea37f9e61f82822e4a419254ed82e31b61e420695a5a458d77b6" },
+  { "file": "02-gran-premio-camion-jarama.webp", "width": 800, "height": 500, "bytes": 75276, "sha256": "454788ce9bf61b685776b7727027e87ae122f419020ebace63bb74f371bd18c0" },
+  { "file": "03-rallye-rias-altas-historico.webp", "width": 800, "height": 500, "bytes": 87012, "sha256": "d659da33afa97d8f2e3b69593dd20f19a7ef199baa1841cbb9e4c866cec1aa18" },
+  { "file": "04-t4-nations-cup-valencia.webp", "width": 800, "height": 500, "bytes": 74790, "sha256": "127a7c78e912fb7c27735b1f8d287a10fbc9e9413e18da33e8040c88a4eb5dcd" },
+  { "file": "05-f4-tcr-navarra.webp", "width": 800, "height": 500, "bytes": 73736, "sha256": "7a12032c7b0c82c020ba6f7737499bd51e6c89b66128dbad5e0259e46a2566f6" },
+  { "file": "eventomotor-header.png", "width": 1240, "height": 200, "bytes": 37841, "sha256": "a3d488ec458d5340c096c29834811fdfd2f51f95f1ebd641a1355bd22f7bb785" },
+  { "file": "eventomotor-logo.png", "width": 520, "height": 56, "bytes": 26745, "sha256": "d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc" }
+]
