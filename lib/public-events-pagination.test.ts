@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { GET as getEventsApi } from "@/app/api/events/route";
+import { buildEventDetailV2Model } from "@/components/redesign-v2/event-detail/event-detail-model";
 import {
   getVisibleEventsStrict,
   VISIBLE_EVENTS_PAGE_SIZE,
@@ -127,5 +128,22 @@ test("la API pública conserva el contrato y devuelve todo el inventario visible
     payload.events.map(({ id }: EventRow) => id),
     rows.map(({ id }) => id),
   );
+  assertPaginationRequests(requests);
+});
+
+test("la ficha calcula próximos con la colección paginada completa", async () => {
+  const rows = Array.from({ length: TOTAL_ROWS }, (_, index) => eventRow(index));
+  const { result: events, requests } = await withPaginatedSupabase(
+    rows,
+    getVisibleEventsStrict,
+  );
+  const model = buildEventDetailV2Model(events[0], events, {
+    routeContext: "public",
+    siteUrl: "https://www.eventomotor.com",
+    today: "2026-09-30",
+  });
+
+  assert.ok(model);
+  assert.equal(model.upcomingCount, TOTAL_ROWS);
   assertPaginationRequests(requests);
 });
