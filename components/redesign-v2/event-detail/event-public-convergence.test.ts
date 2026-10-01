@@ -39,16 +39,18 @@ function fixture(overrides: Partial<EventItem> = {}): EventItem {
   };
 }
 
-test("A10G mantiene lookup público visible y fail-closed; Preview no sustituye ese loader", () => {
+test("A10G mantiene lookup público dirigido y reutiliza la colección paginada compartida", () => {
   assert.match(route, /\.from\("events"\)[\s\S]*?\.eq\("visible", true\)/);
-  assert.match(route, /if \(!supabase\) return \[\]/);
-  assert.match(route, /if \(error \|\| !data\) return \[\]/);
-  assert.match(route, /events\.find\(\(item\) => item\.slug === slug\)/);
+  assert.match(route, /\.eq\("slug", slug\)[\s\S]*?\.maybeSingle\(\)/);
+  assert.match(route, /if \(!supabase\) return null;/);
+  assert.match(route, /if \(error \|\| !data\) return null;/);
+  assert.match(route, /from "@\/lib\/public-events"/);
+  assert.match(route, /getVisibleEvents\(\)/);
+  assert.doesNotMatch(route, /events\.find\(/);
   assert.match(route, /if \(!event\) notFound\(\)/);
   assert.match(route, /<EventDetailV2[\s\S]*?routeContext="public"/);
   assert.match(preview, /routeContext="preview"/);
   assert.match(preview, /index: false[\s\S]*?follow: false/);
-  assert.doesNotMatch(route, /from "@\/lib\/public-events"/);
 });
 
 test("A10G mantiene redirect 308 conocido y query antes del 404, sin enlaces Preview", () => {

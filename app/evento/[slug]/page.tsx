@@ -7,6 +7,7 @@ import {
   madridDateKey,
 } from "@/components/redesign-v2/event-detail/event-detail-model";
 import { getEventImage } from "@/lib/event-images";
+import { getVisibleEvents } from "@/lib/public-events";
 import {
   buildEventBreadcrumbJsonLd,
   buildEventJsonLd,
@@ -38,22 +39,6 @@ type EventPageProps = {
 
 const EVENT_DETAIL_SELECT =
   "id,slug,title,championship,discipline,start_date,end_date,venue,city,province,region,country,level,source,source_url,ticket_url,official_url,registration_url,image_url,image_source_url,event_status,short_description,long_description,schedule_text,address,latitude,longitude,organizer_name,organizer_url,verified_at,source_type,confidence_score,needs_review,tags,vehicle_type,featured,visible,import_method,data_quality,notes";
-
-async function getVisibleEvents(): Promise<EventItem[]> {
-  const supabase = createSupabaseServerClient();
-
-  if (!supabase) return [];
-
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("visible", true)
-    .order("start_date", { ascending: true });
-
-  if (error || !data) return [];
-
-  return (data as EventRow[]).map(mapEventRowToEventItem);
-}
 
 async function getEventBySlug(slug: string): Promise<EventItem | null> {
   const supabase = createSupabaseServerClient();

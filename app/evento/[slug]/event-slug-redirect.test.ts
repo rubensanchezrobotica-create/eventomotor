@@ -93,6 +93,19 @@ test("la resolución no depende de cargar las primeras 1.000 filas", () => {
   assert.doesNotMatch(route, /events\.find\(/);
 });
 
+test("la ficha reutiliza el loader compartido paginado para la colección visible", () => {
+  const route = sourceBetween(
+    page,
+    "export default async function EventPage",
+    "const siteUrl = getSiteUrl()",
+  );
+
+  assert.match(page, /import \{ getVisibleEvents \} from "@\/lib\/public-events";/);
+  assert.doesNotMatch(page, /async function getVisibleEvents/);
+  assert.doesNotMatch(page, /\.select\("\*"\)/);
+  assert.match(route, /getVisibleEvents\(\)/);
+});
+
 test("maybeSingle está respaldado por unicidad real de events.slug", () => {
   assert.match(schema, /slug text unique/i);
   assert.match(slugMigration, /create unique index if not exists events_slug_key/i);

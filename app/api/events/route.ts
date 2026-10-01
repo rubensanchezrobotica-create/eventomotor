@@ -1,4 +1,5 @@
 import { FALLBACK_EVENTS } from "@/lib/fallback-events";
+import { fetchAllVisibleEventRows } from "@/lib/public-events";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
@@ -23,11 +24,7 @@ export async function GET() {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .eq("visible", true)
-      .order("start_date", { ascending: true });
+    const { data, error } = await fetchAllVisibleEventRows(supabase);
 
     if (error || !data?.length) {
       return Response.json(fallbackResponse());
