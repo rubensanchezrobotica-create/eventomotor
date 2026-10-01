@@ -172,34 +172,82 @@ test(
     const promotionRetry = await service.promote({ storyId, mediaId: intent.mediaId });
     assert.equal(promotionRetry.promoted, false);
 
-    const anonymousList = await anonClient.storage
-      .from(STORY_MEDIA_PUBLIC_BUCKET)
-      .list(storyId, { limit: 100 });
-    assert.ok(
-      anonymousList.error || (anonymousList.data?.length ?? 0) === 0,
-      "anonymous callers must not enumerate public story media",
-    );
+    const readServiceObjectEntry = async (bucketId: string, objectPath: string) => {
+      const separator = objectPath.lastIndexOf("/");
+      assert.notEqual(separator, -1, "Storage object paths must include a directory");
+      const directory = objectPath.slice(0, separator);
+      const objectName = objectPath.slice(separator + 1);
+      const result = await serviceClient.storage
+        .from(bucketId)
+        .list(directory, { limit: 100, search: objectName });
+      assert.equal(result.error, null, `service role must list ${bucketId}`);
+      return result.data?.find((item) => item.name === objectName) ?? null;
+    };
+
+    const readServiceObjectState = async (bucketId: string, objectPath: string) => {
+      const [download, entry] = await Promise.all([
+        serviceClient.storage.from(bucketId).download(objectPath),
+        readServiceObjectEntry(bucketId, objectPath),
+      ]);
+      assert.equal(download.error, null, `service role must download from ${bucketId}`);
+      assert.ok(download.data, `service role must receive object bytes from ${bucketId}`);
+      assert.ok(entry, `service role must find the object metadata in ${bucketId}`);
+      return {
+        bytes: new Uint8Array(await download.data.arrayBuffer()),
+        metadata: entry,
+      };
+    };
+
+    const intentSeparator = intent.objectPath.lastIndexOf("/");
+    assert.notEqual(intentSeparator, -1);
+    const intentDirectory = intent.objectPath.slice(0, intentSeparator);
+    const intentObjectName = intent.objectPath.slice(intentSeparator + 1);
+    for (const bucketId of [STORY_MEDIA_DRAFT_BUCKET, STORY_MEDIA_PUBLIC_BUCKET]) {
+      const anonymousList = await anonClient.storage
+        .from(bucketId)
+        .list(intentDirectory, { limit: 100, search: intentObjectName });
+      assert.equal(
+        anonymousList.data?.some((item) => item.name === intentObjectName) ?? false,
+        false,
+        `anonymous callers must not enumerate known objects in ${bucketId}`,
+      );
+    }
 
     const anonymousBytes = new Uint8Array(await sharp({
       create: { width: 2, height: 2, channels: 3, background: { r: 1, g: 2, b: 3 } },
     }).jpeg().toBuffer());
     for (const bucketId of [STORY_MEDIA_DRAFT_BUCKET, STORY_MEDIA_PUBLIC_BUCKET]) {
+      const beforeMutation = await readServiceObjectState(bucketId, intent.objectPath);
       const unauthorizedPath = `${storyId}/${randomUUID()}/asset.jpg`;
-      const anonymousUpload = await anonClient.storage
+      await anonClient.storage
         .from(bucketId)
         .upload(unauthorizedPath, anonymousBytes, {
           contentType: "image/jpeg",
           upsert: false,
         });
-      assert.ok(anonymousUpload.error, `anonymous upload must fail for ${bucketId}`);
+      assert.equal(
+        await readServiceObjectEntry(bucketId, unauthorizedPath),
+        null,
+        `anonymous upload must not create an object in ${bucketId}`,
+      );
 
-      const anonymousUpdate = await anonClient.storage
+      await anonClient.storage
         .from(bucketId)
         .update(intent.objectPath, anonymousBytes, { contentType: "image/jpeg" });
-      assert.ok(anonymousUpdate.error, `anonymous update must fail for ${bucketId}`);
+      const afterUpdate = await readServiceObjectState(bucketId, intent.objectPath);
+      assert.deepEqual(
+        afterUpdate,
+        beforeMutation,
+        `anonymous update must not change object bytes or metadata in ${bucketId}`,
+      );
 
-      const anonymousDelete = await anonClient.storage.from(bucketId).remove([intent.objectPath]);
-      assert.ok(anonymousDelete.error, `anonymous delete must fail for ${bucketId}`);
+      await anonClient.storage.from(bucketId).remove([intent.objectPath]);
+      const afterDelete = await readServiceObjectState(bucketId, intent.objectPath);
+      assert.deepEqual(
+        afterDelete,
+        beforeMutation,
+        `anonymous delete must leave the object intact in ${bucketId}`,
+      );
     }
 
     const publicResponse = await fetch(promotion.publicUrl);
