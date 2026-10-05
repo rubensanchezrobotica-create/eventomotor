@@ -5,7 +5,7 @@ on:
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
-      - "database/migrations/20260930120000_story_media_storage.sql"
+      - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
       - "lib/supabase.ts"
@@ -19,7 +19,7 @@ on:
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
-      - "database/migrations/20260930120000_story_media_storage.sql"
+      - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
       - "lib/supabase.ts"

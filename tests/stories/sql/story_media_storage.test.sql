@@ -5,14 +5,33 @@ set local search_path = extensions, public, pg_catalog;
 
 select plan(12);
 
-select set_eq(
+select throws_ok(
   $$
-    select id
-    from storage.buckets
-    where id in ('story-media-drafts', 'story-media')
+    insert into storage.buckets (
+      id,
+      name,
+      public,
+      file_size_limit,
+      allowed_mime_types
+    )
+    values
+      (
+        'story-media-drafts',
+        'story-media-drafts',
+        true,
+        1,
+        array['application/octet-stream']
+      ),
+      (
+        'story-media',
+        'story-media',
+        false,
+        1,
+        array['application/octet-stream']
+      )
   $$,
-  array['story-media-drafts', 'story-media'],
-  'the two approved story media buckets exist'
+  '23505', null,
+  'pre-existing story media buckets fail closed instead of being reconfigured'
 );
 
 select is(

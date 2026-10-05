@@ -17,7 +17,7 @@ export const STORIES_BASE_SCHEMA = "database/schema.sql";
 export const STORIES_MIGRATION =
   "database/migrations/20260929120000_stories_foundation.sql";
 export const STORIES_STORAGE_MIGRATION =
-  "database/migrations/20260930120000_story_media_storage.sql";
+  "database/migrations/20261005120000_story_media_storage.sql";
 export const STORIES_SQL_TESTS = [
   "stories_foundation.test.sql",
   "story_publication_gate.test.sql",

@@ -21,13 +21,7 @@ values
     true,
     26214400,
     array['image/jpeg', 'image/png', 'image/webp']
-  )
-on conflict (id) do update
-set
-  name = excluded.name,
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
+  );
 
 -- No storage.objects policies are created for either bucket. Public object GET
 -- for story-media is provided exclusively by the bucket's public=true flag;
