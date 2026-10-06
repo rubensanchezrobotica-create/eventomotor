@@ -26,7 +26,7 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
     `stories-admin-c-${suffix}`,
   ];
   let storyId = "";
-  let personId = "";
+  const personIds: string[] = [];
 
   t.after(async () => {
     if (storyId) {
@@ -34,7 +34,7 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
       await client.from("story_events").delete().eq("story_id", storyId);
       await client.from("stories").delete().eq("id", storyId);
     }
-    if (personId) await client.from("editorial_people").delete().eq("id", personId);
+    if (personIds.length) await client.from("editorial_people").delete().in("id", personIds);
     await client.from("events").delete().in("id", eventIds);
   });
 
@@ -100,12 +100,41 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   });
   assert.equal(ready.status, "READY");
 
-  const person = await createEditorialPerson(`Synthetic editor ${suffix}`);
-  personId = person.person.id;
+  const personA = await createEditorialPerson(`Synthetic editor A ${suffix}`);
+  const personB = await createEditorialPerson(`Synthetic editor B ${suffix}`);
+  personIds.push(personA.person.id, personB.person.id);
+
+  const readPersistedCredits = async () => {
+    const result = await client
+      .from("story_credits")
+      .select("person_id, role, sort_order")
+      .eq("story_id", storyId)
+      .order("sort_order", { ascending: true });
+    assert.equal(result.error, null);
+    return result.data?.map(({ person_id, role, sort_order }) => [
+      person_id,
+      role,
+      sort_order,
+    ]) ?? [];
+  };
+  const readPersistedEvents = async () => {
+    const result = await client
+      .from("story_events")
+      .select("event_id, relation_type, sort_order")
+      .eq("story_id", storyId)
+      .order("sort_order", { ascending: true });
+    assert.equal(result.error, null);
+    return result.data?.map(({ event_id, relation_type, sort_order }) => [
+      event_id,
+      relation_type,
+      sort_order,
+    ]) ?? [];
+  };
+
   const creditsSaved = await replaceStoryCredits({
     storyId,
     expectedUpdatedAt: ready.updated_at,
-    credits: [{ personId, role: "TEXT", sortOrder: 0 }],
+    credits: [{ personId: personA.person.id, role: "TEXT", sortOrder: 0 }],
   });
   assert.notEqual(creditsSaved.story.updated_at, ready.updated_at);
   const eventsSaved = await replaceStoryEvents({
@@ -135,18 +164,9 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   assert.equal(related?.eventRelations.filter(({ relation_type }) => relation_type === "PRIMARY").length, 1);
   assert.equal(related?.eventRelations.filter(({ relation_type }) => relation_type === "RELATED").length, 2);
 
-  const persistedRelations = await client
-    .from("story_events")
-    .select("event_id, relation_type, sort_order")
-    .eq("story_id", storyId)
-    .order("sort_order", { ascending: true });
-  assert.equal(persistedRelations.error, null);
+  const persistedRelations = await readPersistedEvents();
   assert.deepEqual(
-    persistedRelations.data?.map(({ event_id, relation_type, sort_order }) => [
-      event_id,
-      relation_type,
-      sort_order,
-    ]),
+    persistedRelations,
     [
       [eventIds[0], "PRIMARY", 0],
       [eventIds[1], "RELATED", 1],
@@ -154,9 +174,62 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
     ],
   );
 
+  const creditsBeforeStaleWrite = await readPersistedCredits();
+  assert.deepEqual(creditsBeforeStaleWrite, [[personA.person.id, "TEXT", 0]]);
+  const versionBeforeStaleCredit = eventsSaved.story.updated_at;
+  const storyAdvancedBeforeStaleCredit = await updateStoryDraft({
+    id: storyId,
+    expectedUpdatedAt: versionBeforeStaleCredit,
+    values: values("Synthetic version advance before stale credit", "READY"),
+  });
+  assert.notEqual(storyAdvancedBeforeStaleCredit.updated_at, versionBeforeStaleCredit);
+  await assert.rejects(
+    replaceStoryCredits({
+      storyId,
+      expectedUpdatedAt: versionBeforeStaleCredit,
+      credits: [{ personId: personB.person.id, role: "TEXT", sortOrder: 0 }],
+    }),
+    (error: unknown) => error instanceof StoryAdminError
+      && error.code === "STORY_VERSION_CONFLICT",
+  );
+  t.diagnostic("STALE_CREDITS_CONFLICT=PASS");
+  const creditsAfterStaleReject = await readPersistedCredits();
+  assert.deepEqual(creditsAfterStaleReject, creditsBeforeStaleWrite);
+  t.diagnostic("STALE_CREDITS_RELATIONS_UNCHANGED=PASS");
+
+  const eventsBeforeStaleWrite = await readPersistedEvents();
+  assert.deepEqual(eventsBeforeStaleWrite, [
+    [eventIds[0], "PRIMARY", 0],
+    [eventIds[1], "RELATED", 1],
+    [eventIds[2], "RELATED", 2],
+  ]);
+  const versionBeforeStaleEvents = storyAdvancedBeforeStaleCredit.updated_at;
+  const creditsAdvancedBeforeStaleEvents = await replaceStoryCredits({
+    storyId,
+    expectedUpdatedAt: versionBeforeStaleEvents,
+    credits: [{ personId: personA.person.id, role: "TEXT", sortOrder: 0 }],
+  });
+  assert.notEqual(creditsAdvancedBeforeStaleEvents.story.updated_at, versionBeforeStaleEvents);
+  await assert.rejects(
+    replaceStoryEvents({
+      storyId,
+      expectedUpdatedAt: versionBeforeStaleEvents,
+      relations: [
+        { eventId: eventIds[0], relationType: "PRIMARY", sortOrder: 0 },
+        { eventId: eventIds[2], relationType: "RELATED", sortOrder: 1 },
+      ],
+    }),
+    (error: unknown) => error instanceof StoryAdminError
+      && error.code === "STORY_VERSION_CONFLICT",
+  );
+  t.diagnostic("STALE_EVENTS_CONFLICT=PASS");
+  const eventsAfterStaleReject = await readPersistedEvents();
+  assert.deepEqual(eventsAfterStaleReject, eventsBeforeStaleWrite);
+  t.diagnostic("STALE_EVENTS_RELATIONS_UNCHANGED=PASS");
+
   const bodySaved = await updateStoryDraft({
     id: storyId,
-    expectedUpdatedAt: eventsSaved.story.updated_at,
+    expectedUpdatedAt: creditsAdvancedBeforeStaleEvents.story.updated_at,
     values: values("Synthetic ready story", "READY", [{
       id: "event-reference-1",
       type: "EVENT_REFERENCE",
@@ -204,7 +277,7 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
       storyId,
       expectedUpdatedAt: eventsReduced.story.updated_at,
       credits: [
-        { personId, role: "TEXT", sortOrder: 0 },
+        { personId: personA.person.id, role: "TEXT", sortOrder: 0 },
         { personId: randomUUID(), role: "PHOTO", sortOrder: 1 },
       ],
     }),
@@ -213,30 +286,11 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   );
   const afterInvalidPerson = await getStoryForAdmin(storyId);
   assert.equal(afterInvalidPerson?.story.updated_at, eventsReduced.story.updated_at);
-  assert.deepEqual(afterInvalidPerson?.credits.map(({ person_id }) => person_id), [personId]);
-
-  const versionBeforeRelationRace = eventsReduced.story.updated_at;
-  const creditsWon = await replaceStoryCredits({
-    storyId,
-    expectedUpdatedAt: versionBeforeRelationRace,
-    credits: [{ personId, role: "TEXT", sortOrder: 0 }],
-  });
-  await assert.rejects(
-    replaceStoryEvents({
-      storyId,
-      expectedUpdatedAt: versionBeforeRelationRace,
-      relations: [
-        { eventId: eventIds[0], relationType: "PRIMARY", sortOrder: 0 },
-        { eventId: eventIds[1], relationType: "RELATED", sortOrder: 1 },
-      ],
-    }),
-    (error: unknown) => error instanceof StoryAdminError
-      && error.code === "STORY_VERSION_CONFLICT",
-  );
+  assert.deepEqual(afterInvalidPerson?.credits.map(({ person_id }) => person_id), [personA.person.id]);
 
   const backToDraft = await updateStoryDraft({
     id: storyId,
-    expectedUpdatedAt: creditsWon.story.updated_at,
+    expectedUpdatedAt: eventsReduced.story.updated_at,
     values: values("Synthetic ready story", "DRAFT", [{
       id: "event-reference-1",
       type: "EVENT_REFERENCE",
