@@ -16,6 +16,7 @@ import {
   assignV2HomeEventImages,
   type V2AssignedEventImage,
 } from "@/components/redesign-v2/discipline-fallback-resolver";
+import { parseScheduleAgenda, type ScheduleAgenda } from "./schedule-agenda";
 
 export type EventDetailDate = {
   dateTime: string;
@@ -73,6 +74,7 @@ export type EventDetailV2Model = {
   organizerContext: EventDetailOrganizerContext | null;
   practicalItems: EventDetailInfo[];
   primaryAction: EventDetailPrimaryLink | null;
+  programAgenda: ScheduleAgenda | null;
   programSection: string;
   publicUrl: string;
   related: EventDetailRelated[];
@@ -389,6 +391,7 @@ export function buildEventDetailV2Model(
   const publicUrl = `${options.siteUrl.replace(/\/$/, "")}/evento/${slug}`;
   const schedule = distinctPracticalValue(event.scheduleText, []);
   const programSection = isLongEventSchedule(schedule) ? schedule : "";
+  const programAgenda = programSection ? parseScheduleAgenda(programSection) : null;
   const shortSchedule = programSection ? "" : schedule;
   const address = distinctPracticalValue(event.address, [location, venue]);
   const practicalItems: EventDetailInfo[] = [
@@ -418,6 +421,7 @@ export function buildEventDetailV2Model(
     primaryAction: rawPrimaryAction && primaryHref
       ? { href: primaryHref, label: rawPrimaryAction.type === "official" ? "Más información" : rawPrimaryAction.label, type: rawPrimaryAction.type }
       : null,
+    programAgenda,
     publicUrl,
     programSection,
     related: buildRelated(event, events, options.relatedToday ?? options.today, routeContext),

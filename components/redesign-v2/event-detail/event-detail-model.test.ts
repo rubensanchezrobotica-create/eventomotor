@@ -238,8 +238,22 @@ test("separa horarios breves y programas largos con la regla auditada", () => {
   const longModel = buildEventDetailV2Model(event({ scheduleText: longSchedule }), [], options);
   assert.ok(longModel);
   assert.equal(longModel.programSection, longSchedule);
+  assert.equal(longModel.programAgenda, null);
   assert.equal(longModel.practicalItems.some(({ label }) => label === "Horario"), false);
   assert.equal(longModel.compactRelatedFlow, false);
+});
+
+test("estructura conservadoramente un programa largo inequívoco sin cambiar su texto canónico", () => {
+  const schedule = `Viernes 16 de octubre:
+entrenamientos libres 1 de 11:30 a 13:00 y entrenamientos libres 2 de 16:30 a 18:00.
+Sábado 17 de octubre:
+clasificación de 11:50 a 12:02; carrera a las 16:00.`;
+  const model = buildEventDetailV2Model(event({ scheduleText: schedule }), [], options);
+  assert.ok(model);
+  assert.equal(model.programSection, schedule);
+  assert.ok(model.programAgenda);
+  assert.deepEqual(model.programAgenda.days.map(({ items }) => items.length), [2, 2]);
+  assert.equal(model.practicalItems.some(({ label }) => label === "Horario"), false);
 });
 
 test("activa el ritmo compacto sólo cuando no existe contenido editorial intermedio", () => {

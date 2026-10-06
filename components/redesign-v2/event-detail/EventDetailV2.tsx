@@ -12,6 +12,7 @@ import { eventAnalyticsParams, urlDomain } from "@/lib/analytics";
 import type { EventFaqItem } from "@/lib/event-seo-overrides";
 import type { EventItem } from "@/types/event";
 import type { EventDetailV2Model } from "./event-detail-model";
+import ScheduleProgram from "./ScheduleProgram";
 import styles from "./EventDetailV2.module.css";
 
 type EventDetailV2Props = {
@@ -244,7 +245,21 @@ export default function EventDetailV2(props: EventDetailV2Props) {
                   <section className={styles.program}>
                     <span className={styles.eyebrow}>Programa</span>
                     <h2>Horarios y programa</h2>
-                    <p>{model.programSection}</p>
+                    <ScheduleProgram
+                      agenda={model.programAgenda}
+                      classes={{
+                        activity: styles.scheduleActivity,
+                        day: styles.scheduleDay,
+                        dayList: styles.scheduleDayList,
+                        footer: styles.scheduleFooter,
+                        item: styles.scheduleItem,
+                        itemList: styles.scheduleItemList,
+                        legacy: styles.programLegacy,
+                        note: styles.scheduleNote,
+                        time: styles.scheduleTime,
+                      }}
+                      legacyText={model.programSection}
+                    />
                   </section>
                 ) : null}
 

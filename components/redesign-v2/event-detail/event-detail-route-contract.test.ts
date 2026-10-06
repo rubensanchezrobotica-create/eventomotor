@@ -100,7 +100,10 @@ test("A4.3.1 usa un SVG decorativo currentColor para enlaces externos sin glifos
 test("A4.3 presenta el programa largo una vez y conserva Practical condicional", () => {
   assert.equal((component.match(/model\.programSection \? \(/g) || []).length, 1);
   assert.match(component, /<h2>Horarios y programa<\/h2>/);
-  assert.match(styles, /\.program > p[\s\S]*?white-space: pre-line/);
+  assert.match(component, /<ScheduleProgram/);
+  assert.match(component, /agenda=\{model\.programAgenda\}/);
+  assert.match(component, /legacyText=\{model\.programSection\}/);
+  assert.match(styles, /\.programLegacy[\s\S]*?white-space: pre-line/);
   assert.match(component, /model\.practicalItems\.length \? \(/);
 });
 
