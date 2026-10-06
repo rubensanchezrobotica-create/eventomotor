@@ -8,6 +8,13 @@ on:
       - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
+      - "lib/stories/story-admin*.ts"
+      - "lib/stories/story-actions*.ts"
+      - "lib/admin-session*.ts"
+      - "app/admin/historias/**"
+      - "app/admin/login/**"
+      - "components/admin/stories/**"
+      - "components/redesign-v2/stories/**"
       - "lib/supabase.ts"
       - "package.json"
       - "package-lock.json"
@@ -16,12 +23,20 @@ on:
   push:
     branches:
       - codex/historias-a16b1
+      - codex/historias-a16c
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
+      - "lib/stories/story-admin*.ts"
+      - "lib/stories/story-actions*.ts"
+      - "lib/admin-session*.ts"
+      - "app/admin/historias/**"
+      - "app/admin/login/**"
+      - "components/admin/stories/**"
+      - "components/redesign-v2/stories/**"
       - "lib/supabase.ts"
       - "package.json"
       - "package-lock.json"
@@ -73,6 +88,13 @@ jobs:
           node --import tsx --test lib/stories/story-media-validation.test.ts
           node --conditions=react-server --import tsx --test lib/stories/story-media.server.test.ts
 
+      - name: Run A16C application tests
+        run: |
+          node --import tsx --test lib/admin-session.test.ts lib/stories/story-admin.test.ts
+          node --conditions=react-server --import tsx --test lib/stories/story-admin.server.test.ts
+          node --conditions=react-server --experimental-test-module-mocks --import tsx --test lib/stories/story-actions.server.test.ts
+          node --import tsx --test lib/stories/story-validation.test.ts components/redesign-v2/stories/story-renderer.test.tsx
+
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs
 
@@ -97,8 +119,11 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="${ANON_KEY:-}"
           export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-}"
           export STORIES_STORAGE_INTEGRATION=1
+          export STORIES_ADMIN_INTEGRATION=1
           node --conditions=react-server --import tsx --test \
             tests/stories/story-media-storage.integration.test.ts
+          node --conditions=react-server --import tsx --test \
+            tests/stories/story-admin.integration.test.ts
           rm -f "$env_file"
 
       - name: Lint isolated Stories schema

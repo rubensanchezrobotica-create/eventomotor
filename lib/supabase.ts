@@ -14,6 +14,8 @@ import type { EventDataQuality, EventItem } from "@/types/event";
 import type {
   StoryCollection,
   StoryContentBlock,
+  StoryCreditRole,
+  StoryEventRelationType,
   StoryRightsType,
   StoryStatus,
   StoryType,
@@ -272,6 +274,40 @@ export type StoryMediaUpdate = Partial<
   >
 >;
 
+export type EditorialPersonRow = {
+  id: string;
+  display_name: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EditorialPersonInsert = {
+  id?: string;
+  display_name: string;
+  active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type StoryCreditRow = {
+  story_id: string;
+  person_id: string;
+  role: StoryCreditRole;
+  sort_order: number;
+};
+
+export type StoryCreditInsert = StoryCreditRow;
+
+export type StoryEventRow = {
+  story_id: string;
+  event_id: string;
+  relation_type: StoryEventRelationType;
+  sort_order: number;
+};
+
+export type StoryEventInsert = StoryEventRow;
+
 export type Database = {
   public: {
     Tables: {
@@ -297,6 +333,24 @@ export type Database = {
         Row: StoryMediaRow;
         Insert: StoryMediaInsert;
         Update: StoryMediaUpdate;
+        Relationships: [];
+      };
+      editorial_people: {
+        Row: EditorialPersonRow;
+        Insert: EditorialPersonInsert;
+        Update: Partial<EditorialPersonInsert>;
+        Relationships: [];
+      };
+      story_credits: {
+        Row: StoryCreditRow;
+        Insert: StoryCreditInsert;
+        Update: Partial<StoryCreditInsert>;
+        Relationships: [];
+      };
+      story_events: {
+        Row: StoryEventRow;
+        Insert: StoryEventInsert;
+        Update: Partial<StoryEventInsert>;
         Relationships: [];
       };
       agent_runs: {
