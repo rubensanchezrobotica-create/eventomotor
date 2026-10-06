@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { StoryContentBlock } from "../../../lib/stories/story-types";
 import { validateStoryDocument } from "../../../lib/stories/story-validation";
+import StoryRenderer from "./StoryRenderer";
 
 function futureRendererContract(block: StoryContentBlock) {
   switch (block.type) {
@@ -115,4 +118,72 @@ test("un enlace inseguro no puede llegar a un renderer futuro", () => {
   });
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((item) => item.code === "UNSAFE_LINK"));
+});
+
+test("StoryRenderer comparte los siete bloques sin HTML arbitrario", () => {
+  const blocks: StoryContentBlock[] = [
+    { id: "p", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Texto <seguro>" }] },
+    { id: "h", type: "HEADING", level: 2, text: "Título" },
+    { id: "q", type: "PULL_QUOTE", text: "Cita" },
+    { id: "i", type: "IMAGE", mediaId: "media-1" },
+    { id: "pair", type: "IMAGE_PAIR", mediaIds: ["media-1", "media-2"] },
+    { id: "gallery", type: "GALLERY", mediaIds: ["media-1", "media-2"] },
+    { id: "event", type: "EVENT_REFERENCE", eventId: "event-1" },
+  ];
+  const markup = renderToStaticMarkup(
+    <StoryRenderer
+      blocks={blocks}
+      events={{
+        "event-1": { id: "event-1", title: "Evento sintético", href: "/evento/sintetico" },
+      }}
+      media={{
+        "media-1": {
+          id: "media-1",
+          resolvedUrl: "https://example.com/one.jpg",
+          width: 1200,
+          height: 800,
+          altText: "Imagen uno",
+        },
+        "media-2": {
+          id: "media-2",
+          resolvedUrl: "https://example.com/two.jpg",
+          width: 1200,
+          height: 800,
+          altText: "Imagen dos",
+        },
+      }}
+    />,
+  );
+  assert.match(markup, /Texto &lt;seguro&gt;/);
+  assert.match(markup, /Evento sintético/);
+  assert.match(markup, /https:\/\/example\.com\/one\.jpg/);
+  assert.doesNotMatch(markup, /dangerouslySetInnerHTML/);
+});
+
+test("la Preview privada bloquea indexación y no añade JSON-LD editorial", () => {
+  const previewSource = readFileSync(
+    "app/admin/historias/[id]/preview/page.tsx",
+    "utf8",
+  );
+  const adminLayoutSource = readFileSync("app/admin/historias/layout.tsx", "utf8");
+  const rootLayoutSource = readFileSync("app/layout.tsx", "utf8");
+
+  assert.match(adminLayoutSource, /requireAdminSession\("\/admin\/historias"\)/);
+  assert.match(previewSource, /export const dynamic = "force-dynamic"/);
+  assert.match(previewSource, /export const revalidate = 0/);
+  assert.match(previewSource, /robots:\s*\{\s*index: false,\s*follow: false,\s*nocache: true\s*\}/);
+  assert.doesNotMatch(previewSource, /alternates\s*:|canonical\s*:/);
+  assert.doesNotMatch(
+    previewSource,
+    /application\/ld\+json|NewsArticle|BlogPosting|["']Article["']|["']WebPage["']/,
+  );
+
+  const organizationBlock = rootLayoutSource.match(
+    /const organizationJsonLd = \{[\s\S]*?\n\};/,
+  )?.[0] ?? "";
+  assert.match(organizationBlock, /"@type": "Organization"/);
+  assert.doesNotMatch(
+    organizationBlock,
+    /headline|content_blocks|contentBlocks|hero_media_id|heroMediaId|eventId|story\.slug|story\.title|story\.dek/,
+  );
 });
