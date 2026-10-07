@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import StoryCreditRoles, {
+  hasUnlistedStoryCredits,
+  parseStoryCreditRoles,
+} from "@/components/admin/stories/StoryCreditRoles";
 import type { StoryContentBlock } from "./story-types";
 import {
   appendStoryBlock,
@@ -116,4 +122,88 @@ test("block add, remove, replace and move preserve deterministic order", () => {
   assert.deepEqual(removeStoryBlock(added, "second").map(({ id }) => id), ["first", "third"]);
   const replacement = { ...second, text: "Updated" };
   assert.equal((replaceStoryBlock(added, replacement)[1] as typeof second).text, "Updated");
+});
+
+const PERSON_A = "00000000-0000-4000-8000-000000000001";
+const PERSON_B = "00000000-0000-4000-8000-000000000002";
+type CreditRole = "TEXT" | "PHOTO" | "VIDEO" | "CONTRIBUTOR";
+
+function creditFormData(
+  people: readonly { id: string; display_name: string }[],
+  credits: readonly { person_id: string; role: CreditRole }[],
+) {
+  const html = renderToStaticMarkup(React.createElement(
+    React.Fragment,
+    null,
+    ...people.map((person) => React.createElement(StoryCreditRoles, {
+      checkRowClassName: "check-row",
+      credits,
+      key: person.id,
+      person,
+      roleGridClassName: "role-grid",
+    })),
+  ));
+  const formData = new FormData();
+  for (const [input] of html.matchAll(/<input\b[^>]*>/g)) {
+    if (!/\bchecked(?:="")?(?:\s|>)/.test(input)) continue;
+    const name = input.match(/\bname="([^"]+)"/)?.[1];
+    const value = input.match(/\bvalue="([^"]+)"/)?.[1];
+    assert.ok(name && value, "selected credit checkbox has a name and role");
+    formData.append(name, value);
+  }
+  return { html, formData };
+}
+
+test("real credit fields serialize TEXT and PHOTO for one person and re-read both", () => {
+  const people = [{ id: PERSON_A, display_name: "Synthetic editor" }];
+  const persisted = [
+    { person_id: PERSON_A, role: "TEXT" as const },
+    { person_id: PERSON_A, role: "PHOTO" as const },
+  ];
+  const { html, formData } = creditFormData(people, persisted);
+  assert.match(html, /<legend>Synthetic editor<\/legend>/);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 4);
+  assert.deepEqual(parseStoryCreditRoles(formData), [
+    { personId: PERSON_A, role: "TEXT", sortOrder: 0 },
+    { personId: PERSON_A, role: "PHOTO", sortOrder: 1 },
+  ]);
+  assert.deepEqual(parseStoryCreditRoles(creditFormData(people, persisted).formData),
+    parseStoryCreditRoles(formData));
+});
+
+test("removing PHOTO preserves TEXT, one-role behavior and other people", () => {
+  const people = [
+    { id: PERSON_A, display_name: "Synthetic editor A" },
+    { id: PERSON_B, display_name: "Synthetic editor B" },
+  ];
+  const credits = [
+    { person_id: PERSON_A, role: "TEXT" as const },
+    { person_id: PERSON_A, role: "PHOTO" as const },
+    { person_id: PERSON_B, role: "CONTRIBUTOR" as const },
+  ];
+  const { formData } = creditFormData(people, credits);
+  assert.deepEqual(parseStoryCreditRoles(formData), [
+    { personId: PERSON_A, role: "TEXT", sortOrder: 0 },
+    { personId: PERSON_A, role: "PHOTO", sortOrder: 1 },
+    { personId: PERSON_B, role: "CONTRIBUTOR", sortOrder: 2 },
+  ]);
+  formData.set(`creditRole:${PERSON_A}`, "TEXT");
+  assert.deepEqual(parseStoryCreditRoles(formData), [
+    { personId: PERSON_A, role: "TEXT", sortOrder: 0 },
+    { personId: PERSON_B, role: "CONTRIBUTOR", sortOrder: 1 },
+  ]);
+  assert.deepEqual(parseStoryCreditRoles(creditFormData(people, [
+    { person_id: PERSON_B, role: "PHOTO" },
+  ]).formData), [{ personId: PERSON_B, role: "PHOTO", sortOrder: 0 }]);
+});
+
+test("an existing credit for an unlisted or inactive person blocks replacement", () => {
+  const people = [{ id: PERSON_A, display_name: "Synthetic editor A" }];
+  assert.equal(hasUnlistedStoryCredits(people, [
+    { person_id: PERSON_A, role: "TEXT" },
+    { person_id: PERSON_B, role: "PHOTO" },
+  ]), true);
+  assert.equal(hasUnlistedStoryCredits(people, [
+    { person_id: PERSON_A, role: "TEXT" },
+  ]), false);
 });

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import { SPANISH_TERRITORIES } from "@/lib/regions/territory-contract";
+import { parseStoryCreditRoles } from "@/components/admin/stories/StoryCreditRoles";
 import {
   requireTrustedAdminMutation,
 } from "@/lib/admin-session.server";
@@ -119,18 +120,10 @@ export async function replaceStoryCreditsAction(formData: FormData) {
   const editorPath = `/admin/historias/${encodeURIComponent(storyId)}`;
   await protectMutation(editorPath);
   try {
-    const credits = formData.getAll("creditPersonId").map((value, index) => {
-      const personId = String(value);
-      return {
-        personId,
-        role: stringValue(formData, `creditRole:${personId}`),
-        sortOrder: index,
-      };
-    });
     await replaceStoryCredits({
       storyId,
       expectedUpdatedAt: stringValue(formData, "expectedUpdatedAt"),
-      credits,
+      credits: parseStoryCreditRoles(formData),
     });
   } catch (error) {
     redirect(`${editorPath}?error=${actionErrorCode(error)}#credits`);

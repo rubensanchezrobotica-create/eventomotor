@@ -134,9 +134,23 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   const creditsSaved = await replaceStoryCredits({
     storyId,
     expectedUpdatedAt: ready.updated_at,
-    credits: [{ personId: personA.person.id, role: "TEXT", sortOrder: 0 }],
+    credits: [
+      { personId: personA.person.id, role: "TEXT", sortOrder: 0 },
+      { personId: personA.person.id, role: "PHOTO", sortOrder: 1 },
+    ],
   });
   assert.notEqual(creditsSaved.story.updated_at, ready.updated_at);
+  assert.deepEqual(await readPersistedCredits(), [
+    [personA.person.id, "TEXT", 0],
+    [personA.person.id, "PHOTO", 1],
+  ]);
+  t.diagnostic("SAME_PERSON_TEXT_AND_PHOTO_DB_TEST=PASS");
+  const personCount = await client.from("editorial_people")
+    .select("id", { count: "exact", head: true })
+    .eq("display_name", `Synthetic editor A ${suffix}`);
+  assert.equal(personCount.error, null);
+  assert.equal(personCount.count, 1);
+  t.diagnostic("SINGLE_PERSON_RECORD_DB_TEST=PASS");
   const eventsSaved = await replaceStoryEvents({
     storyId,
     expectedUpdatedAt: creditsSaved.story.updated_at,
@@ -148,7 +162,12 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   });
   assert.notEqual(eventsSaved.story.updated_at, creditsSaved.story.updated_at);
   const related = await getStoryForAdmin(storyId);
-  assert.equal(related?.credits.length, 1);
+  assert.deepEqual(related?.credits.map(({ person_id, role, sort_order }) => [
+    person_id, role, sort_order,
+  ]), [
+    [personA.person.id, "TEXT", 0],
+    [personA.person.id, "PHOTO", 1],
+  ]);
   assert.deepEqual(
     related?.eventRelations.map(({ event_id, relation_type, sort_order }) => [
       event_id,
@@ -175,7 +194,10 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   );
 
   const creditsBeforeStaleWrite = await readPersistedCredits();
-  assert.deepEqual(creditsBeforeStaleWrite, [[personA.person.id, "TEXT", 0]]);
+  assert.deepEqual(creditsBeforeStaleWrite, [
+    [personA.person.id, "TEXT", 0],
+    [personA.person.id, "PHOTO", 1],
+  ]);
   const versionBeforeStaleCredit = eventsSaved.story.updated_at;
   const storyAdvancedBeforeStaleCredit = await updateStoryDraft({
     id: storyId,
@@ -195,6 +217,7 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   t.diagnostic("STALE_CREDITS_CONFLICT=PASS");
   const creditsAfterStaleReject = await readPersistedCredits();
   assert.deepEqual(creditsAfterStaleReject, creditsBeforeStaleWrite);
+  assert.deepEqual((await getStoryForAdmin(storyId))?.credits.map(({ role }) => role), ["TEXT", "PHOTO"]);
   t.diagnostic("STALE_CREDITS_RELATIONS_UNCHANGED=PASS");
 
   const eventsBeforeStaleWrite = await readPersistedEvents();
@@ -210,6 +233,9 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
     credits: [{ personId: personA.person.id, role: "TEXT", sortOrder: 0 }],
   });
   assert.notEqual(creditsAdvancedBeforeStaleEvents.story.updated_at, versionBeforeStaleEvents);
+  assert.deepEqual(await readPersistedCredits(), [[personA.person.id, "TEXT", 0]]);
+  assert.deepEqual((await getStoryForAdmin(storyId))?.credits.map(({ role }) => role), ["TEXT"]);
+  t.diagnostic("REMOVE_PHOTO_PRESERVE_TEXT_DB_TEST=PASS");
   await assert.rejects(
     replaceStoryEvents({
       storyId,

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import StoryEditor from "@/components/admin/stories/StoryEditor.client";
+import StoryCreditRoles, { hasUnlistedStoryCredits } from "@/components/admin/stories/StoryCreditRoles";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import { SPANISH_TERRITORIES } from "@/lib/regions/territory-contract";
@@ -37,6 +38,7 @@ export default async function StoryEditPage({
     if (!eventOptions.some(({ id: existingId }) => existingId === event.id)) eventOptions.push(event);
   }
   const editable = bundle.story.status === "DRAFT" || bundle.story.status === "READY";
+  const hasUnlistedCredits = hasUnlistedStoryCredits(bundle.people, bundle.credits);
   const errorMessage = messageFor(query.error);
 
   return (
@@ -67,27 +69,27 @@ export default async function StoryEditPage({
               <label>Nueva persona editorial <input maxLength={240} name="displayName" required /></label>
               <button type="submit">Crear o reutilizar</button>
             </form>
-            <form action={replaceStoryCreditsAction} className={styles.stack}>
-              <input name="storyId" type="hidden" value={id} />
-              <input name="expectedUpdatedAt" type="hidden" value={bundle.story.updated_at} />
-              {bundle.people.map((person) => {
-                const credit = bundle.credits.find(({ person_id }) => person_id === person.id);
-                return (
-                  <div className={styles.inlineFields} key={person.id}>
-                    <label className={styles.checkRow}>
-                      <input defaultChecked={Boolean(credit)} name="creditPersonId" type="checkbox" value={person.id} />
-                      {person.display_name}
-                    </label>
-                    <select defaultValue={credit?.role ?? "TEXT"} name={`creditRole:${person.id}`}>
-                      <option value="TEXT">TEXT</option><option value="PHOTO">PHOTO</option>
-                      <option value="VIDEO">VIDEO</option><option value="CONTRIBUTOR">CONTRIBUTOR</option>
-                    </select>
-                  </div>
-                );
-              })}
-              {!bundle.people.length ? <p className={styles.muted}>No hay personas editoriales.</p> : null}
-              <button type="submit">Guardar créditos</button>
-            </form>
+            {hasUnlistedCredits ? (
+              <p className={styles.error} role="alert">
+                Hay créditos de una persona editorial inactiva. Actívala antes de sustituir los créditos para evitar perderlos.
+              </p>
+            ) : (
+              <form action={replaceStoryCreditsAction} className={styles.stack}>
+                <input name="storyId" type="hidden" value={id} />
+                <input name="expectedUpdatedAt" type="hidden" value={bundle.story.updated_at} />
+                {bundle.people.map((person) => (
+                  <StoryCreditRoles
+                    checkRowClassName={styles.checkRow}
+                    credits={bundle.credits}
+                    key={person.id}
+                    person={person}
+                    roleGridClassName={styles.inlineFields}
+                  />
+                ))}
+                {!bundle.people.length ? <p className={styles.muted}>No hay personas editoriales.</p> : null}
+                <button type="submit">Guardar créditos</button>
+              </form>
+            )}
           </>
         ) : <p>{bundle.credits.length} créditos asociados.</p>}
       </section>
