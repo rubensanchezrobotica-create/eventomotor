@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ResponseCookies } from "next/dist/compiled/@edge-runtime/cookies";
 import type {
   EditorialPersonRow,
   StoryCreditInsert,
@@ -8,6 +9,8 @@ import type {
   StoryRow,
 } from "@/lib/supabase";
 import {
+  clearAdminSession,
+  createAdminSession,
   requireAdminSession,
   requireTrustedAdminMutation,
   type AdminMutationRuntime,
@@ -18,8 +21,11 @@ import {
   classifyStoryAdminDatabaseError,
   createStoryAdminMutationService,
   createStoryAdminRelationService,
+  createStoryMediaMetadataReadinessService,
+  createStoryMediaMetadataService,
   type StoryAdminMutationRepository,
   type StoryAdminRelationRepository,
+  type StoryMediaMetadataRepository,
 } from "./story-admin.server";
 import type { StoryAdminInput } from "./story-admin";
 
@@ -51,6 +57,27 @@ function row(overrides: Partial<StoryRow> = {}): StoryRow {
     territory_ids: [],
     published_at: null,
     home_rank: null,
+    created_at: UPDATED_AT,
+    updated_at: UPDATED_AT,
+    ...overrides,
+  };
+}
+
+function mediaRow(overrides: Partial<StoryMediaRow> = {}): StoryMediaRow {
+  return {
+    id: "33333333-3333-4333-8333-333333333333",
+    story_id: row().id,
+    bucket_id: "story-media-drafts",
+    object_path: `${row().id}/33333333-3333-4333-8333-333333333333/asset.jpg`,
+    width: 1200,
+    height: 800,
+    mime_type: "image/jpeg",
+    byte_size: 10,
+    alt_text: "",
+    caption: null,
+    credit: null,
+    rights_type: "UNKNOWN",
+    rights_notes: null,
     created_at: UPDATED_AT,
     updated_at: UPDATED_AT,
     ...overrides,
@@ -526,6 +553,137 @@ test("relation inputs validate person IDs, event IDs and relation types server-s
   assert.equal(harness.state().claimCount, 0);
 });
 
+test("media metadata keeps incomplete DRAFT values but updates optimistically", async () => {
+  let current = mediaRow();
+  const repository: StoryMediaMetadataRepository = {
+    async getStory() { return row(); },
+    async getMedia() { return current; },
+    async updateExpected(input) {
+      if (input.expectedUpdatedAt !== current.updated_at) return null;
+      current = mediaRow({ ...current, ...input.update, updated_at: UPDATED_AT_2 });
+      return current;
+    },
+  };
+  const updated = await createStoryMediaMetadataService(repository).update({
+    storyId: row().id,
+    mediaId: current.id,
+    expectedUpdatedAt: UPDATED_AT,
+    altText: "",
+    caption: " Pie ",
+    credit: "",
+    rightsType: "UNKNOWN",
+    rightsNotes: "",
+  });
+  assert.equal(updated.alt_text, "");
+  assert.equal(updated.caption, "Pie");
+  assert.equal(updated.credit, null);
+  assert.equal(updated.rights_type, "UNKNOWN");
+});
+
+test("media metadata rejects stale versions, invalid rights and cross-story writes", async () => {
+  let writes = 0;
+  const current = mediaRow();
+  const repository: StoryMediaMetadataRepository = {
+    async getStory() { return row(); },
+    async getMedia() { return current; },
+    async updateExpected() { writes += 1; return current; },
+  };
+  const service = createStoryMediaMetadataService(repository);
+  const base = {
+    storyId: row().id,
+    mediaId: current.id,
+    expectedUpdatedAt: UPDATED_AT,
+    altText: "Descripción",
+    caption: "",
+    credit: "",
+    rightsType: "OWN",
+    rightsNotes: "",
+  };
+  await expectCode(service.update({ ...base, expectedUpdatedAt: UPDATED_AT_2 }), "STORY_VERSION_CONFLICT");
+  await expectCode(service.update({ ...base, rightsType: "STOLEN" }), "STORY_INPUT_INVALID");
+  await expectCode(createStoryMediaMetadataService({
+    ...repository,
+    async getMedia() { return mediaRow({ story_id: "22222222-2222-4222-8222-222222222222" }); },
+  }).update(base), "STORY_MEDIA_OWNERSHIP");
+  assert.equal(writes, 0);
+});
+
+test("metadata saves return fresh server readiness across alt and rights degradation", async () => {
+  let current = mediaRow({
+    bucket_id: "story-media",
+    alt_text: "Foto de un coche de competición",
+    rights_type: "OWN",
+  });
+  let version = 0;
+  const service = createStoryMediaMetadataReadinessService({
+    async updateMetadata(input) {
+      version += 1;
+      current = mediaRow({
+        ...current,
+        alt_text: input.altText.trim(),
+        rights_type: input.rightsType as StoryMediaRow["rights_type"],
+        updated_at: `2026-10-05T10:0${version}:00.000Z`,
+      });
+      return current;
+    },
+    async publicationReadiness() {
+      const ready = current.bucket_id === "story-media"
+        && Boolean(current.alt_text.trim())
+        && current.rights_type !== "UNKNOWN";
+      return {
+        ready,
+        publicationErrors: ready ? [] : [{
+          code: "MEDIA_ALT_REQUIRED" as const,
+          field: "media.altText",
+          message: "Synthetic readiness failure.",
+        }],
+        storageIssues: [],
+      };
+    },
+  });
+  const input = (altText: string, rightsType: string) => ({
+    storyId: row().id,
+    mediaId: current.id,
+    expectedUpdatedAt: current.updated_at,
+    altText,
+    caption: "",
+    credit: "",
+    rightsType,
+    rightsNotes: "",
+  });
+
+  assert.equal((await service.update(input("Foto válida", "OWN"))).readiness?.ready, true);
+  assert.equal((await service.update(input("", "OWN"))).readiness?.ready, false);
+  assert.equal((await service.update(input("Foto restaurada", "OWN"))).readiness?.ready, true);
+  assert.equal((await service.update(input("Foto restaurada", "UNKNOWN"))).readiness?.ready, false);
+});
+
+test("metadata persistence stays successful but readiness becomes unknown on refresh failure", async () => {
+  const media = mediaRow({ alt_text: "Foto válida", rights_type: "OWN" });
+  let updates = 0;
+  const result = await createStoryMediaMetadataReadinessService({
+    async updateMetadata() {
+      updates += 1;
+      return media;
+    },
+    async publicationReadiness() {
+      throw new Error("synthetic readiness outage");
+    },
+  }).update({
+    storyId: row().id,
+    mediaId: media.id,
+    expectedUpdatedAt: media.updated_at,
+    altText: media.alt_text,
+    caption: "",
+    credit: "",
+    rightsType: media.rights_type,
+    rightsNotes: "",
+  });
+  assert.equal(updates, 1);
+  assert.equal(result.media.id, media.id);
+  assert.equal(result.readiness, null);
+});
+
 test("database errors distinguish slug, constraints and unknown failures", () => {
   assert.equal(
     classifyStoryAdminDatabaseError({ code: "23505" }, "story-slug"),
@@ -566,6 +724,34 @@ test("real requireAdminSession redirects missing and invalid cookies", async () 
       );
       assert.equal(location, "/admin/login?next=%2Fadmin%2Fhistorias");
     }
+  } finally {
+    if (previousSecret === undefined) delete process.env.ADMIN_SECRET;
+    else process.env.ADMIN_SECRET = previousSecret;
+  }
+});
+
+test("real session creation and logout serialize both scoped cookies", async () => {
+  const previousSecret = process.env.ADMIN_SECRET;
+  process.env.ADMIN_SECRET = "synthetic-server-boundary-secret";
+  try {
+    const loginHeaders = new Headers();
+    const loginCookies = new ResponseCookies(loginHeaders);
+    await createAdminSession(
+      (name, value, options) => loginCookies.set(name, value, options),
+    );
+    assert.equal(loginHeaders.getSetCookie().length, 2);
+    assert.equal(
+      loginCookies.get("eventomotor_admin_session")?.value,
+      loginCookies.get("eventomotor_admin_media_session")?.value,
+    );
+
+    const logoutHeaders = new Headers();
+    const logoutCookies = new ResponseCookies(logoutHeaders);
+    await clearAdminSession(
+      (name, value, options) => logoutCookies.set(name, value, options),
+    );
+    assert.equal(logoutHeaders.getSetCookie().length, 2);
+    assert.ok(logoutHeaders.getSetCookie().every((value) => value.includes("Max-Age=0")));
   } finally {
     if (previousSecret === undefined) delete process.env.ADMIN_SECRET;
     else process.env.ADMIN_SECRET = previousSecret;

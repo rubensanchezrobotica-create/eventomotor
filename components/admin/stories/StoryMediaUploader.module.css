@@ -1,0 +1,24 @@
+.stack { display: grid; gap: 1rem; }
+.uploadPanel { display: grid; gap: .75rem; padding: 1rem; border: 1px dashed #555; border-radius: 9px; }
+.queue { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.queue li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem .75rem; }
+.queue li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.error { color: #ffb3b3; }
+.warning { margin: 0; color: #ffd18d; }
+.queue .error { grid-column: 1 / -1; }
+.mediaGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1rem; }
+.mediaCard { min-width: 0; overflow: hidden; border: 1px solid #393939; border-radius: 9px; background: #101010; }
+.imageFrame { position: relative; aspect-ratio: 3 / 2; display: grid; place-items: center; color: #aaa; background: #090909; }
+.imageFrame img { width: 100%; height: 100%; object-fit: cover; }
+.badge { position: absolute; top: .65rem; right: .65rem; z-index: 1; padding: .25rem .45rem; border-radius: 999px; background: #111d; color: #fff; font-size: .7rem; font-weight: 800; }
+.fields { display: grid; gap: .75rem; padding: 1rem; }
+.fields label { display: grid; gap: .3rem; }
+.fields input, .fields textarea, .fields select { width: 100%; box-sizing: border-box; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.message, .readiness, .muted { margin: 0; color: #bbb; }
+.details { margin: 0; color: #999; font-size: .85rem; }
+.readiness { padding: .75rem; border-left: 3px solid #ff6b00; background: #20170f; }
+
+@media (max-width: 480px) {
+  .actions { display: grid; }
+}

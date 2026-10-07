@@ -107,7 +107,8 @@ function setup(initialStory = story()) {
         !current ||
         current.story_id !== input.storyId ||
         current.bucket_id !== input.expectedBucketId ||
-        current.object_path !== input.expectedObjectPath
+        current.object_path !== input.expectedObjectPath ||
+        (input.expectedUpdatedAt !== undefined && current.updated_at !== input.expectedUpdatedAt)
       ) {
         return null;
       }
@@ -225,7 +226,21 @@ test("signed upload intent is deterministic and creates no media row", async () 
   assert.equal(result.mediaId, MEDIA_ID);
   assert.equal(result.bucketId, STORY_MEDIA_DRAFT_BUCKET);
   assert.equal(result.objectPath, draftPath());
+  assert.ok(result.signedToken);
   assert.match(result.signedToken, /^upload:/);
+  assert.equal(fixture.media.size, 0);
+});
+
+test("client operation UUID is the deterministic media identity across retries", async () => {
+  const fixture = setup();
+  const input = {
+    storyId: STORY_ID,
+    operationId: MEDIA_ID,
+    mimeType: "image/jpeg" as const,
+    byteSize: 123,
+  };
+  assert.equal((await fixture.service.createUploadIntent(input)).mediaId, MEDIA_ID);
+  assert.equal((await fixture.service.createUploadIntent(input)).mediaId, MEDIA_ID);
   assert.equal(fixture.media.size, 0);
 });
 
@@ -246,6 +261,26 @@ test("upload intent fails closed when the private bucket contract drifts", async
     service.createUploadIntent({ storyId: STORY_ID, mimeType: "image/jpeg", byteSize: 123 }),
     (error) => error instanceof StoryMediaServiceError && error.code === "BUCKET_MISCONFIGURED",
   );
+});
+
+test("upload intent permits READY and rejects PUBLISHED or ARCHIVED stories", async () => {
+  await assert.doesNotReject(setup(story("READY")).service.createUploadIntent({
+    storyId: STORY_ID,
+    operationId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: 123,
+  }));
+  for (const status of ["PUBLISHED", "ARCHIVED"] as const) {
+    await assert.rejects(
+      setup(story(status)).service.createUploadIntent({
+        storyId: STORY_ID,
+        operationId: MEDIA_ID,
+        mimeType: "image/jpeg",
+        byteSize: 123,
+      }),
+      (error) => error instanceof StoryMediaServiceError && error.code === "STORY_NOT_EDITABLE",
+    );
+  }
 });
 
 test("finalize decodes the private image and creates the approved row", async () => {
@@ -280,6 +315,35 @@ test("an exact finalize retry is idempotent", async () => {
   assert.equal((await fixture.service.finalizeUpload(input)).created, false);
   assert.equal(fixture.counts.inserts, 1);
   assert.equal(fixture.media.size, 1);
+});
+
+test("upload intent retry after finalize reuses exact state and rejects a changed contract", async () => {
+  const fixture = setup();
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  const exact = await fixture.service.createUploadIntent({
+    storyId: STORY_ID,
+    operationId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  assert.equal(exact.alreadyFinalized, true);
+  assert.equal(exact.signedToken, null);
+  await assert.rejects(
+    fixture.service.createUploadIntent({
+      storyId: STORY_ID,
+      operationId: MEDIA_ID,
+      mimeType: "image/jpeg",
+      byteSize: bytes.byteLength + 1,
+    }),
+    (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_STATE_CONFLICT",
+  );
 });
 
 test("two competing finalizes converge on one exact media row", async () => {
@@ -558,6 +622,102 @@ test("promotion preserves the private original and creates one sanitized public 
   assert.equal(fixture.counts.uploads, 1);
 });
 
+test("admin media URL is signed while private and canonical after promotion", async () => {
+  const fixture = setup();
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  const privateResult = await fixture.service.createAdminMediaUrl({ storyId: STORY_ID, mediaId: MEDIA_ID });
+  assert.equal(privateResult.private, true);
+  assert.match(privateResult.url, /expires=300/);
+  await fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID });
+  const publicResult = await fixture.service.createAdminMediaUrl({ storyId: STORY_ID, mediaId: MEDIA_ID });
+  assert.equal(publicResult.private, false);
+  assert.match(publicResult.url, /\/storage\/v1\/object\/public\/story-media\//);
+});
+
+test("preview and promotion reject cross-story media ownership", async () => {
+  const fixture = setup();
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  const otherStoryId = "99999999-9999-4999-8999-999999999999";
+  fixture.stories.set(otherStoryId, { ...story(), id: otherStoryId });
+  for (const action of [
+    () => fixture.service.createAdminMediaUrl({ storyId: otherStoryId, mediaId: MEDIA_ID }),
+    () => fixture.service.promote({ storyId: otherStoryId, mediaId: MEDIA_ID }),
+  ]) {
+    await assert.rejects(
+      action(),
+      (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_OWNERSHIP_MISMATCH",
+    );
+  }
+  assert.equal(fixture.counts.uploads, 0);
+});
+
+test("editor promotion gate requires metadata and rejects a stale media version", async () => {
+  const fixture = setup();
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  await assert.rejects(
+    fixture.service.promote({
+      storyId: STORY_ID,
+      mediaId: MEDIA_ID,
+      expectedUpdatedAt: NOW,
+      requirePublicationMetadata: true,
+    }),
+    (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_STATE_CONFLICT",
+  );
+  const current = fixture.media.get(MEDIA_ID)!;
+  fixture.media.set(MEDIA_ID, { ...current, alt_text: "Vehículo en pista" });
+  await assert.rejects(
+    fixture.service.promote({
+      storyId: STORY_ID,
+      mediaId: MEDIA_ID,
+      expectedUpdatedAt: NOW,
+      requirePublicationMetadata: true,
+    }),
+    (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_STATE_CONFLICT",
+  );
+  fixture.media.set(MEDIA_ID, { ...current, rights_type: "OWN" });
+  await assert.rejects(
+    fixture.service.promote({
+      storyId: STORY_ID,
+      mediaId: MEDIA_ID,
+      expectedUpdatedAt: NOW,
+      requirePublicationMetadata: true,
+    }),
+    (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_STATE_CONFLICT",
+  );
+  fixture.media.set(MEDIA_ID, { ...current, alt_text: "Vehículo en pista", rights_type: "OWN" });
+  await assert.rejects(
+    fixture.service.promote({
+      storyId: STORY_ID,
+      mediaId: MEDIA_ID,
+      expectedUpdatedAt: "2026-09-30T09:00:00.000Z",
+      requirePublicationMetadata: true,
+    }),
+    (error) => error instanceof StoryMediaServiceError && error.code === "MEDIA_STATE_CONFLICT",
+  );
+  assert.equal(fixture.counts.uploads, 0);
+});
+
 test("promotion retry is idempotent and does not upload another asset", async () => {
   const fixture = setup();
   const bytes = await jpeg();
@@ -570,6 +730,36 @@ test("promotion retry is idempotent and does not upload another asset", async ()
   });
   assert.equal((await fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID })).promoted, true);
   assert.equal((await fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID })).promoted, false);
+  assert.equal(fixture.counts.uploads, 1);
+});
+
+test("an ambiguous promotion retry adopts exact PUBLIC state despite a stale draft version", async () => {
+  const fixture = setup();
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  const finalized = await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  fixture.media.set(MEDIA_ID, {
+    ...finalized.media,
+    alt_text: "Vehículo en pista",
+    rights_type: "OWN",
+  });
+  const input = {
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    expectedUpdatedAt: finalized.media.updated_at,
+    requirePublicationMetadata: true,
+  };
+  assert.equal((await fixture.service.promote(input)).promoted, true);
+  fixture.media.set(MEDIA_ID, {
+    ...fixture.media.get(MEDIA_ID)!,
+    updated_at: "2026-09-30T10:01:00.000Z",
+  });
+  assert.equal((await fixture.service.promote(input)).promoted, false);
   assert.equal(fixture.counts.uploads, 1);
 });
 
@@ -745,6 +935,61 @@ test("publication readiness requires promotion plus editorial alt and rights", a
   assert.deepEqual(after.publicationErrors, []);
   assert.deepEqual(after.storageIssues, []);
   assert.equal(fixture.counts.publicDeliveryChecks, 1);
+});
+
+test("publication readiness tracks server metadata changes after promotion", async () => {
+  const fixture = setup(story("READY"));
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  fixture.media.set(MEDIA_ID, {
+    ...fixture.media.get(MEDIA_ID)!,
+    alt_text: "Coche de competición en pista",
+    rights_type: "OWN",
+  });
+  await fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID });
+  assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, true);
+
+  fixture.media.set(MEDIA_ID, { ...fixture.media.get(MEDIA_ID)!, alt_text: "" });
+  assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, false);
+
+  fixture.media.set(MEDIA_ID, {
+    ...fixture.media.get(MEDIA_ID)!,
+    alt_text: "Coche de competición en pista",
+  });
+  assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, true);
+
+  fixture.media.set(MEDIA_ID, {
+    ...fixture.media.get(MEDIA_ID)!,
+    rights_type: "UNKNOWN",
+  });
+  assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, false);
+});
+
+test("a draft asset with complete metadata is never publication ready", async () => {
+  const fixture = setup(story("READY"));
+  const bytes = await jpeg();
+  fixture.objects.set(`${STORY_MEDIA_DRAFT_BUCKET}:${draftPath()}`, bytes);
+  await fixture.service.finalizeUpload({
+    storyId: STORY_ID,
+    mediaId: MEDIA_ID,
+    mimeType: "image/jpeg",
+    byteSize: bytes.byteLength,
+  });
+  fixture.media.set(MEDIA_ID, {
+    ...fixture.media.get(MEDIA_ID)!,
+    alt_text: "Coche de competición en pista",
+    rights_type: "OWN",
+  });
+
+  const result = await fixture.service.publicationReadiness(STORY_ID);
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.storageIssues, [{ code: "MEDIA_NOT_PUBLIC", mediaId: MEDIA_ID }]);
 });
 
 test("readiness fails closed if the public bucket becomes private", async () => {

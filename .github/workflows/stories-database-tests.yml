@@ -12,6 +12,7 @@ on:
       - "lib/stories/story-actions*.ts"
       - "lib/admin-session*.ts"
       - "app/admin/historias/**"
+      - "app/api/admin/stories/media/**"
       - "app/admin/login/**"
       - "components/admin/stories/**"
       - "components/redesign-v2/stories/**"
@@ -24,6 +25,7 @@ on:
     branches:
       - codex/historias-a16b1
       - codex/historias-a16c
+      - codex/historias-a16b2
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
@@ -34,6 +36,7 @@ on:
       - "lib/stories/story-actions*.ts"
       - "lib/admin-session*.ts"
       - "app/admin/historias/**"
+      - "app/api/admin/stories/media/**"
       - "app/admin/login/**"
       - "components/admin/stories/**"
       - "components/redesign-v2/stories/**"
@@ -94,6 +97,11 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-admin.server.test.ts
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test lib/stories/story-actions.server.test.ts
           node --import tsx --test lib/stories/story-validation.test.ts components/redesign-v2/stories/story-renderer.test.tsx
+
+      - name: Run A16B2 protected uploader tests
+        run: |
+          node --import tsx --test components/admin/stories/story-media-uploader.test.ts
+          node --conditions=react-server --import tsx --test lib/stories/story-media-api.server.test.ts
 
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs

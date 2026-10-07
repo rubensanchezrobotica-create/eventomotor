@@ -6,6 +6,7 @@ import {
 } from "node:crypto";
 
 export const ADMIN_SESSION_COOKIE = "eventomotor_admin_session";
+export const ADMIN_MEDIA_SESSION_COOKIE = "eventomotor_admin_media_session";
 export const ADMIN_SESSION_TTL_SECONDS = 8 * 60 * 60;
 
 const TOKEN_VERSION = 1 as const;
@@ -107,12 +108,76 @@ export function adminSessionCookieOptions(nodeEnv = process.env.NODE_ENV) {
   };
 }
 
+export function adminMediaApiSessionCookieOptions(nodeEnv = process.env.NODE_ENV) {
+  return {
+    ...adminSessionCookieOptions(nodeEnv),
+    path: "/api/admin/stories/media",
+  };
+}
+
 export function adminSessionClearCookieOptions(nodeEnv = process.env.NODE_ENV) {
   return {
     ...adminSessionCookieOptions(nodeEnv),
     maxAge: 0,
     expires: new Date(0),
   };
+}
+
+export function adminMediaApiSessionClearCookieOptions(nodeEnv = process.env.NODE_ENV) {
+  return {
+    ...adminMediaApiSessionCookieOptions(nodeEnv),
+    maxAge: 0,
+    expires: new Date(0),
+  };
+}
+
+export type AdminSessionCookieOptions =
+  | ReturnType<typeof adminSessionCookieOptions>
+  | ReturnType<typeof adminMediaApiSessionCookieOptions>
+  | ReturnType<typeof adminSessionClearCookieOptions>
+  | ReturnType<typeof adminMediaApiSessionClearCookieOptions>;
+
+export type AdminSessionCookieWriter = (
+  name: string,
+  value: string,
+  options: AdminSessionCookieOptions,
+) => void;
+
+export type AdminSessionCookieReader = (
+  name: string,
+) => { value: string } | undefined;
+
+export function writeAdminSessionCookies(
+  write: AdminSessionCookieWriter,
+  token: string,
+  nodeEnv = process.env.NODE_ENV,
+) {
+  write(ADMIN_SESSION_COOKIE, token, adminSessionCookieOptions(nodeEnv));
+  write(
+    ADMIN_MEDIA_SESSION_COOKIE,
+    token,
+    adminMediaApiSessionCookieOptions(nodeEnv),
+  );
+}
+
+export function clearAdminSessionCookies(
+  write: AdminSessionCookieWriter,
+  nodeEnv = process.env.NODE_ENV,
+) {
+  write(ADMIN_SESSION_COOKIE, "", adminSessionClearCookieOptions(nodeEnv));
+  write(
+    ADMIN_MEDIA_SESSION_COOKIE,
+    "",
+    adminMediaApiSessionClearCookieOptions(nodeEnv),
+  );
+}
+
+export function readAdminPageSessionToken(read: AdminSessionCookieReader) {
+  return read(ADMIN_SESSION_COOKIE)?.value;
+}
+
+export function readAdminMediaSessionToken(read: AdminSessionCookieReader) {
+  return read(ADMIN_MEDIA_SESSION_COOKIE)?.value;
 }
 
 export function assertValidAdminSessionToken(

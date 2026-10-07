@@ -11,6 +11,7 @@ import {
   replaceStoryBlock,
 } from "@/lib/stories/story-admin";
 import { updateStoryAction } from "@/app/admin/historias/actions";
+import StoryMediaUploader from "./StoryMediaUploader.client";
 import styles from "./StoryAdmin.module.css";
 
 type TaxonomyOption = { value: string; label: string };
@@ -326,6 +327,12 @@ export default function StoryEditor({
 
       <section className={styles.panel}>
         <h2>Media</h2>
+        <StoryMediaUploader
+          editable={editable}
+          key={media.map(({ id, updated_at: updatedAt }) => `${id}:${updatedAt}`).join("|")}
+          media={media}
+          storyId={story.id}
+        />
         {media.length ? (
           <label>Hero
             <select defaultValue={story.hero_media_id ?? ""} disabled={!editable} name="heroMediaId">
@@ -333,7 +340,7 @@ export default function StoryEditor({
               {media.map((item) => <option key={item.id} value={item.id}>{item.alt_text || item.caption || item.id}</option>)}
             </select>
           </label>
-        ) : <p className={styles.muted}>No hay imágenes cargadas todavía. A16B2 añadirá la subida.</p>}
+        ) : null}
       </section>
 
       <section className={styles.panel}>

@@ -84,6 +84,7 @@ export type StoryMediaRepository = {
     storyId: string;
     expectedBucketId: string;
     expectedObjectPath: string;
+    expectedUpdatedAt?: string;
     update: StoryMediaUpdate;
   }): Promise<StoryMediaRow | null>;
 };
@@ -417,6 +418,7 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
       storyId: string;
       mimeType: StoryMediaMimeType;
       byteSize: number;
+      operationId?: string;
     }) {
       assertStoryMediaUuid(input.storyId, "storyId");
       assertStoryMediaMimeType(input.mimeType);
@@ -427,13 +429,38 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
         false,
       );
 
-      const mediaId = createId();
+      const mediaId = input.operationId ?? createId();
       assertStoryMediaUuid(mediaId, "mediaId");
       const objectPath = buildStoryMediaObjectPath({
         storyId: input.storyId,
         mediaId,
         mimeType: input.mimeType,
       });
+      const existing = await dependencies.repository.getMedia(mediaId);
+      if (existing) {
+        if (
+          existing.story_id !== input.storyId
+          || existing.bucket_id !== STORY_MEDIA_DRAFT_BUCKET
+          || existing.object_path !== objectPath
+          || existing.mime_type !== input.mimeType
+          || existing.byte_size !== input.byteSize
+        ) {
+          throw new StoryMediaServiceError(
+            "MEDIA_STATE_CONFLICT",
+            "Upload operation conflicts with an existing media state.",
+          );
+        }
+        return {
+          mediaId,
+          bucketId: STORY_MEDIA_DRAFT_BUCKET,
+          objectPath,
+          signedToken: null,
+          expectedMimeType: input.mimeType,
+          maxUploadBytes: STORY_MEDIA_MAX_UPLOAD_BYTES,
+          alreadyFinalized: true as const,
+          media: existing,
+        };
+      }
       const signed = await dependencies.storage.createSignedUploadUrl(
         STORY_MEDIA_DRAFT_BUCKET,
         objectPath,
@@ -445,6 +472,8 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
         signedToken: signed.token,
         expectedMimeType: input.mimeType,
         maxUploadBytes: STORY_MEDIA_MAX_UPLOAD_BYTES,
+        alreadyFinalized: false as const,
+        media: null,
       };
     },
 
@@ -553,7 +582,48 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
       );
     },
 
-    async promote(input: { storyId: string; mediaId: string }) {
+    async createAdminMediaUrl(input: { storyId: string; mediaId: string }) {
+      assertStoryMediaUuid(input.storyId, "storyId");
+      assertStoryMediaUuid(input.mediaId, "mediaId");
+      const media = assertMediaOwnership(
+        await dependencies.repository.getMedia(input.mediaId),
+        input.storyId,
+        input.mediaId,
+      );
+      if (!isStoryMediaMimeType(media.mime_type)) {
+        throw new StoryMediaServiceError("MEDIA_STATE_CONFLICT", "Media MIME type is invalid.");
+      }
+      assertStoryMediaObjectPath(media.object_path, {
+        storyId: input.storyId,
+        mediaId: input.mediaId,
+        mimeType: media.mime_type,
+      });
+      if (media.bucket_id === STORY_MEDIA_DRAFT_BUCKET) {
+        assertBucketConfig(await dependencies.storage.getBucket(STORY_MEDIA_DRAFT_BUCKET), false);
+        const preview = await dependencies.storage.createSignedUrl(
+          STORY_MEDIA_DRAFT_BUCKET,
+          media.object_path,
+          STORY_MEDIA_PREVIEW_TTL_SECONDS,
+        );
+        return { media, url: preview.signedUrl, private: true as const };
+      }
+      if (media.bucket_id === STORY_MEDIA_PUBLIC_BUCKET) {
+        assertBucketConfig(await dependencies.storage.getBucket(STORY_MEDIA_PUBLIC_BUCKET), true);
+        return {
+          media,
+          url: dependencies.storage.getPublicUrl(STORY_MEDIA_PUBLIC_BUCKET, media.object_path),
+          private: false as const,
+        };
+      }
+      throw new StoryMediaServiceError("MEDIA_STATE_CONFLICT", "Media is in an unknown bucket.");
+    },
+
+    async promote(input: {
+      storyId: string;
+      mediaId: string;
+      expectedUpdatedAt?: string;
+      requirePublicationMetadata?: boolean;
+    }) {
       assertStoryMediaUuid(input.storyId, "storyId");
       assertStoryMediaUuid(input.mediaId, "mediaId");
       assertEditableStory(await dependencies.repository.getStory(input.storyId));
@@ -562,6 +632,25 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
         input.storyId,
         input.mediaId,
       );
+      if (
+        input.expectedUpdatedAt
+        && media.updated_at !== input.expectedUpdatedAt
+        && media.bucket_id !== STORY_MEDIA_PUBLIC_BUCKET
+      ) {
+        throw new StoryMediaServiceError(
+          "MEDIA_STATE_CONFLICT",
+          "Story media has changed since this editor version was loaded.",
+        );
+      }
+      if (
+        input.requirePublicationMetadata
+        && (!media.alt_text.trim() || media.rights_type === "UNKNOWN")
+      ) {
+        throw new StoryMediaServiceError(
+          "MEDIA_STATE_CONFLICT",
+          "Alt text and known rights are required before promotion.",
+        );
+      }
       if (!isStoryMediaMimeType(media.mime_type)) {
         throw new StoryMediaServiceError("MEDIA_STATE_CONFLICT", "Media MIME type is not promotable.");
       }
@@ -729,6 +818,7 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
           storyId: input.storyId,
           expectedBucketId: STORY_MEDIA_DRAFT_BUCKET,
           expectedObjectPath: media.object_path,
+          expectedUpdatedAt: input.expectedUpdatedAt,
           update: {
             bucket_id: STORY_MEDIA_PUBLIC_BUCKET,
             object_path: expectedPath,
@@ -902,15 +992,15 @@ function createSupabaseDependencies(
       return data;
     },
     async updateMediaForPromotion(input) {
-      const { data, error } = await client
+      let query = client
         .from("story_media")
         .update(input.update)
         .eq("id", input.mediaId)
         .eq("story_id", input.storyId)
         .eq("bucket_id", input.expectedBucketId)
-        .eq("object_path", input.expectedObjectPath)
-        .select("*")
-        .maybeSingle();
+        .eq("object_path", input.expectedObjectPath);
+      if (input.expectedUpdatedAt) query = query.eq("updated_at", input.expectedUpdatedAt);
+      const { data, error } = await query.select("*").maybeSingle();
       if (error) {
         throw new StoryMediaServiceError(
           "DATABASE_OPERATION_FAILED",

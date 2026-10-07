@@ -9,6 +9,7 @@ import {
   StoryMediaValidationError,
   assertStoryMediaByteSize,
   assertStoryMediaDimensions,
+  assertStoryMediaFilename,
   assertStoryMediaMimeType,
   assertStoryMediaObjectPath,
   assertStoryMediaSignature,
@@ -65,6 +66,16 @@ test("accepts exactly the three approved MIME types", () => {
   expectCode("UNSUPPORTED_MIME_TYPE", () => assertStoryMediaMimeType("image/svg+xml"));
 });
 
+test("validates client filenames without using them in object paths", () => {
+  assert.doesNotThrow(() => assertStoryMediaFilename("foto.JPEG", "image/jpeg"));
+  assert.doesNotThrow(() => assertStoryMediaFilename("foto.png", "image/png"));
+  assert.doesNotThrow(() => assertStoryMediaFilename("foto.webp", "image/webp"));
+  expectCode("INVALID_FILENAME", () => assertStoryMediaFilename("../foto.jpg", "image/jpeg"));
+  expectCode("INVALID_FILENAME", () => assertStoryMediaFilename("foto\n.jpg", "image/jpeg"));
+  expectCode("INVALID_EXTENSION", () => assertStoryMediaFilename("foto.png", "image/jpeg"));
+  expectCode("INVALID_EXTENSION", () => assertStoryMediaFilename("foto.svg", "image/png"));
+});
+
 test("enforces a positive byte size capped at 25 MiB", () => {
   assert.doesNotThrow(() => assertStoryMediaByteSize(STORY_MEDIA_MAX_UPLOAD_BYTES));
   expectCode("INVALID_BYTE_SIZE", () => assertStoryMediaByteSize(0));
@@ -96,6 +107,9 @@ test("rejects unknown and mismatched magic bytes", () => {
   expectCode("SIGNATURE_MISMATCH", () => detectStoryMediaMimeType(Uint8Array.of(1, 2, 3, 4)));
   expectCode("SIGNATURE_MISMATCH", () =>
     assertStoryMediaSignature(Uint8Array.of(0xff, 0xd8, 0xff, 0xe0), "image/png"),
+  );
+  expectCode("SIGNATURE_MISMATCH", () =>
+    assertStoryMediaSignature(Uint8Array.of(0x4d, 0x5a, 0x90, 0x00), "image/jpeg"),
   );
 });
 

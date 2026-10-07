@@ -11,6 +11,7 @@ import {
   type StoryEventInsert,
   type StoryEventRow,
   type StoryMediaRow,
+  type StoryMediaUpdate,
   type StoryRow,
 } from "@/lib/supabase";
 import {
@@ -30,9 +31,11 @@ import {
   STORY_CREDIT_ROLES,
   STORY_EVENT_RELATION_TYPES,
   STORY_LIMITS,
+  STORY_RIGHTS_TYPES,
   type StoryContentBlock,
   type StoryCreditRole,
   type StoryEventRelationType,
+  type StoryRightsType,
 } from "./story-types";
 
 export type StoryAdminErrorCode =
@@ -127,6 +130,133 @@ export type StoryAdminRelationRepository = {
   replaceCredits(storyId: string, credits: readonly StoryCreditInsert[]): Promise<void>;
   replaceEvents(storyId: string, relations: readonly StoryEventInsert[]): Promise<void>;
 };
+
+export type StoryMediaMetadataRepository = {
+  getStory(id: string): Promise<StoryRow | null>;
+  getMedia(id: string): Promise<StoryMediaRow | null>;
+  updateExpected(input: {
+    mediaId: string;
+    storyId: string;
+    expectedUpdatedAt: string;
+    update: StoryMediaUpdate;
+  }): Promise<StoryMediaRow | null>;
+};
+
+export type StoryMediaMetadataInput = {
+  storyId: string;
+  mediaId: string;
+  expectedUpdatedAt: string;
+  altText: string;
+  caption: string;
+  credit: string;
+  rightsType: string;
+  rightsNotes: string;
+};
+
+export type StoryMediaPublicationReadiness = Awaited<
+  ReturnType<ReturnType<typeof createSupabaseStoryMediaService>["publicationReadiness"]>
+>;
+
+const STORY_MEDIA_METADATA_LIMITS = {
+  altText: 500,
+  caption: 2_000,
+  credit: 500,
+  rightsNotes: 2_000,
+} as const;
+
+function normalizedOptionalText(value: unknown, limit: number, field: string) {
+  if (typeof value !== "string" || value.length > limit) {
+    throw new StoryAdminError("STORY_INPUT_INVALID", `${field} no es válido.`);
+  }
+  return value.trim() || null;
+}
+
+export function createStoryMediaMetadataService(repository: StoryMediaMetadataRepository) {
+  return {
+    async update(input: StoryMediaMetadataInput) {
+      assertExpectedUpdatedAt(input.expectedUpdatedAt);
+      const altText = normalizedOptionalText(
+        input.altText,
+        STORY_MEDIA_METADATA_LIMITS.altText,
+        "El texto alternativo",
+      ) ?? "";
+      const caption = normalizedOptionalText(
+        input.caption,
+        STORY_MEDIA_METADATA_LIMITS.caption,
+        "El pie de foto",
+      );
+      const credit = normalizedOptionalText(
+        input.credit,
+        STORY_MEDIA_METADATA_LIMITS.credit,
+        "El crédito",
+      );
+      const rightsNotes = normalizedOptionalText(
+        input.rightsNotes,
+        STORY_MEDIA_METADATA_LIMITS.rightsNotes,
+        "Las notas de derechos",
+      );
+      if (!STORY_RIGHTS_TYPES.includes(input.rightsType as StoryRightsType)) {
+        throw new StoryAdminError("STORY_INPUT_INVALID", "El tipo de derechos no es válido.");
+      }
+      const story = await repository.getStory(input.storyId);
+      if (!story) throw new StoryAdminError("STORY_NOT_FOUND", "La historia no existe.");
+      if (story.status !== "DRAFT" && story.status !== "READY") {
+        throw new StoryAdminError("STORY_NOT_EDITABLE", "La historia ya no es editable.");
+      }
+      const media = await repository.getMedia(input.mediaId);
+      if (!media || media.story_id !== input.storyId) {
+        throw new StoryAdminError(
+          "STORY_MEDIA_OWNERSHIP",
+          "La media no pertenece a la historia solicitada.",
+        );
+      }
+      if (media.updated_at !== input.expectedUpdatedAt) {
+        throw new StoryAdminError(
+          "STORY_VERSION_CONFLICT",
+          "La media ha cambiado desde que abriste esta versión.",
+        );
+      }
+      const updated = await repository.updateExpected({
+        mediaId: input.mediaId,
+        storyId: input.storyId,
+        expectedUpdatedAt: input.expectedUpdatedAt,
+        update: {
+          alt_text: altText,
+          caption,
+          credit,
+          rights_type: input.rightsType as StoryRightsType,
+          rights_notes: rightsNotes,
+        },
+      });
+      if (!updated) {
+        throw new StoryAdminError(
+          "STORY_VERSION_CONFLICT",
+          "La media ha cambiado desde que abriste esta versión.",
+        );
+      }
+      return updated;
+    },
+  };
+}
+
+export function createStoryMediaMetadataReadinessService(dependencies: {
+  updateMetadata(input: StoryMediaMetadataInput): Promise<StoryMediaRow>;
+  publicationReadiness(storyId: string): Promise<StoryMediaPublicationReadiness>;
+}) {
+  return {
+    async update(input: StoryMediaMetadataInput) {
+      const media = await dependencies.updateMetadata(input);
+      try {
+        const readiness = await dependencies.publicationReadiness(input.storyId);
+        return { media, readiness };
+      } catch {
+        // The metadata save is already durable. Readiness must fail unknown rather
+        // than turn a successful save into a misleading retryable mutation error.
+        return { media, readiness: null };
+      }
+    },
+  };
+}
 
 function toUpdate(input: StoryAdminValidatedInput): StoryUpdate {
   return {
@@ -574,6 +704,52 @@ export async function updateStoryDraft(input: {
 }) {
   const client = requireClient();
   return createStoryAdminMutationService(createSupabaseMutationRepository(client)).updateDraft(input);
+}
+
+function createSupabaseStoryMediaMetadataRepository(
+  client: SupabaseClient<Database>,
+): StoryMediaMetadataRepository {
+  return {
+    async getStory(id) {
+      const { data, error } = await client.from("stories").select("*").eq("id", id).maybeSingle();
+      if (error) databaseFailure("No se pudo comprobar la historia.", error);
+      return data;
+    },
+    async getMedia(id) {
+      const { data, error } = await client.from("story_media").select("*").eq("id", id).maybeSingle();
+      if (error) databaseFailure("No se pudo comprobar la media.", error);
+      return data;
+    },
+    async updateExpected(input) {
+      const { data, error } = await client
+        .from("story_media")
+        .update(input.update)
+        .eq("id", input.mediaId)
+        .eq("story_id", input.storyId)
+        .eq("updated_at", input.expectedUpdatedAt)
+        .select("*")
+        .maybeSingle();
+      if (error) databaseFailure("No se pudieron guardar los metadatos de la media.", error);
+      return data;
+    },
+  };
+}
+
+export async function updateStoryMediaMetadata(input: StoryMediaMetadataInput) {
+  const client = requireClient();
+  return createStoryMediaMetadataService(
+    createSupabaseStoryMediaMetadataRepository(client),
+  ).update(input);
+}
+
+export async function updateStoryMediaMetadataWithReadiness(
+  input: StoryMediaMetadataInput,
+) {
+  const mediaService = createSupabaseStoryMediaService();
+  return createStoryMediaMetadataReadinessService({
+    updateMetadata: updateStoryMediaMetadata,
+    publicationReadiness: (storyId) => mediaService.publicationReadiness(storyId),
+  }).update(input);
 }
 
 async function getEventsByIds(

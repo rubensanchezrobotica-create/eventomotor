@@ -4,6 +4,7 @@ import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { createSupabaseStoryMediaService } from "@/lib/stories/story-media.server";
+import { updateStoryMediaMetadata } from "@/lib/stories/story-admin.server";
 import {
   STORY_MEDIA_DRAFT_BUCKET,
   STORY_MEDIA_PUBLIC_BUCKET,
@@ -45,6 +46,7 @@ test(
     });
     const service = createSupabaseStoryMediaService(serviceClient);
     const storyId = randomUUID();
+    const operationId = randomUUID();
     const createdObjects: Array<{ bucketId: string; objectPath: string }> = [];
 
     t.after(async () => {
@@ -81,9 +83,11 @@ test(
     );
     const intent = await service.createUploadIntent({
       storyId,
+      operationId,
       mimeType: "image/jpeg",
       byteSize: original.byteLength,
     });
+    assert.equal(intent.mediaId, operationId);
     assert.equal(intent.bucketId, STORY_MEDIA_DRAFT_BUCKET);
 
     const beforeFinalize = await serviceClient
@@ -94,6 +98,7 @@ test(
     assert.equal(beforeFinalize.error, null);
     assert.equal(beforeFinalize.data, null, "upload intent must not create story_media");
 
+    assert.ok(intent.signedToken);
     const upload = await serviceClient.storage
       .from(STORY_MEDIA_DRAFT_BUCKET)
       .uploadToSignedUrl(intent.objectPath, intent.signedToken, original, {
@@ -130,14 +135,16 @@ test(
     const privateResponse = await fetch(privatePublicUrl);
     assert.equal(privateResponse.ok, false, "private original must not be publicly readable");
 
-    const { error: editorialError } = await serviceClient
-      .from("story_media")
-      .update({
-        alt_text: "Vehículo de competición en pista",
-        rights_type: "OWN",
-      })
-      .eq("id", intent.mediaId);
-    assert.equal(editorialError, null);
+    const editorial = await updateStoryMediaMetadata({
+      storyId,
+      mediaId: intent.mediaId,
+      expectedUpdatedAt: finalized.media.updated_at,
+      altText: "Vehículo de competición en pista",
+      caption: "",
+      credit: "EventoMotor",
+      rightsType: "OWN",
+      rightsNotes: "Fixture sintético efímero",
+    });
 
     const { error: readyError } = await serviceClient
       .from("stories")
@@ -166,7 +173,12 @@ test(
       { code: "MEDIA_NOT_PUBLIC", mediaId: intent.mediaId },
     ]);
 
-    const promotion = await service.promote({ storyId, mediaId: intent.mediaId });
+    const promotion = await service.promote({
+      storyId,
+      mediaId: intent.mediaId,
+      expectedUpdatedAt: editorial.updated_at,
+      requirePublicationMetadata: true,
+    });
     assert.equal(promotion.promoted, true);
     createdObjects.push({ bucketId: STORY_MEDIA_PUBLIC_BUCKET, objectPath: intent.objectPath });
     const promotionRetry = await service.promote({ storyId, mediaId: intent.mediaId });

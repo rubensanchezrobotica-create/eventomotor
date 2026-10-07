@@ -2,29 +2,38 @@ import "server-only";
 
 import { cookies, headers } from "next/headers";
 import {
-  ADMIN_SESSION_COOKIE,
   AdminSessionError,
-  adminSessionClearCookieOptions,
-  adminSessionCookieOptions,
   assertValidAdminSessionToken,
+  clearAdminSessionCookies,
   createAdminSessionToken,
   isTrustedAdminMutationOrigin,
+  readAdminMediaSessionToken,
+  readAdminPageSessionToken,
   safeAdminNext,
+  type AdminSessionCookieWriter,
   verifyAdminCredential,
+  writeAdminSessionCookies,
 } from "./admin-session";
 
 export {
+  ADMIN_MEDIA_SESSION_COOKIE,
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_TTL_SECONDS,
   AdminSessionError,
+  adminMediaApiSessionClearCookieOptions,
+  adminMediaApiSessionCookieOptions,
   adminSessionClearCookieOptions,
   adminSessionCookieOptions,
   assertValidAdminSessionToken,
+  clearAdminSessionCookies,
   createAdminSessionToken,
   isTrustedAdminMutationOrigin,
+  readAdminMediaSessionToken,
+  readAdminPageSessionToken,
   safeAdminNext,
   verifyAdminCredential,
   verifyAdminSessionToken,
+  writeAdminSessionCookies,
 } from "./admin-session";
 
 function configuredAdminSecret() {
@@ -44,7 +53,19 @@ export type AdminMutationRuntime = AdminSessionRuntime & {
 
 const defaultAdminSessionRuntime: AdminSessionRuntime = {
   async readSessionToken() {
-    return (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
+    const cookieStore = await cookies();
+    return readAdminPageSessionToken((name) => cookieStore.get(name));
+  },
+  async redirectToLogin(location) {
+    const { redirect } = await import("next/navigation");
+    return redirect(location);
+  },
+};
+
+const defaultAdminMediaSessionRuntime: AdminSessionRuntime = {
+  async readSessionToken() {
+    const cookieStore = await cookies();
+    return readAdminMediaSessionToken((name) => cookieStore.get(name));
   },
   async redirectToLogin(location) {
     const { redirect } = await import("next/navigation");
@@ -81,23 +102,36 @@ export async function requireTrustedAdminMutation(
   return { authenticated: true as const, trustedOrigin: true as const };
 }
 
-export async function createAdminSession() {
+export async function createAdminSession(writeCookie?: AdminSessionCookieWriter) {
   const secret = configuredAdminSecret();
-  const cookieStore = await cookies();
-  cookieStore.set(
-    ADMIN_SESSION_COOKIE,
-    createAdminSessionToken(secret),
-    adminSessionCookieOptions(),
-  );
+  const cookieStore = writeCookie ? null : await cookies();
+  const write = writeCookie
+    ?? ((name, value, options) => cookieStore!.set(name, value, options));
+  const token = createAdminSessionToken(secret);
+  writeAdminSessionCookies(write, token);
 }
 
-export async function clearAdminSession() {
-  const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE, "", adminSessionClearCookieOptions());
+export async function clearAdminSession(writeCookie?: AdminSessionCookieWriter) {
+  const cookieStore = writeCookie ? null : await cookies();
+  const write = writeCookie
+    ?? ((name, value, options) => cookieStore!.set(name, value, options));
+  clearAdminSessionCookies(write);
 }
 
 export async function verifyAdminSession(
   runtime: AdminSessionRuntime = defaultAdminSessionRuntime,
+) {
+  const token = await runtime.readSessionToken();
+  try {
+    assertValidAdminSessionToken(token, configuredAdminSecret());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function verifyAdminMediaSession(
+  runtime: AdminSessionRuntime = defaultAdminMediaSessionRuntime,
 ) {
   const token = await runtime.readSessionToken();
   try {

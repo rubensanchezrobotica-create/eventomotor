@@ -27,6 +27,9 @@ const CANONICAL_EXTENSIONS: Record<StoryMediaMimeType, "jpg" | "png" | "webp"> =
 
 export type StoryMediaValidationErrorCode =
   | "INVALID_UUID"
+  | "INVALID_FILENAME"
+  | "INVALID_EXTENSION"
+  | "INVALID_REQUEST"
   | "UNSUPPORTED_MIME_TYPE"
   | "INVALID_BYTE_SIZE"
   | "FILE_TOO_LARGE"
@@ -62,6 +65,34 @@ export function assertStoryMediaMimeType(value: unknown): asserts value is Story
     throw new StoryMediaValidationError(
       "UNSUPPORTED_MIME_TYPE",
       "Story media must be JPEG, PNG, or WebP.",
+    );
+  }
+}
+
+export function assertStoryMediaFilename(
+  value: unknown,
+  mimeType: StoryMediaMimeType,
+): asserts value is string {
+  assertStoryMediaMimeType(mimeType);
+  if (
+    typeof value !== "string"
+    || !value
+    || value.length > 255
+    || value === "."
+    || value === ".."
+    || /[\\/\0\r\n]/.test(value)
+  ) {
+    throw new StoryMediaValidationError(
+      "INVALID_FILENAME",
+      "Story media filename is not valid.",
+    );
+  }
+  const extension = value.includes(".") ? value.split(".").pop()?.toLowerCase() : "";
+  const allowedExtensions = mimeType === "image/jpeg" ? ["jpg", "jpeg"] : [CANONICAL_EXTENSIONS[mimeType]];
+  if (!extension || !allowedExtensions.includes(extension)) {
+    throw new StoryMediaValidationError(
+      "INVALID_EXTENSION",
+      "Story media filename extension does not match its declared MIME type.",
     );
   }
 }

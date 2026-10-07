@@ -15,6 +15,7 @@ import {
   replaceStoryCredits,
   replaceStoryEvents,
   updateStoryDraft,
+  updateStoryMediaMetadataWithReadiness,
 } from "@/lib/stories/story-admin.server";
 
 function stringValue(formData: FormData, name: string) {
@@ -161,4 +162,31 @@ export async function replaceStoryEventsAction(formData: FormData) {
   }
   revalidatePath(editorPath);
   redirect(`${editorPath}?saved=events#events`);
+}
+
+export async function updateStoryMediaMetadataAction(input: {
+  storyId: string;
+  mediaId: string;
+  expectedUpdatedAt: string;
+  altText: string;
+  caption: string;
+  credit: string;
+  rightsType: string;
+  rightsNotes: string;
+}) {
+  const editorPath = `/admin/historias/${encodeURIComponent(input.storyId)}`;
+  await protectMutation(editorPath);
+  try {
+    const result = await updateStoryMediaMetadataWithReadiness(input);
+    revalidatePath(editorPath);
+    return { ok: true as const, ...result };
+  } catch (error) {
+    return {
+      ok: false as const,
+      code: actionErrorCode(error),
+      message: error instanceof StoryAdminError
+        ? error.message
+        : "No se pudieron guardar los metadatos.",
+    };
+  }
 }
