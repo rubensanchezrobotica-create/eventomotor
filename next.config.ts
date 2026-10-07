@@ -12,6 +12,18 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       legacyRedirect(
+        "/evento/rallye-tierra-de-caceres-2026-10-02",
+        "/evento/rally-de-caceres-2026-11-30",
+      ),
+      legacyRedirect(
+        "/evento/rallye-de-tierra-de-caceres-2026-10-02",
+        "/evento/rally-de-caceres-2026-11-30",
+      ),
+      legacyRedirect(
+        "/evento/rallye-tierra-tierra-caceres-2026-10-02",
+        "/evento/rally-de-caceres-2026-11-30",
+      ),
+      legacyRedirect(
         "/evento/rallyracc-catalunya-costa-daurada-2026-10-16",
         "/evento/rallyracc-catalunya-2026-10-17",
       ),

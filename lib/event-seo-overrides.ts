@@ -12,6 +12,10 @@ export type EventSeoOverride = {
 export const LA_BANEZA_EVENT_SLUG = "lxv-gran-premio-la-baneza-2026-08-07";
 
 const EVENT_SEO_OVERRIDES = {
+  "rally-de-caceres-2026-11-30": {
+    seoDescription:
+      "El Rallye de Cáceres 2026 se celebró el 2 y 3 de octubre como prueba de tierra del CERT-Rallycar y del Campeonato de Extremadura, con seis tramos cronometrados.",
+  },
   [LA_BANEZA_EVENT_SLUG]: {
     seoTitle: "Gran Premio de La Bañeza 2026: programa y horarios",
     seoDescription:
