@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import StoryRenderer from "@/components/redesign-v2/stories/StoryRenderer";
+import StoryArticle from "@/components/redesign-v2/stories/StoryArticle";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import {
   getStoryForAdmin,
@@ -41,33 +42,23 @@ export default async function StoryPrivatePreviewPage({
     date: event.start_date,
     location: [event.venue, event.city, event.province].filter(Boolean).join(", "),
   }]));
-  const peopleById = new Map(bundle.people.map((person) => [person.id, person.display_name]));
-  const credits = bundle.credits.map((credit) => `${peopleById.get(credit.person_id) ?? "Persona no disponible"} · ${credit.role}`);
+  const people = Object.fromEntries(bundle.people.map((person) => [person.id, person.display_name]));
+  const credits = bundle.credits.map((credit) => ({
+    personId: credit.person_id, role: credit.role, sortOrder: credit.sort_order,
+  }));
 
   return (
-    <article className={styles.stack}>
+    <div className={redesignV2DisplayPilot.variable}>
       <div className={styles.actions}>
         <p className={styles.eyebrow}>Preview privada · noindex · no-store</p>
         <Link className={styles.secondary} href={`/admin/historias/${id}`}>Volver al editor</Link>
       </div>
-      {bundle.story.hero_media_id && media[bundle.story.hero_media_id] ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          alt={media[bundle.story.hero_media_id].altText}
-          height={media[bundle.story.hero_media_id].height}
-          src={media[bundle.story.hero_media_id].resolvedUrl}
-          style={{ width: "100%", height: "auto", borderRadius: 12 }}
-          width={media[bundle.story.hero_media_id].width}
-        />
-      ) : null}
-      <header>
-        <p className={styles.eyebrow}>{bundle.story.type} · {bundle.story.collection}</p>
-        <h1>{bundle.story.title || "Historia sin título"}</h1>
-        {bundle.story.dek ? <p className={styles.lede}>{bundle.story.dek}</p> : null}
-        {bundle.story.context_location ? <p>{bundle.story.context_location}</p> : null}
-        {credits.length ? <p className={styles.muted}>{credits.join(" · ")}</p> : null}
-      </header>
-      <StoryRenderer blocks={bundle.story.content_blocks} events={events} media={media} />
-    </article>
+      <StoryArticle
+        title={bundle.story.title} dek={bundle.story.dek} type={bundle.story.type}
+        collection={bundle.story.collection} contextLocation={bundle.story.context_location}
+        heroMediaId={bundle.story.hero_media_id} blocks={bundle.story.content_blocks}
+        events={events} media={media} credits={credits} people={people}
+      />
+    </div>
   );
 }
