@@ -19,6 +19,17 @@ select is((select count(*)::integer from pg_proc p join pg_namespace n on n.oid=
 select ok((select relrowsecurity from pg_class where oid='public.story_publication_receipts'::regclass), 'receipt ledger has RLS');
 select ok(not has_table_privilege('anon','public.story_publication_receipts','select'), 'receipt ledger is private');
 
+select ok(not pg_catalog.has_table_privilege('service_role', ('public.' || name)::regclass, 'TRUNCATE'),
+  'service_role has no effective TRUNCATE privilege on ' || name)
+from (values ('stories'), ('story_media'), ('editorial_people'), ('story_credits'),
+  ('story_events'), ('story_publication_receipts')) as protected(name);
+set local role service_role;
+select throws_ok(pg_catalog.format('truncate table public.%I', name), '42501', null,
+  'service_role TRUNCATE execution denied on ' || name)
+from (values ('stories'), ('story_media'), ('editorial_people'), ('story_credits'),
+  ('story_events'), ('story_publication_receipts')) as protected(name);
+reset role;
+
 insert into public.stories(id, type, collection, title, slug, dek, seo_title, seo_description, content_blocks)
 values ('e1000000-0000-4000-8000-000000000001','REPORTAJE','DESDE_DENTRO','Synthetic transaction story','synthetic-transaction-story','Synthetic dek','Synthetic SEO','Synthetic description',
  '[{"id":"text-1","type":"PARAGRAPH","content":[{"type":"TEXT","text":"Synthetic body."}]}]');

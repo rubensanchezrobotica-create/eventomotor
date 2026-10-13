@@ -250,7 +250,8 @@ begin
     if not found or v_media.bucket_id <> 'story-media'
       or v_media.object_path <> (p_story_id::text || '/' || v_media_id::text || '/asset.' ||
         case v_media.mime_type when 'image/jpeg' then 'jpg' when 'image/png' then 'png' when 'image/webp' then 'webp' else '' end)
-      or greatest(v_media.width, v_media.height) > 2400
+      -- Match STORY_MEDIA_PUBLIC_MAX_LONG_EDGE (approved derivative contract).
+      or greatest(v_media.width, v_media.height) > 3200
       or not exists (select 1 from storage.objects where bucket_id = 'story-media' and name = v_media.object_path) then
       raise exception using errcode = '23514', message = 'publication requires verified public media rows and objects';
     end if;

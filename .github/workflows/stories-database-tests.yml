@@ -112,7 +112,7 @@ jobs:
         run: |
           node --conditions=react-server --import tsx --test lib/stories/story-publication.server.test.ts
           npx tsc --noEmit --incremental false
-          npx eslint lib/stories/story-admin.server.ts lib/stories/story-admin.server.test.ts lib/stories/story-publication.server.ts lib/stories/story-publication.server.test.ts lib/supabase.ts tests/stories/story-admin.integration.test.ts scripts/prepare-stories-supabase-ci.mjs tests/stories/sql/story-concurrency.mjs
+          npx eslint lib/stories/story-admin.server.ts lib/stories/story-admin.server.test.ts lib/stories/story-publication.server.ts lib/stories/story-publication.server.test.ts lib/supabase.ts tests/stories/story-admin.integration.test.ts tests/stories/story-publication.integration.test.ts scripts/prepare-stories-supabase-ci.mjs tests/stories/sql/story-concurrency.mjs
 
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs
@@ -142,10 +142,13 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-}"
           export STORIES_STORAGE_INTEGRATION=1
           export STORIES_ADMIN_INTEGRATION=1
+          export STORIES_PUBLICATION_INTEGRATION=1
           node --conditions=react-server --import tsx --test \
             tests/stories/story-media-storage.integration.test.ts
           node --conditions=react-server --import tsx --test \
             tests/stories/story-admin.integration.test.ts
+          node --conditions=react-server --import tsx --test \
+            tests/stories/story-publication.integration.test.ts
           rm -f "$env_file"
 
       - name: Lint isolated Stories schema
