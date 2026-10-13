@@ -271,10 +271,10 @@ select ok(
   'internal trigger functions are not directly executable by application roles'
 );
 
-select is(
-  (select count(*)::integer from pg_catalog.pg_proc where pronamespace = 'public'::regnamespace and proname = 'publish_story'),
-  0,
-  'A16A2 does not create a publication RPC'
+select ok(
+  (select count(*) = 1 and bool_and(oid = 'public.publish_story(uuid,timestamptz,uuid)'::regprocedure)
+   from pg_catalog.pg_proc where pronamespace = 'public'::regnamespace and proname = 'publish_story'),
+  'A16D adds exactly the versioned and idempotent publication RPC; no alternate overload'
 );
 
 select lives_ok(
