@@ -237,7 +237,7 @@ test("metadata ausente o inválida: degradación legible, sin ratios fabricados 
   assert.doesNotMatch(html, /NaN|Infinity|width="0"|--story-pair-columns/);
 });
 
-test("jerarquía y bloques: lead único, H2/H3 explícitos, cita conservada y fecha humana", () => {
+test("jerarquía y bloques: apertura sin estilos especiales, H2/H3 explícitos, cita conservada y fecha humana", () => {
   const blocks: StoryContentBlock[] = [
     { id: "p1", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Frase deliberadamente repetida" }] },
     { id: "h2", type: "HEADING", level: 2, text: "Capítulo" },
@@ -248,6 +248,14 @@ test("jerarquía y bloques: lead único, H2/H3 explícitos, cita conservada y fe
   ];
   const html = renderToStaticMarkup(<StoryRenderer blocks={blocks} media={{}} events={{ event: { id: "event", title: "Evento sintético", date: "2026-10-08", location: "Lugar", href: "/evento/sintetico" } }} />);
   assert.equal((html.match(/class="paragraph lead"/g) ?? []).length, 1);
+  // The opening marker has no visual rules: it inherits the same body paragraph
+  // typography and spacing at every breakpoint. The header dek is independent.
+  const css = readFileSync("components/redesign-v2/stories/StoryArticle.module.css", "utf8");
+  assert.doesNotMatch(css, /\.lead\b|\.paragraph[^{}]*:(?:first-child|first-of-type|nth-child\(1\))/);
+  assert.match(css, /\.paragraph \{ margin-top: 0; margin-bottom: 23px; font-size: 19px; line-height: 1\.78;/);
+  assert.match(css, /\.paragraph \{ margin-bottom: 22px; font-size: 17px; line-height: 1\.75;/);
+  assert.match(css, /\.dek \{ margin: 0; color: #d0cec8; font-size: 18px; line-height: 1\.65; \}/);
+  assert.match(css, /\.dek \{ font-size: 16px; \}/);
   assert.equal((html.match(/Frase deliberadamente repetida/g) ?? []).length, 2);
   assert.match(html, /<h2 class="heading"/);
   assert.match(html, /<h3 class="heading"/);

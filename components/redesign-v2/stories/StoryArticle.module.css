@@ -43,7 +43,6 @@
 }
 .paragraph, .heading, .event { width: 100%; max-width: var(--story-reading); margin-left: auto; margin-right: auto; }
 .paragraph { margin-top: 0; margin-bottom: 23px; font-size: 19px; line-height: 1.78; letter-spacing: -.015em; overflow-wrap: anywhere; }
-.paragraph.lead { margin-bottom: 26px; font-size: 23px; line-height: 1.62; }
 .heading { margin-top: 64px; margin-bottom: 28px; color: #f4f1ea; font-family: var(--font-v2-display-pilot), Arial, sans-serif; font-size: 37px; font-weight: 900; line-height: 1.13; letter-spacing: -.045em; overflow-wrap: anywhere; }
 h2.heading::before { display: block; width: 26px; height: 3px; margin-bottom: 18px; background: #ff6900; content: ""; }
 h3.heading { margin-top: 44px; font-size: 27px; }
@@ -86,7 +85,6 @@ h3.heading { margin-top: 44px; font-size: 27px; }
   .dek { font-size: 16px; }
   .body { padding-top: 36px; --story-image-cap: min(65svh, 530px); }
   .paragraph { margin-bottom: 22px; font-size: 17px; line-height: 1.75; }
-  .paragraph.lead { font-size: 20px; line-height: 1.65; }
   .heading { margin-top: 48px; margin-bottom: 24px; font-size: 29px; }
   h3.heading { font-size: 24px; }
   .quote { margin: 40px auto; padding-left: 19px; }
