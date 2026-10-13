@@ -122,13 +122,16 @@ export type StoryAdminRelationRepository = {
   getStory(id: string): Promise<StoryRow | null>;
   getPeopleByIds(personIds: readonly string[]): Promise<EditorialPersonRow[]>;
   getEventsByIds(eventIds: readonly string[]): Promise<StoryAdminEventSummary[]>;
-  claimEditableStoryVersion(input: {
-    id: string;
+  replaceCreditsExpected(input: {
+    storyId: string;
     expectedUpdatedAt: string;
-    status: "DRAFT" | "READY";
-  }): Promise<StoryRow | null>;
-  replaceCredits(storyId: string, credits: readonly StoryCreditInsert[]): Promise<void>;
-  replaceEvents(storyId: string, relations: readonly StoryEventInsert[]): Promise<void>;
+    credits: readonly StoryCreditInsert[];
+  }): Promise<StoryRow>;
+  replaceEventsExpected(input: {
+    storyId: string;
+    expectedUpdatedAt: string;
+    relations: readonly StoryEventInsert[];
+  }): Promise<StoryRow>;
 };
 
 export type StoryMediaMetadataRepository = {
@@ -494,25 +497,6 @@ function normalizeStoryEvents(
 }
 
 export function createStoryAdminRelationService(repository: StoryAdminRelationRepository) {
-  async function claimVersion(
-    storyId: string,
-    expectedUpdatedAt: string,
-    status: "DRAFT" | "READY",
-  ) {
-    const claimed = await repository.claimEditableStoryVersion({
-      id: storyId,
-      expectedUpdatedAt,
-      status,
-    });
-    if (!claimed) {
-      throw new StoryAdminError(
-        "STORY_VERSION_CONFLICT",
-        "La historia ha cambiado desde que abriste esta versión.",
-      );
-    }
-    return claimed;
-  }
-
   return {
     async replaceCredits(input: {
       storyId: string;
@@ -532,16 +516,15 @@ export function createStoryAdminRelationService(repository: StoryAdminRelationRe
           "Alguna persona editorial no existe o no está activa.",
         );
       }
-      const current = assertCurrentEditableVersion(
+      assertCurrentEditableVersion(
         await repository.getStory(input.storyId),
         input.expectedUpdatedAt,
       );
-      const story = await claimVersion(
-        input.storyId,
-        input.expectedUpdatedAt,
-        current.status,
-      );
-      await repository.replaceCredits(input.storyId, normalized);
+      const story = await repository.replaceCreditsExpected({
+        storyId: input.storyId,
+        expectedUpdatedAt: input.expectedUpdatedAt,
+        credits: normalized,
+      });
       return { story, credits: normalized };
     },
 
@@ -567,12 +550,11 @@ export function createStoryAdminRelationService(repository: StoryAdminRelationRe
           "No se puede retirar un evento que sigue referenciado en el cuerpo.",
         );
       }
-      const claimed = await claimVersion(
-        input.storyId,
-        input.expectedUpdatedAt,
-        story.status,
-      );
-      await repository.replaceEvents(input.storyId, normalized);
+      const claimed = await repository.replaceEventsExpected({
+        storyId: input.storyId,
+        expectedUpdatedAt: input.expectedUpdatedAt,
+        relations: normalized,
+      });
       return { story: claimed, relations: normalized };
     },
   };
@@ -592,6 +574,9 @@ export function classifyStoryAdminDatabaseError(
   error?: { code?: string } | null,
   uniqueConstraint?: "story-slug",
 ): StoryAdminErrorCode {
+  if (error?.code === "40001" || error?.code === "55P03") return "STORY_VERSION_CONFLICT";
+  if (error?.code === "55000") return "STORY_NOT_EDITABLE";
+  if (error?.code === "P0002") return "STORY_NOT_FOUND";
   if (error?.code === "23505" && uniqueConstraint === "story-slug") {
     return "STORY_SLUG_CONFLICT";
   }
@@ -830,7 +815,7 @@ export async function searchEventsForStoryAdmin(query: string, limit = 20) {
   return data ?? [];
 }
 
-function createSupabaseRelationRepository(
+export function createSupabaseRelationRepository(
   client: SupabaseClient<Database>,
 ): StoryAdminRelationRepository {
   return {
@@ -851,49 +836,23 @@ function createSupabaseRelationRepository(
     async getEventsByIds(eventIds) {
       return getEventsByIds(client, eventIds);
     },
-    async claimEditableStoryVersion(input) {
-      const { data, error } = await client
-        .from("stories")
-        .update({ status: input.status })
-        .eq("id", input.id)
-        .eq("updated_at", input.expectedUpdatedAt)
-        .in("status", ["DRAFT", "READY"])
-        .select("*")
-        .maybeSingle();
-      if (error) databaseFailure("No se pudo reclamar la versión de la historia.", error);
+    async replaceCreditsExpected(input) {
+      const { data, error } = await client.rpc("replace_story_credits", {
+        p_story_id: input.storyId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_credits: input.credits.map(({ person_id, role, sort_order }) => ({ person_id, role, sort_order })),
+      }).single();
+      if (error || !data) databaseFailure("No se pudieron reemplazar los créditos de forma atómica.", error);
       return data;
     },
-    async replaceCredits(storyId, credits) {
-      const { error: deleteError } = await client
-        .from("story_credits")
-        .delete()
-        .eq("story_id", storyId);
-      if (deleteError) databaseFailure("No se pudieron reemplazar los créditos.", deleteError);
-      if (credits.length) {
-        const { error } = await client.from("story_credits").insert([...credits]);
-        if (error) {
-          databaseFailure(
-            "Los créditos anteriores se retiraron, pero los nuevos no se pudieron guardar.",
-            error,
-          );
-        }
-      }
-    },
-    async replaceEvents(storyId, relations) {
-      const { error: deleteError } = await client
-        .from("story_events")
-        .delete()
-        .eq("story_id", storyId);
-      if (deleteError) databaseFailure("No se pudieron reemplazar los eventos.", deleteError);
-      if (relations.length) {
-        const { error } = await client.from("story_events").insert([...relations]);
-        if (error) {
-          databaseFailure(
-            "Las relaciones anteriores se retiraron, pero las nuevas no se pudieron guardar.",
-            error,
-          );
-        }
-      }
+    async replaceEventsExpected(input) {
+      const { data, error } = await client.rpc("replace_story_events", {
+        p_story_id: input.storyId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_relations: input.relations.map(({ event_id, relation_type, sort_order }) => ({ event_id, relation_type, sort_order })),
+      }).single();
+      if (error || !data) databaseFailure("No se pudieron reemplazar los eventos de forma atómica.", error);
+      return data;
     },
   };
 }

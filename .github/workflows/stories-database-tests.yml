@@ -6,6 +6,8 @@ on:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
+      - "database/migrations/20261013120000_story_transactional_publication.sql"
+      - "lib/stories/story-publication*.ts"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
       - "lib/stories/story-admin*.ts"
@@ -26,10 +28,13 @@ on:
       - codex/historias-a16b1
       - codex/historias-a16c
       - codex/historias-a16b2
+      - codex/historias-a16d-transactions
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
+      - "database/migrations/20261013120000_story_transactional_publication.sql"
+      - "lib/stories/story-publication*.ts"
       - "database/schema.sql"
       - "lib/stories/story-media*.ts"
       - "lib/stories/story-admin*.ts"
@@ -103,6 +108,12 @@ jobs:
           node --import tsx --test components/admin/stories/story-media-uploader.test.ts
           node --conditions=react-server --import tsx --test lib/stories/story-media-api.server.test.ts
 
+      - name: Run A16D transaction service tests and static gates
+        run: |
+          node --conditions=react-server --import tsx --test lib/stories/story-publication.server.test.ts
+          npx tsc --noEmit --incremental false
+          npx eslint lib/stories/story-admin.server.ts lib/stories/story-admin.server.test.ts lib/stories/story-publication.server.ts lib/stories/story-publication.server.test.ts lib/supabase.ts tests/stories/story-admin.integration.test.ts scripts/prepare-stories-supabase-ci.mjs tests/stories/sql/story-concurrency.mjs
+
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs
 
@@ -113,6 +124,9 @@ jobs:
 
       - name: Run Stories pgTAP assertions
         run: supabase --workdir "$STORIES_CI_WORKDIR" test db --local
+
+      - name: Run A16D real two-connection PostgreSQL concurrency
+        run: node tests/stories/sql/story-concurrency.mjs
 
       - name: Run ephemeral Story media Storage integration
         shell: bash

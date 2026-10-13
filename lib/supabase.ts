@@ -440,6 +440,18 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      replace_story_credits: {
+        Args: { p_story_id: string; p_expected_updated_at: string; p_credits: Array<{ person_id: string; role: StoryCreditRole; sort_order: number }> };
+        Returns: StoryRow[];
+      };
+      replace_story_events: {
+        Args: { p_story_id: string; p_expected_updated_at: string; p_relations: Array<{ event_id: string; relation_type: StoryEventRelationType; sort_order: number }> };
+        Returns: StoryRow[];
+      };
+      publish_story: {
+        Args: { p_story_id: string; p_expected_updated_at: string; p_request_id: string };
+        Returns: StoryRow[];
+      };
       request_newsletter_subscription: {
         Args: {
           p_email: string;

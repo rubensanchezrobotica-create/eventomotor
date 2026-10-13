@@ -236,9 +236,16 @@ select ok(
   (
     select bool_and(
       pg_catalog.has_table_privilege('service_role', oid, 'SELECT')
-      and pg_catalog.has_table_privilege('service_role', oid, 'INSERT')
-      and pg_catalog.has_table_privilege('service_role', oid, 'UPDATE')
-      and pg_catalog.has_table_privilege('service_role', oid, 'DELETE')
+      and (
+        (oid in ('public.story_credits'::regclass, 'public.story_events'::regclass)
+          and not pg_catalog.has_table_privilege('service_role', oid, 'INSERT')
+          and not pg_catalog.has_table_privilege('service_role', oid, 'UPDATE')
+          and not pg_catalog.has_table_privilege('service_role', oid, 'DELETE'))
+        or (oid not in ('public.story_credits'::regclass, 'public.story_events'::regclass)
+          and pg_catalog.has_table_privilege('service_role', oid, 'INSERT')
+          and pg_catalog.has_table_privilege('service_role', oid, 'UPDATE')
+          and pg_catalog.has_table_privilege('service_role', oid, 'DELETE'))
+      )
     )
     from pg_catalog.pg_class
     where oid in (
@@ -247,7 +254,7 @@ select ok(
       'public.story_events'::regclass
     )
   ),
-  'service_role has explicit CRUD privilege'
+  'service_role has CRUD except RPC-only credit and event replacement'
 );
 
 select ok(
@@ -526,18 +533,16 @@ values (
 insert into public.editorial_people (id, display_name)
 values ('c1000000-0000-4000-8000-000000000090', 'Service Role Fixture');
 
-insert into public.story_credits (story_id, person_id, role)
-values (
+select public.replace_story_credits(
   'a1000000-0000-4000-8000-000000000090',
-  'c1000000-0000-4000-8000-000000000090',
-  'TEXT'
+  (select updated_at from public.stories where id = 'a1000000-0000-4000-8000-000000000090'),
+  '[{"person_id":"c1000000-0000-4000-8000-000000000090","role":"TEXT","sort_order":0}]'
 );
 
-insert into public.story_events (story_id, event_id, relation_type)
-values (
+select public.replace_story_events(
   'a1000000-0000-4000-8000-000000000090',
-  'story-foundation-event-2',
-  'RELATED'
+  (select updated_at from public.stories where id = 'a1000000-0000-4000-8000-000000000090'),
+  '[{"event_id":"story-foundation-event-2","relation_type":"RELATED","sort_order":0}]'
 );
 
 update public.stories
@@ -552,7 +557,7 @@ where id = 'c1000000-0000-4000-8000-000000000090';
 
 reset role;
 
-select pass('service_role can perform foundation-table DML through RLS without direct trigger execution grants');
+select pass('service_role edits through RLS with atomic relation RPCs and no direct trigger execution grants');
 
 insert into public.story_media (id, story_id, bucket_id, object_path, width, height, mime_type, byte_size)
 values ('b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000002', 'stories', 'draft-delete.webp', 1200, 800, 'image/webp', 1000);

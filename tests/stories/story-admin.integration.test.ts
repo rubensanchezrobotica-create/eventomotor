@@ -17,6 +17,8 @@ const enabled = process.env.STORIES_ADMIN_INTEGRATION === "1";
 const integration = enabled ? test : test.skip;
 
 integration("ephemeral admin CRUD, relations and optimistic conflict remain fail-closed", async (t) => {
+  assert.ok(["127.0.0.1", "localhost"].includes(new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname),
+    "integration refuses non-loopback Supabase");
   const client = createSupabaseServerClient();
   assert.ok(client, "ephemeral Supabase service client is required");
   const suffix = randomUUID();
@@ -30,8 +32,6 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
 
   t.after(async () => {
     if (storyId) {
-      await client.from("story_credits").delete().eq("story_id", storyId);
-      await client.from("story_events").delete().eq("story_id", storyId);
       await client.from("stories").delete().eq("id", storyId);
     }
     if (personIds.length) await client.from("editorial_people").delete().in("id", personIds);

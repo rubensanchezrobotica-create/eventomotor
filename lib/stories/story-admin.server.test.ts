@@ -174,19 +174,25 @@ function relationHarness({
         province: null,
       }));
     },
-    async claimEditableStoryVersion(input) {
+    async replaceCreditsExpected(input) {
       claimCount += 1;
-      if (currentStory.updated_at !== input.expectedUpdatedAt) return null;
+      if (currentStory.updated_at !== input.expectedUpdatedAt) {
+        throw new StoryAdminError("STORY_VERSION_CONFLICT", "Version conflict");
+      }
+      creditReplaceCount += 1;
+      currentCredits = [...input.credits];
       currentStory = row({ ...currentStory, updated_at: UPDATED_AT_2 });
       return currentStory;
     },
-    async replaceCredits(_storyId, nextCredits) {
-      creditReplaceCount += 1;
-      currentCredits = [...nextCredits];
-    },
-    async replaceEvents(_storyId, nextRelations) {
+    async replaceEventsExpected(input) {
+      claimCount += 1;
+      if (currentStory.updated_at !== input.expectedUpdatedAt) {
+        throw new StoryAdminError("STORY_VERSION_CONFLICT", "Version conflict");
+      }
       eventReplaceCount += 1;
-      currentRelations = [...nextRelations];
+      currentRelations = [...input.relations];
+      currentStory = row({ ...currentStory, updated_at: UPDATED_AT_2 });
+      return currentStory;
     },
   };
   return {

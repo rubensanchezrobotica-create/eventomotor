@@ -18,10 +18,13 @@ export const STORIES_MIGRATION =
   "database/migrations/20260929120000_stories_foundation.sql";
 export const STORIES_STORAGE_MIGRATION =
   "database/migrations/20261005120000_story_media_storage.sql";
+export const STORIES_TRANSACTION_MIGRATION =
+  "database/migrations/20261013120000_story_transactional_publication.sql";
 export const STORIES_SQL_TESTS = [
   "stories_foundation.test.sql",
   "story_publication_gate.test.sql",
   "story_media_storage.test.sql",
+  "story_transactions.test.sql",
 ];
 
 const BASELINE_MIGRATION_NAME =
@@ -152,11 +155,13 @@ export async function prepareStoriesCiWorkspace({ rootDir = process.cwd() } = {}
   const sourceSchema = resolve(resolvedRoot, STORIES_BASE_SCHEMA);
   const sourceMigration = resolve(resolvedRoot, STORIES_MIGRATION);
   const sourceStorageMigration = resolve(resolvedRoot, STORIES_STORAGE_MIGRATION);
+  const sourceTransactionMigration = resolve(resolvedRoot, STORIES_TRANSACTION_MIGRATION);
   const sourceTests = resolve(resolvedRoot, "tests/stories/sql");
 
   await assertRegularFile(sourceSchema, "Stories base schema");
   await assertRegularFile(sourceMigration, "Stories migration");
   await assertRegularFile(sourceStorageMigration, "Stories Storage migration");
+  await assertRegularFile(sourceTransactionMigration, "Stories transaction migration");
   for (const testFile of STORIES_SQL_TESTS) {
     await assertRegularFile(resolve(sourceTests, testFile), `SQL test ${testFile}`);
   }
@@ -196,6 +201,13 @@ export async function prepareStoriesCiWorkspace({ rootDir = process.cwd() } = {}
   if (sourceStorageMigrationHash !== copiedStorageMigrationHash) {
     throw new Error("Stories Storage migration hash mismatch.");
   }
+  const transactionMigrationName = STORIES_TRANSACTION_MIGRATION.split("/").at(-1);
+  const copiedTransactionMigration = join(migrationsPath, transactionMigrationName);
+  await copyFile(sourceTransactionMigration, copiedTransactionMigration);
+  const sourceTransactionMigrationHash = await sha256(sourceTransactionMigration);
+  if (sourceTransactionMigrationHash !== await sha256(copiedTransactionMigration)) {
+    throw new Error("Stories transaction migration hash mismatch.");
+  }
 
   for (const testFile of STORIES_SQL_TESTS) {
     await copyFile(join(sourceTests, testFile), join(testsPath, testFile));
@@ -206,6 +218,7 @@ export async function prepareStoriesCiWorkspace({ rootDir = process.cwd() } = {}
     BASELINE_MIGRATION_NAME,
     migrationName,
     storageMigrationName,
+    transactionMigrationName,
   ];
   if (
     copiedMigrationNames.length !== expectedMigrationNames.length ||
@@ -237,6 +250,8 @@ export async function prepareStoriesCiWorkspace({ rootDir = process.cwd() } = {}
     migrationSha256: sourceMigrationHash,
     storageMigration: STORIES_STORAGE_MIGRATION,
     storageMigrationSha256: sourceStorageMigrationHash,
+    transactionMigration: STORIES_TRANSACTION_MIGRATION,
+    transactionMigrationSha256: sourceTransactionMigrationHash,
     sqlTests: [...STORIES_SQL_TESTS],
   };
 
@@ -263,7 +278,7 @@ async function runCli() {
 
   const { manifest } = await prepareStoriesCiWorkspace();
   process.stdout.write(
-    `Stories CI workspace prepared; ${manifest.sqlTests.length} SQL suites and two product migrations verified.\n`,
+    `Stories CI workspace prepared; ${manifest.sqlTests.length} SQL suites and three product migrations verified.\n`,
   );
 }
 
