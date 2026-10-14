@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { listStoriesForAdmin, type StoryListStatus } from "@/lib/stories/story-admin.server";
+import type { StoryListStatus } from "@/lib/stories/story-admin.server";
+import { listAuthenticatedStories } from "@/lib/stories/story-admin-read.server";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 
 const FILTERS: StoryListStatus[] = ["ALL", "DRAFT", "READY", "PUBLISHED", "ARCHIVED"];
@@ -17,7 +18,7 @@ export default async function AdminStoriesPage({
   const query = await searchParams;
   const requested = typeof query.status === "string" ? query.status.toUpperCase() : "ALL";
   const status = FILTERS.includes(requested as StoryListStatus) ? requested as StoryListStatus : "ALL";
-  const stories = await listStoriesForAdmin(status);
+  const stories = await listAuthenticatedStories(status);
 
   return (
     <div className={styles.stack}>

@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import StoryArticle from "@/components/redesign-v2/stories/StoryArticle";
 import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
-import {
-  getStoryForAdmin,
-  resolveStoryMediaForAdmin,
-} from "@/lib/stories/story-admin.server";
+import { getAuthenticatedStoryPreview } from "@/lib/stories/story-admin-read.server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,9 +20,9 @@ export default async function StoryPrivatePreviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const bundle = await getStoryForAdmin(id);
-  if (!bundle) notFound();
-  const resolvedMedia = await resolveStoryMediaForAdmin(id, bundle.media);
+  const preview = await getAuthenticatedStoryPreview(id);
+  if (!preview) notFound();
+  const { bundle, media: resolvedMedia } = preview;
   const media = Object.fromEntries(resolvedMedia.map((item) => [item.id, {
     id: item.id,
     resolvedUrl: item.resolvedUrl,

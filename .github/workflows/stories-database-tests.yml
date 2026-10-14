@@ -34,6 +34,7 @@ on:
       - codex/historias-a16b2
       - codex/historias-a16d-transactions
       - codex/historias-public-launch
+      - codex/historias-preview-p0
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
@@ -128,6 +129,12 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-public.server.test.ts lib/stories/story-launch.server.test.ts
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test tests/stories/story-public-routes.test.tsx tests/stories/story-publication-actions.test.ts
           npx eslint lib/stories/story-public*.ts lib/stories/story-launch*.ts app/historias app/admin/historias/publication-actions.ts 'app/admin/historias/[id]/publicacion/page.tsx' components/redesign-v2/stories/RelatedStories.tsx tests/stories/story-public*.ts tests/stories/story-public*.tsx
+
+      - name: Run P0 actual Next HTML and Flight privacy regression
+        run: |
+          node --conditions=react-server --import tsx --test lib/stories/story-admin-read.server.test.ts
+          node --import tsx --test tests/stories/story-private-http.test.ts
+          npx eslint lib/stories/story-admin-read.server.ts lib/stories/story-admin-read.server.test.ts tests/stories/story-private-http.test.ts
 
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs

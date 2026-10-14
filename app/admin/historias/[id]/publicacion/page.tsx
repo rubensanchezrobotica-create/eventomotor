@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStoryForAdmin } from "@/lib/stories/story-admin.server";
+import { getAuthenticatedStoryBundle } from "@/lib/stories/story-admin-read.server";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import { prepareStoryPublicationAction, publishStoryAction } from "../../publication-actions";
 
@@ -12,7 +12,7 @@ export default async function PublicationPage({ params, searchParams }: {
   params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const bundle = await getStoryForAdmin(id);
+  const bundle = await getAuthenticatedStoryBundle(id);
   if (!bundle) notFound();
   const s = bundle.story;
   return <div className={styles.stack}>

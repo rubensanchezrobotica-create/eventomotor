@@ -1,12 +1,14 @@
 import Link from "next/link";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import { createStoryAction } from "../actions";
+import { requireAdminSession } from "@/lib/admin-session.server";
 
 export default async function NewStoryPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireAdminSession("/admin/historias/nueva");
   const query = await searchParams;
   return (
     <div className={styles.stack}>

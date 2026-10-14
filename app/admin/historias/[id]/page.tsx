@@ -6,9 +6,9 @@ import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import { SEO_DISCIPLINES } from "@/lib/seo-taxonomy";
 import { SPANISH_TERRITORIES } from "@/lib/regions/territory-contract";
 import {
-  getStoryForAdmin,
-  searchEventsForStoryAdmin,
-} from "@/lib/stories/story-admin.server";
+  getAuthenticatedStoryBundle,
+  searchAuthenticatedStoryEvents,
+} from "@/lib/stories/story-admin-read.server";
 import {
   createEditorialPersonAction,
   replaceStoryCreditsAction,
@@ -30,10 +30,10 @@ export default async function StoryEditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const bundle = await getStoryForAdmin(id);
+  const bundle = await getAuthenticatedStoryBundle(id);
   if (!bundle) notFound();
   const eventQuery = typeof query.eventQuery === "string" ? query.eventQuery : "";
-  const searchResults = eventQuery ? await searchEventsForStoryAdmin(eventQuery) : [];
+  const searchResults = eventQuery ? await searchAuthenticatedStoryEvents(eventQuery) : [];
   const eventOptions = [...bundle.relatedEvents];
   for (const event of searchResults) {
     if (!eventOptions.some(({ id: existingId }) => existingId === event.id)) eventOptions.push(event);
