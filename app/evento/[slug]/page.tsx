@@ -23,6 +23,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
+import { getPublicStoriesForEvent } from "@/lib/stories/story-public.server";
 import { eventSlugRedirectHref } from "@/lib/event-slug-redirects";
 import {
   currentNewsletterProductionCanaryEnvironment,
@@ -87,6 +88,8 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   }
   if (!event) notFound();
 
+  const stories = await getPublicStoriesForEvent(event.id);
+
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/evento/${event.slug || slug}`;
   const imageUrl = absoluteImageUrl(getEventImage(event), siteUrl);
@@ -131,7 +134,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
       ) : null}
       <EventDetailV2
         model={model}
-        publicContext={{ event, faqItems, newsletterPublicLaunchEnabled }}
+        publicContext={{ event, faqItems, newsletterPublicLaunchEnabled, stories }}
         routeContext="public"
       />
     </>

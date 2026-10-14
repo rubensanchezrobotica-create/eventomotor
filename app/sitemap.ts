@@ -11,6 +11,8 @@ import {
   evaluateNewsletterPublicLaunchResendConfiguration,
 } from "@/lib/newsletter/resend-config.server";
 import type { EventRow } from "@/lib/supabase";
+import { listPublicStories } from "@/lib/stories/story-public.server";
+import { buildStoriesSitemap } from "@/lib/stories/story-public-seo";
 
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
 type SitemapEvent = Pick<EventRow, "slug" | "start_date" | "created_at" | "updated_at" | "visible" | "event_status">;
@@ -95,6 +97,7 @@ async function getSitemapEvents(): Promise<SitemapEvent[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const events = await getSitemapEvents();
+  const stories = await listPublicStories();
   const now = new Date();
   const publicNewsletter = evaluateNewsletterPublicLaunchResendConfiguration(
     currentNewsletterPublicLaunchEnvironment(),
@@ -112,6 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry("/calendario", now, "daily", 0.9),
     sitemapEntry("/disciplinas", now, "weekly", 0.8),
     sitemapEntry("/zonas", now, "weekly", 0.8),
+    sitemapEntry("/historias", now, "weekly", 0.6),
     ...(publicNewsletter.enabled && !canaryNewsletter.enabled
       ? [sitemapEntry("/newsletter", now, "weekly", 0.6)]
       : []),
@@ -133,5 +137,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sitemapEntry(`/evento/${event.slug}`, eventLastModified(event), "weekly", 0.7),
     );
 
-  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...eventEntries];
+  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...eventEntries, ...buildStoriesSitemap(stories)];
 }

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import StoryEditor from "@/components/admin/stories/StoryEditor.client";
 import StoryCreditRoles, { hasUnlistedStoryCredits } from "@/components/admin/stories/StoryCreditRoles";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
@@ -51,6 +52,7 @@ export default async function StoryEditPage({
       {query.created ? <p className={styles.notice}>Borrador creado.</p> : null}
       {query.saved ? <p className={styles.notice}>Sección guardada.</p> : null}
       {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
+      <Link href={`/admin/historias/${id}/publicacion`}>Revisar preparación y publicación</Link>
       {!editable ? <p className={styles.notice}>PUBLISHED/ARCHIVED es de sólo lectura en A16C.</p> : null}
       <StoryEditor
         disciplines={SEO_DISCIPLINES.map(({ slug, title }) => ({ value: slug, label: title }))}

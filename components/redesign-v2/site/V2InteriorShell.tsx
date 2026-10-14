@@ -40,6 +40,7 @@ export type V2InteriorShellProps = {
   navigationMode: InteriorNavigationMode;
   newsletterContextualCta?: boolean;
   title: string;
+  hideHero?: boolean;
   trackPublicEventDetailNavigation?: boolean;
   upcomingCount?: number;
 };
@@ -132,6 +133,7 @@ export default async function V2InteriorShell({
   navigationMode,
   newsletterContextualCta = false,
   title,
+  hideHero = false,
   trackPublicEventDetailNavigation = false,
   upcomingCount,
 }: V2InteriorShellProps) {
@@ -174,7 +176,7 @@ export default async function V2InteriorShell({
       />
 
       <main id="contenido-redesign-v2-interior">
-        <section
+        {!hideHero ? <section
           aria-labelledby="redesign-v2-interior-title"
           className={`${styles.pageHero} ${heroAside ? styles.pageHeroWithAside : ""}`}
           style={heroImageSrc ? { backgroundImage: `linear-gradient(90deg, rgba(5, 7, 10, 0.96) 0%, rgba(5, 7, 10, 0.8) 48%, rgba(5, 7, 10, 0.28) 100%), url(${heroImageSrc})` } : undefined}
@@ -202,7 +204,7 @@ export default async function V2InteriorShell({
             <p>{description}</p>
             {heroAside ? <div className={styles.heroAside}>{heroAside}</div> : null}
           </div>
-        </section>
+        </section> : null}
 
         {children}
         {newsletterContextualCta && newsletterVisible ? (

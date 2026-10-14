@@ -14,6 +14,7 @@ import type { EventItem } from "@/types/event";
 import type { EventDetailV2Model } from "./event-detail-model";
 import ScheduleProgram from "./ScheduleProgram";
 import styles from "./EventDetailV2.module.css";
+import RelatedStories from "../stories/RelatedStories";
 
 type EventDetailV2Props = {
   model: EventDetailV2Model;
@@ -25,6 +26,7 @@ type EventDetailV2Props = {
       event: EventItem;
       faqItems?: readonly EventFaqItem[];
       newsletterPublicLaunchEnabled: boolean;
+      stories?: readonly { slug: string; title: string; collection: import("@/lib/stories/story-types").StoryCollection }[];
     };
   }
 );
@@ -279,6 +281,8 @@ export default function EventDetailV2(props: EventDetailV2Props) {
                 ) : null}
               </div>
             ) : null}
+
+            {publicContext ? <RelatedStories stories={publicContext.stories ?? []} eventTitle={model.title} /> : null}
 
             {publicContext?.faqItems?.length ? (
               <section aria-labelledby="event-faq-title" className={styles.faq}>
