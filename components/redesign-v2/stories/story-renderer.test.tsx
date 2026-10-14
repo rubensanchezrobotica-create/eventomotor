@@ -268,8 +268,9 @@ test("jerarquía y bloques: apertura sin estilos especiales, H2/H3 explícitos, 
 test("Preview conserva servicio/auth/no-store y deja herramientas fuera de StoryArticle", () => {
   const source = readFileSync("app/admin/historias/[id]/preview/page.tsx", "utf8");
   assert.ok(source.indexOf("Volver al editor") < source.indexOf("<StoryArticle"));
-  assert.match(source, /getStoryForAdmin\(id\)/);
-  assert.match(source, /resolveStoryMediaForAdmin\(id, bundle.media\)/);
+  assert.match(source, /getAuthenticatedStoryPreview\(id\)/);
+  assert.match(source, /from "@\/lib\/stories\/story-admin-read.server"/);
+  assert.doesNotMatch(source, /\bgetStoryForAdmin\(|\bresolveStoryMediaForAdmin\(/);
   assert.doesNotMatch(source, /\.insert\(|\.update\(|publishStory|promote|createSignedUploadUrl/);
   const css = readFileSync("components/redesign-v2/stories/StoryArticle.module.css", "utf8");
   assert.match(css, /--story-image-cap: min\(64svh, 600px\)/);
