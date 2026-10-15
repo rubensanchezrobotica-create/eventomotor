@@ -19,7 +19,11 @@ type SitemapEvent = Pick<EventRow, "slug" | "start_date" | "created_at" | "updat
 
 const EVENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const revalidate = 3600;
+// Metadata routes are cached by default. Publication/archival must be visible on
+// the next canonical request, independently of deployment or action invalidation.
+// This opt-out is scoped to /sitemap.xml, not the rest of the site.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function sitemapEntry(
   path: string,

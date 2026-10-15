@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createNetServer } from "node:net";
 import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { ADMIN_SESSION_COOKIE, ADMIN_MEDIA_SESSION_COOKIE, ADMIN_SESSION_TTL_SECONDS, createAdminSessionToken } from "@/lib/admin-session";
 
@@ -24,6 +25,15 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     width: 1200, height: 800, mime_type: "image/png", byte_size: 100, alt_text: "SYNTHETIC_PRIVATE_ALT", caption: "SYNTHETIC_PRIVATE_CAPTION", credit: person.display_name,
     rights_type: "OWN", rights_notes: "SYNTHETIC_PRIVATE_RIGHTS", created_at: s.created_at, updated_at: s.updated_at }));
   const credits = stories.map((s) => ({ story_id: s.id, person_id: person.id, role: "TEXT", sort_order: 0 }));
+  // Mutable synthetic source: the same production server must observe publishing,
+  // edits and archival without rebuilding or calling a cache invalidation action.
+  const sitemapStory = { ...stories[0], id: "d1000000-0000-4000-8000-000000000004",
+    slug: "synthetic-sitemap-chronicle", status: "DRAFT", published_at: null as string | null,
+    hero_media_id: "d2000000-0000-4000-8000-000000000004" };
+  const sitemapMedia = { ...media[0], id: sitemapStory.hero_media_id, story_id: sitemapStory.id,
+    bucket_id: "story-media", mime_type: "image/webp",
+    object_path: `${sitemapStory.id}/${sitemapStory.hero_media_id}/asset.webp` };
+  const sitemapCredit = { ...credits[0], story_id: sitemapStory.id };
   // Existing strict public agenda intentionally rejects an entirely empty DB.
   // One public synthetic event supports prerendering without production access.
   const publicEvents = [{ id: "synthetic-http-fixture-event", slug: "synthetic-http-fixture-event", title: "Synthetic public event",
@@ -39,7 +49,7 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     if (url.pathname.startsWith("/rest/v1/")) {
       reads++;
       const table = url.pathname.split("/").at(-1);
-      const records = table === "stories" ? stories : table === "story_media" ? media : table === "editorial_people" ? [person] : table === "story_credits" ? credits : table === "events" ? publicEvents : [];
+      const records = table === "stories" ? [...stories, sitemapStory] : table === "story_media" ? [...media, sitemapMedia] : table === "editorial_people" ? [person] : table === "story_credits" ? [...credits, sitemapCredit] : table === "events" ? publicEvents : [];
       const rows = records.filter((row) => [...url.searchParams].every(([field, filter]) => !filter.startsWith("eq.") || String((row as Record<string, unknown>)[field]) === filter.slice(3)));
       return send(rows);
     }
@@ -123,4 +133,49 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
   t.diagnostic(`STORIES_HTTP_SECURITY_NEGATIVE_RESPONSES=${checked}`);
   t.diagnostic("STORIES_HTML_FLIGHT_PREFETCH_NAVIGATION_AUXILIARY_GATES=PASS");
   t.diagnostic("STORIES_VALID_SESSION_PREVIEW_AND_NO_STORE=PASS");
+  await t.test("canonical sitemap reflects publication, updated lastmod and archival without another build", async () => {
+    const prerender = JSON.parse(readFileSync(".next/prerender-manifest.json", "utf8"));
+    assert.equal(prerender.routes["/sitemap.xml"], undefined, "sitemap is not a prerendered/ISR snapshot");
+    const storyUrl = `https://www.eventomotor.com/historias/${sitemapStory.slug}`;
+    const locations = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+    const readSitemap = async () => {
+      // Deliberately no query, cookies, cache-busting headers or revalidation call.
+      const response = await fetch(`${origin}/sitemap.xml`);
+      const xml = await response.text();
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("content-type") ?? "", /xml/);
+      assert.ok(noPrivate(xml), "sitemap contains no private content or signed locators");
+      const urls = locations(xml);
+      assert.equal(new Set(urls).size, urls.length, "no duplicate canonical URLs");
+      for (const story of stories) assert.ok(!urls.includes(`https://www.eventomotor.com/historias/${story.slug}`));
+      return { xml, urls, cacheControl: response.headers.get("cache-control") ?? "" };
+    };
+    const before = await readSitemap();
+    assert.ok(!before.urls.includes(storyUrl), "DRAFT is excluded");
+    assert.ok(before.urls.includes("https://www.eventomotor.com/evento/synthetic-http-fixture-event"));
+    assert.ok(before.urls.some((url) => url.includes("/disciplinas/")));
+    assert.ok(before.urls.some((url) => url.includes("/zonas/")));
+    sitemapStory.status = "READY";
+    assert.deepEqual((await readSitemap()).urls, before.urls, "READY is excluded");
+    sitemapStory.status = "PUBLISHED";
+    sitemapStory.published_at = "2030-01-02T12:00:00Z";
+    sitemapStory.updated_at = "2030-01-02T12:00:00Z";
+    const published = await readSitemap();
+    assert.ok(published.urls.includes(storyUrl), "publication appears on the very next canonical request");
+    // Next's metadata handler emits this header even for force-dynamic routes.
+    // Zero freshness plus must-revalidate, not a fabricated no-store header.
+    assert.match(published.cacheControl, /max-age=0/);
+    assert.match(published.cacheControl, /must-revalidate/);
+    assert.doesNotMatch(published.cacheControl, /s-maxage=[1-9]|stale-while-revalidate/);
+    assert.deepEqual(published.urls.filter((url) => url !== storyUrl), before.urls, "all existing event, taxonomy and static URLs are preserved");
+    sitemapStory.updated_at = "2030-01-03T13:00:00Z";
+    const updated = await readSitemap();
+    const entry = updated.xml.split("<url>").find((part) => part.includes(`<loc>${storyUrl}</loc>`));
+    assert.ok(entry?.includes("<lastmod>2030-01-03T13:00:00.000Z</lastmod>"), "lastmod is not a stale published snapshot");
+    assert.deepEqual(updated.urls, published.urls);
+    sitemapStory.status = "ARCHIVED";
+    assert.deepEqual((await readSitemap()).urls, before.urls, "archival disappears on the next request without disturbing other URLs");
+    t.diagnostic("STORIES_CANONICAL_SITEMAP_PUBLICATION_UPDATE_ARCHIVAL=PASS");
+    t.diagnostic("STORIES_SITEMAP_EXISTING_URLS_AND_PRIVACY=PASS");
+  });
 });
