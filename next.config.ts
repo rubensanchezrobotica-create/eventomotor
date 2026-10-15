@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PUBLIC_NAVIGATION } from "./lib/public-navigation";
+import { STORY_IMAGE_REMOTE_PATTERN } from "./lib/stories/story-image-delivery";
 
 const legacyRedirect = (source: string, destination: string) => ({
   source,
@@ -8,6 +9,11 @@ const legacyRedirect = (source: string, destination: string) => ({
 });
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [STORY_IMAGE_REMOTE_PATTERN],
+    // Retain the default for all existing V2 images; 90 is editorial-only.
+    qualities: [75, 90],
+  },
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [

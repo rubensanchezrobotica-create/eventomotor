@@ -9,6 +9,8 @@ on:
       - "database/migrations/20261013120000_story_transactional_publication.sql"
       - "lib/stories/story-public*.ts"
       - "lib/stories/story-home*.ts"
+      - "lib/stories/story-image*.ts"
+      - "next.config.ts"
       - "lib/stories/story-launch*.ts"
       - "app/historias/**"
       - "app/sitemap.ts"
@@ -39,6 +41,7 @@ on:
       - codex/historias-preview-p0
       - codex/historias-sitemap-cache
       - codex/historias-home-editorial
+      - codex/historias-image-performance
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
@@ -46,6 +49,8 @@ on:
       - "database/migrations/20261013120000_story_transactional_publication.sql"
       - "lib/stories/story-public*.ts"
       - "lib/stories/story-home*.ts"
+      - "lib/stories/story-image*.ts"
+      - "next.config.ts"
       - "lib/stories/story-launch*.ts"
       - "app/historias/**"
       - "app/sitemap.ts"
@@ -147,6 +152,7 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-home.server.test.ts
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test tests/stories/story-home-section.test.tsx
           npx eslint lib/stories/story-home.server.ts lib/stories/story-home.server.test.ts components/redesign-v2/stories/HomeStoriesSection.tsx components/redesign-v2/RedesignV2Home.tsx tests/stories/story-home-section.test.tsx
+          npx eslint lib/stories/story-image-delivery.ts components/redesign-v2/stories/StoryArticle.tsx components/redesign-v2/stories/StoryRenderer.tsx components/redesign-v2/stories/story-renderer.test.tsx next.config.ts
 
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs

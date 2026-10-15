@@ -97,6 +97,19 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   assert.ok(online, "isolated Next server starts");
+  // The shared optimizer must never accept private Storage paths, signed query
+  // URLs, unrelated hosts, or local addresses, even with a known media ID.
+  for (const src of [
+    "https://lovhbsxihpggrwnunjcz.supabase.co/storage/v1/object/sign/story-media-drafts/synthetic/asset.png?token=SYNTHETIC_ONLY",
+    "https://lovhbsxihpggrwnunjcz.supabase.co/storage/v1/object/public/story-media/synthetic/asset.png?token=SYNTHETIC_ONLY",
+    "https://untrusted.example/storage/v1/object/public/story-media/synthetic/asset.png",
+    `http://127.0.0.1:${fixturePort}/storage/v1/object/public/story-media/synthetic/asset.png`,
+  ]) {
+    const beforeReads = reads, beforeSignings = signings;
+    const denied = await fetch(`${origin}/_next/image?${new URLSearchParams({ url: src, w: "640", q: "90" })}`);
+    assert.equal(denied.status, 400, "private/untrusted optimizer request is rejected before fetching");
+    assert.equal(reads, beforeReads); assert.equal(signings, beforeSignings);
+  }
   const valid = createAdminSessionToken(secret);
   const expired = createAdminSessionToken(secret, Date.now() - (ADMIN_SESSION_TTL_SECONDS + 60) * 1000);
   const sessions = [undefined, `${ADMIN_SESSION_COOKIE}=invalid; ${ADMIN_MEDIA_SESSION_COOKIE}=invalid`, `${ADMIN_SESSION_COOKIE}=${expired}; ${ADMIN_MEDIA_SESSION_COOKIE}=${expired}`, `${ADMIN_MEDIA_SESSION_COOKIE}=${valid}`];

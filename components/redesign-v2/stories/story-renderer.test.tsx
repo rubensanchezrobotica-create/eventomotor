@@ -5,6 +5,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { StoryContentBlock } from "../../../lib/stories/story-types";
 import { validateStoryDocument } from "../../../lib/stories/story-validation";
+import { isOptimizableStoryImage, STORY_IMAGE_REMOTE_PATTERN } from "../../../lib/stories/story-image-delivery";
 // Node does not process CSS Modules. Keep the real React components and replace
 // only the stylesheet loader; layout is verified in the actual Next preview.
 const require = createRequire(import.meta.url);
@@ -13,6 +14,8 @@ require.extensions[".css"] = (module) => {
 };
 const { default: StoryRenderer } = require("./StoryRenderer") as typeof import("./StoryRenderer");
 const { default: StoryArticle } = require("./StoryArticle") as typeof import("./StoryArticle");
+const { ImageConfigContext } = require("next/dist/shared/lib/image-config-context.shared-runtime");
+const { imageConfigDefault } = require("next/dist/shared/lib/image-config");
 
 function futureRendererContract(block: StoryContentBlock) {
   switch (block.type) {
@@ -277,4 +280,50 @@ test("Preview conserva servicio/auth/no-store y deja herramientas fuera de Story
   assert.match(css, /--story-pair-cap: min\(60svh, 520px\)/);
   assert.match(css, /grid-template-columns: minmax\(0, 1fr\)/);
   assert.doesNotMatch(css, /overflow[^;]*hidden|object-fit:\s*cover/);
+});
+
+const publicPhoto = {
+  ...syntheticMedia.horizontal,
+  resolvedUrl: "https://lovhbsxihpggrwnunjcz.supabase.co/storage/v1/object/public/story-media/10000000-0000-4000-8000-000000000001/20000000-0000-4000-8000-000000000001/asset.png",
+};
+function renderDelivery(delivery?: "public" | "private", src = publicPhoto.resolvedUrl) {
+  return renderToStaticMarkup(<ImageConfigContext.Provider value={{ ...imageConfigDefault, qualities: [75, 90], remotePatterns: [STORY_IMAGE_REMOTE_PATTERN] }}>
+    <StoryArticle title="Synthetic article" dek="Unchanged dek" type="CRONICA" collection="DESDE_DENTRO"
+      heroMediaId="photo" media={{ photo: { ...publicPhoto, resolvedUrl: src } }} people={{}} credits={[]} events={{}}
+      blocks={[{ id: "one", type: "IMAGE", mediaId: "photo" }, { id: "pair", type: "IMAGE_PAIR", mediaIds: ["photo", "photo"] }, { id: "gallery", type: "GALLERY", mediaIds: ["photo"] }]}
+      imageDelivery={delivery} />
+  </ImageConfigContext.Provider>);
+}
+
+test("public Article optimizes only the public photos: responsive source, high-priority eager hero and lazy interior", () => {
+  const html = renderDelivery("public");
+  const imgs = [...html.matchAll(/<img\b[^>]+>/g)].map(m => m[0]);
+  assert.equal(imgs.length, 5);
+  for (const img of imgs) {
+    assert.match(img, /srcSet="[^\"]*\/_next\/image/);
+    assert.match(img, /sizes="\(max-width: 600px\) calc\(100vw - 48px\)/);
+    assert.match(img, /q=90/);
+    assert.match(img, /width="1200" height="900"/);
+    assert.match(img, /decoding="async"/);
+  }
+  assert.match(imgs[0], /loading="eager"/);
+  assert.match(imgs[0], /fetchPriority="high"/);
+  for (const img of imgs.slice(1)) assert.match(img, /loading="lazy"/);
+  assert.match(html, /Unchanged dek/);
+  assert.equal((html.match(/Pie íntegro|Otro pie íntegro/g) ?? []).length, 5);
+});
+
+test("private delivery is the default and never sends signed or noncanonical URLs to the persistent optimizer", () => {
+  const signed = publicPhoto.resolvedUrl.replace('/object/public/story-media/', '/object/sign/story-media-drafts/') + '?token=SYNTHETIC_ONLY';
+  for (const html of [renderDelivery(), renderDelivery("private"), renderDelivery("public", signed)]) {
+    assert.doesNotMatch(html, /\/_next\/image|srcSet=|sizes=/);
+    assert.match(html, /<img/);
+  }
+  for (const src of [signed, publicPhoto.resolvedUrl + '?x=1', publicPhoto.resolvedUrl + '#fragment', publicPhoto.resolvedUrl.replace('https:', 'http:'), publicPhoto.resolvedUrl.replace('lovhbsxihpggrwnunjcz', 'untrusted'), 'http://127.0.0.1/private.png']) assert.equal(isOptimizableStoryImage(src), false);
+  assert.equal(isOptimizableStoryImage(publicPhoto.resolvedUrl), true);
+  const config = readFileSync("next.config.ts", "utf8");
+  assert.match(config, /remotePatterns: \[STORY_IMAGE_REMOTE_PATTERN\]/);
+  assert.doesNotMatch(config, /dangerouslyAllowLocalIP|dangerouslyAllowSVG|unoptimized: true|loaderFile/);
+  assert.match(readFileSync("app/historias/[slug]/page.tsx", "utf8"), /imageDelivery="public"/);
+  assert.doesNotMatch(readFileSync("app/admin/historias/[id]/preview/page.tsx", "utf8"), /imageDelivery="public"/);
 });

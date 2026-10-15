@@ -11,6 +11,7 @@ type Props = {
   events: Readonly<Record<string, StoryRendererEvent>>;
   credits: readonly StoryCredit[];
   people: Readonly<Record<string, string>>;
+  imageDelivery?: "private" | "public";
 };
 
 /** Presentation only: shared by the private preview and future public reader. */
@@ -30,9 +31,9 @@ export default function StoryArticle(props: Props) {
             </div>
           ) : null}
         </div>
-        {props.heroMediaId ? <StoryImage item={props.media[props.heroMediaId]} kind="hero" /> : null}
+        {props.heroMediaId ? <StoryImage item={props.media[props.heroMediaId]} kind="hero" imageDelivery={props.imageDelivery} /> : null}
       </header>
-      <StoryRenderer blocks={props.blocks} events={props.events} media={props.media} />
+      <StoryRenderer blocks={props.blocks} events={props.events} media={props.media} imageDelivery={props.imageDelivery} />
     </article>
   );
 }

@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
+import { isOptimizableStoryImage, storyImageSizes } from "@/lib/stories/story-image-delivery";
 import type { StoryContentBlock, StoryInlineNode } from "@/lib/stories/story-types";
 import { formatEventDetailDate } from "../event-detail/event-detail-model";
 import { storyImageRatio, storyPairGeometry } from "./story-presentation";
@@ -16,6 +18,7 @@ type Props = {
   blocks: readonly StoryContentBlock[];
   media: Readonly<Record<string, StoryRendererMedia>>;
   events: Readonly<Record<string, StoryRendererEvent>>;
+  imageDelivery?: "private" | "public";
 };
 
 function InlineContent({ nodes }: { nodes: readonly StoryInlineNode[] }) {
@@ -30,8 +33,9 @@ function InlineContent({ nodes }: { nodes: readonly StoryInlineNode[] }) {
   });
 }
 
-export function StoryImage({ item, kind = "single", blockId }: {
+export function StoryImage({ item, kind = "single", blockId, imageDelivery = "private" }: {
   item: StoryRendererMedia | undefined; kind?: "single" | "pair" | "hero"; blockId?: string;
+  imageDelivery?: "private" | "public";
 }) {
   if (!item) return <p className={styles.unavailable} data-story-block-id={blockId}>Imagen no disponible.</p>;
   const ratio = storyImageRatio(item);
@@ -40,10 +44,17 @@ export function StoryImage({ item, kind = "single", blockId }: {
     <figure className={`${styles.figure} ${styles[kind === "pair" ? "figure" : kind]} ${ratio === null ? styles.unknown : ""}`}
       data-story-block-id={blockId} data-story-media-id={item.id} data-story-orientation={orientation}
       style={ratio === null ? undefined : { "--story-ratio": ratio } as CSSProperties}>
-      {/* Signed private images must bypass Next's persistent image cache. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt={item.altText} height={ratio === null ? undefined : item.height}
-        src={item.resolvedUrl} width={ratio === null ? undefined : item.width} />
+      {imageDelivery === "public" && ratio !== null && isOptimizableStoryImage(item.resolvedUrl) ? (
+        <Image alt={item.altText} src={item.resolvedUrl} width={item.width} height={item.height}
+          sizes={storyImageSizes(kind, ratio)} quality={90} decoding="async"
+          loading={kind === "hero" ? "eager" : "lazy"}
+          fetchPriority={kind === "hero" ? "high" : "auto"} />
+      ) : (
+        // Signed private images must bypass Next's persistent image cache.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt={item.altText} height={ratio === null ? undefined : item.height}
+          src={item.resolvedUrl} width={ratio === null ? undefined : item.width} />
+      )}
       {(item.caption || item.credit) ? (
         <figcaption className={styles.caption}>{item.caption}
           {item.credit ? <span className={styles.photoCredit}>Fotografía: {item.credit}</span> : null}
@@ -53,7 +64,7 @@ export function StoryImage({ item, kind = "single", blockId }: {
   );
 }
 
-export default function StoryRenderer({ blocks, media, events }: Props) {
+export default function StoryRenderer({ blocks, media, events, imageDelivery = "private" }: Props) {
   const firstParagraphId = blocks.find((block) => block.type === "PARAGRAPH")?.id;
   return (
     <div className={styles.body} data-story-body>
@@ -68,18 +79,18 @@ export default function StoryRenderer({ blocks, media, events }: Props) {
           case "PULL_QUOTE":
             return <blockquote className={styles.quote} data-story-block-id={block.id} key={block.id}><p>{block.text}</p>{block.attribution ? <cite>{block.attribution}</cite> : null}</blockquote>;
           case "IMAGE":
-            return <StoryImage blockId={block.id} item={media[block.mediaId]} key={block.id} />;
+            return <StoryImage blockId={block.id} item={media[block.mediaId]} key={block.id} imageDelivery={imageDelivery} />;
           case "IMAGE_PAIR": {
             const geometry = storyPairGeometry(block.mediaIds.map((id) => media[id]));
             return (
               <div className={geometry ? styles.pair : styles.stackedPair} data-story-block-id={block.id} key={block.id}
                 style={geometry ? { "--story-pair-columns": geometry.columns, "--story-pair-sum": geometry.sum } as CSSProperties : undefined}>
-                {block.mediaIds.map((id) => <StoryImage item={media[id]} key={id} kind={geometry ? "pair" : "single"} />)}
+                {block.mediaIds.map((id) => <StoryImage item={media[id]} key={id} kind={geometry ? "pair" : "single"} imageDelivery={imageDelivery} />)}
               </div>
             );
           }
           case "GALLERY":
-            return <div className={styles.gallery} data-story-block-id={block.id} key={block.id}>{block.mediaIds.map((id) => <StoryImage item={media[id]} key={id} />)}</div>;
+            return <div className={styles.gallery} data-story-block-id={block.id} key={block.id}>{block.mediaIds.map((id) => <StoryImage item={media[id]} key={id} imageDelivery={imageDelivery} />)}</div>;
           case "EVENT_REFERENCE": {
             const event = events[block.eventId];
             const date = formatEventDetailDate(event?.date, null);
