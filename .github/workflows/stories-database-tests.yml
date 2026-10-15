@@ -8,6 +8,7 @@ on:
       - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/migrations/20261013120000_story_transactional_publication.sql"
       - "lib/stories/story-public*.ts"
+      - "lib/stories/story-home*.ts"
       - "lib/stories/story-launch*.ts"
       - "app/historias/**"
       - "app/sitemap.ts"
@@ -22,6 +23,7 @@ on:
       - "app/admin/login/**"
       - "components/admin/stories/**"
       - "components/redesign-v2/stories/**"
+      - "components/redesign-v2/RedesignV2Home.tsx"
       - "lib/supabase.ts"
       - "package.json"
       - "package-lock.json"
@@ -36,12 +38,14 @@ on:
       - codex/historias-public-launch
       - codex/historias-preview-p0
       - codex/historias-sitemap-cache
+      - codex/historias-home-editorial
     paths:
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
       - "database/migrations/20261013120000_story_transactional_publication.sql"
       - "lib/stories/story-public*.ts"
+      - "lib/stories/story-home*.ts"
       - "lib/stories/story-launch*.ts"
       - "app/historias/**"
       - "app/sitemap.ts"
@@ -56,6 +60,7 @@ on:
       - "app/admin/login/**"
       - "components/admin/stories/**"
       - "components/redesign-v2/stories/**"
+      - "components/redesign-v2/RedesignV2Home.tsx"
       - "lib/supabase.ts"
       - "package.json"
       - "package-lock.json"
@@ -136,6 +141,12 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-admin-read.server.test.ts
           node --import tsx --test tests/stories/story-private-http.test.ts
           npx eslint app/sitemap.ts lib/stories/story-admin-read.server.ts lib/stories/story-admin-read.server.test.ts tests/stories/story-private-http.test.ts
+
+      - name: Run Home editorial public projection and rendering tests
+        run: |
+          node --conditions=react-server --import tsx --test lib/stories/story-home.server.test.ts
+          node --conditions=react-server --experimental-test-module-mocks --import tsx --test tests/stories/story-home-section.test.tsx
+          npx eslint lib/stories/story-home.server.ts lib/stories/story-home.server.test.ts components/redesign-v2/stories/HomeStoriesSection.tsx components/redesign-v2/RedesignV2Home.tsx tests/stories/story-home-section.test.tsx
 
       - name: Prepare isolated Stories workspace
         run: node scripts/prepare-stories-supabase-ci.mjs

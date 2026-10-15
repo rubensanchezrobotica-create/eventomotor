@@ -28,9 +28,11 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
   // Mutable synthetic source: the same production server must observe publishing,
   // edits and archival without rebuilding or calling a cache invalidation action.
   const sitemapStory = { ...stories[0], id: "d1000000-0000-4000-8000-000000000004",
+    title: "Synthetic published Home story", dek: "Synthetic editorial summary.",
     slug: "synthetic-sitemap-chronicle", status: "DRAFT", published_at: null as string | null,
     hero_media_id: "d2000000-0000-4000-8000-000000000004" };
   const sitemapMedia = { ...media[0], id: sitemapStory.hero_media_id, story_id: sitemapStory.id,
+    alt_text: "Synthetic public hero",
     bucket_id: "story-media", mime_type: "image/webp",
     object_path: `${sitemapStory.id}/${sitemapStory.hero_media_id}/asset.webp` };
   const sitemapCredit = { ...credits[0], story_id: sitemapStory.id };
@@ -168,6 +170,12 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.match(published.cacheControl, /must-revalidate/);
     assert.doesNotMatch(published.cacheControl, /s-maxage=[1-9]|stale-while-revalidate/);
     assert.deepEqual(published.urls.filter((url) => url !== storyUrl), before.urls, "all existing event, taxonomy and static URLs are preserved");
+    const home = await fetch(origin + "/");
+    const homeHtml = await home.text();
+    assert.equal(home.status, 200);
+    assert.ok(homeHtml.includes("data-home-stories") && homeHtml.includes(sitemapStory.title));
+    assert.ok(homeHtml.includes(`href="/historias/${sitemapStory.slug}"`));
+    assert.ok(!/story-media-drafts|\/object\/sign\/|rights_notes|SYNTHETIC_PRIVATE_BODY/.test(homeHtml), "Home only serializes published header/hero, never private article content");
     sitemapStory.updated_at = "2030-01-03T13:00:00Z";
     const updated = await readSitemap();
     const entry = updated.xml.split("<url>").find((part) => part.includes(`<loc>${storyUrl}</loc>`));
@@ -175,6 +183,8 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.deepEqual(updated.urls, published.urls);
     sitemapStory.status = "ARCHIVED";
     assert.deepEqual((await readSitemap()).urls, before.urls, "archival disappears on the next request without disturbing other URLs");
+    const emptyHome = await fetch(origin + "/");
+    assert.ok(!(await emptyHome.text()).includes("data-home-stories"), "no published Story means no empty Home module");
     t.diagnostic("STORIES_CANONICAL_SITEMAP_PUBLICATION_UPDATE_ARCHIVAL=PASS");
     t.diagnostic("STORIES_SITEMAP_EXISTING_URLS_AND_PRIVACY=PASS");
   });

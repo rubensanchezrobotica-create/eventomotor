@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import Link from "next/link";
 import TrackLink from "@/components/analytics/TrackLink";
 import EventomotorLogo from "@/components/brand/EventomotorLogo";
@@ -7,6 +8,7 @@ import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
 import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
+import HomeStoriesSection from "./stories/HomeStoriesSection";
 import SearchExperience from "./SearchExperience.client";
 import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
 import { V2GlobalHeader } from "./site/V2InteriorShell";
@@ -191,6 +193,8 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
             </div>
           </div>
         </section>
+
+        <Suspense fallback={null}><HomeStoriesSection /></Suspense>
 
         {newsletterVisible ? <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
           <div className={`${styles.shell} ${styles.newsletterLayout}`}>
