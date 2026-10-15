@@ -1,0 +1,10 @@
+[
+  {"file":"01-wec-barcelona-hero.webp","width":1200,"height":675,"bytes":133058,"sha256":"c49b2d529e8a5a52b07344ae6436ab7045780c18bf1b484081214eac029b6c2d"},
+  {"file":"02-worldsbk-jerez.webp","width":800,"height":500,"bytes":57292,"sha256":"ed8a40a47f3e49f26f350fbf956ad446adcd87606f3c1e7c6bf20e57b1348000"},
+  {"file":"03-rallyracc-catalunya-gr-yaris.webp","width":800,"height":500,"bytes":105794,"sha256":"ce69fe0f18588180aa124c5201069461a47fe5516e1a7341ad267def1dbfd91e"},
+  {"file":"04-bmw-motorrad-days-peniscola.webp","width":800,"height":500,"bytes":75710,"sha256":"409c3d88327bbb4179d2c1a3bdfea21219757aeb6fbc4575428673349e14f938"},
+  {"file":"05-motorland-classic-festival.webp","width":800,"height":500,"bytes":64296,"sha256":"24e23fa2ceb77b20a2f2c25423d0b2edd5b9567f25d48a50aa1bdefd3dd1a067"},
+  {"file":"06-jarama-clasicos-madrid.webp","width":800,"height":500,"bytes":68466,"sha256":"37c8ed1159f76b4f7853f62f395d4cdb939d2e7245b6e22c6569f325cb2ebf05"},
+  {"file":"eventomotor-header.png","width":1240,"height":200,"bytes":37708,"sha256":"59e491138251d2447933ceb838875a13b3c4522df43c8cbd6277836f9eae9bf9"},
+  {"file":"eventomotor-logo.png","width":520,"height":56,"bytes":26745,"sha256":"d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc"}
+]
