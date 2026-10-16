@@ -57,7 +57,8 @@ test("real Home loader reads a bounded PUBLISHED header and hero, returns only t
     const result = await listHomeStories();
     assert.equal(result.length, 1);
     assert.deepEqual(Object.keys(result[0]).sort(), ["hero", "slug", "summary", "title"]);
-    assert.deepEqual(Object.keys(result[0].hero).sort(), ["alt", "height", "src", "width"]);
+    assert.deepEqual(Object.keys(result[0].hero).sort(), ["alt", "height", "publicImage", "src", "width"]);
+    assert.equal(result[0].hero.publicImage, undefined, "loopback fixtures cannot opt into public CDN delivery");
     assert.match(result[0].hero.src, /\/object\/public\/story-media\//);
     assert.ok(!/PRIVATE_|story-media-drafts|rights_notes|content_blocks|object_path|published_at/.test(JSON.stringify(result)));
     assert.equal(calls.length, 3);

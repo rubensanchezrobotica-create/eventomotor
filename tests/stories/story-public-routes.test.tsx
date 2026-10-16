@@ -43,6 +43,16 @@ test("actual public route renders the shared article, single-story index and emp
   const list = renderToStaticMarkup(await index.default());
   assert.equal((list.match(/<article\b/g) ?? []).length, 1);
   assert.match(list, /href="\/historias\/synthetic-public-story"/);
+  sample.media[mediaId].publicImage = { src: "https://example.test/responsive-w1200.webp", srcSet: "https://example.test/responsive-w400.webp 400w, https://example.test/responsive-w1200.webp 1200w" };
+  const responsiveList = renderToStaticMarkup(await index.default());
+  const responsiveArticle = renderToStaticMarkup(await article.default({ params: Promise.resolve({ slug: sample.slug }) }));
+  for (const markup of [responsiveList, responsiveArticle]) {
+    assert.match(markup, /srcSet="https:\/\/example.test\/responsive-w400.webp 400w,/);
+    assert.ok(!markup.includes('src="https://example.test/public-photo.webp"'));
+    assert.ok(!markup.includes("/_next/image"));
+  }
+  assert.match(responsiveArticle, /fetchPriority="high"/);
+  assert.match(responsiveArticle, /loading="lazy"/);
   const metadata = await article.generateMetadata({ params: Promise.resolve({ slug: sample.slug }) });
   assert.deepEqual(metadata.title, { absolute: "CMS SEO" });
   current = null;

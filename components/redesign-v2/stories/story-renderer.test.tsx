@@ -14,6 +14,33 @@ require.extensions[".css"] = (module) => {
 const { default: StoryRenderer } = require("./StoryRenderer") as typeof import("./StoryRenderer");
 const { default: StoryArticle } = require("./StoryArticle") as typeof import("./StoryArticle");
 
+test("public image attributes reach hero, singles, pairs and gallery; private preview remains original", () => {
+  const item = { id: "synthetic-photo", resolvedUrl: "https://example.test/original.png", width: 1200, height: 900,
+    altText: "Synthetic alt", caption: "Synthetic caption", credit: "Synthetic credit",
+    publicImage: { src: "https://example.test/responsive-w1200.webp", srcSet: "https://example.test/responsive-w400.webp 400w, https://example.test/responsive-w1200.webp 1200w" } };
+  const blocks: StoryContentBlock[] = [
+    { id: "single", type: "IMAGE", mediaId: item.id },
+    { id: "pair", type: "IMAGE_PAIR", mediaIds: [item.id, "second"] },
+    { id: "gallery", type: "GALLERY", mediaIds: [item.id] },
+  ];
+  const media = { [item.id]: item, second: { ...item, id: "second", width: 900, height: 1200 } };
+  const props = { title: "Synthetic title", dek: "Synthetic dek", type: "CRONICA" as const, collection: "DESDE_DENTRO" as const,
+    heroMediaId: item.id, blocks, media, events: {}, credits: [], people: {} };
+  const publicHtml = renderToStaticMarkup(<StoryArticle {...props} />);
+  const images = publicHtml.match(/<img\b[^>]*>/g)!;
+  assert.equal(images.length, 5);
+  assert.ok(images.every((image) => image.includes("srcSet=") && image.includes('width="') && image.includes('height="')));
+  assert.match(images[0], /loading="eager"/); assert.match(images[0], /fetchPriority="high"/);
+  assert.ok(images.slice(1).every((image) => image.includes('loading="lazy"')));
+  assert.ok(!publicHtml.includes('src="https://example.test/original.png"'));
+  const privateMedia = Object.fromEntries(Object.entries(media).map(([id, value]) => [id, { ...value, publicImage: undefined,
+    resolvedUrl: "https://example.test/object/sign/private?token=synthetic" }]));
+  const privateHtml = renderToStaticMarkup(<StoryArticle {...props} media={privateMedia} />);
+  assert.ok(!/srcSet=|sizes=|fetchPriority=|loading=/.test(privateHtml));
+  assert.match(privateHtml, /\/object\/sign\/private\?token=synthetic/);
+  assert.equal((privateHtml.match(/Synthetic caption/g) ?? []).length, 5);
+});
+
 function futureRendererContract(block: StoryContentBlock) {
   switch (block.type) {
     case "PARAGRAPH":

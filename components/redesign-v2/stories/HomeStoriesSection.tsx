@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { listHomeStories, type HomeStory } from "@/lib/stories/story-home.server";
+import { publicStoryImageProps, STORY_HOME_IMAGE_SIZES } from "@/lib/stories/story-responsive-images";
 import styles from "./HomeStoriesSection.module.css";
 
 export function HomeStoriesContent({ stories }: { stories: readonly HomeStory[] }) {
@@ -15,8 +15,10 @@ export function HomeStoriesContent({ stories }: { stories: readonly HomeStory[] 
         </div>
         <article className={styles.feature}>
           <Link className={styles.media} href={`/historias/${featured.slug}`} prefetch={false} tabIndex={-1} aria-hidden="true">
-            <Image src={featured.hero.src} alt="" width={featured.hero.width} height={featured.hero.height}
-              className={styles.image} sizes="(max-width: 760px) calc(100vw - 32px), 660px" unoptimized />
+            {/* Preverified CDN variants; no request-time transform. Layout and decorative alt stay unchanged. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={featured.hero.src} alt="" width={featured.hero.width} height={featured.hero.height}
+              className={styles.image} {...publicStoryImageProps(featured.hero.publicImage, STORY_HOME_IMAGE_SIZES)} />
           </Link>
           <div className={styles.copy}>
             <h2 id="home-stories-title"><Link href={`/historias/${featured.slug}`} prefetch={false}>{featured.title}</Link></h2>

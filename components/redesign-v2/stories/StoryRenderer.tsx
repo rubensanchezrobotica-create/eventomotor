@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { StoryContentBlock, StoryInlineNode } from "@/lib/stories/story-types";
+import { publicStoryImageProps, storyArticleImageSizes, type StoryPublicImage } from "@/lib/stories/story-responsive-images";
 import { formatEventDetailDate } from "../event-detail/event-detail-model";
 import { storyImageRatio, storyPairGeometry } from "./story-presentation";
 import styles from "./StoryArticle.module.css";
@@ -7,6 +8,7 @@ import styles from "./StoryArticle.module.css";
 export type StoryRendererMedia = {
   id: string; resolvedUrl: string; width: number; height: number;
   altText: string; caption?: string | null; credit?: string | null;
+  publicImage?: StoryPublicImage;
 };
 export type StoryRendererEvent = {
   id: string; title: string; href?: string | null;
@@ -43,7 +45,8 @@ export function StoryImage({ item, kind = "single", blockId }: {
       {/* Signed private images must bypass Next's persistent image cache. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img alt={item.altText} height={ratio === null ? undefined : item.height}
-        src={item.resolvedUrl} width={ratio === null ? undefined : item.width} />
+        src={item.resolvedUrl} width={ratio === null ? undefined : item.width}
+        {...publicStoryImageProps(item.publicImage, storyArticleImageSizes(kind, ratio ?? 1), kind === "hero")} />
       {(item.caption || item.credit) ? (
         <figcaption className={styles.caption}>{item.caption}
           {item.credit ? <span className={styles.photoCredit}>Fotografía: {item.credit}</span> : null}

@@ -6,6 +6,7 @@ import { buildCanonicalStoryMediaPublicUrl } from "./story-media.server";
 import { assertStoryMediaObjectPath, isStoryMediaMimeType, STORY_MEDIA_PUBLIC_BUCKET, STORY_MEDIA_PUBLIC_MAX_LONG_EDGE } from "./story-media-validation";
 import { collectStoryMediaIds, validateStoryPublication } from "./story-validation";
 import type { StoryCredit } from "./story-types";
+import { resolveStoryPublicImage } from "./story-responsive-images.server";
 import type { StoryRendererMedia, StoryRendererEvent } from "@/components/redesign-v2/stories/StoryRenderer";
 
 // No admin bundle, rights notes, signed URL, object locator or raw row is returned.
@@ -43,8 +44,10 @@ export function toPublicStory(source: PublicStorySource, supabaseUrl: string): P
         || !Number.isSafeInteger(item.width) || !Number.isSafeInteger(item.height) || Math.min(item.width, item.height) <= 0
         || Math.max(item.width, item.height) > STORY_MEDIA_PUBLIC_MAX_LONG_EDGE) return null;
       assertStoryMediaObjectPath(item.object_path, { storyId: story.id, mediaId: id, mimeType: item.mime_type });
-      media[id] = { id, resolvedUrl: buildCanonicalStoryMediaPublicUrl(supabaseUrl, item.object_path), width: item.width,
-        height: item.height, altText: item.alt_text, caption: item.caption, credit: item.credit };
+      const resolvedUrl = buildCanonicalStoryMediaPublicUrl(supabaseUrl, item.object_path);
+      media[id] = { id, resolvedUrl, width: item.width,
+        height: item.height, altText: item.alt_text, caption: item.caption, credit: item.credit,
+        publicImage: resolveStoryPublicImage({ src: resolvedUrl, width: item.width, height: item.height, bytes: item.byte_size }) };
     }
   } catch { return null; }
   // Defend the public boundary even if a privileged legacy writer saved a private link.

@@ -3,16 +3,18 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { buildCanonicalStoryMediaPublicUrl } from "./story-media.server";
 import { assertStoryMediaObjectPath, isStoryMediaMimeType, STORY_MEDIA_PUBLIC_MAX_LONG_EDGE } from "./story-media-validation";
+import { resolveStoryPublicImage } from "./story-responsive-images.server";
+import type { StoryPublicImage } from "./story-responsive-images";
 
 export type HomeStory = {
   slug: string;
   title: string;
   summary: string;
-  hero: { src: string; alt: string; width: number; height: number };
+  hero: { src: string; alt: string; width: number; height: number; publicImage?: StoryPublicImage };
 };
 
 const STORY_SELECT = "id,slug,status,title,dek,hero_media_id,published_at,updated_at";
-const HERO_SELECT = "id,story_id,bucket_id,object_path,mime_type,width,height,alt_text";
+const HERO_SELECT = "id,story_id,bucket_id,object_path,mime_type,width,height,alt_text,byte_size";
 
 /** Optional Home enrichment: bounded, PUBLISHED-only and no body/admin DTO. */
 export async function listHomeStories(): Promise<HomeStory[]> {
@@ -44,12 +46,13 @@ export async function listHomeStories(): Promise<HomeStory[]> {
       try {
         assertStoryMediaObjectPath(hero.object_path, { storyId: row.id, mediaId: hero.id, mimeType: hero.mime_type });
         const summary = row.dek.trim().replace(/\s+/g, " ");
+        const src = buildCanonicalStoryMediaPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", hero.object_path);
         const excerpt = summary.slice(0, 237);
         const sentenceEnd = Math.max(excerpt.lastIndexOf(". "), excerpt.lastIndexOf("! "), excerpt.lastIndexOf("? "));
         const item: HomeStory = { slug: row.slug, title: row.title.trim(),
           summary: summary.length <= 240 ? summary : sentenceEnd >= 80 ? excerpt.slice(0, sentenceEnd + 1) : `${excerpt.replace(/\s+\S*$/, "")}…`,
-          hero: { src: buildCanonicalStoryMediaPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", hero.object_path),
-            alt: hero.alt_text, width: hero.width, height: hero.height } };
+          hero: { src, alt: hero.alt_text, width: hero.width, height: hero.height,
+            publicImage: resolveStoryPublicImage({ src, width: hero.width, height: hero.height, bytes: hero.byte_size }) } };
         if (/story-media-drafts|\/object\/sign\/|[?&](?:token|signature)=/i.test(JSON.stringify(item))) continue;
         output.push(item); slugs.add(row.slug);
       } catch { /* Invalid public locator fails closed for this item. */ }

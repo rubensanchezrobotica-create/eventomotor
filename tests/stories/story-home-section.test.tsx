@@ -28,6 +28,12 @@ test("real editorial module hides empty content, renders the approved header pro
   assert.match(html, /Synthetic editorial title/); assert.match(html, /Approved short summary/);
   assert.equal((html.match(/<article\b/g) ?? []).length, 1); assert.equal((html.match(/<img\b/g) ?? []).length, 1);
   assert.ok(!/\/admin\/|story-media-drafts|token=|Más historias publicadas/.test(html));
+  sample.hero.publicImage = { src: "https://example.test/responsive-w1200.webp", srcSet: "https://example.test/responsive-w400.webp 400w, https://example.test/responsive-w1200.webp 1200w" };
+  const responsive = renderToStaticMarkup(await section.default());
+  assert.match(responsive, /srcSet="https:\/\/example.test\/responsive-w400.webp 400w,/);
+  assert.match(responsive, /loading="lazy"/);
+  assert.ok(!responsive.includes('src="https://example.test/public-hero.webp"'));
+  assert.ok(!responsive.includes("/_next/image"));
   stories = [sample, { ...sample, slug: "synthetic-second", title: "Second published story" }];
   const multiple = renderToStaticMarkup(await section.default());
   assert.match(multiple, /Second published story/); assert.match(multiple, /href="\/historias\/synthetic-second"/);

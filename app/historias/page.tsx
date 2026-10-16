@@ -6,6 +6,7 @@ import { storyCollectionLabels, storyTypeLabels } from "@/components/redesign-v2
 import styles from "@/components/redesign-v2/stories/StoryPublic.module.css";
 import { listPublicStories } from "@/lib/stories/story-public.server";
 import { SITE_URL } from "@/lib/seo";
+import { publicStoryImageProps, STORY_INDEX_IMAGE_SIZES } from "@/lib/stories/story-responsive-images";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,7 +26,8 @@ export default async function StoriesPage() {
           const hero = story.media[story.heroMediaId];
           return <article className={styles.card} key={story.slug}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={hero.resolvedUrl} width={hero.width} height={hero.height} alt={hero.altText} />
+            <img src={hero.resolvedUrl} width={hero.width} height={hero.height} alt={hero.altText}
+              {...publicStoryImageProps(hero.publicImage, STORY_INDEX_IMAGE_SIZES)} />
             <div>
               <span className={styles.eyebrow}>{storyCollectionLabels[story.collection]} · {storyTypeLabels[story.type]}</span>
               <h2><Link href={`/historias/${story.slug}`}>{story.title}</Link></h2>
