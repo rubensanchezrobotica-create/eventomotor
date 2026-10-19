@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       legacyRedirect(
+        "/evento/cera-rallye-valencia-2026-11-27",
+        "/evento/rallye-ciudad-de-valencia-2026-10-23",
+      ),
+      legacyRedirect(
         "/evento/rallyracc-catalunya-costa-daurada-2026-10-16",
         "/evento/rallyracc-catalunya-2026-10-17",
       ),
