@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseScheduleAgenda } from "./schedule-agenda";
+import { formatScheduleDayLabel, parseScheduleAgenda } from "./schedule-agenda";
 
 const wecSchedule = `Viernes 16 de octubre: entrenamientos libres 1 de 11:30 a 13:00 y entrenamientos libres 2 de 16:30 a 18:00.
 
@@ -149,4 +149,27 @@ test("no estructura texto vacío ni un horario sin cabecera diaria", () => {
   assert.equal(parseScheduleAgenda(null), null);
   assert.equal(parseScheduleAgenda(""), null);
   assert.equal(parseScheduleAgenda("Apertura del recinto a las 09:00."), null);
+});
+
+test("completa sólo meses respaldados inequívocamente por las fechas del evento", () => {
+  const dates = { startDate: "2026-10-24", endDate: "2026-10-25" };
+  assert.equal(formatScheduleDayLabel("Sábado 24", dates), "SÁBADO 24 DE OCTUBRE");
+  assert.equal(formatScheduleDayLabel("Domingo 25", dates), "DOMINGO 25 DE OCTUBRE");
+  assert.equal(formatScheduleDayLabel("Viernes 23 de octubre"), "VIERNES 23 DE OCTUBRE");
+  assert.equal(formatScheduleDayLabel("Sábado 24"), "SÁBADO 24");
+  assert.equal(formatScheduleDayLabel("Sábado 24", { startDate: "2026-11-24", endDate: "2026-11-25" }), "SÁBADO 24");
+  assert.equal(formatScheduleDayLabel("Sábado 24", { startDate: "invalid", endDate: "2026-10-25" }), "SÁBADO 24");
+  assert.equal(formatScheduleDayLabel("Lunes 2", { startDate: "2026-02-30", endDate: "2026-03-02" }), "LUNES 2");
+  assert.equal(formatScheduleDayLabel("Sábado 24 y domingo 25", dates), "SÁBADO 24 Y DOMINGO 25");
+});
+
+test("duplicados se comparan por día, hora y actividad sin eliminar relojes", () => {
+  const valid = parseScheduleAgenda("Sábado 24: Tramo A a las 09:00 y 12:00. Domingo 25: Tramo A a las 09:00.");
+  assert.ok(valid);
+  assert.deepEqual(valid.days.map(day => day.items.length), [2, 1]);
+  assert.equal(parseScheduleAgenda("Sábado 24: Tramo A a las 09:00 y 09:00."), null);
+});
+
+test("explicaciones con horas ambiguas mantienen el fallback completo", () => {
+  assert.equal(parseScheduleAgenda("Sábado 24: carrera a las 15:10. El programa incluye además GT Cup a las 16:00 texto sin asignación 17:00."), null);
 });

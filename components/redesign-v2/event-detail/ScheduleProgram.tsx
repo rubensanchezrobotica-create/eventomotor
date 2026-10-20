@@ -1,5 +1,9 @@
 import type { ScheduleAgenda } from "./schedule-agenda";
 
+function sentenceStart(value: string) {
+  return value.replace(/^(\p{L})/u, (letter) => letter.toLocaleUpperCase("es-ES"));
+}
+
 export type ScheduleProgramClassNames = {
   activity: string;
   day: string;
@@ -27,20 +31,14 @@ export default function ScheduleProgram({ agenda, classes, legacyText }: Schedul
       <ol className={classes.dayList}>
         {agenda.days.map((day) => (
           <li className={classes.day} key={day.label}>
-            <h3>{day.label}</h3>
+            <h3>{day.displayLabel ?? day.label.toLocaleUpperCase("es-ES")}</h3>
             <ul className={classes.itemList}>
               {day.items.map((item, index) => (
-                <li className={classes.item} key={`${day.label}-${index}-${item.sourceText}`}>
-                  {item.timeLabels.length ? (
-                    <span aria-label={item.timeLabels.join(", ")} className={classes.time}>
-                      {item.timeLabels.map((timeLabel, timeIndex) => (
-                        <span aria-hidden="true" key={`${timeLabel}-${timeIndex}`}>{timeLabel}</span>
-                      ))}
-                    </span>
-                  ) : (
-                    <span aria-hidden="true" className={classes.time}>—</span>
-                  )}
-                  <span className={classes.activity}>{item.activity}</span>
+                <li className={item.timeLabel ? classes.item : classes.note}
+                  data-schedule-note={item.timeLabel ? undefined : "true"}
+                  key={`${day.label}-${index}-${item.timeLabel}-${item.activity}`}>
+                  {item.timeLabel ? <span className={classes.time}>{item.timeLabel}</span> : null}
+                  <span className={classes.activity}>{sentenceStart(item.activity)}</span>
                 </li>
               ))}
             </ul>

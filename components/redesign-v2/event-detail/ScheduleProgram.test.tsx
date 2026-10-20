@@ -25,25 +25,44 @@ test("renderiza la agenda estructurada en SSR con headings y listas semánticas"
   );
   assert.match(html, /data-schedule-view="structured"/);
   assert.match(html, /<ol class="day-list">/);
-  assert.match(html, /<h3>Viernes 7<\/h3>/);
+  assert.match(html, /<h3>VIERNES 7<\/h3>/);
   assert.match(
     html,
-    /<span aria-label="09:00–10:00" class="time"><span aria-hidden="true">09:00–10:00<\/span><\/span>/,
+    /<span class="time">09:00–10:00<\/span>/,
   );
-  assert.match(html, /<span class="activity">verificaciones<\/span>/);
+  assert.match(html, /<span class="activity">Verificaciones<\/span>/);
   assert.doesNotMatch(html, /data-schedule-view="legacy"/);
 });
 
-test("agrupa varias horas de una actividad en una única fila accesible", () => {
+test("cada hora de una actividad repetida tiene su propia etiqueta accesible", () => {
   const legacyText = "Sábado 24: tramo Espinos a las 09:35, 12:25 y 15:15.";
   const agenda = parseScheduleAgenda(legacyText);
   assert.ok(agenda);
   const html = renderToStaticMarkup(
     <ScheduleProgram agenda={agenda} classes={classes} legacyText={legacyText} />,
   );
-  assert.match(html, /aria-label="09:35, 12:25, 15:15"/);
-  assert.equal((html.match(/class="activity">tramo Espinos/g) ?? []).length, 1);
-  assert.equal((html.match(/aria-hidden="true">/g) ?? []).length, 3);
+  assert.equal((html.match(/class="activity">Tramo Espinos/g) ?? []).length, 3);
+  for (const time of ["09:35", "12:25", "15:15"]) assert.ok(html.includes(`<span class="time">${time}</span><span class="activity">Tramo Espinos`));
+  assert.doesNotMatch(html, /aria-hidden/);
+});
+
+test("notas complementarias independientes sin heredar la hora de una carrera", () => {
+  const text = "Sábado 24: carrera 1 a las 15:10, duración prevista 70 minutos. El programa incluye además GT Cup Europe y TCR Europe.";
+  const agenda = parseScheduleAgenda(text);
+  assert.ok(agenda);
+  const html = renderToStaticMarkup(<ScheduleProgram agenda={agenda} classes={classes} legacyText={text} />);
+  assert.match(html, /<li class="note" data-schedule-note="true"><span class="activity">El programa incluye además/);
+  assert.equal((html.match(/class="time"/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /text-transform: capitalize/);
+});
+
+test("capitalización de frase conserva nombres, siglas y el texto original", () => {
+  const text = "Viernes 23: verificaciones técnicas y GPS a las 09:00 en PortAventura World; salida desde Passeig Jaume I a las 10:00; GT Open a las 11:00; TC1 a las 12:00.";
+  const agenda = parseScheduleAgenda(text);
+  assert.ok(agenda);
+  const html = renderToStaticMarkup(<ScheduleProgram agenda={agenda} classes={classes} legacyText={text} />);
+  for (const label of ["Verificaciones técnicas y GPS", "PortAventura World", "Salida desde Passeig Jaume I", "GT Open", "TC1"]) assert.ok(html.includes(label));
+  assert.ok(agenda.days[0].items[0].activity.startsWith("verificaciones"));
 });
 
 test("renderiza el fallback histórico literal cuando el parser no es concluyente", () => {

@@ -391,7 +391,7 @@ export function buildEventDetailV2Model(
   const publicUrl = `${options.siteUrl.replace(/\/$/, "")}/evento/${slug}`;
   const schedule = distinctPracticalValue(event.scheduleText, []);
   const programSection = isLongEventSchedule(schedule) ? schedule : "";
-  const programAgenda = programSection ? parseScheduleAgenda(programSection) : null;
+  const programAgenda = programSection ? parseScheduleAgenda(programSection, { startDate: event.start, endDate: event.end }) : null;
   const shortSchedule = programSection ? "" : schedule;
   const address = distinctPracticalValue(event.address, [location, venue]);
   const practicalItems: EventDetailInfo[] = [

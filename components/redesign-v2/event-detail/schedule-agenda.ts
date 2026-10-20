@@ -8,6 +8,7 @@ export type ScheduleAgendaItem = {
 };
 
 export type ScheduleAgendaDay = {
+  displayLabel?: string;
   items: ScheduleAgendaItem[];
   label: string;
 };
@@ -52,6 +53,7 @@ function cleanStructuralPunctuation(value: string) {
     .replace(/^\s*[-–—·,.:]+\s*/u, "")
     .replace(/\s*[-–—·,.:]+\s*$/u, "")
     .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
     .trim();
 }
 
@@ -65,7 +67,7 @@ function hasMalformedClock(value: string) {
   return clockLike.length !== valid.length;
 }
 
-function parseRepeatedRanges(sourceText: string): ScheduleAgendaItem | null {
+function parseRepeatedRanges(sourceText: string): ScheduleAgendaItem[] | null {
   const ranges = [...sourceText.matchAll(RANGE_GLOBAL)];
   if (ranges.length < 2 || validClockCount(sourceText) !== ranges.length * 2) return null;
 
@@ -89,17 +91,17 @@ function parseRepeatedRanges(sourceText: string): ScheduleAgendaItem | null {
   });
   if (timeLabels.some((label) => !label)) return null;
 
-  return {
+  return ranges.map((range, index) => ({
     activity,
-    endTime: null,
+    endTime: range.groups!.end,
     sourceText,
-    startTime: ranges[0].groups?.start || null,
-    timeLabel: timeLabels.join(" · "),
-    timeLabels,
-  };
+    startTime: range.groups!.start,
+    timeLabel: timeLabels[index],
+    timeLabels: [timeLabels[index]],
+  }));
 }
 
-function parseRepeatedSingles(sourceText: string): ScheduleAgendaItem | null {
+function parseRepeatedSingles(sourceText: string): ScheduleAgendaItem[] | null {
   const match = REPEATED_SINGLE.exec(sourceText);
   if (!match?.groups?.activity) return null;
 
@@ -107,14 +109,14 @@ function parseRepeatedSingles(sourceText: string): ScheduleAgendaItem | null {
   const timeLabels = [...sourceText.matchAll(CLOCK_GLOBAL)].map(([clock]) => clock);
   if (!activity || validClockCount(match.groups.activity) > 0 || timeLabels.length < 2) return null;
 
-  return {
+  return timeLabels.map((timeLabel) => ({
     activity,
     endTime: null,
     sourceText,
-    startTime: timeLabels[0],
-    timeLabel: timeLabels.join(" · "),
-    timeLabels,
-  };
+    startTime: timeLabel,
+    timeLabel,
+    timeLabels: [timeLabel],
+  }));
 }
 
 function parseRepeatedAgendaItem(sourceText: string) {
@@ -136,7 +138,19 @@ function splitAtTimedBoundaries(value: string, boundary: RegExp): string[] {
   return [value.trim()];
 }
 
-function splitActivityParagraph(paragraph: string) {
+function splitActivityParagraph(paragraph: string): string[] {
+  const accessNote = /^(entrada libre para el público\.)\s+(?=.+\d{1,2}:\d{2})/iu.exec(paragraph);
+  if (accessNote) return [accessNote[1], ...splitActivityParagraph(paragraph.slice(accessNote[0].length))];
+  // Only explicit, self-contained programme-wide explanations are detached.
+  // An explanation containing another clock is not safe to reinterpret here.
+  const noteBoundary = /(?<=\.)\s+(?=(?:El programa incluye además|También figuran)\b)/iu.exec(paragraph);
+  if (noteBoundary?.index !== undefined) {
+    const timed = paragraph.slice(0, noteBoundary.index).trim();
+    const note = paragraph.slice(noteBoundary.index + noteBoundary[0].length).trim();
+    if (validClockCount(timed) > 0 && validClockCount(note) === 0) {
+      return [...splitActivityParagraph(timed), note];
+    }
+  }
   const semicolonParts = paragraph.split(/;\s*/u).map((part) => part.trim()).filter(Boolean);
   return semicolonParts.flatMap((part) => {
     if (parseRepeatedAgendaItem(part)) return [part];
@@ -154,9 +168,6 @@ function splitActivityParagraph(paragraph: string) {
 function parseAgendaItem(value: string): ScheduleAgendaItem | null {
   const sourceText = value.trim();
   if (!sourceText || hasMalformedClock(sourceText)) return null;
-
-  const repeated = parseRepeatedAgendaItem(sourceText);
-  if (repeated) return repeated;
 
   const clockCount = validClockCount(sourceText);
   if (clockCount > 2) return null;
@@ -217,8 +228,35 @@ function parseDayItems(value: string) {
     return lines.flatMap(splitActivityParagraph);
   });
   if (!sourceItems.length) return null;
-  const items = sourceItems.map(parseAgendaItem);
+  const items = sourceItems.flatMap((sourceText) => parseRepeatedAgendaItem(sourceText) ?? [parseAgendaItem(sourceText)]);
   return items.every((item): item is ScheduleAgendaItem => item !== null) ? items : null;
+}
+
+type ScheduleDateContext = { startDate?: string; endDate?: string | null };
+
+export function formatScheduleDayLabel(label: string, context: ScheduleDateContext = {}) {
+  const normalized = label.replace(/\s+/g, " ").trim();
+  const short = new RegExp(`^(?<weekday>${WEEKDAY})\\s+(?<day>\\d{1,2})$`, "iu").exec(normalized);
+  const start = context.startDate && /^\d{4}-\d{2}-\d{2}$/.test(context.startDate) ? Date.parse(`${context.startDate}T00:00:00Z`) : NaN;
+  const endText = context.endDate || context.startDate;
+  const end = endText && /^\d{4}-\d{2}-\d{2}$/.test(endText) ? Date.parse(`${endText}T00:00:00Z`) : NaN;
+  const validDates = Number.isFinite(start) && Number.isFinite(end)
+    && new Date(start).toISOString().slice(0, 10) === context.startDate
+    && new Date(end).toISOString().slice(0, 10) === endText;
+  if (short?.groups && validDates && end >= start && end - start <= 60 * 86_400_000) {
+    const plain = (value: string) => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+    const candidates: Date[] = [];
+    for (let cursor = start; cursor <= end; cursor += 86_400_000) {
+      const date = new Date(cursor);
+      const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "long", timeZone: "UTC" }).format(date);
+      if (date.getUTCDate() === Number(short.groups.day) && plain(weekday) === plain(short.groups.weekday)) candidates.push(date);
+    }
+    if (candidates.length === 1) {
+      return new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
+        .format(candidates[0]).replace(",", "").toLocaleUpperCase("es-ES");
+    }
+  }
+  return normalized.toLocaleUpperCase("es-ES");
 }
 
 function extractFooter(value: string) {
@@ -238,7 +276,7 @@ function extractFooter(value: string) {
   };
 }
 
-export function parseScheduleAgenda(value: string | null | undefined): ScheduleAgenda | null {
+export function parseScheduleAgenda(value: string | null | undefined, context: ScheduleDateContext = {}): ScheduleAgenda | null {
   const source = value?.replace(/\r\n?/g, "\n").trim() || "";
   if (!source) return null;
 
@@ -248,6 +286,7 @@ export function parseScheduleAgenda(value: string | null | undefined): ScheduleA
   const preamble = source.slice(0, matches[0].index).trim();
   const days: ScheduleAgendaDay[] = [];
   let footerNote = "";
+  const occurrences = new Set<string>();
 
   for (const [index, match] of matches.entries()) {
     const label = match.groups?.label?.trim() || "";
@@ -264,7 +303,15 @@ export function parseScheduleAgenda(value: string | null | undefined): ScheduleA
 
     const items = parseDayItems(body);
     if (!items) return null;
-    days.push({ items, label });
+    const displayLabel = formatScheduleDayLabel(label, context);
+    for (const item of items) {
+      const key = JSON.stringify([displayLabel, item.timeLabel, item.activity]);
+      // An exact duplicate is ambiguous: keep the complete legacy source,
+      // rather than deleting a clock or silently merging occurrences.
+      if (occurrences.has(key)) return null;
+      occurrences.add(key);
+    }
+    days.push({ items, label, displayLabel });
   }
 
   return days.length ? { days, footerNote, preamble } : null;
