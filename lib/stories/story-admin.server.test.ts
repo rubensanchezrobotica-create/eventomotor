@@ -106,6 +106,7 @@ function values(overrides: Partial<StoryAdminInput> = {}): StoryAdminInput {
 function repository(overrides: Partial<StoryAdminMutationRepository> = {}) {
   const current = row();
   const base: StoryAdminMutationRepository = {
+    async getAttribution() { return { credits: [], people: [], relations: [] }; },
     async createDraft(input) {
       return row({ ...input, slug: "", dek: "", seo_title: "", seo_description: "" });
     },

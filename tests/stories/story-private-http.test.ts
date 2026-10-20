@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createNetServer } from "node:net";
@@ -6,6 +7,8 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { ADMIN_SESSION_COOKIE, ADMIN_MEDIA_SESSION_COOKIE, ADMIN_SESSION_TTL_SECONDS, createAdminSessionToken } from "@/lib/admin-session";
+import { emptyCommercialMetadata, canonicalCommercialJson, commercialApprovalPayload } from "@/lib/stories/story-commercial";
+import { commercialFixture } from "./commercial-fixture";
 
 // Actual Next HTTP/Flight render against an isolated loopback-only data adapter.
 // All records, credentials and tokens below are synthetic. No production config
@@ -25,17 +28,31 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     width: 1200, height: 800, mime_type: "image/png", byte_size: 100, alt_text: "SYNTHETIC_PRIVATE_ALT", caption: "SYNTHETIC_PRIVATE_CAPTION", credit: person.display_name,
     rights_type: "OWN", rights_notes: "SYNTHETIC_PRIVATE_RIGHTS", created_at: s.created_at, updated_at: s.updated_at }));
   const credits = stories.map((s) => ({ story_id: s.id, person_id: person.id, role: "TEXT", sort_order: 0 }));
+  // Include each non-public commercial state in the exact same HTML/Flight/auth checks.
+  const commercialStories = stories.map((s, i) => ({ ...s, id: `d4000000-0000-4000-8000-00000000000${i + 1}`,
+    slug: `synthetic-private-commercial-${i}`, type: "ARTICULO", collection: "COLABORACIONES", commercial_metadata: emptyCommercialMetadata(),
+    hero_media_id: `d5000000-0000-4000-8000-00000000000${i + 1}` }));
+  const commercialMedia = commercialStories.map((s) => ({ ...media[0], id: s.hero_media_id, story_id: s.id,
+    object_path: `${s.id}/${s.hero_media_id}/asset.png` }));
   // Mutable synthetic source: the same production server must observe publishing,
   // edits and archival without rebuilding or calling a cache invalidation action.
   const sitemapStory = { ...stories[0], id: "d1000000-0000-4000-8000-000000000004",
     title: "Synthetic published Home story", dek: "Synthetic editorial summary.",
+    context_location: "Synthetic public circuit", seo_title: "Synthetic public SEO", seo_description: "Synthetic public description",
+    content_blocks: [{ id: "public-p", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Synthetic public editorial body" }] }],
     slug: "synthetic-sitemap-chronicle", status: "DRAFT", published_at: null as string | null,
     hero_media_id: "d2000000-0000-4000-8000-000000000004" };
   const sitemapMedia = { ...media[0], id: sitemapStory.hero_media_id, story_id: sitemapStory.id,
-    alt_text: "Synthetic public hero",
+    alt_text: "Synthetic public hero", caption: "Synthetic public caption", credit: "Synthetic public photographer",
     bucket_id: "story-media", mime_type: "image/webp",
     object_path: `${sitemapStory.id}/${sitemapStory.hero_media_id}/asset.webp` };
-  const sitemapCredit = { ...credits[0], story_id: sitemapStory.id };
+  const sitemapPerson = { id: "d3000000-0000-4000-8000-000000000002", display_name: "Synthetic public author", active: true };
+  const sitemapCredit = { ...credits[0], story_id: sitemapStory.id, person_id: sitemapPerson.id };
+  const commercialSource = commercialFixture(), commercialSitemapStory = commercialSource.story;
+  commercialSitemapStory.commercial_metadata = { ...emptyCommercialMetadata(), advertiserName: "Synthetic public advertiser", advertiserConfirmed: true,
+    factsVerified: true, editorialApprovalRef: "PRIVATE_APPROVAL_REF", imageAuthorizationRef: "PRIVATE_IMAGE_REF", commercialLinksChecked: true };
+  commercialSitemapStory.commercial_metadata.approvedContentHash = createHash("sha256")
+    .update(canonicalCommercialJson(commercialApprovalPayload(commercialSitemapStory))).digest("hex");
   // Existing strict public agenda intentionally rejects an entirely empty DB.
   // One public synthetic event supports prerendering without production access.
   const publicEvents = [{ id: "synthetic-http-fixture-event", slug: "synthetic-http-fixture-event", title: "Synthetic public event",
@@ -43,7 +60,7 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     city: "Madrid", province: "Madrid", region: "Comunidad de Madrid", country: "España", visible: true, featured: false,
     tags: ["Circuito"], vehicle_type: "coche", source: "Synthetic fixture", source_url: "https://example.test", ticket_url: null,
     image_url: null, event_status: "confirmed", created_at: "2030-01-01T00:00:00Z", updated_at: "2030-01-01T00:00:00Z" }];
-  let reads = 0, signings = 0;
+  let reads = 0, signings = 0, commercialSchemaAvailable = true, missingColumnReads = 0;
   const fixture = createHttpServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     response.setHeader("content-type", "application/json");
@@ -51,9 +68,18 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     if (url.pathname.startsWith("/rest/v1/")) {
       reads++;
       const table = url.pathname.split("/").at(-1);
-      const records = table === "stories" ? [...stories, sitemapStory] : table === "story_media" ? [...media, sitemapMedia] : table === "editorial_people" ? [person] : table === "story_credits" ? [...credits, sitemapCredit] : table === "events" ? publicEvents : [];
-      const rows = records.filter((row) => [...url.searchParams].every(([field, filter]) => !filter.startsWith("eq.") || String((row as Record<string, unknown>)[field]) === filter.slice(3)));
-      return send(rows);
+      if (!commercialSchemaAvailable && table === "stories" && url.searchParams.get("select")?.includes("commercial_metadata")) {
+        missingColumnReads++; response.statusCode = 400;
+        return send({ code: "42703", message: "Synthetic pre-C1 schema: commercial_metadata does not exist" });
+      }
+      const records = table === "stories" ? [...stories, ...commercialStories, sitemapStory, commercialSitemapStory] : table === "story_media" ? [...media, ...commercialMedia, sitemapMedia, ...commercialSource.media] : table === "editorial_people" ? [person, sitemapPerson, ...commercialSource.people] : table === "story_credits" ? [...credits, sitemapCredit, ...commercialSource.credits] : table === "events" ? publicEvents : [];
+      const rows = records.filter((row) => [...url.searchParams].every(([field, filter]) => {
+        const value = String((row as Record<string, unknown>)[field]);
+        if (filter.startsWith("eq.")) return value === filter.slice(3);
+        if (filter.startsWith("in.(")) return filter.slice(4, -1).split(",").includes(value);
+        return true;
+      }));
+      return send(!commercialSchemaAvailable && table === "stories" ? rows.filter((row) => (row as { collection?: string }).collection !== "COLABORACIONES") : rows);
     }
     if (url.pathname === "/storage/v1/bucket/story-media-drafts") return send({ id: "story-media-drafts", public: false, file_size_limit: 26214400, allowed_mime_types: ["image/jpeg", "image/png", "image/webp"] });
     if (url.pathname.startsWith("/storage/v1/object/sign/story-media-drafts/")) {
@@ -71,7 +97,7 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
   const environment: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production", ADMIN_SECRET: secret,
       NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${fixturePort}`, SUPABASE_SERVICE_ROLE_KEY: key,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "synthetic-loopback-anon", NEXT_TELEMETRY_DISABLED: "1" };
-  const build = spawn(process.execPath, ["node_modules/next/dist/bin/next", "build"], {
+  const build = spawn(process.execPath, ["node_modules/next/dist/bin/next", "build", ...(process.env.STORIES_HTTP_WEBPACK === "1" ? ["--webpack"] : [])], {
     cwd: process.cwd(), env: environment, stdio: ["ignore", "pipe", "pipe"],
   });
   t.after(() => { if (build.exitCode === null) build.kill("SIGTERM"); });
@@ -82,7 +108,9 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     font: /Failed to fetch.*font|next\/font.*error/.test(serverMessages), config: /not configured/.test(serverMessages),
     typecheck: /Type error|error TS/.test(serverMessages), prerender: /Error occurred prerendering/.test(serverMessages),
   }, errors: serverMessages.split(/\r?\n/).filter((line) => /^Error:|^TypeError:|^Error occurred prerendering/.test(line)).slice(0, 4)
-    .map((line) => line.replace(/https?:\S+/g, "[URL]").replace(/SYNTHETIC_PRIVATE\S*/g, "[SYNTHETIC_MARKER]").slice(0, 240)) }));
+    .map((line) => line.replace(/https?:\S+/g, "[URL]").replace(/SYNTHETIC_PRIVATE\S*/g, "[SYNTHETIC_MARKER]").slice(0, 240)),
+    compilation: serverMessages.replace(/\u001b\[[0-9;]*m/g, "").split(/\r?\n/).filter((line) => line.trim()).slice(-28)
+      .map((line) => line.replace(/https?:\S+/g, "[URL]").replace(/SYNTHETIC\S*/g, "[SYNTHETIC]").slice(0, 240)) }));
   assert.equal(buildCode, 0, "production build with loopback synthetic data succeeds");
   const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: process.cwd(), env: environment, stdio: ["ignore", "pipe", "pipe"],
@@ -103,9 +131,9 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
   const variants: Record<string, string>[] = [{}, { RSC: "1" }, { RSC: "1", "Next-Router-Prefetch": "1" },
     { RSC: "1", "Next-Router-State-Tree": encodeURIComponent(JSON.stringify(["", { children: ["admin", {}] }])) },
     { RSC: "1", "Next-Router-State-Tree": encodeURIComponent(JSON.stringify(["", {}, null, "metadata-only"])) }];
-  const noPrivate = (text: string) => !/SYNTHETIC_PRIVATE|story-media-drafts|\/object\/sign\/|rights_notes|token=/.test(text);
+  const noPrivate = (text: string) => !/SYNTHETIC_PRIVATE|story-media-drafts|\/object\/sign\/|rights_notes|token=|commercial_metadata|approvedContentHash|PRIVATE_APPROVAL_REF|PRIVATE_IMAGE_REF|PRIVATE_RIGHTS_EVIDENCE/.test(text);
   let checked = 0;
-  for (const s of stories) {
+  for (const s of [...stories, ...commercialStories]) {
     const paths = [`/admin/historias/${s.id}/preview`, `/admin/historias/${s.id}`, `/admin/historias/${s.id}/publicacion`, `/admin/historias?status=${s.status}`, `/admin/historias/nueva`];
     for (const path of paths) for (const headers of variants) for (const cookie of sessions) {
       const beforeReads = reads, beforeSignings = signings;
@@ -131,10 +159,32 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.ok(allowed.headers.get("cache-control")?.includes("no-store")); assert.ok(/noindex/.test(allowedText));
     const pub = await fetch(origin + `/historias/${s.slug}`, { redirect: "manual" }); const pubText = await pub.text();
     assert.equal(pub.status, 404); assert.ok(noPrivate(pubText), "all non-PUBLISHED public slugs remain private");
+    for (const headers of variants) {
+      const commercial = await fetch(origin + `/colaboraciones/${s.slug}`, { headers, redirect: "manual" });
+      const commercialText = await commercial.text();
+      assert.ok(noPrivate(commercialText), "commercial HTML/Flight/metadata remains private");
+      // Flight can return a 404 boundary or an empty router update as HTTP 200.
+      // Check the actual payload for ALL private markers, not just its status.
+      if (headers.RSC && commercial.status === 200) {
+        assert.match(commercial.headers.get("content-type") ?? "", /text\/x-component/);
+      } else assert.equal(commercial.status, 404);
+    }
   }
   t.diagnostic(`STORIES_HTTP_SECURITY_NEGATIVE_RESPONSES=${checked}`);
   t.diagnostic("STORIES_HTML_FLIGHT_PREFETCH_NAVIGATION_AUXILIARY_GATES=PASS");
   t.diagnostic("STORIES_VALID_SESSION_PREVIEW_AND_NO_STORE=PASS");
+  await t.test("pre-C1 public article/index/Home/sitemap work without the commercial column", async () => {
+    commercialSchemaAvailable = false;
+    sitemapStory.status = "PUBLISHED"; sitemapStory.published_at = "2030-01-02T12:00:00Z";
+    try {
+      for (const path of [`/historias/${sitemapStory.slug}`, "/historias", "/", "/sitemap.xml"]) {
+        const response = await fetch(origin + path); const body = await response.text();
+        assert.equal(response.status, 200, path); assert.ok(body.includes(sitemapStory.slug) || body.includes(sitemapStory.title));
+        assert.ok(noPrivate(body));
+      }
+      assert.equal(missingColumnReads, 0, "independent loaders never request a C1-only column");
+    } finally { commercialSchemaAvailable = true; sitemapStory.status = "DRAFT"; sitemapStory.published_at = null; }
+  });
   await t.test("canonical sitemap reflects publication, updated lastmod and archival without another build", async () => {
     const prerender = JSON.parse(readFileSync(".next/prerender-manifest.json", "utf8"));
     assert.equal(prerender.routes["/sitemap.xml"], undefined, "sitemap is not a prerendered/ISR snapshot");
@@ -185,6 +235,28 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.deepEqual((await readSitemap()).urls, before.urls, "archival disappears on the next request without disturbing other URLs");
     const emptyHome = await fetch(origin + "/");
     assert.ok(!(await emptyHome.text()).includes("data-home-stories"), "no published Story means no empty Home module");
+    const collaborationUrl = `https://www.eventomotor.com/colaboraciones/${commercialSitemapStory.slug}`;
+    assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial DRAFT is excluded");
+    commercialSitemapStory.status = "READY";
+    assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial READY is excluded");
+    commercialSitemapStory.status = "PUBLISHED"; commercialSitemapStory.published_at = "2030-01-04T12:00:00Z";
+    const commercialPublished = await readSitemap();
+    assert.ok(commercialPublished.urls.includes(collaborationUrl));
+    assert.ok(!commercialPublished.urls.includes(collaborationUrl.replace("/colaboraciones/", "/historias/")));
+    const publicCommercial = await fetch(`${origin}/colaboraciones/${commercialSitemapStory.slug}`);
+    const publicCommercialText = await publicCommercial.text();
+    assert.equal(publicCommercial.status, 200); assert.ok(noPrivate(publicCommercialText));
+    assert.ok(publicCommercialText.includes("Contenido patrocinado") && publicCommercialText.includes("Synthetic public advertiser"));
+    assert.ok(publicCommercialText.includes('rel="sponsored noopener noreferrer"'));
+    assert.ok(publicCommercialText.includes(collaborationUrl));
+    const listText = await (await fetch(origin + "/colaboraciones")).text();
+    assert.ok(noPrivate(listText) && listText.includes(commercialSitemapStory.title));
+    assert.ok(!(await (await fetch(origin + "/historias")).text()).includes(commercialSitemapStory.title));
+    assert.ok(!(await (await fetch(origin + "/")).text()).includes(commercialSitemapStory.title));
+    assert.equal((await fetch(`${origin}/historias/${commercialSitemapStory.slug}`)).status, 404);
+    commercialSitemapStory.status = "ARCHIVED";
+    assert.ok(!(await readSitemap()).urls.includes(collaborationUrl));
+    t.diagnostic("COMMERCIAL_CANONICAL_SITEMAP_STATES_AND_EDITORIAL_SEPARATION=PASS");
     t.diagnostic("STORIES_CANONICAL_SITEMAP_PUBLICATION_UPDATE_ARCHIVAL=PASS");
     t.diagnostic("STORIES_SITEMAP_EXISTING_URLS_AND_PRIVACY=PASS");
   });

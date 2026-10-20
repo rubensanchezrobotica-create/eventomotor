@@ -76,7 +76,7 @@ for (const [field, overrides] of [
   });
 }
 
-test("READY without a hero is explicitly allowed by the editorial gate", () => {
+test("form shape accepts an incomplete hero; the final READY service gate is authoritative", () => {
   const result = validateStoryAdminInput(validInput({ status: "READY", heroMediaId: "" }));
   assert.equal(result.ok, true);
 });

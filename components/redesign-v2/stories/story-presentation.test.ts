@@ -3,8 +3,8 @@ import test from "node:test";
 import { groupStoryByline, storyCollectionLabels, storyImageRatio, storyPairGeometry, storyTypeLabels } from "./story-presentation";
 
 test("todos los tipos y colecciones tienen etiquetas humanas", () => {
-  assert.deepEqual(Object.values(storyTypeLabels), ["Crónica", "Reportaje", "Historia", "Entrevista"]);
-  assert.deepEqual(Object.values(storyCollectionLabels), ["Desde dentro", "Historias de motor", "Conversaciones"]);
+  assert.deepEqual(Object.values(storyTypeLabels), ["Crónica", "Reportaje", "Historia", "Entrevista", "Artículo"]);
+  assert.deepEqual(Object.values(storyCollectionLabels), ["Desde dentro", "Historias de motor", "Conversaciones", "Colaboraciones"]);
 });
 test("firma agrupa TEXT y PHOTO por ID sin mutar ni agrupar homónimos", () => {
   const credits = Object.freeze([

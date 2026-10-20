@@ -3,6 +3,12 @@ name: Stories database tests
 on:
   pull_request:
     paths:
+      - "lib/stories/story-types.ts"
+      - "lib/stories/story-validation*.ts"
+      - "lib/stories/story-editorial-gate*"
+      - "app/colaboraciones/**"
+      - "lib/stories/story-commercial*"
+      - "database/migrations/20261020120000_commercial_articles.sql"
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
@@ -32,6 +38,7 @@ on:
       - "tests/stories/**"
   push:
     branches:
+      - codex/colaboraciones-c1
       - codex/historias-a16b1
       - codex/historias-a16c
       - codex/historias-a16b2
@@ -42,6 +49,12 @@ on:
       - codex/historias-home-editorial
       - codex/historias-responsive-cdn
     paths:
+      - "lib/stories/story-types.ts"
+      - "lib/stories/story-validation*.ts"
+      - "lib/stories/story-editorial-gate*"
+      - "app/colaboraciones/**"
+      - "lib/stories/story-commercial*"
+      - "database/migrations/20261020120000_commercial_articles.sql"
       - ".github/workflows/stories-database-tests.yml"
       - "database/migrations/20260929120000_stories_foundation.sql"
       - "database/migrations/20261005120000_story_media_storage.sql"
@@ -120,7 +133,7 @@ jobs:
           node --import tsx --test lib/admin-session.test.ts lib/stories/story-admin.test.ts
           node --conditions=react-server --import tsx --test lib/stories/story-admin.server.test.ts
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test lib/stories/story-actions.server.test.ts
-          node --import tsx --test lib/stories/story-validation.test.ts components/redesign-v2/stories/story-renderer.test.tsx
+          node --import tsx --test lib/stories/story-validation.test.ts components/redesign-v2/stories/story-renderer.test.tsx components/redesign-v2/stories/story-presentation.test.ts
 
       - name: Run A16B2 protected uploader tests
         run: |
@@ -138,6 +151,14 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-public.server.test.ts lib/stories/story-launch.server.test.ts
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test tests/stories/story-public-routes.test.tsx tests/stories/story-publication-actions.test.ts
           npx eslint lib/stories/story-public*.ts lib/stories/story-launch*.ts app/historias app/admin/historias/publication-actions.ts 'app/admin/historias/[id]/publicacion/page.tsx' components/redesign-v2/stories/RelatedStories.tsx tests/stories/story-public*.ts tests/stories/story-public*.tsx
+
+      - name: Run C1 commercial separation, approval and real link controls
+        run: |
+          node --conditions=react-server --import tsx --test lib/stories/story-commercial.server.test.ts
+          node --conditions=react-server --import tsx --test lib/stories/story-editorial-gate.server.test.ts
+          node --import tsx --test components/admin/stories/StoryParagraphEditor.test.tsx
+          npx tsc --noEmit
+          npx eslint app/colaboraciones lib/stories/story-commercial* lib/stories/story-editorial-gate* components/admin/stories/StoryParagraphEditor* tests/stories/commercial-fixture.ts tests/stories/story-commercial.integration.test.ts tests/stories/sql/story-commercial-concurrency.mjs
 
       - name: Run actual Next privacy and sitemap freshness regressions
         run: |
@@ -168,7 +189,9 @@ jobs:
         run: supabase --workdir "$STORIES_CI_WORKDIR" test db --local
 
       - name: Run A16D real two-connection PostgreSQL concurrency
-        run: node tests/stories/sql/story-concurrency.mjs
+        run: |
+          node tests/stories/sql/story-concurrency.mjs
+          node tests/stories/sql/story-commercial-concurrency.mjs
 
       - name: Run ephemeral Story media Storage integration
         shell: bash
@@ -193,6 +216,8 @@ jobs:
             tests/stories/story-publication.integration.test.ts
           node --conditions=react-server --import tsx --test \
             tests/stories/story-public.integration.test.ts
+          node --conditions=react-server --import tsx --test \
+            tests/stories/story-commercial.integration.test.ts
           rm -f "$env_file"
 
       - name: Lint isolated Stories schema

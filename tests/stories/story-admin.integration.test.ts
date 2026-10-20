@@ -46,13 +46,23 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
   })));
   assert.equal(eventInsert.error, null);
 
-  const draft = await createStoryDraft({
+  let draft = await createStoryDraft({
     type: "REPORTAJE",
     collection: "DESDE_DENTRO",
     title: "Synthetic integration draft",
   });
   storyId = draft.id;
   assert.equal(draft.status, "DRAFT");
+  const personA = await createEditorialPerson(`Synthetic editor A ${suffix}`);
+  const personB = await createEditorialPerson(`Synthetic editor B ${suffix}`);
+  personIds.push(personA.person.id, personB.person.id);
+  const heroId = randomUUID();
+  const hero = await client.from("story_media").insert({ id: heroId, story_id: storyId, bucket_id: "story-media-drafts",
+    object_path: `${storyId}/${heroId}/asset.webp`, width: 1200, height: 800, mime_type: "image/webp", byte_size: 100,
+    alt_text: "Synthetic admin hero", rights_type: "OWN" });
+  assert.equal(hero.error, null);
+  draft = (await replaceStoryCredits({ storyId, expectedUpdatedAt: (await getStoryForAdmin(storyId))!.story.updated_at,
+    credits: [{ personId: personA.person.id, role: "TEXT", sortOrder: 0 }] })).story;
 
   const initial = await getStoryForAdmin(storyId);
   assert.equal(initial?.story.id, storyId);
@@ -76,7 +86,7 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
     disciplineSlugs: ["circuito"],
     territoryIds: ["madrid"],
     contentBlocks,
-    heroMediaId: "",
+    heroMediaId: heroId,
     seoTitle: "Synthetic integration SEO",
     seoDescription: "Synthetic integration description.",
   });
@@ -99,10 +109,6 @@ integration("ephemeral admin CRUD, relations and optimistic conflict remain fail
     values: values("Synthetic ready story", "READY"),
   });
   assert.equal(ready.status, "READY");
-
-  const personA = await createEditorialPerson(`Synthetic editor A ${suffix}`);
-  const personB = await createEditorialPerson(`Synthetic editor B ${suffix}`);
-  personIds.push(personA.person.id, personB.person.id);
 
   const readPersistedCredits = async () => {
     const result = await client

@@ -14,11 +14,14 @@ import {
   isValidStorySlug,
   validateStoryDocument,
 } from "./story-validation";
+import { emptyCommercialMetadata, isCommercialMetadata, type StoryCommercialMetadata } from "./story-commercial";
 
 export const STORY_EDITOR_STATUSES = ["DRAFT", "READY"] as const;
 export type StoryEditorStatus = (typeof STORY_EDITOR_STATUSES)[number];
 
 export type StoryAdminInput = {
+  commercialMetadata?: StoryCommercialMetadata | null;
+  approveCommercialVersion?: boolean;
   status: string;
   type: string;
   collection: string;
@@ -89,6 +92,17 @@ export function validateStoryAdminInput(input: StoryAdminInput): StoryAdminValid
   if (!status) issue(issues, "status", "A16C sólo permite DRAFT o READY.");
   if (!type) issue(issues, "type", "El tipo editorial no es válido.");
   if (!collection) issue(issues, "collection", "La colección editorial no es válida.");
+  if ((collection === "COLABORACIONES") !== (type === "ARTICULO")) {
+    issue(issues, "collection", "ARTICULO pertenece exclusivamente a COLABORACIONES.");
+  }
+  const commercialMetadata = collection === "COLABORACIONES"
+    ? input.commercialMetadata ?? emptyCommercialMetadata() : null;
+  if (commercialMetadata && !isCommercialMetadata(commercialMetadata)) {
+    issue(issues, "commercialMetadata", "Los metadatos comerciales no son válidos.");
+  }
+  if (collection !== "COLABORACIONES" && input.commercialMetadata != null) {
+    issue(issues, "commercialMetadata", "Las Historias independientes no admiten metadatos comerciales.");
+  }
   if (input.title.length > STORY_LIMITS.title) issue(issues, "title", "El título es demasiado largo.");
   if (input.dek.length > STORY_LIMITS.dek) issue(issues, "dek", "La entradilla es demasiado larga.");
   if (input.contextLocation.length > STORY_LIMITS.contextLocation) {
@@ -142,6 +156,7 @@ export function validateStoryAdminInput(input: StoryAdminInput): StoryAdminValid
     issues: [],
     value: {
       ...input,
+      commercialMetadata,
       status,
       type,
       collection,

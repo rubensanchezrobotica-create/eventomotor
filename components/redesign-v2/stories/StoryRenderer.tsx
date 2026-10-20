@@ -23,7 +23,7 @@ type Props = {
 function InlineContent({ nodes }: { nodes: readonly StoryInlineNode[] }) {
   return nodes.map((node, index) => {
     if (node.type === "LINK") return (
-      <a href={node.href} key={`${node.href}-${index}`} rel="noopener noreferrer"><InlineContent nodes={node.children} /></a>
+      <a href={node.href} key={`${node.href}-${index}`} rel={node.sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer"}><InlineContent nodes={node.children} /></a>
     );
     let content: ReactNode = node.text;
     if (node.marks?.includes("italic")) content = <em>{content}</em>;

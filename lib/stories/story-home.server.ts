@@ -1,4 +1,5 @@
 import "server-only";
+import { EDITORIAL_STORY_COLLECTIONS } from "./story-types";
 
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { buildCanonicalStoryMediaPublicUrl } from "./story-media.server";
@@ -13,7 +14,7 @@ export type HomeStory = {
   hero: { src: string; alt: string; width: number; height: number; publicImage?: StoryPublicImage };
 };
 
-const STORY_SELECT = "id,slug,status,title,dek,hero_media_id,published_at,updated_at";
+const STORY_SELECT = "id,slug,status,collection,title,dek,hero_media_id,published_at,updated_at";
 const HERO_SELECT = "id,story_id,bucket_id,object_path,mime_type,width,height,alt_text,byte_size";
 
 /** Optional Home enrichment: bounded, PUBLISHED-only and no body/admin DTO. */
@@ -22,6 +23,7 @@ export async function listHomeStories(): Promise<HomeStory[]> {
   if (!client) return [];
   try {
     const result = await client.from("stories").select(STORY_SELECT).eq("status", "PUBLISHED")
+      .in("collection", [...EDITORIAL_STORY_COLLECTIONS])
       .order("published_at", { ascending: false }).order("id").limit(3);
     if (result.error || !result.data?.length) return [];
     const rows = result.data;
@@ -35,6 +37,7 @@ export async function listHomeStories(): Promise<HomeStory[]> {
     const output: HomeStory[] = [];
     const slugs = new Set<string>();
     for (const row of rows) {
+      if (!EDITORIAL_STORY_COLLECTIONS.some((c) => c === row.collection)) continue;
       const hero = images.data?.find((image) => image.id === row.hero_media_id && image.story_id === row.id);
       if (row.status !== "PUBLISHED" || !row.published_at || !Number.isFinite(Date.parse(row.published_at))
         || !latest.data?.some((current) => current.id === row.id && current.status === "PUBLISHED" && current.updated_at === row.updated_at)

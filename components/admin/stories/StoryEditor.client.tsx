@@ -12,6 +12,8 @@ import {
 } from "@/lib/stories/story-admin";
 import { updateStoryAction } from "@/app/admin/historias/actions";
 import StoryMediaUploader from "./StoryMediaUploader.client";
+import StoryParagraphEditor from "./StoryParagraphEditor";
+import { emptyCommercialMetadata, commercialGateIssues } from "@/lib/stories/story-commercial";
 import styles from "./StoryAdmin.module.css";
 
 type TaxonomyOption = { value: string; label: string };
@@ -90,15 +92,7 @@ function BlockFields({
   switch (block.type) {
     case "PARAGRAPH":
       return (
-        <textarea
-          aria-label="Texto del párrafo"
-          rows={5}
-          value={block.content.map((node) => node.type === "TEXT" ? node.text : node.children.map(({ text }) => text).join("")).join("")}
-          onChange={(event) => onChange({
-            ...block,
-            content: [{ type: "TEXT", text: event.target.value }],
-          })}
-        />
+        <StoryParagraphEditor block={block} onChange={onChange} />
       );
     case "HEADING":
       return (
@@ -220,6 +214,8 @@ export default function StoryEditor({
   const [blocks, setBlocks] = useState<StoryContentBlock[]>(story.content_blocks);
   const [addType, setAddType] = useState<StoryBlockType>("PARAGRAPH");
   const editable = story.status === "DRAFT" || story.status === "READY";
+  const commercial = story.collection === "COLABORACIONES";
+  const evidence = story.commercial_metadata ?? emptyCommercialMetadata();
 
   return (
     <form action={updateStoryAction} className={styles.stack}>
@@ -243,10 +239,12 @@ export default function StoryEditor({
               <option value="REPORTAJE">REPORTAJE</option>
               <option value="HISTORIA">HISTORIA</option>
               <option value="ENTREVISTA">ENTREVISTA</option>
+              {commercial ? <option value="ARTICULO">ARTÍCULO</option> : null}
             </select>
           </label>
           <label>Colección
             <select defaultValue={story.collection} disabled={!editable} name="collection">
+              {commercial ? <option value="COLABORACIONES">COLABORACIONES</option> : null}
               <option value="DESDE_DENTRO">DESDE DENTRO</option>
               <option value="HISTORIAS_DE_MOTOR">HISTORIAS DE MOTOR</option>
               <option value="CONVERSACIONES">CONVERSACIONES</option>
@@ -268,6 +266,23 @@ export default function StoryEditor({
           </label>
         </div>
       </section>
+
+      {commercial ? <section className={styles.panel}>
+        <h2>Contenido patrocinado</h2>
+        <p>El anunciante no es el autor. No se asignan créditos automáticamente. Las referencias siguientes son privadas.</p>
+        <fieldset disabled={!editable}>
+          <legend>Gate comercial</legend>
+          <label>Identidad del anunciante<input name="advertiserName" defaultValue={evidence.advertiserName} maxLength={1000} /></label>
+          <label><input type="checkbox" name="advertiserConfirmed" value="yes" defaultChecked={evidence.advertiserConfirmed} /> Identidad confirmada</label>
+          <label><input type="checkbox" name="factsVerified" value="yes" defaultChecked={evidence.factsVerified} /> Datos factuales verificados</label>
+          <label>Referencia de aprobación editorial<input name="editorialApprovalRef" defaultValue={evidence.editorialApprovalRef} maxLength={1000} /></label>
+          <label>Referencia de autorización de imagen<input name="imageAuthorizationRef" defaultValue={evidence.imageAuthorizationRef} maxLength={1000} /></label>
+          <label><input type="checkbox" name="commercialLinksChecked" value="yes" defaultChecked={evidence.commercialLinksChecked} /> Enlaces comerciales comprobados</label>
+          <label><input type="checkbox" name="approveCommercialVersion" value="yes" /> Confirmo que la referencia de aprobación corresponde exactamente al contenido y enlaces que guardo ahora</label>
+        </fieldset>
+        <ul>{commercialGateIssues(evidence).map((issue) => <li key={issue.field}>{issue.message}</li>)}</ul>
+        <p>Cualquier cambio de contenido o evidencias invalida la aprobación anterior. Guarda como DRAFT mientras haya verificaciones pendientes.</p>
+      </section> : null}
 
       <section className={styles.panel}>
         <h2>Clasificación</h2>

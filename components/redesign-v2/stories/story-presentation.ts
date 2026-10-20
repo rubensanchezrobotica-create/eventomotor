@@ -1,10 +1,10 @@
 import type { StoryCollection, StoryCredit, StoryCreditRole, StoryType } from "@/lib/stories/story-types";
 
 export const storyTypeLabels: Record<StoryType, string> = {
-  CRONICA: "Crónica", REPORTAJE: "Reportaje", HISTORIA: "Historia", ENTREVISTA: "Entrevista",
+  CRONICA: "Crónica", REPORTAJE: "Reportaje", HISTORIA: "Historia", ENTREVISTA: "Entrevista", ARTICULO: "Artículo",
 };
 export const storyCollectionLabels: Record<StoryCollection, string> = {
-  DESDE_DENTRO: "Desde dentro", HISTORIAS_DE_MOTOR: "Historias de motor", CONVERSACIONES: "Conversaciones",
+  DESDE_DENTRO: "Desde dentro", HISTORIAS_DE_MOTOR: "Historias de motor", CONVERSACIONES: "Conversaciones", COLABORACIONES: "Colaboraciones",
 };
 const creditRoleLabels: Record<StoryCreditRole, string> = {
   TEXT: "texto", PHOTO: "fotografía", VIDEO: "vídeo", CONTRIBUTOR: "colaboración",

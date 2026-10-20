@@ -1,4 +1,6 @@
 import "server-only";
+import { storyCommercialGate } from "./story-commercial.server";
+import { readStoryAttribution, storyEditorialGate, type StoryAttribution } from "./story-editorial-gate.server";
 
 import { createHash, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -11,7 +13,7 @@ import {
   type StoryMediaUpdate,
   type StoryRow,
 } from "@/lib/supabase";
-import { collectStoryMediaIds, validateStoryPublication } from "./story-validation";
+import { collectStoryMediaIds } from "./story-validation";
 import {
   STORY_MEDIA_ALLOWED_MIME_TYPES,
   STORY_MEDIA_DRAFT_BUCKET,
@@ -78,6 +80,7 @@ export type StoryMediaRepository = {
   getStory(storyId: string): Promise<StoryRow | null>;
   getMedia(mediaId: string): Promise<StoryMediaRow | null>;
   listStoryMedia(storyId: string): Promise<StoryMediaRow[]>;
+  getAttribution(storyId: string): Promise<StoryAttribution>;
   insertMedia(row: StoryMediaInsert): Promise<StoryMediaRow>;
   updateMediaForPromotion(input: {
     mediaId: string;
@@ -387,29 +390,6 @@ function mediaMatchesInspection(
   );
 }
 
-function mapStoryForPublication(story: StoryRow) {
-  return {
-    id: story.id,
-    slug: story.slug,
-    status: story.status,
-    type: story.type,
-    collection: story.collection,
-    title: story.title,
-    dek: story.dek,
-    contextLocation: story.context_location,
-    contentBlocks: story.content_blocks,
-    schemaVersion: story.schema_version,
-    heroMediaId: story.hero_media_id ?? "",
-    seoTitle: story.seo_title,
-    seoDescription: story.seo_description,
-    disciplineSlugs: story.discipline_slugs,
-    territoryIds: story.territory_ids,
-    publishedAt: story.published_at,
-    updatedAt: story.updated_at,
-    homeRank: story.home_rank,
-  };
-}
-
 export function createStoryMediaService(dependencies: StoryMediaServiceDependencies) {
   const createId = dependencies.createId ?? randomUUID;
 
@@ -626,7 +606,11 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
     }) {
       assertStoryMediaUuid(input.storyId, "storyId");
       assertStoryMediaUuid(input.mediaId, "mediaId");
-      assertEditableStory(await dependencies.repository.getStory(input.storyId));
+      const promotableStory = await dependencies.repository.getStory(input.storyId);
+      assertEditableStory(promotableStory);
+      if (promotableStory && storyCommercialGate(promotableStory).length) {
+        throw new StoryMediaServiceError("MEDIA_STATE_CONFLICT", "El gate comercial impide promover fotografías.");
+      }
       const media = assertMediaOwnership(
         await dependencies.repository.getMedia(input.mediaId),
         input.storyId,
@@ -850,14 +834,11 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
       if (!story) {
         throw new StoryMediaServiceError("STORY_NOT_FOUND", "Story does not exist.");
       }
-      const media = await dependencies.repository.listStoryMedia(storyId);
-      const publication = validateStoryPublication(mapStoryForPublication(story), {
-        media: media.map((item) => ({
-          id: item.id,
-          altText: item.alt_text,
-          rightsType: item.rights_type,
-        })),
-      });
+      const [media, attribution] = await Promise.all([
+        dependencies.repository.listStoryMedia(storyId), dependencies.repository.getAttribution(storyId),
+      ]);
+      const publicationErrors = storyEditorialGate(story, media, attribution);
+      if (story.status !== "READY") publicationErrors.push({ code: "STATUS_NOT_READY", field: "status", message: "Sólo una publicación READY puede publicarse." });
       const requiredMediaIds = new Set([
         ...(story.hero_media_id ? [story.hero_media_id] : []),
         ...collectStoryMediaIds(story.content_blocks),
@@ -927,8 +908,8 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
       }
 
       return {
-        ready: publication.ok && storageIssues.length === 0,
-        publicationErrors: publication.errors,
+        ready: publicationErrors.length === 0 && storageIssues.length === 0,
+        publicationErrors,
         storageIssues,
       };
     },
@@ -940,6 +921,7 @@ function createSupabaseDependencies(
   supabaseUrl: string,
 ): StoryMediaServiceDependencies {
   const repository: StoryMediaRepository = {
+    getAttribution: (storyId) => readStoryAttribution(client, storyId),
     async getStory(storyId) {
       const { data, error } = await client
         .from("stories")

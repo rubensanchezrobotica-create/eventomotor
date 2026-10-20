@@ -51,6 +51,7 @@ export default async function StoryPrivatePreviewPage({
         <Link className={styles.secondary} href={`/admin/historias/${id}`}>Volver al editor</Link>
       </div>
       <StoryArticle
+        sponsor={bundle.story.collection === "COLABORACIONES" ? { name: bundle.story.commercial_metadata?.advertiserName ?? "", label: "Contenido patrocinado" } : undefined}
         title={bundle.story.title} dek={bundle.story.dek} type={bundle.story.type}
         collection={bundle.story.collection} contextLocation={bundle.story.context_location}
         heroMediaId={bundle.story.hero_media_id} blocks={bundle.story.content_blocks}

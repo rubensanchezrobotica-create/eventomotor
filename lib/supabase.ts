@@ -196,6 +196,7 @@ export type StoryRow = {
   home_rank: number | null;
   created_at: string;
   updated_at: string;
+  commercial_metadata?: import("./stories/story-commercial").StoryCommercialMetadata | null;
 };
 
 export type StoryInsert = {
@@ -218,6 +219,7 @@ export type StoryInsert = {
   home_rank?: number | null;
   created_at?: string;
   updated_at?: string;
+  commercial_metadata?: import("./stories/story-commercial").StoryCommercialMetadata | null;
 };
 
 export type StoryMediaRow = {

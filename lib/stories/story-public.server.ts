@@ -5,12 +5,14 @@ import { createSupabaseServerClient, type StoryRow, type StoryMediaRow, type Sto
 import { buildCanonicalStoryMediaPublicUrl } from "./story-media.server";
 import { assertStoryMediaObjectPath, isStoryMediaMimeType, STORY_MEDIA_PUBLIC_BUCKET, STORY_MEDIA_PUBLIC_MAX_LONG_EDGE } from "./story-media-validation";
 import { collectStoryMediaIds, validateStoryPublication } from "./story-validation";
-import type { StoryCredit } from "./story-types";
+import { EDITORIAL_STORY_COLLECTIONS, type StoryCredit } from "./story-types";
+import { storyCommercialGate } from "./story-commercial.server";
 import { resolveStoryPublicImage } from "./story-responsive-images.server";
 import type { StoryRendererMedia, StoryRendererEvent } from "@/components/redesign-v2/stories/StoryRenderer";
 
 // No admin bundle, rights notes, signed URL, object locator or raw row is returned.
 export type PublicStory = {
+  sponsor?: { name: string; label: "Contenido patrocinado" };
   slug: string; title: string; dek: string; type: StoryRow["type"]; collection: StoryRow["collection"];
   contextLocation: string | null; heroMediaId: string; blocks: StoryRow["content_blocks"];
   media: Record<string, StoryRendererMedia>; events: Record<string, StoryRendererEvent>;
@@ -23,8 +25,10 @@ export type PublicStorySource = {
   events: Array<{ id: string; slug: string | null; title: string; start_date: string; venue: string | null; city: string | null; province: string | null; visible: boolean | null }>;
 };
 
-export function toPublicStory(source: PublicStorySource, supabaseUrl: string): PublicStory | null {
+export function toPublicStory(source: PublicStorySource, supabaseUrl: string, commercial = false): PublicStory | null {
   const { story } = source;
+  if (commercial ? story.collection !== "COLABORACIONES" || storyCommercialGate(story).length > 0
+    : !EDITORIAL_STORY_COLLECTIONS.some((collection) => collection === story.collection)) return null;
   if (story.status !== "PUBLISHED" || !story.published_at || Number.isNaN(Date.parse(story.published_at))) return null;
   const gate = validateStoryPublication({
     id: story.id, slug: story.slug, status: "READY", type: story.type, collection: story.collection,
@@ -63,6 +67,7 @@ export function toPublicStory(source: PublicStorySource, supabaseUrl: string): P
       location: [event.venue, event.city, event.province].filter(Boolean).join(", "),
     }]));
   const projected = { slug: story.slug, title: story.title, dek: story.dek, type: story.type, collection: story.collection,
+    ...(commercial ? { sponsor: { name: story.commercial_metadata!.advertiserName, label: "Contenido patrocinado" as const } } : {}),
     contextLocation: story.context_location, heroMediaId: story.hero_media_id!, blocks: story.content_blocks,
     media, events, credits, people, seoTitle: story.seo_title, seoDescription: story.seo_description,
     publishedAt: story.published_at, updatedAt: story.updated_at };
@@ -70,17 +75,23 @@ export function toPublicStory(source: PublicStorySource, supabaseUrl: string): P
   return projected;
 }
 
-const STORY_SELECT = "id,slug,status,type,collection,title,dek,context_location,content_blocks,schema_version,hero_media_id,seo_title,seo_description,discipline_slugs,territory_ids,published_at,updated_at";
+const EDITORIAL_STORY_SELECT = "id,slug,status,type,collection,title,dek,context_location,content_blocks,schema_version,hero_media_id,seo_title,seo_description,discipline_slugs,territory_ids,published_at,updated_at";
+const COMMERCIAL_STORY_SELECT = `${EDITORIAL_STORY_SELECT},commercial_metadata`;
 const MEDIA_SELECT = "id,story_id,bucket_id,object_path,width,height,mime_type,byte_size,alt_text,caption,credit,rights_type";
 
-async function loadPublicStory(slug: string): Promise<PublicStory | null> {
+async function loadPublicStory(slug: string, commercial = false): Promise<PublicStory | null> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180) return null;
   const client = createSupabaseServerClient();
   if (!client) return null;
-  const storyResult = await client.from("stories").select(STORY_SELECT).eq("slug", slug).eq("status", "PUBLISHED").maybeSingle();
+  const storyResult = await client.from("stories").select(commercial ? COMMERCIAL_STORY_SELECT : EDITORIAL_STORY_SELECT).eq("slug", slug).eq("status", "PUBLISHED")
+    .in("collection", commercial ? ["COLABORACIONES"] : [...EDITORIAL_STORY_COLLECTIONS]).maybeSingle();
   if (storyResult.error) throw new Error("Public Story lookup unavailable.");
   if (!storyResult.data) return null;
-  const story = storyResult.data as StoryRow;
+  // The selected column union is intentional; PostgREST's type parser cannot
+  // resolve this dynamic projection. The public boundary validates the row.
+  const story = storyResult.data as unknown as StoryRow;
+  // Reject wrong-channel rows before dependent reads, including with a faulty adapter.
+  if (commercial ? story.collection !== "COLABORACIONES" : !EDITORIAL_STORY_COLLECTIONS.some((c) => c === story.collection)) return null;
   const [m, c, r] = await Promise.all([
     client.from("story_media").select(MEDIA_SELECT).eq("story_id", story.id).eq("bucket_id", STORY_MEDIA_PUBLIC_BUCKET),
     client.from("story_credits").select("story_id,person_id,role,sort_order").eq("story_id", story.id).order("sort_order"),
@@ -98,16 +109,28 @@ async function loadPublicStory(slug: string): Promise<PublicStory | null> {
   const latest = await client.from("stories").select("status,updated_at").eq("id", story.id).eq("status", "PUBLISHED").maybeSingle();
   if (latest.error) throw new Error("Public Story state unavailable.");
   if (!latest.data || latest.data.updated_at !== story.updated_at) return null;
-  return toPublicStory({ story, media: (m.data ?? []) as StoryMediaRow[], credits, relations, people: p.data ?? [], events: e.data ?? [] }, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+  return toPublicStory({ story, media: (m.data ?? []) as StoryMediaRow[], credits, relations, people: p.data ?? [], events: e.data ?? [] }, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", commercial);
 }
 
 // Request memoization only; no cross-request cache of editorial rows.
-export const getPublicStory = cache(loadPublicStory);
+export const getPublicStory = cache((slug: string) => loadPublicStory(slug));
+export const getPublicCollaboration = cache((slug: string) => loadPublicStory(slug, true));
+
+export async function listPublicCollaborations(): Promise<PublicStory[]> {
+  const client = createSupabaseServerClient();
+  if (!client) return [];
+  const { data, error } = await client.from("stories").select("slug").eq("status", "PUBLISHED")
+    .eq("collection", "COLABORACIONES").order("published_at", { ascending: false });
+  if (error) throw new Error("Published collaborations unavailable.");
+  const stories = await Promise.all((data ?? []).map((row) => getPublicCollaboration(row.slug)));
+  return stories.filter((story): story is PublicStory => story !== null);
+}
 
 export async function listPublicStories(): Promise<PublicStory[]> {
   const client = createSupabaseServerClient();
   if (!client) return [];
-  const { data, error } = await client.from("stories").select("slug").eq("status", "PUBLISHED").order("published_at", { ascending: false });
+  const { data, error } = await client.from("stories").select("slug").eq("status", "PUBLISHED")
+    .in("collection", [...EDITORIAL_STORY_COLLECTIONS]).order("published_at", { ascending: false });
   if (error) throw new Error("Published Stories list unavailable.");
   const stories = await Promise.all((data ?? []).map((row) => getPublicStory(row.slug)));
   return stories.filter((story): story is PublicStory => story !== null);
@@ -119,7 +142,8 @@ async function loadPublicStoriesForEvent(eventId: string) {
   const { data, error } = await client.from("story_events").select("story_id").eq("event_id", eventId);
   if (error) throw new Error("Related published Stories unavailable.");
   if (!data?.length) return [];
-  const s = await client.from("stories").select("slug").in("id", data.map((row) => row.story_id)).eq("status", "PUBLISHED").order("published_at", { ascending: false });
+  const s = await client.from("stories").select("slug").in("id", data.map((row) => row.story_id)).eq("status", "PUBLISHED")
+    .in("collection", [...EDITORIAL_STORY_COLLECTIONS]).order("published_at", { ascending: false });
   if (s.error) throw new Error("Related published Stories unavailable.");
   const stories = await Promise.all((s.data ?? []).map((row) => getPublicStory(row.slug)));
   return stories.filter((story): story is PublicStory => story !== null)
