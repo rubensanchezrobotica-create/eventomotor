@@ -31,8 +31,12 @@ export default function ScheduleProgram({ agenda, classes, legacyText }: Schedul
             <ul className={classes.itemList}>
               {day.items.map((item, index) => (
                 <li className={classes.item} key={`${day.label}-${index}-${item.sourceText}`}>
-                  {item.timeLabel ? (
-                    <span className={classes.time}>{item.timeLabel}</span>
+                  {item.timeLabels.length ? (
+                    <span aria-label={item.timeLabels.join(", ")} className={classes.time}>
+                      {item.timeLabels.map((timeLabel, timeIndex) => (
+                        <span aria-hidden="true" key={`${timeLabel}-${timeIndex}`}>{timeLabel}</span>
+                      ))}
+                    </span>
                   ) : (
                     <span aria-hidden="true" className={classes.time}>—</span>
                   )}

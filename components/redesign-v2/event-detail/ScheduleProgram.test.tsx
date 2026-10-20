@@ -26,9 +26,24 @@ test("renderiza la agenda estructurada en SSR con headings y listas semánticas"
   assert.match(html, /data-schedule-view="structured"/);
   assert.match(html, /<ol class="day-list">/);
   assert.match(html, /<h3>Viernes 7<\/h3>/);
-  assert.match(html, /<span class="time">09:00–10:00<\/span>/);
+  assert.match(
+    html,
+    /<span aria-label="09:00–10:00" class="time"><span aria-hidden="true">09:00–10:00<\/span><\/span>/,
+  );
   assert.match(html, /<span class="activity">verificaciones<\/span>/);
   assert.doesNotMatch(html, /data-schedule-view="legacy"/);
+});
+
+test("agrupa varias horas de una actividad en una única fila accesible", () => {
+  const legacyText = "Sábado 24: tramo Espinos a las 09:35, 12:25 y 15:15.";
+  const agenda = parseScheduleAgenda(legacyText);
+  assert.ok(agenda);
+  const html = renderToStaticMarkup(
+    <ScheduleProgram agenda={agenda} classes={classes} legacyText={legacyText} />,
+  );
+  assert.match(html, /aria-label="09:35, 12:25, 15:15"/);
+  assert.equal((html.match(/class="activity">tramo Espinos/g) ?? []).length, 1);
+  assert.equal((html.match(/aria-hidden="true">/g) ?? []).length, 3);
 });
 
 test("renderiza el fallback histórico literal cuando el parser no es concluyente", () => {

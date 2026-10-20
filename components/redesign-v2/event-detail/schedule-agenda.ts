@@ -4,6 +4,7 @@ export type ScheduleAgendaItem = {
   sourceText: string;
   startTime: string | null;
   timeLabel: string | null;
+  timeLabels: string[];
 };
 
 export type ScheduleAgendaDay = {
@@ -33,9 +34,18 @@ const RANGE = new RegExp(
   `\\b(?:de\\s+)?(?<start>${CLOCK})\\s*(?:a|[-–—])\\s*(?<end>${CLOCK})\\b`,
   "iu",
 );
-const SINGLE_WITH_PREFIX = new RegExp(`\\ba\\s+las\\s+(?<time>${CLOCK})\\b`, "iu");
+const RANGE_GLOBAL = new RegExp(
+  `\\b(?:de\\s+)?(?<start>${CLOCK})\\s*(?:a|[-–—])\\s*(?<end>${CLOCK})\\b`,
+  "giu",
+);
+const SINGLE_PREFIX = "(?:a\\s+las|desde\\s+las?|a\\s+partir\\s+de\\s+las)";
+const REPEATED_SINGLE = new RegExp(
+  `^(?<activity>.+?)\\s+(?:${SINGLE_PREFIX}\\s+)?(?<first>${CLOCK})(?<rest>(?:\\s*(?:,|\\by\\b)\\s*(?:${SINGLE_PREFIX}\\s+)?${CLOCK})+)[\\s.]*$`,
+  "iu",
+);
+const SINGLE_WITH_PREFIX = new RegExp(`\\b${SINGLE_PREFIX}\\s+(?<time>${CLOCK})\\b`, "iu");
 const SINGLE = new RegExp(`\\b(?<time>${CLOCK})\\b`, "u");
-const FOOTER_NOTE = /^(?:programa\s+sujeto|horario\s+oficial|horarios\s+(?:sujetos|provisionales)|estos\s+son\s+horarios|horas\s+(?:locales|previstas)|confirmar\b|consultar\b|el\s+reglamento\b|la\s+fuente\b|no\s+se\s+ha\b)/iu;
+const FOOTER_NOTE = /^(?:programa\s+sujeto|horario\s+oficial|horarios\s+(?:sujetos|provisionales)|estos\s+son\s+horarios|horas\s+(?:locales|previstas)|confirmar\b|consultar\b|el\s+reglamento\b|la\s+fuente\b|no\s+se\s+ha\b|inscripciones\b|los\s+horarios\b)/iu;
 
 function cleanStructuralPunctuation(value: string) {
   return value
@@ -55,37 +65,98 @@ function hasMalformedClock(value: string) {
   return clockLike.length !== valid.length;
 }
 
-function splitAtTimedBoundaries(value: string, boundary: RegExp): string[] {
-  const match = boundary.exec(value);
-  if (!match || match.index === undefined) return [value.trim()];
-  const left = value.slice(0, match.index).trim();
-  const right = value.slice(match.index + match[0].length).trim();
-  if (!left || !right || validClockCount(left) === 0 || validClockCount(right) === 0) {
-    return [value.trim()];
+function parseRepeatedRanges(sourceText: string): ScheduleAgendaItem | null {
+  const ranges = [...sourceText.matchAll(RANGE_GLOBAL)];
+  if (ranges.length < 2 || validClockCount(sourceText) !== ranges.length * 2) return null;
+
+  const first = ranges[0];
+  const activitySource = sourceText.slice(0, first.index);
+  const activity = cleanStructuralPunctuation(activitySource);
+  if (!activity || validClockCount(activitySource) > 0) return null;
+
+  let cursor = (first.index || 0) + first[0].length;
+  for (const range of ranges.slice(1)) {
+    const connector = cleanStructuralPunctuation(sourceText.slice(cursor, range.index));
+    if (connector && !/^(?:y|e)$/iu.test(connector)) return null;
+    cursor = (range.index || 0) + range[0].length;
   }
-  return [
-    ...splitAtTimedBoundaries(left, new RegExp(boundary.source, boundary.flags)),
-    ...splitAtTimedBoundaries(right, new RegExp(boundary.source, boundary.flags)),
-  ];
+  if (cleanStructuralPunctuation(sourceText.slice(cursor))) return null;
+
+  const timeLabels = ranges.map((range) => {
+    const start = range.groups?.start;
+    const end = range.groups?.end;
+    return start && end ? `${start}–${end}` : "";
+  });
+  if (timeLabels.some((label) => !label)) return null;
+
+  return {
+    activity,
+    endTime: null,
+    sourceText,
+    startTime: ranges[0].groups?.start || null,
+    timeLabel: timeLabels.join(" · "),
+    timeLabels,
+  };
+}
+
+function parseRepeatedSingles(sourceText: string): ScheduleAgendaItem | null {
+  const match = REPEATED_SINGLE.exec(sourceText);
+  if (!match?.groups?.activity) return null;
+
+  const activity = cleanStructuralPunctuation(match.groups.activity);
+  const timeLabels = [...sourceText.matchAll(CLOCK_GLOBAL)].map(([clock]) => clock);
+  if (!activity || validClockCount(match.groups.activity) > 0 || timeLabels.length < 2) return null;
+
+  return {
+    activity,
+    endTime: null,
+    sourceText,
+    startTime: timeLabels[0],
+    timeLabel: timeLabels.join(" · "),
+    timeLabels,
+  };
+}
+
+function parseRepeatedAgendaItem(sourceText: string) {
+  return parseRepeatedRanges(sourceText) ?? parseRepeatedSingles(sourceText);
+}
+
+function splitAtTimedBoundaries(value: string, boundary: RegExp): string[] {
+  const matcher = new RegExp(boundary.source, boundary.flags.includes("g") ? boundary.flags : `${boundary.flags}g`);
+  for (const match of value.matchAll(matcher)) {
+    if (match.index === undefined) continue;
+    const left = value.slice(0, match.index).trim();
+    const right = value.slice(match.index + match[0].length).trim();
+    if (!left || !right || validClockCount(left) === 0 || validClockCount(right) === 0) continue;
+    return [
+      ...splitAtTimedBoundaries(left, new RegExp(boundary.source, boundary.flags)),
+      ...splitAtTimedBoundaries(right, new RegExp(boundary.source, boundary.flags)),
+    ];
+  }
+  return [value.trim()];
 }
 
 function splitActivityParagraph(paragraph: string) {
   const semicolonParts = paragraph.split(/;\s*/u).map((part) => part.trim()).filter(Boolean);
   return semicolonParts.flatMap((part) => {
+    if (parseRepeatedAgendaItem(part)) return [part];
     const sentenceParts = splitAtTimedBoundaries(part, /(?<=\.)\s+/u);
-    return sentenceParts.flatMap((sentence) => (
-      splitAtTimedBoundaries(sentence, /\s+y\s+/iu)
-        .flatMap((joined) => splitAtTimedBoundaries(
-          joined,
-          new RegExp(`,\\s+(?=[^,;]{1,80}\\b(?:a\\s+las\\s+)?${CLOCK}\\b)`, "iu"),
-        ))
-    ));
+    return sentenceParts.flatMap((sentence) => {
+      if (parseRepeatedAgendaItem(sentence)) return [sentence];
+      return splitAtTimedBoundaries(
+        sentence,
+        new RegExp(`,\\s+(?=[^,;]{1,80}\\b(?:${SINGLE_PREFIX}\\s+)?${CLOCK}\\b)`, "iu"),
+      ).flatMap((commaPart) => splitAtTimedBoundaries(commaPart, /\s+y\s+/iu));
+    });
   });
 }
 
 function parseAgendaItem(value: string): ScheduleAgendaItem | null {
   const sourceText = value.trim();
   if (!sourceText || hasMalformedClock(sourceText)) return null;
+
+  const repeated = parseRepeatedAgendaItem(sourceText);
+  if (repeated) return repeated;
 
   const clockCount = validClockCount(sourceText);
   if (clockCount > 2) return null;
@@ -103,6 +174,7 @@ function parseAgendaItem(value: string): ScheduleAgendaItem | null {
       sourceText,
       startTime: range.groups.start,
       timeLabel: `${range.groups.start}–${range.groups.end}`,
+      timeLabels: [`${range.groups.start}–${range.groups.end}`],
     };
   }
 
@@ -120,6 +192,7 @@ function parseAgendaItem(value: string): ScheduleAgendaItem | null {
       sourceText,
       startTime: time,
       timeLabel: time,
+      timeLabels: [time],
     };
   }
 
@@ -131,16 +204,17 @@ function parseAgendaItem(value: string): ScheduleAgendaItem | null {
     sourceText,
     startTime: null,
     timeLabel: null,
+    timeLabels: [],
   };
 }
 
 function parseDayItems(value: string) {
   const paragraphs = value.split(/\n\s*\n/u).map((part) => part.trim()).filter(Boolean);
   const sourceItems = paragraphs.flatMap((paragraph) => {
-    if (paragraph.includes("\n")) {
-      return paragraph.split(/\n+/u).map((line) => line.trim()).filter(Boolean);
-    }
-    return splitActivityParagraph(paragraph);
+    const lines = paragraph.includes("\n")
+      ? paragraph.split(/\n+/u).map((line) => line.trim()).filter(Boolean)
+      : [paragraph];
+    return lines.flatMap(splitActivityParagraph);
   });
   if (!sourceItems.length) return null;
   const items = sourceItems.map(parseAgendaItem);
@@ -153,6 +227,11 @@ function extractFooter(value: string) {
   while (paragraphs.length > 1 && FOOTER_NOTE.test(paragraphs.at(-1) || "")) {
     footer.unshift(paragraphs.pop() || "");
   }
+  const trailingLines = (paragraphs.at(-1) || "").split(/\n+/u).map((line) => line.trim()).filter(Boolean);
+  while (trailingLines.length > 1 && FOOTER_NOTE.test(trailingLines.at(-1) || "")) {
+    footer.unshift(trailingLines.pop() || "");
+  }
+  if (paragraphs.length && trailingLines.length) paragraphs[paragraphs.length - 1] = trailingLines.join("\n");
   return {
     body: paragraphs.join("\n\n"),
     footerNote: footer.join("\n\n"),
