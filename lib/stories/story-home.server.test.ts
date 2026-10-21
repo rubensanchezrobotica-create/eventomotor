@@ -6,7 +6,7 @@ const storyId = "a1000000-0000-4000-8000-000000000001";
 const mediaId = "a2000000-0000-4000-8000-000000000001";
 function fixture() {
   return {
-    story: { id: storyId, slug: "synthetic-home-story", status: "PUBLISHED", title: "Synthetic Home story",
+    story: { id: storyId, slug: "synthetic-home-story", status: "PUBLISHED", collection: "DESDE_DENTRO", title: "Synthetic Home story",
       dek: "An approved short synthetic summary.", hero_media_id: mediaId, published_at: "2030-01-02T12:00:00Z",
       updated_at: "2030-01-02T12:00:00Z", content_blocks: "PRIVATE_BODY_SENTINEL", rights_notes: "PRIVATE_NOTES_SENTINEL" },
     hero: { id: mediaId, story_id: storyId, bucket_id: "story-media", object_path: `${storyId}/${mediaId}/asset.webp`,

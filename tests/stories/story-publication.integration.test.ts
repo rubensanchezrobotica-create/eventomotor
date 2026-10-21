@@ -40,7 +40,7 @@ test("real publication path composes editorial, byte/delivery and atomic SQL gat
   const paragraph = (id: string, text = "Synthetic editorial body.") => ({
     id, type: "PARAGRAPH", content: [{ type: "TEXT", text }],
   });
-  async function fixture(body: unknown[], options: { missingObject?: boolean; wrongDimensions?: boolean } = {}) {
+  async function fixture(body: unknown[], options: { missingObject?: boolean; wrongDimensions?: boolean; noTextCredit?: boolean } = {}) {
     const storyId = randomUUID(), mediaId = randomUUID();
     const path = storyId + "/" + mediaId + "/asset.webp";
     const draft = await client.from("stories").insert({ id: storyId, type: "REPORTAJE", collection: "DESDE_DENTRO" });
@@ -56,6 +56,13 @@ test("real publication path composes editorial, byte/delivery and atomic SQL gat
       alt_text: "Synthetic test image", rights_type: "OWN",
     });
     assert.equal(media.error, null);
+    const personId = randomUUID();
+    const person = await client.from("editorial_people").insert({ id: personId, display_name: "Synthetic gate author" });
+    assert.equal(person.error, null);
+    const credited = await client.rpc("replace_story_credits", { p_story_id: storyId,
+      p_expected_updated_at: (await client.from("stories").select("updated_at").eq("id", storyId).single()).data!.updated_at,
+      p_credits: [{ person_id: personId, role: options.noTextCredit ? "PHOTO" : "TEXT", sort_order: 0 }] });
+    assert.equal(credited.error, null);
     const ready = await client.from("stories").update({
       status: "READY", title: "Synthetic reviewed editorial", slug: "synthetic-gate-" + storyId,
       dek: "Synthetic dek", hero_media_id: mediaId,
@@ -133,6 +140,15 @@ test("real publication path composes editorial, byte/delivery and atomic SQL gat
       await assertUnchanged(story);
     });
   }
+  await t.test("READY without TEXT rejects through the real service AND atomic RPC, with no receipt", async () => {
+    const { story } = await fixture([paragraph("no-author")], { noTextCredit: true });
+    const readiness = await mediaService.publicationReadiness(story.id);
+    assert.ok(readiness.publicationErrors.some((issue) => issue.field === "credits"));
+    await assert.rejects(publishStory({ storyId: story.id, expectedUpdatedAt: story.updated_at, requestId: randomUUID() }), /readiness/);
+    const raw = await client.rpc("publish_story", { p_story_id: story.id, p_expected_updated_at: story.updated_at, p_request_id: randomUUID() });
+    assert.equal(raw.error?.code, "23514");
+    await assertUnchanged(story);
+  });
   await t.test("valid editorial + approved 3200px real media publishes atomically with idempotent retry", async () => {
     const { story } = await fixture([paragraph("valid-body")]);
     const readiness = await mediaService.publicationReadiness(story.id);

@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 const container = "supabase_db_eventomotor-stories-ci";
+const commercial = process.argv.includes("--commercial");
 const { stdout } = await exec("docker", ["ps", "--filter", "name=^/" + container + "$", "--format", "{{.Names}}"], { timeout: 10000, windowsHide: true });
 assert.equal(stdout.trim(), container, "only the isolated Stories CI container is allowed");
 // No DSN, dotenv, production project ref, HTTP or secret is accepted.
@@ -82,8 +83,9 @@ async function fixture(db) {
   const event = "story-concurrency-" + id;
   const path = id + "/" + media + "/asset.webp";
   await db.query("insert into public.stories(id,type,collection,title,slug,dek,seo_title,seo_description,content_blocks) values (" +
-    quote(id) + ",'REPORTAJE','DESDE_DENTRO','Synthetic concurrency','synthetic-" + id + "','Synthetic dek','Synthetic SEO','Synthetic description'," +
-    quote(JSON.stringify([{ id: "p-1", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Synthetic concurrency body." }] },
+    quote(id) + (commercial ? ",'ARTICULO','COLABORACIONES'" : ",'REPORTAJE','DESDE_DENTRO'") + ",'Synthetic concurrency','synthetic-" + id + "','Synthetic dek','Synthetic SEO','Synthetic description'," +
+    quote(JSON.stringify([{ id: "p-1", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Synthetic concurrency body." },
+      ...(commercial ? [{ type: "LINK", href: "https://example.test/paid", sponsored: true, children: [{ type: "TEXT", text: "Synthetic paid link" }] }] : [])] },
       { id: "e-1", type: "EVENT_REFERENCE", eventId: event }])) + "::jsonb);" +
     "insert into public.story_media(id,story_id,bucket_id,object_path,width,height,mime_type,byte_size,alt_text,rights_type) values (" +
     quote(media) + "," + quote(id) + ",'story-media'," + quote(path) + ",1200,800,'image/webp',1000,'Synthetic alt','OWN');" +
@@ -92,7 +94,11 @@ async function fixture(db) {
     "insert into public.events(id,slug,title,start_date) values (" + quote(event) + "," + quote(event) + ",'Synthetic concurrency event','2030-01-01');" +
     "insert into public.story_credits(story_id,person_id,role,sort_order) values (" + quote(id) + "," + quote(person) + ",'TEXT',0),(" + quote(id) + "," + quote(person) + ",'PHOTO',1);" +
     "insert into public.story_events(story_id,event_id,relation_type) values (" + quote(id) + "," + quote(event) + ",'PRIMARY');" +
-    "update public.stories set status='READY',hero_media_id=" + quote(media) + " where id=" + quote(id) + ";");
+    "update public.stories set hero_media_id=" + quote(media) + " where id=" + quote(id) + ";" +
+    (commercial ? "update public.stories set commercial_metadata=commercial_metadata || " + quote(JSON.stringify({ advertiserName: "Synthetic advertiser", advertiserConfirmed: true,
+      factsVerified: true, editorialApprovalRef: "SYNTHETIC", imageAuthorizationRef: "SYNTHETIC", commercialLinksChecked: true })) + "::jsonb where id=" + quote(id) + ";" +
+      "update public.stories s set commercial_metadata=jsonb_set(commercial_metadata,'{approvedContentHash}',to_jsonb(public.story_commercial_content_hash(s))) where id=" + quote(id) + ";" : "") +
+    "update public.stories set status='READY' where id=" + quote(id) + ";");
   const version = await db.query("select updated_at::text from public.stories where id=" + quote(id) + ";");
   return {
     id, media, person, event, version, request,
@@ -123,7 +129,8 @@ for (const kind of ["credits", "events", "media"]) {
     await waitUntilBlocked(a, b);
     await a.query("commit;");
     assert.match(await outcome, /40001/);
-    assert.equal(await a.query("select status from public.stories where id=" + quote(f.id) + ";"), "READY");
+    assert.equal(await a.query("select status from public.stories where id=" + quote(f.id) + ";"), commercial ? "DRAFT" : "READY");
+    if (commercial) assert.equal(await a.query("select commercial_metadata->>'approvedContentHash' is null from public.stories where id=" + quote(f.id) + ";"), "t");
     assert.equal(await a.query("select count(*) from public.story_publication_receipts where story_id=" + quote(f.id) + ";"), "0");
   });
 }
@@ -193,4 +200,24 @@ await scenario("late credit constraint failure rolls back preceding DELETE and v
     await a.query("drop trigger a16d_test_credit_failure on public.story_credits; drop function public.a16d_test_credit_failure();");
   }
 });
-console.log("STORY_POSTGRES_CONCURRENCY_SCENARIOS=" + passed + "/" + passed);
+if (commercial) {
+  await scenario("commercial reapproval waits behind media edit and cannot reuse a stale reviewed version", async (a,b,f) => {
+    await a.query("begin; set local role service_role; update public.story_media set caption='New synthetic caption' where id=" + quote(f.media) + ";");
+    const result = b.query("set role service_role; with saved as (update public.stories s set status='READY',commercial_metadata=jsonb_set(commercial_metadata,'{approvedContentHash}',to_jsonb(public.story_commercial_content_hash(s))) where id=" + quote(f.id) + " and updated_at=" + quote(f.version) + "::timestamptz returning id) select count(*) from saved;");
+    await waitUntilBlocked(a,b); await a.query("commit;"); assert.equal(await result,"0");
+    assert.equal(await a.query("select status from public.stories where id=" + quote(f.id) + ";"),"DRAFT");
+  });
+  await scenario("commercial author edit first invalidates approval and publication waits/rejects", async (a,b,f) => {
+    await a.query("begin; set local role service_role; update public.editorial_people set display_name='Revised synthetic author' where id=" + quote(f.person) + ";");
+    const outcome = b.query("set role service_role; " + f.publish).then(()=>"unexpected-success",e=>e.message);
+    await waitUntilBlocked(a,b); await a.query("commit;"); assert.match(await outcome,/40001/);
+    assert.equal(await a.query("select count(*) from public.story_publication_receipts where story_id=" + quote(f.id) + ";"),"0");
+  });
+  await scenario("commercial publication first rejects author lock inversion without deadlock", async (a,b,f) => {
+    await a.query("begin; set local role service_role; " + f.publish);
+    await assert.rejects(b.query("set role service_role; update public.editorial_people set display_name='Unapproved edit' where id=" + quote(f.person) + ";"),/55P03/);
+    await a.query("commit;");
+    assert.equal(await a.query("select display_name from public.editorial_people where id=" + quote(f.person) + ";"),"Synthetic concurrency editor");
+  });
+}
+console.log((commercial ? "COMMERCIAL" : "STORY") + "_POSTGRES_CONCURRENCY_SCENARIOS=" + passed + "/" + passed);

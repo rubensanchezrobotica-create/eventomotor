@@ -18,23 +18,28 @@ export default async function AdminStoriesPage({
   const query = await searchParams;
   const requested = typeof query.status === "string" ? query.status.toUpperCase() : "ALL";
   const status = FILTERS.includes(requested as StoryListStatus) ? requested as StoryListStatus : "ALL";
-  const stories = await listAuthenticatedStories(status);
+  const commercial = query.collection === "COLABORACIONES";
+  const stories = (await listAuthenticatedStories(status)).filter((story) => (story.collection === "COLABORACIONES") === commercial);
 
   return (
     <div className={styles.stack}>
       <div className={styles.actions}>
         <div>
           <p className={styles.eyebrow}>Backoffice editorial</p>
-          <h1>Historias</h1>
+          <h1>{commercial ? "Colaboraciones" : "Historias"}</h1>
           <p className={styles.lede}>Borradores, piezas listas y archivo de publicación.</p>
         </div>
-        <Link className={styles.primary} href="/admin/historias/nueva">Nueva Historia</Link>
+        <Link className={styles.primary} href={commercial ? "/admin/historias/nueva?collection=COLABORACIONES" : "/admin/historias/nueva"}>{commercial ? "Nuevo artículo patrocinado" : "Nueva Historia"}</Link>
       </div>
+      <nav className={styles.filters} aria-label="Sección editorial">
+        <Link href="/admin/historias">Historias independientes</Link>
+        <Link href="/admin/historias?collection=COLABORACIONES">Colaboraciones · contenido patrocinado</Link>
+      </nav>
       <nav className={styles.filters} aria-label="Filtrar Historias">
         {FILTERS.map((filter) => (
           <Link
             data-active={filter === status}
-            href={filter === "ALL" ? "/admin/historias" : `/admin/historias?status=${filter}`}
+            href={`/admin/historias?status=${filter}${commercial ? "&collection=COLABORACIONES" : ""}`}
             key={filter}
           >{filter}</Link>
         ))}

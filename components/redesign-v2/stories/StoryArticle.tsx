@@ -4,6 +4,7 @@ import { groupStoryByline, storyCollectionLabels, storyTypeLabels } from "./stor
 import styles from "./StoryArticle.module.css";
 
 type Props = {
+  sponsor?: { name: string; label: "Contenido patrocinado" };
   title: string; dek: string; type: StoryType; collection: StoryCollection;
   contextLocation?: string | null; heroMediaId: string | null;
   blocks: readonly StoryContentBlock[];
@@ -20,6 +21,10 @@ export default function StoryArticle(props: Props) {
     <article className={styles.article} data-story-article>
       <header className={styles.header}>
         <div className={styles.headerCopy}>
+          {props.collection === "COLABORACIONES" ? <aside aria-label="Identificación comercial">
+            <p className={styles.eyebrow}>Contenido patrocinado</p>
+            {props.sponsor?.name.trim() ? <p>Anunciante: <strong>{props.sponsor.name}</strong></p> : null}
+          </aside> : null}
           <p className={styles.eyebrow}>{storyCollectionLabels[props.collection]} · {storyTypeLabels[props.type]}</p>
           <h1 className={styles.title}>{props.title || "Historia sin título"}</h1>
           {props.dek ? <p className={styles.dek}>{props.dek}</p> : null}

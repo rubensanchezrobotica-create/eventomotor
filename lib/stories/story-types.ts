@@ -1,11 +1,13 @@
 export const STORY_SCHEMA_VERSION = 1 as const;
 
 export const STORY_STATUSES = ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"] as const;
-export const STORY_TYPES = ["CRONICA", "REPORTAJE", "HISTORIA", "ENTREVISTA"] as const;
+export const STORY_TYPES = ["CRONICA", "REPORTAJE", "HISTORIA", "ENTREVISTA", "ARTICULO"] as const;
+export const EDITORIAL_STORY_COLLECTIONS = ["DESDE_DENTRO", "HISTORIAS_DE_MOTOR", "CONVERSACIONES"] as const;
 export const STORY_COLLECTIONS = [
   "DESDE_DENTRO",
   "HISTORIAS_DE_MOTOR",
   "CONVERSACIONES",
+  "COLABORACIONES",
 ] as const;
 export const STORY_RIGHTS_TYPES = [
   "OWN",
@@ -76,6 +78,7 @@ export type StoryInlineText = {
 export type StoryInlineLink = {
   type: "LINK";
   href: string;
+  sponsored?: boolean;
   children: readonly StoryInlineText[];
 };
 

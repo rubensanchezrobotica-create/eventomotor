@@ -14,6 +14,21 @@ require.extensions[".css"] = (module) => {
 const { default: StoryRenderer } = require("./StoryRenderer") as typeof import("./StoryRenderer");
 const { default: StoryArticle } = require("./StoryArticle") as typeof import("./StoryArticle");
 
+test("commercial article hides pending advertiser but keeps disclosure and sponsored link", () => {
+  const props = { title: "Synthetic commercial article", dek: "Synthetic dek", type: "ARTICULO" as const,
+    collection: "COLABORACIONES" as const, heroMediaId: null,
+    blocks: [{ id: "paragraph", type: "PARAGRAPH" as const, content: [{ type: "LINK" as const,
+      href: "https://example.test/adventure", sponsored: true,
+      children: [{ type: "TEXT" as const, text: "motos trail" }] }] }],
+    media: {}, events: {}, credits: [], people: {} };
+  const draftHtml = renderToStaticMarkup(<StoryArticle {...props} />);
+  assert.match(draftHtml, /Contenido patrocinado/);
+  assert.doesNotMatch(draftHtml, /Anunciante:|Pendiente de confirmar/);
+  assert.match(draftHtml, /rel="sponsored noopener noreferrer"/);
+  const publishedHtml = renderToStaticMarkup(<StoryArticle {...props} sponsor={{ name: "Synthetic advertiser", label: "Contenido patrocinado" }} />);
+  assert.match(publishedHtml, /Anunciante: <strong>Synthetic advertiser<\/strong>/);
+});
+
 test("public image attributes reach hero, singles, pairs and gallery; private preview remains original", () => {
   const item = { id: "synthetic-photo", resolvedUrl: "https://example.test/original.png", width: 1200, height: 900,
     altText: "Synthetic alt", caption: "Synthetic caption", credit: "Synthetic credit",

@@ -259,7 +259,10 @@ function validateInlineNode(
     return { text: "", inlineNodeCount: 0 };
   }
 
-  rejectUnknownFields(value, ["type", "href", "children"], field, errors, blockId);
+  rejectUnknownFields(value, ["type", "href", "children", "sponsored"], field, errors, blockId);
+  if (value.sponsored !== undefined && typeof value.sponsored !== "boolean") {
+    error(errors, "UNKNOWN_ENUM_VALUE", `${field}.sponsored`, "sponsored debe ser booleano.", blockId);
+  }
   const href = validateString(value.href, `${field}.href`, STORY_LIMITS.href, errors, { required: true, blockId });
   if (href !== null && !isSafeStoryLink(href)) {
     error(errors, "UNSAFE_LINK", `${field}.href`, "El enlace no usa una ruta o protocolo seguro.", blockId);
@@ -548,6 +551,9 @@ export function validateStoryRecord(input: unknown): StoryValidationResult<Story
   validateEnum(input.status, STORY_STATUSES, "status", errors);
   validateEnum(input.type, STORY_TYPES, "type", errors);
   validateEnum(input.collection, STORY_COLLECTIONS, "collection", errors);
+  if ((input.collection === "COLABORACIONES") !== (input.type === "ARTICULO")) {
+    error(errors, "UNKNOWN_ENUM_VALUE", "collection", "ARTICULO pertenece exclusivamente a COLABORACIONES.");
+  }
   validateString(input.title, "title", STORY_LIMITS.title, errors);
   validateString(input.dek, "dek", STORY_LIMITS.dek, errors);
   if (input.contextLocation !== undefined && input.contextLocation !== null) {

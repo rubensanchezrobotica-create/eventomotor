@@ -1,4 +1,6 @@
 import "server-only";
+import { commercialContentHash, storyCommercialGate } from "./story-commercial.server";
+import { readStoryAttribution, storyEditorialGate, type StoryAttribution } from "./story-editorial-gate.server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -85,6 +87,7 @@ export type StoryAdminBundle = {
 };
 
 type StoryUpdate = {
+  commercial_metadata?: StoryRow["commercial_metadata"];
   status: "DRAFT" | "READY";
   type: StoryRow["type"];
   collection: StoryRow["collection"];
@@ -111,6 +114,7 @@ export type StoryAdminMutationRepository = {
   findSlugOwner(slug: string, excludingId: string): Promise<string | null>;
   getMediaByIds(mediaIds: readonly string[]): Promise<StoryMediaRow[]>;
   getRelatedEventIds(storyId: string, eventIds: readonly string[]): Promise<string[]>;
+  getAttribution(storyId: string): Promise<StoryAttribution>;
   updateExpected(input: {
     id: string;
     expectedUpdatedAt: string;
@@ -355,6 +359,9 @@ export function createStoryAdminMutationService(repository: StoryAdminMutationRe
           validation.issues,
         );
       }
+      if ((current.collection === "COLABORACIONES") !== (validation.value.collection === "COLABORACIONES")) {
+        throw new StoryAdminError("STORY_INPUT_INVALID", "No se puede cambiar entre contenido independiente y comercial.");
+      }
       if (validation.value.slug) {
         const owner = await repository.findSlugOwner(validation.value.slug, input.id);
         if (owner) {
@@ -388,10 +395,28 @@ export function createStoryAdminMutationService(repository: StoryAdminMutationRe
         }
       }
 
+      const update = toUpdate(validation.value);
+      if (current.collection === "COLABORACIONES") {
+        const metadata = { ...validation.value.commercialMetadata!, approvedContentHash: current.commercial_metadata?.approvedContentHash ?? null };
+        update.commercial_metadata = metadata;
+        const candidate = { ...current, ...update };
+        if (input.values.approveCommercialVersion === true) metadata.approvedContentHash = commercialContentHash(candidate);
+        if (update.status === "READY") {
+          const issues = storyCommercialGate(candidate);
+          if (issues.length) throw new StoryAdminError("STORY_INPUT_INVALID", "El gate comercial impide READY.", issues);
+        }
+      }
+      if (update.status === "READY") {
+        const [media, attribution] = await Promise.all([
+          repository.getMediaByIds([...mediaIds]), repository.getAttribution(input.id),
+        ]);
+        const issues = storyEditorialGate({ ...current, ...update }, media, attribution);
+        if (issues.length) throw new StoryAdminError("STORY_INPUT_INVALID", "El gate editorial completo impide READY.", issues);
+      }
       const updated = await repository.updateExpected({
         id: input.id,
         expectedUpdatedAt: input.expectedUpdatedAt,
-        update: toUpdate(validation.value),
+        update,
       });
       if (!updated) {
         throw new StoryAdminError(
@@ -605,6 +630,7 @@ function createSupabaseMutationRepository(
   client: SupabaseClient<Database>,
 ): StoryAdminMutationRepository {
   return {
+    getAttribution: (storyId) => readStoryAttribution(client, storyId),
     async createDraft(input) {
       const { data, error } = await client
         .from("stories")

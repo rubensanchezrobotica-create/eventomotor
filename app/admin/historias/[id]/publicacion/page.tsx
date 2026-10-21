@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getAuthenticatedStoryBundle } from "@/lib/stories/story-admin-read.server";
 import styles from "@/components/admin/stories/StoryAdmin.module.css";
 import { prepareStoryPublicationAction, publishStoryAction } from "../../publication-actions";
+import { storyCommercialGate } from "@/lib/stories/story-commercial.server";
+import { publicStoryUrl } from "@/lib/stories/story-public-seo";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -15,9 +17,12 @@ export default async function PublicationPage({ params, searchParams }: {
   const bundle = await getAuthenticatedStoryBundle(id);
   if (!bundle) notFound();
   const s = bundle.story;
+  const commercialIssues = storyCommercialGate(s);
+  const publicSection = s.collection === "COLABORACIONES" ? "colaboraciones" : "historias";
   return <div className={styles.stack}>
     <h1>Publicación de Historia</h1><h2>{s.title}</h2>
     <p>{s.status} · {s.content_blocks.length} bloques · {bundle.media.length} medios</p>
+    {commercialIssues.length ? <aside role="alert"><h3>Publicación comercial bloqueada</h3><ul>{commercialIssues.map((issue) => <li key={issue.field}>{issue.message}</li>)}</ul></aside> : null}
     <Link href={`/admin/historias/${id}/preview`}>Revisar la Preview privada</Link>
     {query.error ? <p role="alert">Operación no completada. Relee la versión y revisa el gate antes de reintentar. No se ha confirmado una publicación.</p> : null}
     {query.prepared ? <p>Gate editorial y técnico correcto. Derivados verificados. Historia READY.</p> : null}
@@ -25,15 +30,15 @@ export default async function PublicationPage({ params, searchParams }: {
       <input type="hidden" name="storyId" value={id} /><input type="hidden" name="expectedUpdatedAt" value={s.updated_at} />
       <p>Se conservarán los originales privados. Los derivados quedarán accesibles públicamente, aun antes de publicar el artículo.</p>
       <label><input type="checkbox" name="confirmPublicDerivatives" value="yes" required /> Autorizar los derivados públicos y preparar READY</label>
-      <button type="submit">Preparar derivados y validar</button>
+      <button disabled={commercialIssues.length > 0} type="submit">Preparar derivados y validar</button>
     </form> : null}
     {s.status === "READY" ? <form action={publishStoryAction} className={styles.stack} id="publish-story">
       <input type="hidden" name="storyId" value={id} /><input type="hidden" name="expectedUpdatedAt" value={s.updated_at} />
       <input type="hidden" name="requestId" value={randomUUID()} />
-      <label><input type="checkbox" name="confirmPublication" value="yes" required /> Publicar esta Historia en /historias con fecha real</label>
-      <button type="submit">Publicar Historia</button>
+      <label><input type="checkbox" name="confirmPublication" value="yes" required /> Publicar esta publicación en /{publicSection} con fecha real</label>
+      <button disabled={commercialIssues.length > 0} type="submit">Publicar</button>
     </form> : null}
-    {s.status === "PUBLISHED" ? <p>Publicada el {s.published_at}. <Link href={`/historias/${s.slug}`}>Abrir la Historia pública</Link></p> : null}
+    {s.status === "PUBLISHED" ? <p>Publicada el {s.published_at}. <Link href={publicStoryUrl(s.slug, s.collection)}>Abrir la publicación pública</Link></p> : null}
     <Link href={`/admin/historias/${id}`}>Volver al editor</Link>
   </div>;
 }

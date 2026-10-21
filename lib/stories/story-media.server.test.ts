@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { emptyCommercialMetadata } from "./story-commercial";
+import { createStoryPublicationService } from "./story-publication.server";
 import sharp from "sharp";
 import type { StoryMediaInsert, StoryMediaRow, StoryRow } from "@/lib/supabase";
 import {
@@ -85,6 +87,8 @@ function setup(initialStory = story()) {
   let publicDeliveryCheckCount = 0;
 
   const repository: StoryMediaRepository = {
+    async getAttribution() { return { credits: [{ story_id: STORY_ID, person_id: "synthetic-author", role: "TEXT", sort_order: 0 }],
+      people: [{ id: "synthetic-author", display_name: "Synthetic author", active: true }], relations: [] }; },
     async getStory(storyId) {
       return stories.get(storyId) ?? null;
     },
@@ -207,6 +211,14 @@ async function jpeg(width = 16, height = 9) {
       .toBuffer(),
   );
 }
+
+test("commercial gate prevents public promotion before any Storage access", async () => {
+  const s = story(); s.collection = "COLABORACIONES"; s.type = "ARTICULO"; s.commercial_metadata = emptyCommercialMetadata();
+  const fixture = setup(s);
+  await assert.rejects(fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID }), /gate comercial/);
+  assert.equal(fixture.counts.uploads, 0); assert.equal(fixture.counts.inserts, 0);
+  assert.equal(fixture.counts.publicDeliveryChecks, 0); assert.equal(fixture.objects.size, 0);
+});
 
 function draftPath() {
   return buildStoryMediaObjectPath({
@@ -954,6 +966,21 @@ test("publication readiness tracks server metadata changes after promotion", asy
   });
   await fixture.service.promote({ storyId: STORY_ID, mediaId: MEDIA_ID });
   assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, true);
+
+  for (const invalid of [
+    { credits: [], people: [], relations: [] },
+    { credits: [{ story_id: STORY_ID, person_id: "synthetic-missing", role: "TEXT" as const, sort_order: 0 }], people: [], relations: [] },
+  ]) {
+    const service = createStoryMediaService({ repository: { ...fixture.repository, async getAttribution() { return invalid; } }, storage: fixture.storage });
+    let commits = 0;
+    const publication = createStoryPublicationService({ async getStory() { return fixture.stories.get(STORY_ID)!; },
+      readiness: (id) => service.publicationReadiness(id), async commit() { commits++; return fixture.stories.get(STORY_ID)!; } });
+    const readiness = await service.publicationReadiness(STORY_ID);
+    assert.equal(readiness.ready, false); assert.deepEqual(readiness.storageIssues, []);
+    assert.ok(readiness.publicationErrors.some((issue) => issue.field === "credits"));
+    await assert.rejects(publication.publish({ storyId: STORY_ID, expectedUpdatedAt: NOW, requestId: "44444444-4444-4444-8444-444444444444" }), /readiness/);
+    assert.equal(commits, 0, "real validator + Sharp byte/delivery gate reject missing attribution, not a ready:true mock");
+  }
 
   fixture.media.set(MEDIA_ID, { ...fixture.media.get(MEDIA_ID)!, alt_text: "" });
   assert.equal((await fixture.service.publicationReadiness(STORY_ID)).ready, false);

@@ -24,8 +24,11 @@ test("actual public route renders the shared article, single-story index and emp
     credits: [{ personId, role: "TEXT", sortOrder: 0 }, { personId, role: "PHOTO", sortOrder: 1 }], people: { [personId]: "Synthetic author" },
     seoTitle: "CMS SEO", seoDescription: "CMS description", publishedAt: "2030-01-02T12:00:00Z", updatedAt: "2030-01-02T12:00:00Z" };
   let current: PublicStory | null = sample;
+  let collaboration: PublicStory | null = { ...sample, slug: "synthetic-commercial", collection: "COLABORACIONES", type: "ARTICULO",
+    sponsor: { name: "Synthetic advertiser", label: "Contenido patrocinado" } };
   await moduleMock("@/lib/stories/story-public.server", { exports: {
     getPublicStory: async () => current, listPublicStories: async () => current ? [current] : [],
+    getPublicCollaboration: async () => collaboration, listPublicCollaborations: async () => collaboration ? [collaboration] : [],
   } });
   await moduleMock("@/components/redesign-v2/redesign-v2-fonts", { exports: { redesignV2DisplayPilot: { variable: "approved-font" } } });
   // Framework adapter only; route/Article/Renderer remain the actual components.
@@ -55,6 +58,22 @@ test("actual public route renders the shared article, single-story index and emp
   assert.match(responsiveArticle, /loading="lazy"/);
   const metadata = await article.generateMetadata({ params: Promise.resolve({ slug: sample.slug }) });
   assert.deepEqual(metadata.title, { absolute: "CMS SEO" });
+  const commercialArticle = await import("../../app/colaboraciones/[slug]/page");
+  const commercialIndex = await import("../../app/colaboraciones/page");
+  const commercialHtml = renderToStaticMarkup(await commercialArticle.default({ params: Promise.resolve({ slug: collaboration.slug }) }));
+  const commercialList = renderToStaticMarkup(await commercialIndex.default());
+  for (const markup of [commercialHtml, commercialList]) {
+    assert.match(markup, /Contenido patrocinado/); assert.match(markup, /Anunciante:/); assert.match(markup, /Synthetic advertiser/);
+    assert.ok(!/commercial_metadata|approvedContentHash|rights_notes|story-media-drafts|token=/.test(markup));
+  }
+  assert.match(commercialHtml, /data-story-article/); assert.match(commercialHtml, /href="\/colaboraciones"/);
+  assert.match(commercialList, /href="\/colaboraciones\/synthetic-commercial"/);
+  const commercialMetadata = await commercialArticle.generateMetadata({ params: Promise.resolve({ slug: collaboration.slug }) });
+  assert.equal(commercialMetadata.alternates?.canonical, "https://www.eventomotor.com/colaboraciones/synthetic-commercial");
+  collaboration = null;
+  await assert.rejects(commercialArticle.default({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+  await assert.rejects(commercialArticle.generateMetadata({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+  assert.ok(!renderToStaticMarkup(await commercialIndex.default()).includes("Synthetic advertiser"));
   current = null;
   await assert.rejects(article.default({ params: Promise.resolve({ slug: sample.slug }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
   await assert.rejects(article.generateMetadata({ params: Promise.resolve({ slug: sample.slug }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);

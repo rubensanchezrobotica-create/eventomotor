@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { storyCommercialGate } from "@/lib/stories/story-commercial.server";
+import { COMMERCIAL_BLOCKER_MESSAGES } from "@/lib/stories/story-commercial";
 import Link from "next/link";
 import StoryEditor from "@/components/admin/stories/StoryEditor.client";
 import StoryCreditRoles, { hasUnlistedStoryCredits } from "@/components/admin/stories/StoryCreditRoles";
@@ -52,6 +54,11 @@ export default async function StoryEditPage({
       {query.created ? <p className={styles.notice}>Borrador creado.</p> : null}
       {query.saved ? <p className={styles.notice}>Sección guardada.</p> : null}
       {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
+      {typeof query.blocked === "string" ? <ul role="alert">{query.blocked.split(",").filter((field) => Object.hasOwn(COMMERCIAL_BLOCKER_MESSAGES, field))
+        .map((field) => <li key={field}>{COMMERCIAL_BLOCKER_MESSAGES[field]}</li>)}</ul> : null}
+      {bundle.story.collection === "COLABORACIONES" ? <aside role="status"><strong>Gate comercial</strong>
+        <ul>{storyCommercialGate(bundle.story).map((issue) => <li key={issue.field}>{issue.message}</li>)}</ul>
+      </aside> : null}
       <Link href={`/admin/historias/${id}/publicacion`}>Revisar preparación y publicación</Link>
       {!editable ? <p className={styles.notice}>PUBLISHED/ARCHIVED es de sólo lectura en A16C.</p> : null}
       <StoryEditor

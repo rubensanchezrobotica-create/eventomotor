@@ -124,8 +124,8 @@ function paragraphBlocksForInlineNodes(totalNodes: number) {
 test("fija la primera versión del contrato editorial", () => {
   assert.equal(STORY_SCHEMA_VERSION, 1);
   assert.deepEqual(STORY_STATUSES, ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"]);
-  assert.deepEqual(STORY_TYPES, ["CRONICA", "REPORTAJE", "HISTORIA", "ENTREVISTA"]);
-  assert.deepEqual(STORY_COLLECTIONS, ["DESDE_DENTRO", "HISTORIAS_DE_MOTOR", "CONVERSACIONES"]);
+  assert.deepEqual(STORY_TYPES, ["CRONICA", "REPORTAJE", "HISTORIA", "ENTREVISTA", "ARTICULO"]);
+  assert.deepEqual(STORY_COLLECTIONS, ["DESDE_DENTRO", "HISTORIAS_DE_MOTOR", "CONVERSACIONES", "COLABORACIONES"]);
 });
 
 test("acepta únicamente los estados previstos", () => {

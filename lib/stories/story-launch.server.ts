@@ -1,10 +1,11 @@
 import "server-only";
+import { storyEditorialGate } from "./story-editorial-gate.server";
 
 import { createHash } from "node:crypto";
 import { getStoryForAdmin, updateStoryDraft, StoryAdminError, type StoryAdminBundle } from "./story-admin.server";
 import { createSupabaseStoryMediaService } from "./story-media.server";
 import { assertStoryMediaUuid } from "./story-media-validation";
-import { collectStoryMediaIds, validateStoryPublication, validateStoryCredits, validateStoryEventRelations } from "./story-validation";
+import { collectStoryMediaIds } from "./story-validation";
 import type { StoryRow } from "@/lib/supabase";
 
 export function storyEditorialFingerprint(bundle: StoryAdminBundle) {
@@ -16,19 +17,8 @@ export function storyEditorialFingerprint(bundle: StoryAdminBundle) {
 }
 
 function assertEditorialGate(bundle: StoryAdminBundle) {
-  const s = bundle.story;
-  const gate = validateStoryPublication({ id: s.id, slug: s.slug, status: "READY", type: s.type, collection: s.collection,
-    title: s.title, dek: s.dek, contextLocation: s.context_location, heroMediaId: s.hero_media_id ?? "",
-    schemaVersion: s.schema_version, contentBlocks: s.content_blocks, seoTitle: s.seo_title, seoDescription: s.seo_description,
-    disciplineSlugs: s.discipline_slugs, territoryIds: s.territory_ids, publishedAt: s.published_at, updatedAt: s.updated_at,
-    homeRank: s.home_rank }, { media: bundle.media.map((item) => ({ id: item.id, altText: item.alt_text, rightsType: item.rights_type })) });
-  const credits = bundle.credits.map((c) => ({ personId: c.person_id, role: c.role, sortOrder: c.sort_order }));
-  const events = bundle.eventRelations.map((e) => ({ eventId: e.event_id, relationType: e.relation_type, sortOrder: e.sort_order }));
-  if (!gate.ok || !validateStoryCredits(credits).ok || !validateStoryEventRelations(events).ok
-    || !credits.some((c) => c.role === "TEXT") || credits.some((c) => !bundle.people.some((p) => p.id === c.personId))
-    || bundle.media.some((m) => m.story_id !== s.id)) {
-    throw new StoryAdminError("STORY_INPUT_INVALID", "El gate editorial completo no permite preparar esta Historia.");
-  }
+  const issues = storyEditorialGate(bundle.story, bundle.media, { credits: bundle.credits, relations: bundle.eventRelations, people: bundle.people });
+  if (issues.length) throw new StoryAdminError("STORY_INPUT_INVALID", "El gate comercial/editorial completo no permite preparar esta publicación.", issues);
 }
 
 export function createStoryLaunchService(deps: {
@@ -74,6 +64,7 @@ export async function prepareStoryForPublication(input: { storyId: string; expec
     markReady: (bundle) => {
       const s = bundle.story;
       return updateStoryDraft({ id: s.id, expectedUpdatedAt: s.updated_at, values: {
+        commercialMetadata: s.commercial_metadata ?? null,
         status: "READY", type: s.type, collection: s.collection, title: s.title, dek: s.dek,
         contextLocation: s.context_location ?? "", slug: s.slug, disciplineSlugs: s.discipline_slugs,
         territoryIds: s.territory_ids, contentBlocks: s.content_blocks, heroMediaId: s.hero_media_id ?? "",

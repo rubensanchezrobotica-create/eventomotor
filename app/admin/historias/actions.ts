@@ -9,6 +9,7 @@ import {
   requireTrustedAdminMutation,
 } from "@/lib/admin-session.server";
 import { parseStoryBlocksJson } from "@/lib/stories/story-admin";
+import { COMMERCIAL_DISCLOSURE, COMMERCIAL_BLOCKER_MESSAGES, type StoryCommercialMetadata } from "@/lib/stories/story-commercial";
 import {
   StoryAdminError,
   createEditorialPerson,
@@ -78,6 +79,16 @@ export async function updateStoryAction(formData: FormData) {
       id,
       expectedUpdatedAt: stringValue(formData, "expectedUpdatedAt"),
       values: {
+        commercialMetadata: stringValue(formData, "collection") === "COLABORACIONES" ? {
+          advertiserName: stringValue(formData, "advertiserName").trim(),
+          advertiserConfirmed: stringValue(formData, "advertiserConfirmed") === "yes",
+          factsVerified: stringValue(formData, "factsVerified") === "yes",
+          editorialApprovalRef: stringValue(formData, "editorialApprovalRef").trim(),
+          imageAuthorizationRef: stringValue(formData, "imageAuthorizationRef").trim(),
+          commercialLinksChecked: stringValue(formData, "commercialLinksChecked") === "yes",
+          disclosureLabel: COMMERCIAL_DISCLOSURE, approvedContentHash: null,
+        } satisfies StoryCommercialMetadata : null,
+        approveCommercialVersion: stringValue(formData, "approveCommercialVersion") === "yes",
         status: stringValue(formData, "status"),
         type: stringValue(formData, "type"),
         collection: stringValue(formData, "collection"),
@@ -94,7 +105,8 @@ export async function updateStoryAction(formData: FormData) {
       },
     });
   } catch (error) {
-    redirect(`${editorPath}?error=${actionErrorCode(error)}`);
+    const blockers = error instanceof StoryAdminError ? error.issues?.map((issue) => issue.field).filter((field) => Object.hasOwn(COMMERCIAL_BLOCKER_MESSAGES, field)) ?? [] : [];
+    redirect(`${editorPath}?error=${actionErrorCode(error)}${blockers.length ? `&blocked=${encodeURIComponent(blockers.join(","))}` : ""}`);
   }
   revalidatePath(editorPath);
   redirect(`${editorPath}?saved=story`);

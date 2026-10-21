@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { createSupabaseStoryMediaService } from "@/lib/stories/story-media.server";
 import { updateStoryMediaMetadata } from "@/lib/stories/story-admin.server";
+import { randomUUID as createSyntheticId } from "node:crypto";
 import {
   STORY_MEDIA_DRAFT_BUCKET,
   STORY_MEDIA_PUBLIC_BUCKET,
@@ -63,6 +64,11 @@ test(
       collection: "DESDE_DENTRO",
     });
     assert.equal(storyError, null);
+    const personId = createSyntheticId();
+    assert.equal((await serviceClient.from("editorial_people").insert({ id: personId, display_name: "Synthetic Storage author" })).error, null);
+    const storyVersion = (await serviceClient.from("stories").select("updated_at").eq("id", storyId).single()).data!.updated_at;
+    assert.equal((await serviceClient.rpc("replace_story_credits", { p_story_id: storyId, p_expected_updated_at: storyVersion,
+      p_credits: [{ person_id: personId, role: "TEXT", sort_order: 0 }] })).error, null);
 
     const original = new Uint8Array(
       await sharp({
