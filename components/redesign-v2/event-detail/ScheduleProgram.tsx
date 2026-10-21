@@ -37,7 +37,7 @@ export default function ScheduleProgram({ agenda, classes, legacyText }: Schedul
                 <li className={item.timeLabel ? classes.item : classes.note}
                   data-schedule-note={item.timeLabel ? undefined : "true"}
                   key={`${day.label}-${index}-${item.timeLabel}-${item.activity}`}>
-                  {item.timeLabel ? <span className={classes.time}>{item.timeLabel}</span> : null}
+                  {item.timeLabel ? <span className={classes.time}>{item.timeLabel}{item.approximate ? <span data-schedule-approximate="true">aprox.</span> : null}</span> : null}
                   <span className={classes.activity}>{sentenceStart(item.activity)}</span>
                 </li>
               ))}

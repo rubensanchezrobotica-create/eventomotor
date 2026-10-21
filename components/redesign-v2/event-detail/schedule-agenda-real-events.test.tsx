@@ -196,7 +196,7 @@ Programa sujeto a aprobación y posibles cambios posteriores publicados en el ta
 const CLOCK = /\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g;
 
 // Independently transcribed day/time/activity expectations, not derived by the parser.
-// Every timed occurrence in all ten frozen sources must match in source order.
+// Every timed occurrence must match chronological order, preserving source ties.
 const expectedByDay = [
   [
     "08:00–11:00|Entrega de documentación;08:15–14:30|verificaciones técnicas;18:00|Ceremonia de salida",
@@ -209,7 +209,7 @@ const expectedByDay = [
   ],
   [
     "",
-    "09:00–10:30|Curso de fotografía;10:30–13:00|Arte + Motor;14:30–17:00|Arte + Motor;11:30–17:30|Zona Arcade y Scalextric;11:30–13:30|RetroLudoteca;12:00–14:30|vermut musical;12:30|Lap Parade Citroën AX;16:10|MotorLand Classic Parade;16:10–18:30|tardeo aproximadamente;17:30|charla sobre el Citroën AX",
+    "09:00–10:30|Curso de fotografía;10:30–13:00|Arte + Motor;11:30–17:30|Zona Arcade y Scalextric;11:30–13:30|RetroLudoteca;12:00–14:30|vermut musical;12:30|Lap Parade Citroën AX;14:30–17:00|Arte + Motor;16:10|MotorLand Classic Parade;16:10–18:30|tardeo;17:30|charla sobre el Citroën AX",
     "",
   ],
   [
@@ -218,7 +218,7 @@ const expectedByDay = [
   ],
   [
     "11:00–13:00|entrega de documentación;11:15–16:00|verificaciones técnicas;18:12|salida del primer participante;18:30|Tramo de Outeiro de Rei;19:10|O Corgo",
-    "08:45|segunda sección;09:45|Outeiro de Rei;10:30|O Corgo;14:55|Baralla;18:40|Baralla;15:50|Sarria;19:35|Sarria;16:15|Samos;20:00|Samos",
+    "08:45|segunda sección;09:45|Outeiro de Rei;10:30|O Corgo;14:55|Baralla;15:50|Sarria;16:15|Samos;18:40|Baralla;19:35|Sarria;20:00|Samos",
   ],
   [
     "15:00–21:00|verificaciones administrativas y entrega de GPS;16:30–20:00|Acreditación y apertura del parque de asistencia;17:00–21:00|Reconocimientos opcionales del TC 1/2",
@@ -228,7 +228,7 @@ const expectedByDay = [
   ],
   [
     "15:00–18:20|verificaciones administrativas;15:30–19:00|verificaciones técnicas;20:15|ceremonia de salida",
-    "08:00|salida;08:22|Espinos;11:15|Espinos;08:45|Padrún;11:38|Padrún;15:30|La Mortera;18:07|La Mortera;15:57|Cordal;18:34|Cordal;19:10|Llegada prevista del primer participante;20:40|Clasificación provisional;21:10|Clasificación final y entrega de trofeos",
+    "08:00|salida;08:22|Espinos;08:45|Padrún;11:15|Espinos;11:38|Padrún;15:30|La Mortera;15:57|Cordal;18:07|La Mortera;18:34|Cordal;19:10|Llegada prevista del primer participante;20:40|Clasificación provisional;21:10|Clasificación final y entrega de trofeos",
   ],
   [
     "15:45–18:45|verificaciones administrativas;16:00–19:00|verificaciones técnicas;19:45|Salida ceremonial",
@@ -273,16 +273,18 @@ for (const [fixtureIndex, fixture] of fixtures.entries()) {
       const expected = expectedByDay[fixtureIndex][dayIndex].split(";").filter(Boolean).map(row => row.split("|"));
       const timed = day.items.filter(item => item.timeLabel);
       assert.deepEqual(timed.map(item => item.timeLabel), expected.map(([time]) => time), `${fixture.name}: horas/día incorrectos`);
+      const minutes = timed.map(item => { const [h, m] = item.startTime!.split(":").map(Number); return h * 60 + m; });
+      assert.deepEqual(minutes, [...minutes].sort((a, b) => a - b), `${fixture.name}: orden no cronológico`);
       for (const [index, [, activity]] of expected.entries()) {
         assert.ok(timed[index].activity.startsWith(activity), `${fixture.name}/${day.label}/${timed[index].timeLabel}: asociación incorrecta`);
       }
     }
 
-    // Source spans cover every factual token, including locations and untimed
-    // explanations; repeated spans are only the expansion of one occurrence list.
-    const spans = agenda.days.flatMap(day => [day.label, ...day.items.filter((item, i, items) => i === 0 || item.sourceText !== items[i - 1].sourceText).map(item => item.sourceText)]);
+    // Chronology may separate expanded occurrences of one source span. Compare
+    // the full factual-token multiset, retaining locations and every note.
+    const spans = agenda.days.flatMap(day => [day.label, ...new Set(day.items.map(item => item.sourceText))]);
     const words = (value: string) => value.toLocaleLowerCase("es-ES").match(/[\p{L}\p{N}]+/gu)?.filter(word => word !== "y" && word !== "e") ?? [];
-    assert.deepEqual(words([agenda.preamble, ...spans, agenda.footerNote].join(" ")), words(fixture.schedule), `${fixture.name}: pérdida factual`);
+    assert.deepEqual(words([agenda.preamble, ...spans, agenda.footerNote].join(" ")).sort(), words(fixture.schedule).sort(), `${fixture.name}: pérdida factual`);
 
     const html = renderToStaticMarkup(
       <ScheduleProgram agenda={agenda} classes={classes} legacyText={fixture.schedule} />,
@@ -290,7 +292,7 @@ for (const [fixtureIndex, fixture] of fixtures.entries()) {
     const text = htmlText(html);
     assert.match(html, /data-schedule-view="structured"/);
     assert.doesNotMatch(html, /class="legacy"/);
-    assert.deepEqual(clocks(text), clocks(fixture.schedule));
+    assert.deepEqual(clocks(text).sort(), clocks(fixture.schedule).sort());
     for (const label of fixture.days) assert.ok(text.includes(label.toLocaleUpperCase("es-ES")));
     for (const marker of fixture.markers) assert.ok(text.toLocaleLowerCase("es-ES").includes(marker.toLocaleLowerCase("es-ES")), `${fixture.name}: falta ${marker}`);
   });
@@ -305,12 +307,12 @@ test("expande repeticiones elípticas en ocurrencias distintas con etiqueta comp
     agenda.days[0].items.map(({ activity, endTime, timeLabels }) => ({ activity, endTime, timeLabels })),
     [
       { activity: "Espinos", endTime: null, timeLabels: ["08:22"] },
+      { activity: "Arte + Motor", endTime: "13:00", timeLabels: ["10:30–13:00"] },
       { activity: "Espinos", endTime: null, timeLabels: ["11:15"] },
+      { activity: "Arte + Motor", endTime: "17:00", timeLabels: ["14:30–17:00"] },
       { activity: "Baralla", endTime: null, timeLabels: ["14:55"] },
       { activity: "Baralla", endTime: null, timeLabels: ["18:40"] },
       { activity: "Baralla", endTime: null, timeLabels: ["20:10"] },
-      { activity: "Arte + Motor", endTime: "13:00", timeLabels: ["10:30–13:00"] },
-      { activity: "Arte + Motor", endTime: "17:00", timeLabels: ["14:30–17:00"] },
     ],
   );
 });
@@ -324,6 +326,17 @@ test("las explicaciones GT Open son notas sin hora el sábado y domingo", () => 
     assert.ok(note.activity.includes("GT Cup Europe") && note.activity.includes("TCR Europe"));
     assert.ok(!day.items.find(item => item.timeLabel === "15:10" || item.timeLabel === "13:30")!.activity.includes("GT Cup Europe"));
   }
+});
+
+test("MotorLand conserva empates estables, acceso sin hora y tardeo aproximado", () => {
+  const day = parseScheduleAgenda(fixtures[2].schedule)!.days[1];
+  assert.equal(day.items[0].timeLabel, null);
+  assert.equal(day.items[0].activity, "entrada libre para el público");
+  assert.deepEqual(day.items.filter(item => item.startTime === "11:30").map(item => item.activity), ["Zona Arcade y Scalextric", "RetroLudoteca"]);
+  assert.deepEqual(day.items.filter(item => item.startTime === "16:10").map(item => item.activity), ["MotorLand Classic Parade", "tardeo"]);
+  const approximate = day.items.find(item => item.approximate)!;
+  assert.equal(approximate.timeLabel, "16:10–18:30");
+  assert.equal(approximate.sourceText, "tardeo aproximadamente de 16:10 a 18:30");
 });
 
 test("mantiene fallback completo si una repetición contiene residuo no asignable", () => {

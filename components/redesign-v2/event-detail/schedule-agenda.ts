@@ -1,4 +1,5 @@
 export type ScheduleAgendaItem = {
+  approximate?: boolean;
   activity: string;
   endTime: string | null;
   sourceText: string;
@@ -175,12 +176,16 @@ function parseAgendaItem(value: string): ScheduleAgendaItem | null {
   if (clockCount === 2) {
     const range = RANGE.exec(sourceText);
     if (!range?.groups?.start || !range.groups.end) return null;
+    const prefix = sourceText.slice(0, range.index);
+    // Move only an explicit qualifier immediately before the time range.
+    const approximate = /\baproximadamente\s*$/iu.test(prefix);
     const activity = cleanStructuralPunctuation(
-      `${sourceText.slice(0, range.index)} ${sourceText.slice(range.index + range[0].length)}`,
+      `${approximate ? prefix.replace(/\baproximadamente\s*$/iu, "") : prefix} ${sourceText.slice(range.index + range[0].length)}`,
     );
     if (!activity) return null;
     return {
       activity,
+      ...(approximate ? { approximate: true } : {}),
       endTime: range.groups.end,
       sourceText,
       startTime: range.groups.start,
@@ -230,6 +235,35 @@ function parseDayItems(value: string) {
   if (!sourceItems.length) return null;
   const items = sourceItems.flatMap((sourceText) => parseRepeatedAgendaItem(sourceText) ?? [parseAgendaItem(sourceText)]);
   return items.every((item): item is ScheduleAgendaItem => item !== null) ? items : null;
+}
+
+function orderDayItems(items: ScheduleAgendaItem[]): ScheduleAgendaItem[] | null {
+  const ordered: ScheduleAgendaItem[] = [];
+  let run: { item: ScheduleAgendaItem; minute: number; index: number }[] = [];
+  let lastMinute = -1;
+  const flush = () => {
+    run.sort((a, b) => a.minute - b.minute || a.index - b.index);
+    for (const { item, minute } of run) {
+      if (minute < lastMinute) return false;
+      ordered.push(item);
+      lastMinute = minute;
+    }
+    run = [];
+    return true;
+  };
+  for (const [index, item] of items.entries()) {
+    if (item.startTime === null) {
+      // Notes retain their source position and scope. Never move a timed
+      // activity across one; if that prevents day chronology, fail closed.
+      if (!flush()) return null;
+      ordered.push(item);
+    } else {
+      if (!new RegExp(`^${CLOCK}$`).test(item.startTime) || !item.timeLabel) return null;
+      const [hour, minute] = item.startTime.split(":").map(Number);
+      run.push({ item, minute: hour * 60 + minute, index });
+    }
+  }
+  return flush() ? ordered : null;
 }
 
 type ScheduleDateContext = { startDate?: string; endDate?: string | null };
@@ -301,7 +335,9 @@ export function parseScheduleAgenda(value: string | null | undefined, context: S
       footerNote = extracted.footerNote;
     }
 
-    const items = parseDayItems(body);
+    const parsedItems = parseDayItems(body);
+    if (!parsedItems) return null;
+    const items = orderDayItems(parsedItems);
     if (!items) return null;
     const displayLabel = formatScheduleDayLabel(label, context);
     for (const item of items) {

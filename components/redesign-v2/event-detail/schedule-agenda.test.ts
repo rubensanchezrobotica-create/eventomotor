@@ -173,3 +173,38 @@ test("duplicados se comparan por día, hora y actividad sin eliminar relojes", (
 test("explicaciones con horas ambiguas mantienen el fallback completo", () => {
   assert.equal(parseScheduleAgenda("Sábado 24: carrera a las 15:10. El programa incluye además GT Cup a las 16:00 texto sin asignación 17:00."), null);
 });
+
+test("ordena por inicio numérico dentro de cada día con empates estables y finales intactos", () => {
+  const text = "Sábado 24: Tarde de 14:30 a 17:00; Primera de 11:30 a 17:30; Segunda de 11:30 a 13:30; Mañana a las 9:00. Domingo 25: Cierre a las 18:00; Apertura a las 08:00.";
+  const agenda = parseScheduleAgenda(text);
+  assert.ok(agenda);
+  assert.deepEqual(agenda.days.map(day => day.label), ["Sábado 24", "Domingo 25"]);
+  assert.deepEqual(agenda.days[0].items.map(({ activity, startTime, endTime }) => [activity, startTime, endTime]), [
+    ["Mañana", "9:00", null], ["Primera", "11:30", "17:30"],
+    ["Segunda", "11:30", "13:30"], ["Tarde", "14:30", "17:00"],
+  ]);
+  assert.deepEqual(agenda.days[1].items.map(item => item.startTime), ["08:00", "18:00"]);
+});
+
+test("conserva notas sin hora y falla cerrado si ordenar exige cruzar su alcance", () => {
+  const valid = parseScheduleAgenda("Sábado 24:\nEntrada libre\nTarde a las 14:30\nMañana a las 09:00\nNota general sin horario");
+  assert.ok(valid);
+  assert.deepEqual(valid.days[0].items.map(item => item.activity), ["Entrada libre", "Mañana", "Tarde", "Nota general sin horario"]);
+  assert.equal(valid.days[0].items[0].timeLabel, null);
+  assert.equal(valid.days[0].items.at(-1)!.timeLabel, null);
+  assert.equal(parseScheduleAgenda("Sábado 24:\nTarde a las 14:30\nNota relativa a la sesión anterior\nMañana a las 09:00"), null);
+});
+
+test("sólo traslada una aproximación explícita y adyacente al rango, conservando fuente y ubicación", () => {
+  const text = "Sábado 24: tardeo aproximadamente de 16:10 a 18:30 en el paddock; cierre de 19:00 a 20:00.";
+  const agenda = parseScheduleAgenda(text);
+  assert.ok(agenda);
+  assert.deepEqual(agenda.days[0].items.map(({ activity, startTime, endTime, approximate }) => [activity, startTime, endTime, !!approximate]), [
+    ["tardeo en el paddock", "16:10", "18:30", true], ["cierre", "19:00", "20:00", false],
+  ]);
+  assert.ok(agenda.days[0].items[0].sourceText.includes("aproximadamente"));
+  const other = parseScheduleAgenda("Sábado 24: aproximadamente cien asistentes en el paddock de 16:10 a 18:30.");
+  assert.ok(other);
+  assert.equal(other.days[0].items[0].approximate, undefined);
+  assert.ok(other.days[0].items[0].activity.startsWith("aproximadamente cien asistentes"));
+});

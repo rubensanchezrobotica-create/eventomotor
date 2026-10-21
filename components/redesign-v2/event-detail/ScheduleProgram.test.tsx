@@ -65,6 +65,18 @@ test("capitalización de frase conserva nombres, siglas y el texto original", ()
   assert.ok(agenda.days[0].items[0].activity.startsWith("verificaciones"));
 });
 
+test("SSR presenta orden cronológico estable y la aproximación en la columna horaria", () => {
+  const text = "Sábado 24: Arte + Motor de 10:30 a 13:00 y de 14:30 a 17:00; Zona Arcade de 11:30 a 17:30; RetroLudoteca de 11:30 a 13:30; tardeo aproximadamente de 16:10 a 18:30.";
+  const agenda = parseScheduleAgenda(text);
+  assert.ok(agenda);
+  const html = renderToStaticMarkup(<ScheduleProgram agenda={agenda} classes={classes} legacyText={text} />);
+  assert.ok(html.indexOf("10:30–13:00") < html.indexOf("11:30–17:30"));
+  assert.ok(html.indexOf("11:30–17:30") < html.indexOf("11:30–13:30"));
+  assert.ok(html.indexOf("11:30–13:30") < html.indexOf("14:30–17:00"));
+  assert.match(html, /<span class="time">16:10–18:30<span data-schedule-approximate="true">aprox\.<\/span><\/span><span class="activity">Tardeo<\/span>/);
+  assert.doesNotMatch(html, /Tardeo aproximadamente/);
+});
+
 test("renderiza el fallback histórico literal cuando el parser no es concluyente", () => {
   const legacyText = "Viernes 7: Apertura 09:00, briefing 10:00.\nSábado 8: Carrera a las 12:00.";
   const html = renderToStaticMarkup(
