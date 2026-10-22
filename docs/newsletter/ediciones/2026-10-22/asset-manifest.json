@@ -1,0 +1,10 @@
+[
+  {"file":"01-gt-open-barcelona-hero.webp","width":1200,"height":675,"bytes":135270,"sha256":"661b06e49efaf918e793be7e2e41c9e4203f09b21ceaa2f5ced7b66ce870e2d6"},
+  {"file":"02-motorland-classic-festival.webp","width":800,"height":500,"bytes":92258,"sha256":"a42f452079ba788a2313eb4025995933e2759a3206f2afda325b2d5ef41b7e8a"},
+  {"file":"03-rallye-ciudad-de-valencia.webp","width":800,"height":500,"bytes":163596,"sha256":"9a7fd3f0d68c769ab5fd4edd70dfc5698adfae76a08ce98d47a4bdff5bd94f3b"},
+  {"file":"04-motocross-talavera.webp","width":800,"height":500,"bytes":138780,"sha256":"15f893863b2acc6131be05ba82a0dc1ba38cb084b3c5c8a4b489812f9369e9f1"},
+  {"file":"05-rally-costa-brava-historic.webp","width":800,"height":500,"bytes":116186,"sha256":"4749d0f0b08a360e24b68c147f33b8249926f51edc2a3f24258be0ee797d2d5c"},
+  {"file":"06-jarama-race-gr-cup.webp","width":800,"height":500,"bytes":68560,"sha256":"8bfc01502fa47e376b38926c0889db9f17f4926a074ba63aac91f78bbadc776a"},
+  {"file":"eventomotor-header.png","width":1240,"height":200,"bytes":38368,"sha256":"af7c97714b94fc40d1c1f0da092dbb61f158876d12afe06a9ceeb659ab775306"},
+  {"file":"eventomotor-logo.png","width":520,"height":56,"bytes":26745,"sha256":"d68c8763f1651d942736399bd19d81390b54a7df9e3460a4841c48b752d8ccbc"}
+]
