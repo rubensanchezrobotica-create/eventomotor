@@ -27,7 +27,7 @@ export default async function PublicStoryPage({ params }: Props) {
           <Link href="/">Inicio</Link><span aria-hidden="true">/</span><Link href="/historias">Historias</Link>
         </nav>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStoryJsonLd(buildStoryJsonLd(story)) }} />
-        <StoryArticle title={story.title} dek={story.dek} type={story.type} collection={story.collection}
+        <StoryArticle title={story.title} dek={story.dek} type={story.type} collection={story.collection} sponsor={story.sponsor}
           contextLocation={story.contextLocation} heroMediaId={story.heroMediaId} blocks={story.blocks}
           media={story.media} events={story.events} credits={story.credits} people={story.people} />
         <p className={styles.date}>Publicada el <time dateTime={story.publishedAt}>{new Intl.DateTimeFormat("es-ES", {

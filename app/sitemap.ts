@@ -11,7 +11,7 @@ import {
   evaluateNewsletterPublicLaunchResendConfiguration,
 } from "@/lib/newsletter/resend-config.server";
 import type { EventRow } from "@/lib/supabase";
-import { listPublicStories, listPublicCollaborations } from "@/lib/stories/story-public.server";
+import { listPublicStories } from "@/lib/stories/story-public.server";
 import { buildStoriesSitemap } from "@/lib/stories/story-public-seo";
 
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
@@ -102,7 +102,6 @@ async function getSitemapEvents(): Promise<SitemapEvent[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const events = await getSitemapEvents();
   const stories = await listPublicStories();
-  const collaborations = await listPublicCollaborations();
   const now = new Date();
   const publicNewsletter = evaluateNewsletterPublicLaunchResendConfiguration(
     currentNewsletterPublicLaunchEnvironment(),
@@ -142,6 +141,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sitemapEntry(`/evento/${event.slug}`, eventLastModified(event), "weekly", 0.7),
     );
 
-  return [...staticEntries, ...(collaborations.length ? [sitemapEntry("/colaboraciones", now, "weekly", .6)] : []),
-    ...taxonomyEntries, ...opportunityEntries, ...eventEntries, ...buildStoriesSitemap(stories), ...buildStoriesSitemap(collaborations)];
+  return [...staticEntries, ...taxonomyEntries, ...opportunityEntries, ...eventEntries, ...buildStoriesSitemap(stories)];
 }

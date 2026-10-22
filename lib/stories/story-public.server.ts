@@ -113,8 +113,21 @@ async function loadPublicStory(slug: string, commercial = false): Promise<Public
 }
 
 // Request memoization only; no cross-request cache of editorial rows.
-export const getPublicStory = cache((slug: string) => loadPublicStory(slug));
+const getEditorialPublicStory = cache((slug: string) => loadPublicStory(slug));
 export const getPublicCollaboration = cache((slug: string) => loadPublicStory(slug, true));
+
+export const getPublicStory = cache(async (slug: string): Promise<PublicStory | null> => {
+  const editorial = await getEditorialPublicStory(slug);
+  if (editorial || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180) return editorial;
+  const client = createSupabaseServerClient();
+  if (!client) return null;
+  // Probe only common columns before selecting C1 metadata. This keeps the
+  // established public Story route safe against a pre-migration schema.
+  const candidate = await client.from("stories").select("id").eq("slug", slug).eq("status", "PUBLISHED")
+    .eq("collection", "COLABORACIONES").maybeSingle();
+  if (candidate.error) throw new Error("Public Story lookup unavailable.");
+  return candidate.data ? getPublicCollaboration(slug) : null;
+});
 
 export async function listPublicCollaborations(): Promise<PublicStory[]> {
   const client = createSupabaseServerClient();
@@ -126,14 +139,20 @@ export async function listPublicCollaborations(): Promise<PublicStory[]> {
   return stories.filter((story): story is PublicStory => story !== null);
 }
 
-export async function listPublicStories(): Promise<PublicStory[]> {
+async function listEditorialPublicStories(): Promise<PublicStory[]> {
   const client = createSupabaseServerClient();
   if (!client) return [];
   const { data, error } = await client.from("stories").select("slug").eq("status", "PUBLISHED")
     .in("collection", [...EDITORIAL_STORY_COLLECTIONS]).order("published_at", { ascending: false });
   if (error) throw new Error("Published Stories list unavailable.");
-  const stories = await Promise.all((data ?? []).map((row) => getPublicStory(row.slug)));
+  const stories = await Promise.all((data ?? []).map((row) => getEditorialPublicStory(row.slug)));
   return stories.filter((story): story is PublicStory => story !== null);
+}
+
+export async function listPublicStories(): Promise<PublicStory[]> {
+  const [editorial, commercial] = await Promise.all([listEditorialPublicStories(), listPublicCollaborations()]);
+  return [...editorial, ...commercial].sort((a, b) =>
+    Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.slug.localeCompare(b.slug));
 }
 
 async function loadPublicStoriesForEvent(eventId: string) {
@@ -145,8 +164,9 @@ async function loadPublicStoriesForEvent(eventId: string) {
   const s = await client.from("stories").select("slug").in("id", data.map((row) => row.story_id)).eq("status", "PUBLISHED")
     .in("collection", [...EDITORIAL_STORY_COLLECTIONS]).order("published_at", { ascending: false });
   if (s.error) throw new Error("Related published Stories unavailable.");
-  const stories = await Promise.all((s.data ?? []).map((row) => getPublicStory(row.slug)));
-  return stories.filter((story): story is PublicStory => story !== null)
+  const stories = await Promise.all((s.data ?? []).map((row) => getEditorialPublicStory(row.slug)));
+  return stories.filter((story): story is PublicStory => story !== null
+    && EDITORIAL_STORY_COLLECTIONS.some((collection) => collection === story.collection))
     .map((story) => ({ slug: story.slug, title: story.title, collection: story.collection }));
 }
 

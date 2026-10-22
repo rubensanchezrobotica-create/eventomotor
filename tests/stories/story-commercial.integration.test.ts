@@ -10,7 +10,7 @@ import { prepareStoryForPublication } from "@/lib/stories/story-launch.server";
 import { publishStory } from "@/lib/stories/story-publication.server";
 import { commercialContentHash } from "@/lib/stories/story-commercial.server";
 import { emptyCommercialMetadata } from "@/lib/stories/story-commercial";
-import { getPublicCollaboration, getPublicStory, listPublicCollaborations } from "@/lib/stories/story-public.server";
+import { getPublicCollaboration, getPublicStory, listPublicCollaborations, listPublicStories } from "@/lib/stories/story-public.server";
 import { commercialFixture } from "./commercial-fixture";
 
 test("real commercial services -> private promotion -> READY -> receipt -> actual public loader", {
@@ -54,7 +54,8 @@ test("real commercial services -> private promotion -> READY -> receipt -> actua
   const article = await getPublicCollaboration(saved.slug);
   assert.ok(article); assert.equal(article.sponsor!.name, "Synthetic advertiser");
   assert.deepEqual(article.blocks, saved.content_blocks);
-  assert.equal(await getPublicStory(saved.slug), null);
+  assert.equal((await getPublicStory(saved.slug))?.slug, saved.slug);
+  assert.equal((await listPublicStories()).filter((item) => item.slug === saved.slug).length, 1);
   assert.ok((await listPublicCollaborations()).some((item) => item.slug === saved.slug));
   assert.ok(!/PRIVATE_SYNTHETIC|commercial_metadata|approvedContentHash|story-media-drafts/.test(JSON.stringify(article)));
   // Synthetic records/objects disappear when CI destroys its isolated stack.

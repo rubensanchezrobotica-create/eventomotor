@@ -18,7 +18,6 @@ export default async function PublicationPage({ params, searchParams }: {
   if (!bundle) notFound();
   const s = bundle.story;
   const commercialIssues = storyCommercialGate(s);
-  const publicSection = s.collection === "COLABORACIONES" ? "colaboraciones" : "historias";
   return <div className={styles.stack}>
     <h1>Publicación de Historia</h1><h2>{s.title}</h2>
     <p>{s.status} · {s.content_blocks.length} bloques · {bundle.media.length} medios</p>
@@ -35,10 +34,10 @@ export default async function PublicationPage({ params, searchParams }: {
     {s.status === "READY" ? <form action={publishStoryAction} className={styles.stack} id="publish-story">
       <input type="hidden" name="storyId" value={id} /><input type="hidden" name="expectedUpdatedAt" value={s.updated_at} />
       <input type="hidden" name="requestId" value={randomUUID()} />
-      <label><input type="checkbox" name="confirmPublication" value="yes" required /> Publicar esta publicación en /{publicSection} con fecha real</label>
+      <label><input type="checkbox" name="confirmPublication" value="yes" required /> Publicar esta publicación en /historias con fecha real</label>
       <button disabled={commercialIssues.length > 0} type="submit">Publicar</button>
     </form> : null}
-    {s.status === "PUBLISHED" ? <p>Publicada el {s.published_at}. <Link href={publicStoryUrl(s.slug, s.collection)}>Abrir la publicación pública</Link></p> : null}
+    {s.status === "PUBLISHED" ? <p>Publicada el {s.published_at}. <Link href={publicStoryUrl(s.slug)}>Abrir la publicación pública</Link></p> : null}
     <Link href={`/admin/historias/${id}`}>Volver al editor</Link>
   </div>;
 }

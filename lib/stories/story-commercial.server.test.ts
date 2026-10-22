@@ -54,7 +54,7 @@ test("sponsored accepts only boolean, safe URLs and no arbitrary rel or HTML", (
   }
 });
 
-test("non-PUBLISHED states never cross either public channel; published commercial is not a Historia", () => {
+test("non-PUBLISHED commercial states stay private; published commercial has one Historias canonical", () => {
   const f = approved(), origin = "https://example.supabase.co";
   for (const status of ["DRAFT", "READY", "ARCHIVED"] as const) { f.story.status = status; assert.equal(toPublicStory(f, origin, true), null); }
   f.story.status = "PUBLISHED"; f.story.published_at = "2030-01-02T12:00:00Z";
@@ -63,13 +63,13 @@ test("non-PUBLISHED states never cross either public channel; published commerci
   assert.deepEqual(p.sponsor, { name: "Synthetic advertiser", label: "Contenido patrocinado" });
   assert.ok(!/PRIVATE_|commercial_metadata|approvedContentHash|rights_notes/.test(JSON.stringify(p)));
   const metadata = buildStoryMetadata(p), ld = buildStoryJsonLd(p);
-  assert.equal(metadata.alternates?.canonical, "https://www.eventomotor.com/colaboraciones/synthetic-sponsored-article");
+  assert.equal(metadata.alternates?.canonical, "https://www.eventomotor.com/historias/synthetic-sponsored-article");
   assert.deepEqual(ld.author, [{ "@type": "Person", name: "Synthetic agency author" }]);
   assert.equal(ld.sponsor?.name, "Synthetic advertiser"); assert.equal(ld.publisher.name, "EventoMotor");
   assert.equal(buildStoriesSitemap([p])[0].url, metadata.alternates?.canonical);
 });
 
-test("real loaders enforce channel filters and resist a faulty adapter returning commercial rows to Home/events", async () => {
+test("real loaders include published commercial in Historias but exclude it from Home/events", async () => {
   const f = approved(); f.story.status = "PUBLISHED"; f.story.published_at = "2030-01-02T12:00:00Z";
   const oldFetch = globalThis.fetch, oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321"; process.env.SUPABASE_SERVICE_ROLE_KEY = "synthetic-only";
@@ -82,8 +82,9 @@ test("real loaders enforce channel filters and resist a faulty adapter returning
     return new Response(JSON.stringify(rows), { headers: { "content-type": "application/json" } });
   };
   try {
-    assert.equal(await getPublicStory(f.story.slug), null);
-    assert.deepEqual(await listPublicStories(), []); assert.deepEqual(await listHomeStories(), []);
+    assert.equal((await getPublicStory(f.story.slug))?.collection, "COLABORACIONES");
+    assert.equal((await listPublicStories()).filter((story) => story.slug === f.story.slug).length, 1);
+    assert.deepEqual(await listHomeStories(), []);
     assert.deepEqual(await getPublicStoriesForEvent("synthetic-event"), []);
     assert.ok(await getPublicCollaboration(f.story.slug)); assert.equal((await listPublicCollaborations()).length, 1);
     const selects = calls.filter((u) => u.pathname.endsWith("/stories") && !u.searchParams.get("select")?.includes("status,updated_at"));

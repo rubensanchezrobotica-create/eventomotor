@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test, { mock } from "node:test";
 import React from "react";
@@ -27,7 +27,8 @@ test("actual public route renders the shared article, single-story index and emp
   let collaboration: PublicStory | null = { ...sample, slug: "synthetic-commercial", collection: "COLABORACIONES", type: "ARTICULO",
     sponsor: { name: "Synthetic advertiser", label: "Contenido patrocinado" } };
   await moduleMock("@/lib/stories/story-public.server", { exports: {
-    getPublicStory: async () => current, listPublicStories: async () => current ? [current] : [],
+    getPublicStory: async (slug: string) => slug === collaboration?.slug ? collaboration : slug === current?.slug ? current : null,
+    listPublicStories: async () => [current, collaboration].filter(Boolean),
     getPublicCollaboration: async () => collaboration, listPublicCollaborations: async () => collaboration ? [collaboration] : [],
   } });
   await moduleMock("@/components/redesign-v2/redesign-v2-fonts", { exports: { redesignV2DisplayPilot: { variable: "approved-font" } } });
@@ -44,7 +45,7 @@ test("actual public route renders the shared article, single-story index and emp
   assert.ok(!/story-media-drafts|rights_notes|\/admin\/|object_path|token=/.test(html));
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
   const list = renderToStaticMarkup(await index.default());
-  assert.equal((list.match(/<article\b/g) ?? []).length, 1);
+  assert.equal((list.match(/<article\b/g) ?? []).length, 2);
   assert.match(list, /href="\/historias\/synthetic-public-story"/);
   sample.media[mediaId].publicImage = { src: "https://example.test/responsive-w1200.webp", srcSet: "https://example.test/responsive-w400.webp 400w, https://example.test/responsive-w1200.webp 1200w" };
   const responsiveList = renderToStaticMarkup(await index.default());
@@ -58,22 +59,23 @@ test("actual public route renders the shared article, single-story index and emp
   assert.match(responsiveArticle, /loading="lazy"/);
   const metadata = await article.generateMetadata({ params: Promise.resolve({ slug: sample.slug }) });
   assert.deepEqual(metadata.title, { absolute: "CMS SEO" });
-  const commercialArticle = await import("../../app/colaboraciones/[slug]/page");
-  const commercialIndex = await import("../../app/colaboraciones/page");
-  const commercialHtml = renderToStaticMarkup(await commercialArticle.default({ params: Promise.resolve({ slug: collaboration.slug }) }));
-  const commercialList = renderToStaticMarkup(await commercialIndex.default());
+  const commercialHtml = renderToStaticMarkup(await article.default({ params: Promise.resolve({ slug: collaboration.slug }) }));
+  const commercialList = renderToStaticMarkup(await index.default());
   for (const markup of [commercialHtml, commercialList]) {
-    assert.match(markup, /Contenido patrocinado/); assert.match(markup, /Anunciante:/); assert.match(markup, /Synthetic advertiser/);
+    assert.match(markup, /Contenido patrocinado/);
     assert.ok(!/commercial_metadata|approvedContentHash|rights_notes|story-media-drafts|token=/.test(markup));
   }
-  assert.match(commercialHtml, /data-story-article/); assert.match(commercialHtml, /href="\/colaboraciones"/);
-  assert.match(commercialList, /href="\/colaboraciones\/synthetic-commercial"/);
-  const commercialMetadata = await commercialArticle.generateMetadata({ params: Promise.resolve({ slug: collaboration.slug }) });
-  assert.equal(commercialMetadata.alternates?.canonical, "https://www.eventomotor.com/colaboraciones/synthetic-commercial");
+  assert.match(commercialHtml, /data-story-article/); assert.match(commercialHtml, /href="\/historias"/);
+  assert.match(commercialHtml, /Anunciante:/); assert.match(commercialHtml, /Synthetic advertiser/);
+  assert.match(commercialList, /href="\/historias\/synthetic-commercial"/);
+  const commercialMetadata = await article.generateMetadata({ params: Promise.resolve({ slug: collaboration.slug }) });
+  assert.equal(commercialMetadata.alternates?.canonical, "https://www.eventomotor.com/historias/synthetic-commercial");
+  assert.equal(existsSync("app/colaboraciones/page.tsx"), false);
+  assert.equal(existsSync("app/colaboraciones/[slug]/page.tsx"), false);
   collaboration = null;
-  await assert.rejects(commercialArticle.default({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
-  await assert.rejects(commercialArticle.generateMetadata({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
-  assert.ok(!renderToStaticMarkup(await commercialIndex.default()).includes("Synthetic advertiser"));
+  await assert.rejects(article.default({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+  await assert.rejects(article.generateMetadata({ params: Promise.resolve({ slug: "not-public" }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+  assert.ok(!renderToStaticMarkup(await index.default()).includes("Synthetic advertiser"));
   current = null;
   await assert.rejects(article.default({ params: Promise.resolve({ slug: sample.slug }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
   await assert.rejects(article.generateMetadata({ params: Promise.resolve({ slug: sample.slug }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);

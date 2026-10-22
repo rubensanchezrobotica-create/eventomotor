@@ -160,7 +160,7 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     const pub = await fetch(origin + `/historias/${s.slug}`, { redirect: "manual" }); const pubText = await pub.text();
     assert.equal(pub.status, 404); assert.ok(noPrivate(pubText), "all non-PUBLISHED public slugs remain private");
     for (const headers of variants) {
-      const commercial = await fetch(origin + `/colaboraciones/${s.slug}`, { headers, redirect: "manual" });
+      const commercial = await fetch(origin + `/historias/${s.slug}`, { headers, redirect: "manual" });
       const commercialText = await commercial.text();
       assert.ok(noPrivate(commercialText), "commercial HTML/Flight/metadata remains private");
       // Flight can return a 404 boundary or an empty router update as HTTP 200.
@@ -235,25 +235,26 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.deepEqual((await readSitemap()).urls, before.urls, "archival disappears on the next request without disturbing other URLs");
     const emptyHome = await fetch(origin + "/");
     assert.ok(!(await emptyHome.text()).includes("data-home-stories"), "no published Story means no empty Home module");
-    const collaborationUrl = `https://www.eventomotor.com/colaboraciones/${commercialSitemapStory.slug}`;
+    const collaborationUrl = `https://www.eventomotor.com/historias/${commercialSitemapStory.slug}`;
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial DRAFT is excluded");
     commercialSitemapStory.status = "READY";
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial READY is excluded");
     commercialSitemapStory.status = "PUBLISHED"; commercialSitemapStory.published_at = "2030-01-04T12:00:00Z";
     const commercialPublished = await readSitemap();
     assert.ok(commercialPublished.urls.includes(collaborationUrl));
-    assert.ok(!commercialPublished.urls.includes(collaborationUrl.replace("/colaboraciones/", "/historias/")));
-    const publicCommercial = await fetch(`${origin}/colaboraciones/${commercialSitemapStory.slug}`);
+    assert.equal(commercialPublished.urls.filter((url) => url === collaborationUrl).length, 1, "one commercial canonical in Historias");
+    assert.ok(!commercialPublished.urls.some((url) => url.includes("/colaboraciones")));
+    const publicCommercial = await fetch(`${origin}/historias/${commercialSitemapStory.slug}`);
     const publicCommercialText = await publicCommercial.text();
     assert.equal(publicCommercial.status, 200); assert.ok(noPrivate(publicCommercialText));
     assert.ok(publicCommercialText.includes("Contenido patrocinado") && publicCommercialText.includes("Synthetic public advertiser"));
     assert.ok(publicCommercialText.includes('rel="sponsored noopener noreferrer"'));
     assert.ok(publicCommercialText.includes(collaborationUrl));
-    const listText = await (await fetch(origin + "/colaboraciones")).text();
+    const listText = await (await fetch(origin + "/historias")).text();
     assert.ok(noPrivate(listText) && listText.includes(commercialSitemapStory.title));
-    assert.ok(!(await (await fetch(origin + "/historias")).text()).includes(commercialSitemapStory.title));
     assert.ok(!(await (await fetch(origin + "/")).text()).includes(commercialSitemapStory.title));
-    assert.equal((await fetch(`${origin}/historias/${commercialSitemapStory.slug}`)).status, 404);
+    assert.equal((await fetch(`${origin}/colaboraciones/${commercialSitemapStory.slug}`)).status, 404);
+    assert.equal((await fetch(`${origin}/colaboraciones`)).status, 404);
     commercialSitemapStory.status = "ARCHIVED";
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl));
     t.diagnostic("COMMERCIAL_CANONICAL_SITEMAP_STATES_AND_EDITORIAL_SEPARATION=PASS");

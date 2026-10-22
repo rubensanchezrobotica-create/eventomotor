@@ -28,14 +28,12 @@ export async function publishStoryAction(data: FormData) {
   await requireTrustedAdminMutation(path);
   if (field(data, "confirmPublication") !== "yes") redirect(`${path}?error=confirmation_required`);
   let slug = "";
-  let section = "historias";
   try {
     const published = await publishStory({ storyId, expectedUpdatedAt: field(data, "expectedUpdatedAt"), requestId: field(data, "requestId") });
     slug = published.slug;
-    section = published.collection === "COLABORACIONES" ? "colaboraciones" : "historias";
   } catch { redirect(`${path}?error=publication_failed`); }
-  revalidatePath(`/${section}`);
-  revalidatePath(`/${section}/${slug}`);
+  revalidatePath("/historias");
+  revalidatePath(`/historias/${slug}`);
   revalidatePath("/sitemap.xml");
   revalidatePath(path);
   const bundle = await getStoryForAdmin(storyId);

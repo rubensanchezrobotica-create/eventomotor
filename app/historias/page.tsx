@@ -29,7 +29,8 @@ export default async function StoriesPage() {
             <img src={hero.resolvedUrl} width={hero.width} height={hero.height} alt={hero.altText}
               {...publicStoryImageProps(hero.publicImage, STORY_INDEX_IMAGE_SIZES)} />
             <div>
-              <span className={styles.eyebrow}>{storyCollectionLabels[story.collection]} · {storyTypeLabels[story.type]}</span>
+              <span className={styles.eyebrow}>{story.collection === "COLABORACIONES"
+                ? "Contenido patrocinado" : `${storyCollectionLabels[story.collection]} · ${storyTypeLabels[story.type]}`}</span>
               <h2><Link href={`/historias/${story.slug}`}>{story.title}</Link></h2>
               <p>{story.dek}</p>
               <Link href={`/historias/${story.slug}`}>Leer la historia <span aria-hidden="true">→</span></Link>

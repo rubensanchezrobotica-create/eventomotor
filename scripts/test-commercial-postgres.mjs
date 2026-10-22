@@ -184,7 +184,7 @@ try {
   await withPublicSqlTransport(async()=>{
     const publicArticle=await getPublicCollaboration(f.story.slug);
     check(publicArticle?.sponsor?.name==='Synthetic advertiser','published commercial article resolves through actual public loader');
-    check(await getPublicStory(f.story.slug)===null && (await listPublicStories()).every(s=>s.collection!=='COLABORACIONES'),'no commercial alias or editorial collection mixing');
+    check((await getPublicStory(f.story.slug))?.collection==='COLABORACIONES' && (await listPublicStories()).filter(s=>s.slug===f.story.slug).length===1,'commercial article has one public Historias entry');
     check(Boolean(await getPublicStory('synthetic-pre-c1')),'preexisting independent story still resolves after C1');
   });
   for (const role of ['anon','authenticated']) {

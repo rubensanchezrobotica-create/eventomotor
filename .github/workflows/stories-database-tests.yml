@@ -6,7 +6,6 @@ on:
       - "lib/stories/story-types.ts"
       - "lib/stories/story-validation*.ts"
       - "lib/stories/story-editorial-gate*"
-      - "app/colaboraciones/**"
       - "lib/stories/story-commercial*"
       - "database/migrations/20261020120000_commercial_articles.sql"
       - ".github/workflows/stories-database-tests.yml"
@@ -39,6 +38,7 @@ on:
   push:
     branches:
       - codex/colaboraciones-c1
+      - codex/colaboraciones-c1-integration
       - codex/historias-a16b1
       - codex/historias-a16c
       - codex/historias-a16b2
@@ -52,7 +52,6 @@ on:
       - "lib/stories/story-types.ts"
       - "lib/stories/story-validation*.ts"
       - "lib/stories/story-editorial-gate*"
-      - "app/colaboraciones/**"
       - "lib/stories/story-commercial*"
       - "database/migrations/20261020120000_commercial_articles.sql"
       - ".github/workflows/stories-database-tests.yml"
@@ -158,7 +157,7 @@ jobs:
           node --conditions=react-server --import tsx --test lib/stories/story-editorial-gate.server.test.ts
           node --import tsx --test components/admin/stories/StoryParagraphEditor.test.tsx
           npx tsc --noEmit
-          npx eslint app/colaboraciones lib/stories/story-commercial* lib/stories/story-editorial-gate* components/admin/stories/StoryParagraphEditor* tests/stories/commercial-fixture.ts tests/stories/story-commercial.integration.test.ts tests/stories/sql/story-commercial-concurrency.mjs
+          npx eslint app/historias lib/stories/story-commercial* lib/stories/story-editorial-gate* components/admin/stories/StoryParagraphEditor* tests/stories/commercial-fixture.ts tests/stories/story-commercial.integration.test.ts tests/stories/sql/story-commercial-concurrency.mjs
 
       - name: Run actual Next privacy and sitemap freshness regressions
         run: |
