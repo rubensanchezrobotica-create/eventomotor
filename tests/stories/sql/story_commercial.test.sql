@@ -29,7 +29,7 @@ select throws_ok($$update public.stories set title='Unreviewed edit' where id='c
 select throws_ok($$update public.stories set home_rank=1 where id='c1000000-0000-4000-8000-000000000001'$$,'23514','commercial content cannot occupy an editorial Home rank','no commercial editorial Home rank');
 select throws_ok($$update public.stories set commercial_metadata=commercial_metadata || '{"factsVerified":false}'::jsonb where id='c1000000-0000-4000-8000-000000000001'$$,'23514','commercial publication gate failed','facts cannot be invalidated while READY');
 update public.stories set status='DRAFT',title='Revised synthetic draft' where id='c1000000-0000-4000-8000-000000000001';
-select ok('approved_version_mismatch'=any((select public.story_commercial_gate(s) from public.stories s where id='c1000000-0000-4000-8000-000000000001')), 'edited DRAFT needs fresh approval');
+select ok(array_position((select public.story_commercial_gate(s) from public.stories s where id='c1000000-0000-4000-8000-000000000001'), 'approved_version_mismatch') is not null, 'edited DRAFT needs fresh approval');
 select is((select count(*)::integer from public.story_publication_receipts where story_id='c1000000-0000-4000-8000-000000000001'),0,'failed gates do not create receipts');
 
 create function pg_temp.reapprove_commercial() returns void language sql as $$
