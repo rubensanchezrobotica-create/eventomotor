@@ -259,6 +259,24 @@ test("artículo real: etiquetas humanas, firma por ID, un H1 y hero después de 
   assert.ok(html.indexOf('data-story-media-id="horizontal"') < html.indexOf("Texto íntegro"));
 });
 
+test("colaboración: identificación, título, entradilla, hero y cuerpo en orden editorial", () => {
+  const html = renderToStaticMarkup(<StoryArticle
+    title="Título comercial sintético" dek="Entradilla sintética" type="ARTICULO" collection="COLABORACIONES"
+    sponsor={{ name: "Empresa sintética", label: "Contenido patrocinado" }}
+    contextLocation="Adaptación editorial sintética" heroMediaId="horizontal" media={syntheticMedia} events={{}}
+    people={{ person: "Editora sintética" }} credits={[{ personId: "person", role: "TEXT", sortOrder: 0 }]}
+    blocks={[{ id: "body", type: "PARAGRAPH", content: [{ type: "TEXT", text: "Inicio del cuerpo sintético" }] }]} />);
+  const sequence = ["Contenido patrocinado", "Empresa sintética", "Título comercial sintético", "Entradilla sintética",
+    'data-story-media-id="horizontal"', "Otro pie íntegro", "Editora sintética", "Inicio del cuerpo sintético"];
+  assert.ok(sequence.every((part, index) => index === 0 || html.indexOf(sequence[index - 1]) < html.indexOf(part)));
+  assert.match(html, /class="article commercialArticle"/);
+  assert.doesNotMatch(html, /Colaboraciones · Artículo/);
+  const css = readFileSync("components/redesign-v2/stories/StoryArticle.module.css", "utf8");
+  assert.match(css, /\.commercialArticle \.header \{[\s\S]*?flex-direction: column/);
+  assert.match(css, /\.commercialArticle \.hero \{ width: min\(100%, 880px\)/);
+  assert.match(css, /\.commercialArticle \.body \{ --story-reading: 720px/);
+});
+
 test("pareja mixta: orden exacto, ratios naturales y columnas proporcionales sin crop", () => {
   const html = renderToStaticMarkup(<StoryRenderer blocks={[{ id: "pair", type: "IMAGE_PAIR", mediaIds: ["portrait", "horizontal"] }]} media={syntheticMedia} events={{}} />);
   assert.match(html, /--story-pair-columns:0.75fr 1.3333333333333333fr/);

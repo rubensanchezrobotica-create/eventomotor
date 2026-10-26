@@ -73,13 +73,6 @@ h3.heading { margin-top: 44px; font-size: 27px; }
 .event p:not(.eyebrow) { margin: 0 0 16px; color: #aaa9a5; font-size: 14px; line-height: 1.6; }
 .event a { display: inline-block; padding: 10px 0; font-size: 13px; font-weight: 700; }
 .event a span { color: #ff6900; margin-left: 5px; }
-@media (min-width: 851px) and (max-width: 1100px) {
-  .headerCopy > aside ~ .title {
-    max-width: none;
-    font-size: clamp(39px, 4.5vw, 50px);
-    overflow-wrap: normal;
-  }
-}
 @media (max-width: 850px) {
   .header { grid-template-columns: minmax(0, 1fr); max-width: 660px; margin: 36px auto 50px; gap: 32px; }
   .article .title { max-width: 14ch; font-size: clamp(42px, 7.8vw, 64px); }
@@ -100,4 +93,46 @@ h3.heading { margin-top: 44px; font-size: 27px; }
   .pair .figure { width: min(100%, calc(var(--story-image-cap) * var(--story-ratio))); }
   .caption { font-size: 12px; }
   .event h2 { font-size: 23px; }
+}
+
+/* Commercial articles use a reading-first header; independent Stories keep their approved layout. */
+.commercialArticle .header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  max-width: 960px;
+  margin: 52px auto 42px;
+}
+.commercialArticle .headerCopy { width: 100%; max-width: 760px; margin: 0 auto; }
+.commercialArticle .title {
+  max-width: none;
+  margin: 22px 0 20px;
+  font-size: clamp(44px, 4vw, 58px);
+  line-height: 1.1;
+  letter-spacing: -.045em;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.commercialArticle .dek { max-width: 720px; color: #e2e0d9; font-size: 18px; line-height: 1.7; }
+.commercialArticle .hero { width: min(100%, 880px); margin: 36px auto 0; }
+.commercialArticle .byline { width: 100%; max-width: 720px; margin: 24px auto 0; }
+.commercialArticle .body { --story-reading: 720px; padding-top: 38px; }
+.commercialArticle .paragraph {
+  color: #e0ded7;
+  font-size: 18px;
+  line-height: 1.72;
+  letter-spacing: 0;
+  text-align: left;
+  hyphens: none;
+}
+@media (max-width: 600px) {
+  .commercialArticle .header { margin: 30px auto 36px; }
+  .commercialArticle .title { margin: 19px 0 18px; font-size: clamp(31px, 9vw, 38px); line-height: 1.13; }
+  .commercialArticle .dek { font-size: 17px; line-height: 1.7; }
+  .commercialArticle .hero { margin-top: 28px; }
+  .commercialArticle .byline { margin-top: 20px; }
+  .commercialArticle .body { padding-top: 32px; }
+  .commercialArticle .paragraph { font-size: 17px; line-height: 1.72; }
 }

@@ -17,25 +17,28 @@ type Props = {
 /** Presentation only: shared by the private preview and future public reader. */
 export default function StoryArticle(props: Props) {
   const byline = groupStoryByline(props.credits, props.people);
+  const isCommercial = props.collection === "COLABORACIONES";
+  const attribution = (byline.length || props.contextLocation) ? (
+    <div className={styles.byline}>
+      {byline.map((person) => <p key={person.personId}><span>{person.label}:</span> <strong>{person.name}</strong></p>)}
+      {props.contextLocation ? <p className={styles.context}>{props.contextLocation}</p> : null}
+    </div>
+  ) : null;
   return (
-    <article className={styles.article} data-story-article>
+    <article className={`${styles.article} ${isCommercial ? styles.commercialArticle : ""}`} data-story-article>
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          {props.collection === "COLABORACIONES" ? <aside aria-label="Identificación comercial">
+          {isCommercial ? <aside aria-label="Identificación comercial">
             <p className={styles.eyebrow}>Contenido patrocinado</p>
             {props.sponsor?.name.trim() ? <p>Anunciante: <strong>{props.sponsor.name}</strong></p> : null}
           </aside> : null}
-          <p className={styles.eyebrow}>{storyCollectionLabels[props.collection]} · {storyTypeLabels[props.type]}</p>
+          {!isCommercial ? <p className={styles.eyebrow}>{storyCollectionLabels[props.collection]} · {storyTypeLabels[props.type]}</p> : null}
           <h1 className={styles.title}>{props.title || "Historia sin título"}</h1>
           {props.dek ? <p className={styles.dek}>{props.dek}</p> : null}
-          {(byline.length || props.contextLocation) ? (
-            <div className={styles.byline}>
-              {byline.map((person) => <p key={person.personId}><span>{person.label}:</span> <strong>{person.name}</strong></p>)}
-              {props.contextLocation ? <p className={styles.context}>{props.contextLocation}</p> : null}
-            </div>
-          ) : null}
+          {!isCommercial ? attribution : null}
         </div>
         {props.heroMediaId ? <StoryImage item={props.media[props.heroMediaId]} kind="hero" /> : null}
+        {isCommercial ? attribution : null}
       </header>
       <StoryRenderer blocks={props.blocks} events={props.events} media={props.media} />
     </article>
