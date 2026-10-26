@@ -73,6 +73,13 @@ h3.heading { margin-top: 44px; font-size: 27px; }
 .event p:not(.eyebrow) { margin: 0 0 16px; color: #aaa9a5; font-size: 14px; line-height: 1.6; }
 .event a { display: inline-block; padding: 10px 0; font-size: 13px; font-weight: 700; }
 .event a span { color: #ff6900; margin-left: 5px; }
+@media (min-width: 851px) and (max-width: 1100px) {
+  .headerCopy > aside ~ .title {
+    max-width: none;
+    font-size: clamp(39px, 4.5vw, 50px);
+    overflow-wrap: normal;
+  }
+}
 @media (max-width: 850px) {
   .header { grid-template-columns: minmax(0, 1fr); max-width: 660px; margin: 36px auto 50px; gap: 32px; }
   .article .title { max-width: 14ch; font-size: clamp(42px, 7.8vw, 64px); }
