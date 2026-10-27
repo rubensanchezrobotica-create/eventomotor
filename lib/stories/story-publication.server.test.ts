@@ -3,13 +3,31 @@ import test from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, StoryRow } from "@/lib/supabase";
 import { createSupabaseRelationRepository, classifyStoryAdminDatabaseError } from "./story-admin.server";
-import { createStoryPublicationService, StoryPublicationError } from "./story-publication.server";
+import { createPublicationFetch, createStoryPublicationService, StoryPublicationError } from "./story-publication.server";
 
 const storyId = "e1000000-0000-4000-8000-000000000001";
 const requestId = "e2000000-0000-4000-8000-000000000001";
 const version = "2030-01-01T00:00:00Z";
 const input = { storyId, requestId, expectedUpdatedAt: version };
 const ready = { id: storyId, status: "READY", updated_at: version } as StoryRow;
+
+test("publication transport aborts a stalled request before the function deadline", async () => {
+  const stalledFetch: typeof fetch = async (_input, init) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+  });
+  const startedAt = Date.now();
+  await assert.rejects(createPublicationFetch(stalledFetch, 25)("https://example.test/rest/v1/stories"),
+    (error: unknown) => error instanceof Error && error.name === "TimeoutError");
+  assert.ok(Date.now() - startedAt < 1_000);
+});
+
+test("publication transport honors the earlier overall deadline", async () => {
+  const stalledFetch: typeof fetch = async (_input, init) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+  });
+  await assert.rejects(createPublicationFetch(stalledFetch, 1_000, AbortSignal.timeout(25))("https://example.test/rest/v1/stories"),
+    (error: unknown) => error instanceof Error && error.name === "TimeoutError");
+});
 
 function harness(story: StoryRow | null = ready) {
   const calls: string[] = [];
@@ -61,6 +79,23 @@ test("gate I/O error cannot fall through to SQL", async () => {
   });
   await assert.rejects(service.publish(input), /unavailable/);
   assert.equal(writes, 0);
+});
+
+test("a stalled readiness transport aborts without invoking the publication RPC", async () => {
+  let commits = 0;
+  const stalledFetch: typeof fetch = async (_input, init) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+  });
+  const service = createStoryPublicationService({
+    async getStory() { return ready; },
+    async readiness() {
+      await createPublicationFetch(stalledFetch, 25)("https://example.test/storage/v1/object/public/synthetic");
+      return { ready: true };
+    },
+    async commit() { commits++; return ready; },
+  });
+  await assert.rejects(service.publish(input), (error: unknown) => error instanceof Error && error.name === "TimeoutError");
+  assert.equal(commits, 0);
 });
 
 test("concurrent change detected by RPC is not reported as success", async () => {

@@ -947,6 +947,25 @@ test("publication readiness requires promotion plus editorial alt and rights", a
   assert.deepEqual(after.publicationErrors, []);
   assert.deepEqual(after.storageIssues, []);
   assert.equal(fixture.counts.publicDeliveryChecks, 1);
+
+  const deadline = AbortSignal.timeout(1_000);
+  const observedSignals: Array<AbortSignal | undefined> = [];
+  const timedService = createStoryMediaService({
+    repository: fixture.repository,
+    storage: {
+      ...fixture.storage,
+      download(bucketId, objectPath, signal) {
+        observedSignals.push(signal);
+        return fixture.storage.download(bucketId, objectPath);
+      },
+      verifyPublicDelivery(bucketId, objectPath, mimeType, signal) {
+        observedSignals.push(signal);
+        return fixture.storage.verifyPublicDelivery(bucketId, objectPath, mimeType);
+      },
+    },
+  });
+  assert.equal((await timedService.publicationReadiness(STORY_ID, deadline)).ready, true);
+  assert.deepEqual(observedSignals, [deadline, deadline]);
 });
 
 test("publication readiness tracks server metadata changes after promotion", async () => {

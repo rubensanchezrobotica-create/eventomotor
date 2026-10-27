@@ -96,7 +96,7 @@ export type StoryMediaStorage = {
   getBucket(bucketId: string): Promise<StorageBucketConfig | null>;
   createSignedUploadUrl(bucketId: string, objectPath: string): Promise<{ token: string }>;
   createSignedUrl(bucketId: string, objectPath: string, expiresIn: number): Promise<{ signedUrl: string }>;
-  download(bucketId: string, objectPath: string): Promise<Uint8Array>;
+  download(bucketId: string, objectPath: string, signal?: AbortSignal): Promise<Uint8Array>;
   upload(
     bucketId: string,
     objectPath: string,
@@ -109,6 +109,7 @@ export type StoryMediaStorage = {
     bucketId: string,
     objectPath: string,
     expectedMimeType: StoryMediaMimeType,
+    signal?: AbortSignal,
   ): Promise<{ publicUrl: string; contentType: string }>;
 };
 
@@ -828,7 +829,7 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
       };
     },
 
-    async publicationReadiness(storyId: string) {
+    async publicationReadiness(storyId: string, signal?: AbortSignal) {
       assertStoryMediaUuid(storyId, "storyId");
       const story = await dependencies.repository.getStory(storyId);
       if (!story) {
@@ -878,6 +879,7 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
           const bytes = await dependencies.storage.download(
             STORY_MEDIA_PUBLIC_BUCKET,
             item.object_path,
+            signal,
           );
           const inspection = await inspectStoryMediaImage(bytes, item.mime_type);
           if (
@@ -898,6 +900,7 @@ export function createStoryMediaService(dependencies: StoryMediaServiceDependenc
             STORY_MEDIA_PUBLIC_BUCKET,
             item.object_path,
             item.mime_type,
+            signal,
           );
           if (delivery.contentType !== item.mime_type) {
             storageIssues.push({ code: "PUBLIC_DELIVERY_UNAVAILABLE", mediaId });
@@ -1055,8 +1058,8 @@ function createSupabaseDependencies(
       }
       return { signedUrl: data.signedUrl };
     },
-    async download(bucketId, objectPath) {
-      const { data, error } = await client.storage.from(bucketId).download(objectPath);
+    async download(bucketId, objectPath, signal) {
+      const { data, error } = await client.storage.from(bucketId).download(objectPath, {}, { signal });
       if (error || !data) {
         throw new StoryMediaServiceError(
           "STORAGE_OPERATION_FAILED",
@@ -1089,8 +1092,10 @@ function createSupabaseDependencies(
     getPublicUrl(bucketId, objectPath) {
       return getCanonicalPublicUrl(bucketId, objectPath);
     },
-    async verifyPublicDelivery(bucketId, objectPath, expectedMimeType) {
+    async verifyPublicDelivery(bucketId, objectPath, expectedMimeType, signal) {
       const publicUrl = getCanonicalPublicUrl(bucketId, objectPath);
+      const deliveryTimeout = AbortSignal.timeout(15_000);
+      const deliverySignal = signal ? AbortSignal.any([signal, deliveryTimeout]) : deliveryTimeout;
       let response: Response;
       try {
         response = await fetch(publicUrl, {
@@ -1098,6 +1103,7 @@ function createSupabaseDependencies(
           headers: { Range: "bytes=0-0" },
           redirect: "error",
           cache: "no-store",
+          signal: deliverySignal,
         });
       } catch {
         throw new StoryMediaServiceError(
