@@ -1,0 +1,108 @@
+.section {
+  padding-block: 54px 62px;
+  border-bottom: 1px solid #242a32;
+  background: #11151b;
+}
+
+.shell {
+  width: min(1188px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+  align-items: center;
+  gap: clamp(34px, 5vw, 72px);
+  overflow: hidden;
+  border: 1px solid #303640;
+  border-radius: 10px;
+  background: #0c1015;
+}
+
+.media {
+  display: block;
+  align-self: stretch;
+  min-height: 330px;
+  overflow: hidden;
+  background: #171c23;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.copy {
+  min-width: 0;
+  padding: 42px 48px 42px 0;
+}
+
+.disclosure {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  margin: 0 0 21px;
+  padding: 5px 10px;
+  border: 1px solid #82401c;
+  border-radius: 999px;
+  color: #ff9c60;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.copy h2 {
+  max-width: 18ch;
+  margin: 0;
+  color: #f7f7f4;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(32px, 3.2vw, 46px);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.summary {
+  max-width: 53ch;
+  margin: 19px 0 22px;
+  color: #c4c8cf;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.readLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1px solid #ff6200;
+  color: #f7f7f4;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.readLink span { color: #ff7c2b; font-size: 21px; }
+.copy h2 a:hover { color: #ff9c60; }
+.readLink:hover { border-bottom-color: #f7f7f4; }
+
+@media (max-width: 760px) {
+  .section { padding-block: 32px 40px; }
+  .shell { width: min(620px, calc(100% - 32px)); }
+  .card { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .media { min-height: 0; aspect-ratio: 16 / 10; }
+  .copy { padding: 26px 24px 30px; }
+  .disclosure { margin-bottom: 17px; font-size: 10px; }
+  .copy h2 { max-width: 17ch; font-size: clamp(30px, 8.6vw, 39px); }
+  .summary { margin: 15px 0 17px; font-size: 16px; line-height: 1.6; }
+}
+
+@media (max-width: 350px) {
+  .shell { width: calc(100% - 24px); }
+  .copy { padding-inline: 19px; }
+}

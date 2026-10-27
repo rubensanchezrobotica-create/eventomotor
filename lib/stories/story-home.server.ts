@@ -6,12 +6,17 @@ import { buildCanonicalStoryMediaPublicUrl } from "./story-media.server";
 import { assertStoryMediaObjectPath, isStoryMediaMimeType, STORY_MEDIA_PUBLIC_MAX_LONG_EDGE } from "./story-media-validation";
 import { resolveStoryPublicImage } from "./story-responsive-images.server";
 import type { StoryPublicImage } from "./story-responsive-images";
+import { getLatestPublicCollaboration } from "./story-public.server";
 
 export type HomeStory = {
   slug: string;
   title: string;
   summary: string;
   hero: { src: string; alt: string; width: number; height: number; publicImage?: StoryPublicImage };
+};
+
+export type HomeSponsoredStory = HomeStory & {
+  label: "Contenido patrocinado";
 };
 
 const STORY_SELECT = "id,slug,status,collection,title,dek,hero_media_id,published_at,updated_at";
@@ -62,4 +67,29 @@ export async function listHomeStories(): Promise<HomeStory[]> {
     }
     return output;
   } catch { return []; } // An optional editorial outage never takes down the agenda.
+}
+
+/** Independent, optional Home projection for the latest approved collaboration. */
+export async function getLatestHomeSponsoredStory(): Promise<HomeSponsoredStory | null> {
+  try {
+    const story = await getLatestPublicCollaboration();
+    if (!story || story.collection !== "COLABORACIONES" || story.sponsor?.label !== "Contenido patrocinado") return null;
+    const hero = story.media[story.heroMediaId];
+    if (!hero) return null;
+    return {
+      slug: story.slug,
+      title: story.title,
+      summary: story.dek,
+      label: story.sponsor.label,
+      hero: {
+        src: hero.resolvedUrl,
+        alt: hero.altText,
+        width: hero.width,
+        height: hero.height,
+        publicImage: hero.publicImage,
+      },
+    };
+  } catch {
+    return null;
+  }
 }

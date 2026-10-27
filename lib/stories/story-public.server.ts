@@ -139,6 +139,16 @@ export async function listPublicCollaborations(): Promise<PublicStory[]> {
   return stories.filter((story): story is PublicStory => story !== null);
 }
 
+export async function getLatestPublicCollaboration(): Promise<PublicStory | null> {
+  const client = createSupabaseServerClient();
+  if (!client) return null;
+  const { data, error } = await client.from("stories").select("slug").eq("status", "PUBLISHED")
+    .eq("collection", "COLABORACIONES").order("published_at", { ascending: false }).order("id").limit(1);
+  if (error) throw new Error("Latest published collaboration unavailable.");
+  const slug = data?.[0]?.slug;
+  return slug ? getPublicCollaboration(slug) : null;
+}
+
 async function listEditorialPublicStories(): Promise<PublicStory[]> {
   const client = createSupabaseServerClient();
   if (!client) return [];
