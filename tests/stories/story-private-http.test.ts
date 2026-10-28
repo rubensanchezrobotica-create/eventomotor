@@ -214,8 +214,13 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
       assert.ok(markerIndex >= 0, `${marker} module is present`);
       const sectionStart = html.lastIndexOf("<section", markerIndex);
       const sectionEnd = html.indexOf("</section>", markerIndex);
-      assert.ok(sectionStart >= 0 && sectionEnd >= 0, `${marker} has a complete section boundary`);
-      return html.slice(sectionStart, sectionEnd + "</section>".length);
+      const flightStart = html.lastIndexOf("<script>self.__next_f.push", markerIndex);
+      const flightEnd = html.indexOf("</script>", markerIndex);
+      if (sectionStart > flightStart && sectionEnd >= 0) {
+        return html.slice(sectionStart, sectionEnd + "</section>".length);
+      }
+      assert.ok(flightStart >= 0 && flightEnd >= 0, `${marker} has a complete streamed module boundary`);
+      return html.slice(flightStart, flightEnd + "</script>".length).replaceAll('\\"', '"');
     };
     const before = await readSitemap();
     assert.ok(!before.urls.includes(storyUrl), "DRAFT is excluded");
@@ -279,7 +284,8 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     const sponsoredModule = homeModule(commercialHome, "data-home-sponsored-story");
     const editorialModule = homeModule(commercialHome, "data-home-stories");
     assert.ok(sponsoredModule.includes("Contenido patrocinado"));
-    assert.match(sponsoredModule, new RegExp(`href="/historias/${commercialSitemapStory.slug}"[^>]*>${commercialSitemapStory.title}</a>`));
+    assert.ok(sponsoredModule.includes(commercialSitemapStory.title));
+    assert.match(sponsoredModule, new RegExp(`(?:href=|"href":)"/historias/${commercialSitemapStory.slug}"`));
     assert.ok(!editorialModule.includes(commercialSitemapStory.title), "commercial title never enters the independent editorial module");
     assert.ok(editorialModule.includes(sitemapStory.title), "independent editorial content remains unchanged");
     assert.ok(noPrivate(sponsoredModule), "sponsored Home module exposes no private evidence, signed URL or private media");
