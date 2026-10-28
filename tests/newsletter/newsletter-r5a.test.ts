@@ -671,10 +671,10 @@ test("las rutas R5A reutilizan R4C, son noindex/no-store y GET no muta", () => {
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /follow:\s*false/);
   assert.match(page, /NewsletterPreviewPage/);
-  assert.match(
-    page,
-    /experience=\{publicConfiguration\.enabled \? "public" : "production-canary"\}/,
-  );
+  assert.match(page, /if \(publicConfiguration\.enabled\) return <NewsletterLandingV2 context="public" \/>;/);
+  assert.match(page, /return <NewsletterPreviewPage emails=\{emails\} experience="production-canary"/);
+  assert.ok(page.indexOf("if (publicConfiguration.enabled)") < page.indexOf("renderAllNewsletterEmailPreviews()"));
+  assert.ok(page.indexOf("renderAllNewsletterEmailPreviews()") < page.indexOf("experience=\"production-canary\""));
   assert.match(confirmation, /kind="confirm"/);
   assert.match(unsubscribe, /kind="unsubscribe"/);
   assert.match(tokenAction, /cleanVisibleTokenUrl\(\)/);
@@ -689,7 +689,11 @@ test("las rutas R5A reutilizan R4C, son noindex/no-store y GET no muta", () => {
     assert.match(route, /export const POST/);
     assert.doesNotMatch(route, /export const GET/);
   }
-  assert.doesNotMatch(source("app/sitemap.ts"), /newsletter/);
+  const sitemap = source("app/sitemap.ts");
+  assert.match(sitemap, /evaluateNewsletterPublicLaunchResendConfiguration/);
+  assert.match(sitemap, /evaluateNewsletterProductionCanaryResendConfiguration/);
+  assert.match(sitemap, /publicNewsletter\.enabled && !canaryNewsletter\.enabled/);
+  assert.match(sitemap, /sitemapEntry\("\/newsletter", now, "weekly", 0\.6\)/);
 });
 
 test("R4B local sigue aislado y sus enlaces conservan /preview/newsletter", async () => {

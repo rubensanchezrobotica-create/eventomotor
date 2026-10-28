@@ -8,6 +8,7 @@ import NewsletterSignupForm from "@/components/newsletter/NewsletterSignupForm";
 import { getCommercialCampaignRegistry } from "@/lib/commercial/campaign-registry.server";
 import type { EventItem } from "@/types/event";
 import EventCard from "./EventCard";
+import HomeSponsoredStorySection from "./stories/HomeSponsoredStorySection";
 import HomeStoriesSection from "./stories/HomeStoriesSection";
 import SearchExperience from "./SearchExperience.client";
 import { redesignV2DisplayPilot } from "./redesign-v2-fonts";
@@ -195,6 +196,7 @@ export default function RedesignV2Home({ events, newsletterCanSubmitLive = false
         </section>
 
         <Suspense fallback={null}><HomeStoriesSection /></Suspense>
+        <Suspense fallback={null}><HomeSponsoredStorySection /></Suspense>
 
         {newsletterVisible ? <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
           <div className={`${styles.shell} ${styles.newsletterLayout}`}>

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { commercialFixture } from "@/tests/stories/commercial-fixture";
 import { commercialContentHash, storyCommercialGate } from "./story-commercial.server";
-import { toPublicStory, getPublicStory, getPublicCollaboration, listPublicStories, listPublicCollaborations, getPublicStoriesForEvent } from "./story-public.server";
-import { listHomeStories } from "./story-home.server";
+import { toPublicStory, getPublicStory, getPublicCollaboration, getLatestPublicCollaboration, listPublicStories, listPublicCollaborations, getPublicStoriesForEvent } from "./story-public.server";
+import { getLatestHomeSponsoredStory, listHomeStories } from "./story-home.server";
 import { buildStoryMetadata, buildStoryJsonLd, buildStoriesSitemap } from "./story-public-seo";
 import { createStoryAdminMutationService, type StoryAdminMutationRepository } from "./story-admin.server";
 import { createStoryPublicationService } from "./story-publication.server";
@@ -69,7 +69,7 @@ test("non-PUBLISHED commercial states stay private; published commercial has one
   assert.equal(buildStoriesSitemap([p])[0].url, metadata.alternates?.canonical);
 });
 
-test("real loaders include published commercial in Historias but exclude it from Home/events", async () => {
+test("real loaders include published commercial in Historias and its independent Home block, but exclude it from editorial/events", async () => {
   const f = approved(); f.story.status = "PUBLISHED"; f.story.published_at = "2030-01-02T12:00:00Z";
   const oldFetch = globalThis.fetch, oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321"; process.env.SUPABASE_SERVICE_ROLE_KEY = "synthetic-only";
@@ -87,6 +87,16 @@ test("real loaders include published commercial in Historias but exclude it from
     assert.deepEqual(await listHomeStories(), []);
     assert.deepEqual(await getPublicStoriesForEvent("synthetic-event"), []);
     assert.ok(await getPublicCollaboration(f.story.slug)); assert.equal((await listPublicCollaborations()).length, 1);
+    assert.equal((await getLatestPublicCollaboration())?.slug, f.story.slug);
+    const sponsoredHome = await getLatestHomeSponsoredStory();
+    assert.equal(sponsoredHome?.slug, f.story.slug);
+    assert.equal(sponsoredHome?.label, "Contenido patrocinado");
+    assert.deepEqual(Object.keys(sponsoredHome ?? {}).sort(), ["hero", "label", "slug", "summary", "title"]);
+    assert.ok(!/PRIVATE_|commercial_metadata|approvedContentHash|rights_notes|content_blocks/.test(JSON.stringify(sponsoredHome)));
+    const latestQuery = calls.find((u) => u.pathname.endsWith("/stories")
+      && u.searchParams.get("select") === "slug" && u.searchParams.get("limit") === "1");
+    assert.ok(latestQuery);
+    assert.equal(latestQuery.searchParams.get("order"), "published_at.desc,id.asc");
     const selects = calls.filter((u) => u.pathname.endsWith("/stories") && !u.searchParams.get("select")?.includes("status,updated_at"));
     assert.ok(selects.every((u) => u.searchParams.get("status") === "eq.PUBLISHED"));
     assert.ok(selects.every((u) => u.searchParams.has("collection")));

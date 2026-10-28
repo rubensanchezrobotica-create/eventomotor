@@ -202,6 +202,26 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
       for (const story of stories) assert.ok(!urls.includes(`https://www.eventomotor.com/historias/${story.slug}`));
       return { xml, urls, cacheControl: response.headers.get("cache-control") ?? "" };
     };
+    const readHome = async () => {
+      const response = await fetch(origin + "/");
+      const html = await response.text();
+      assert.equal(response.status, 200);
+      assert.ok(noPrivate(html), "Home contains no private content, signed locator or private media reference");
+      return html;
+    };
+    const homeModule = (html: string, marker: "data-home-stories" | "data-home-sponsored-story") => {
+      const markerIndex = html.indexOf(marker);
+      assert.ok(markerIndex >= 0, `${marker} module is present`);
+      const sectionStart = html.lastIndexOf("<section", markerIndex);
+      const sectionEnd = html.indexOf("</section>", markerIndex);
+      const flightStart = html.lastIndexOf("<script>self.__next_f.push", markerIndex);
+      const flightEnd = html.indexOf("</script>", markerIndex);
+      if (sectionStart > flightStart && sectionEnd >= 0) {
+        return html.slice(sectionStart, sectionEnd + "</section>".length);
+      }
+      assert.ok(flightStart >= 0 && flightEnd >= 0, `${marker} has a complete streamed module boundary`);
+      return html.slice(flightStart, flightEnd + "</script>".length).replaceAll('\\"', '"');
+    };
     const before = await readSitemap();
     assert.ok(!before.urls.includes(storyUrl), "DRAFT is excluded");
     assert.ok(before.urls.includes("https://www.eventomotor.com/evento/synthetic-http-fixture-event"));
@@ -220,9 +240,7 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.match(published.cacheControl, /must-revalidate/);
     assert.doesNotMatch(published.cacheControl, /s-maxage=[1-9]|stale-while-revalidate/);
     assert.deepEqual(published.urls.filter((url) => url !== storyUrl), before.urls, "all existing event, taxonomy and static URLs are preserved");
-    const home = await fetch(origin + "/");
-    const homeHtml = await home.text();
-    assert.equal(home.status, 200);
+    const homeHtml = await readHome();
     assert.ok(homeHtml.includes("data-home-stories") && homeHtml.includes(sitemapStory.title));
     assert.ok(homeHtml.includes(`href="/historias/${sitemapStory.slug}"`));
     assert.ok(!/story-media-drafts|\/object\/sign\/|rights_notes|SYNTHETIC_PRIVATE_BODY/.test(homeHtml), "Home only serializes published header/hero, never private article content");
@@ -235,10 +253,20 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.deepEqual((await readSitemap()).urls, before.urls, "archival disappears on the next request without disturbing other URLs");
     const emptyHome = await fetch(origin + "/");
     assert.ok(!(await emptyHome.text()).includes("data-home-stories"), "no published Story means no empty Home module");
+    sitemapStory.status = "PUBLISHED";
+    sitemapStory.published_at = "2030-01-02T12:00:00Z";
+    sitemapStory.updated_at = "2030-01-03T13:00:00Z";
     const collaborationUrl = `https://www.eventomotor.com/historias/${commercialSitemapStory.slug}`;
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial DRAFT is excluded");
+    const draftCommercialHome = await readHome();
+    assert.ok(draftCommercialHome.includes("data-home-stories"), "independent editorial Home module remains available");
+    assert.ok(!draftCommercialHome.includes("data-home-sponsored-story"));
+    assert.ok(!draftCommercialHome.includes(commercialSitemapStory.title));
     commercialSitemapStory.status = "READY";
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl), "commercial READY is excluded");
+    const readyCommercialHome = await readHome();
+    assert.ok(!readyCommercialHome.includes("data-home-sponsored-story"));
+    assert.ok(!readyCommercialHome.includes(commercialSitemapStory.title));
     commercialSitemapStory.status = "PUBLISHED"; commercialSitemapStory.published_at = "2030-01-04T12:00:00Z";
     const commercialPublished = await readSitemap();
     assert.ok(commercialPublished.urls.includes(collaborationUrl));
@@ -252,11 +280,23 @@ test("actual Next HTML, Flight, prefetch and auxiliary routes contain no private
     assert.ok(publicCommercialText.includes(collaborationUrl));
     const listText = await (await fetch(origin + "/historias")).text();
     assert.ok(noPrivate(listText) && listText.includes(commercialSitemapStory.title));
-    assert.ok(!(await (await fetch(origin + "/")).text()).includes(commercialSitemapStory.title));
+    const commercialHome = await readHome();
+    const sponsoredModule = homeModule(commercialHome, "data-home-sponsored-story");
+    const editorialModule = homeModule(commercialHome, "data-home-stories");
+    assert.ok(sponsoredModule.includes("Contenido patrocinado"));
+    assert.ok(sponsoredModule.includes(commercialSitemapStory.title));
+    assert.match(sponsoredModule, new RegExp(`(?:href=|"href":)"/historias/${commercialSitemapStory.slug}"`));
+    assert.ok(!editorialModule.includes(commercialSitemapStory.title), "commercial title never enters the independent editorial module");
+    assert.ok(editorialModule.includes(sitemapStory.title), "independent editorial content remains unchanged");
+    assert.ok(noPrivate(sponsoredModule), "sponsored Home module exposes no private evidence, signed URL or private media");
     assert.equal((await fetch(`${origin}/colaboraciones/${commercialSitemapStory.slug}`)).status, 404);
     assert.equal((await fetch(`${origin}/colaboraciones`)).status, 404);
     commercialSitemapStory.status = "ARCHIVED";
     assert.ok(!(await readSitemap()).urls.includes(collaborationUrl));
+    const archivedCommercialHome = await readHome();
+    assert.ok(!archivedCommercialHome.includes("data-home-sponsored-story"));
+    assert.ok(!archivedCommercialHome.includes(commercialSitemapStory.title));
+    assert.ok(homeModule(archivedCommercialHome, "data-home-stories").includes(sitemapStory.title));
     t.diagnostic("COMMERCIAL_CANONICAL_SITEMAP_STATES_AND_EDITORIAL_SEPARATION=PASS");
     t.diagnostic("STORIES_CANONICAL_SITEMAP_PUBLICATION_UPDATE_ARCHIVAL=PASS");
     t.diagnostic("STORIES_SITEMAP_EXISTING_URLS_AND_PRIVACY=PASS");

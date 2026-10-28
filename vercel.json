@@ -3,6 +3,7 @@
   "git": {
     "deploymentEnabled": {
       "codex/colaboraciones-c1-integration": false,
+      "codex/home-sponsored-story": false,
       "codex/trail-publication-timeout": false
     }
   }
