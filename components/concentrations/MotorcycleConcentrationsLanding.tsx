@@ -84,11 +84,13 @@ export default function MotorcycleConcentrationsLanding({
     when: query.when,
   };
   const archiveEvents = query.archiveAll ? model.pastEvents : model.pastEvents.slice(0, 12);
+  const listingId = `concentraciones-moteras-${model.year}`;
+  const analyticsSource = `concentraciones_moteras_${model.year}`;
 
   return (
-    <div className={`emc-page ${styles.page}`} data-listing="concentraciones-moteras-2026">
+    <div className={`emc-page ${styles.page}`} data-listing={listingId} data-motorcycle-concentrations>
       <ConceptStyles />
-      <MotorcycleConcentrationsAnalytics />
+      <MotorcycleConcentrationsAnalytics year={model.year} />
       <ConceptStaticHeader />
 
       <main>
@@ -151,8 +153,8 @@ export default function MotorcycleConcentrationsLanding({
             <div className="emc-container">
               <div className={styles.sectionHeading}>
                 <div>
-                  <span className={styles.eyebrow}>Calendario 2026</span>
-                  <h2>Próximas concentraciones moteras 2026</h2>
+                  <span className={styles.eyebrow}>Calendario {model.year}</span>
+                  <h2>Próximas concentraciones moteras {model.year}</h2>
                   <p>{countLabel(filteredEvents.length)} ordenados por fecha</p>
                 </div>
                 {hasActiveFilters ? (
@@ -170,13 +172,13 @@ export default function MotorcycleConcentrationsLanding({
               <PublicListingFinder
                 activePeriodLabel={activePeriodLabel(model, query)}
                 analyticsEventName="filter_motorcycle_concentrations"
-                analyticsSource="concentraciones_moteras_2026"
+                analyticsSource={analyticsSource}
                 nextThirtyDaysAvailable={model.nextThirtyDaysEvents.length > 0
                   && model.nextThirtyDaysEvents.length !== model.upcomingTotal}
                 pathname={pathname}
                 provinceCounts={model.provinceCounts}
                 query={query}
-                region="concentraciones-moteras-2026"
+                region={listingId}
                 searchPlaceholder="Evento, ciudad o provincia…"
                 showSearch
                 toggleEventName="toggle_motorcycle_concentrations_filters"
@@ -192,7 +194,7 @@ export default function MotorcycleConcentrationsLanding({
                         event={event}
                         hideOnMobileInitially={!query.showAll && index >= MOTORCYCLE_MOBILE_LIMIT}
                         key={eventKey(event)}
-                        source="concentraciones_moteras_2026"
+                        source={analyticsSource}
                         status={motorcycleTemporalStatus(event, model.today) === "ongoing" ? "ongoing" : undefined}
                       />
                     ))}
@@ -243,11 +245,11 @@ export default function MotorcycleConcentrationsLanding({
                 className={styles.historyDetails}
                 eventName="open_motorcycle_concentrations_archive"
                 open={query.archiveAll || undefined}
-                region="concentraciones-moteras-2026"
+                region={listingId}
               >
                 <summary>
                   <span>
-                    <small>Archivo 2026</small>
+                    <small>Archivo {model.year}</small>
                     Ver {model.pastEvents.length} {model.pastEvents.length === 1 ? "evento celebrado" : "eventos celebrados"}
                   </span>
                   <span aria-hidden="true">+</span>
@@ -274,7 +276,7 @@ export default function MotorcycleConcentrationsLanding({
         <section className={styles.editorialSection}>
           <div className={`emc-container ${styles.editorialCard}`}>
             <article>
-              <span className={styles.eyebrow}>Guía motera 2026</span>
+              <span className={styles.eyebrow}>Guía motera {model.year}</span>
               <h2>Cómo encontrar una concentración motera</h2>
               <p className={styles.guideIntroduction}>{page.intro}</p>
               <div className={styles.guideGroups}>
@@ -347,7 +349,7 @@ export default function MotorcycleConcentrationsLanding({
             <TrackLink
               className="emc-btn emc-btn-primary"
               eventName="click_publish_event"
-              eventParams={{ source: "concentraciones_moteras_2026_organizer" }}
+              eventParams={{ source: `${analyticsSource}_organizer` }}
               href={PUBLIC_NAVIGATION.publish}
             >
               Publicar evento

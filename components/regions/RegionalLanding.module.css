@@ -1283,12 +1283,12 @@
     line-height: 0.97;
   }
 
-  .page[data-listing="concentraciones-moteras-2026"] .hero h1 {
+  .page[data-motorcycle-concentrations] .hero h1 {
     max-width: 100%;
     font-size: clamp(2.35rem, 10.25vw, 3rem);
   }
 
-  .page[data-listing="concentraciones-moteras-2026"] .quickLinks {
+  .page[data-motorcycle-concentrations] .quickLinks {
     flex-wrap: wrap;
     overflow-x: visible;
     padding-bottom: 0;

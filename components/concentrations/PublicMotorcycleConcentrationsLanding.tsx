@@ -12,6 +12,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
 type PublicMotorcycleConcentrationsLandingProps = {
   page: OpportunityPage;
   searchParams: Promise<SearchParams>;
+  year: number;
 };
 
 function safeJsonLd(value: unknown) {
@@ -60,13 +61,15 @@ function faqJsonLd(page: OpportunityPage) {
 export default async function PublicMotorcycleConcentrationsLanding({
   page,
   searchParams,
+  year,
 }: PublicMotorcycleConcentrationsLandingProps) {
   const [events, queryParams] = await Promise.all([getVisibleEvents(), searchParams]);
   const model = buildMotorcycleConcentrationsModel(
     events.map((event) => ({ ...event, visible: true })),
     new Date(),
+    year,
   );
-  const query = parseMotorcycleLandingQuery(queryParams);
+  const query = parseMotorcycleLandingQuery(queryParams, year);
   const pathname = `/${page.slug}`;
   const itemListJsonLd = {
     "@context": "https://schema.org",

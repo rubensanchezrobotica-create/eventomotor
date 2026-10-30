@@ -118,17 +118,25 @@ export function motorcycleWeekendRange(now: Date) {
   return { friday, sunday: addIsoDays(friday, 2) };
 }
 
-export function isMotorcycleEvent(event: EventItem) {
+export function isMotorcycleEventForYear(event: EventItem, year: number) {
   if (event.visible !== true) return false;
   if (event.dataQuality === "cancelled" || event.dataQuality === "pending_date") return false;
   if (CANCELLED_STATUSES.has(normalizeMotorcycleText(event.eventStatus))) return false;
-  if (!isValidIsoDate(event.start) || !event.start.startsWith("2026-")) return false;
+  if (
+    !Number.isInteger(year)
+    || !isValidIsoDate(event.start)
+    || Number(event.start.slice(0, 4)) !== year
+  ) return false;
   if (isValidIsoDate(event.end) && event.end < event.start) return false;
 
   const vehicle = normalizeMotorcycleText(event.vehicleType || event.vehicle_type);
   if (DIRECT_MOTORCYCLE_VEHICLES.has(vehicle)) return true;
   if (EXCLUDED_VEHICLES.has(vehicle)) return false;
   return hasMotorcycleSignal(event);
+}
+
+export function isMotorcycleEvent(event: EventItem) {
+  return isMotorcycleEventForYear(event, 2026);
 }
 
 export function isMotorcycleGatheringEvent(event: EventItem) {

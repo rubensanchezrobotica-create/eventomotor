@@ -6,6 +6,7 @@ import {
   effectiveMotorcycleEventEnd,
   filterMotorcycleConcentrations,
   isMotorcycleEvent,
+  isMotorcycleEventForYear,
   isMotorcycleGatheringEvent,
   isValidIsoDate,
   madridIsoDate,
@@ -276,4 +277,84 @@ test("la query GET se normaliza y cada filtro opera solo sobre inventario motero
     filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ when: "weekend" })).map((item) => item.id),
     ["madrid"],
   );
+});
+
+test("el clasificador anual conserva exactamente el contrato de 2026", () => {
+  const fixtures = [
+    event("2026-visible"),
+    event("2027-visible", { start: "2027-01-13", end: "2027-01-17" }),
+    event("hidden", { visible: false }),
+    event("cancelled", { eventStatus: "cancelled" }),
+    event("car", { vehicleType: "coche" }),
+    event("invalid", { start: "2026-02-30" }),
+  ];
+  for (const fixture of fixtures) {
+    assert.equal(isMotorcycleEvent(fixture), isMotorcycleEventForYear(fixture, 2026), fixture.id);
+  }
+  assert.equal(isMotorcycleEventForYear(fixtures[1], 2027), true);
+  assert.equal(isMotorcycleEventForYear(fixtures[0], 2027), false);
+});
+
+test("2026 y 2027 mantienen inventarios propios, incluso al cruzar diciembre y enero", () => {
+  // Las fechas de estas cinco filas son fixtures para probar el año, no un calendario oficial.
+  const five2027 = [
+    event("leyenda-2027", { title: "La Leyenda Continúa 2027", start: "2027-01-07", end: "2027-01-07" }),
+    event("motauros-2027", { title: "Motauros 2027", start: "2027-01-14", end: "2027-01-14" }),
+    event("cuervo-2027", { title: "El Cuervo de Sevilla 2027", start: "2027-01-15", end: "2027-01-15" }),
+    event("hot-rally-2027", { title: "Hot Rally San Javier 2027", start: "2027-05-27", end: "2027-05-27" }),
+    event("pinguinos-2027", { title: "Pingüinos 2027", start: "2027-01-13", end: "2027-01-13" }),
+  ];
+  const across2026 = event("across-2026", { start: "2026-12-31", end: "2027-01-02" });
+  const across2027 = event("across-2027", { start: "2027-12-31", end: "2028-01-02" });
+  const inventory = [
+    ...five2027,
+    event("2026", { start: "2026-09-12", end: "2026-09-12" }),
+    across2026,
+    across2027,
+    event("2027-hidden", { start: "2027-01-15", end: "2027-01-15", visible: false }),
+    event("2027-cancelled", { start: "2027-01-15", end: "2027-01-15", eventStatus: "cancelled" }),
+    event("2027-car", { start: "2027-01-15", end: "2027-01-15", vehicleType: "coche" }),
+    event("2027-race", { start: "2027-01-15", end: "2027-01-15", title: "Campeonato de motocross", discipline: "Motocross" }),
+    event("2027-route", { start: "2027-01-15", end: "2027-01-15", title: "Ruta en moto", discipline: "Mototurismo" }),
+  ];
+  const now = new Date("2026-10-30T10:00:00.000Z");
+  const model2026 = buildMotorcycleConcentrationsModel(inventory, now);
+  const model2027 = buildMotorcycleConcentrationsModel(inventory, now, 2027);
+
+  assert.equal(model2026.year, 2026);
+  assert.equal(model2027.year, 2027);
+  assert.deepEqual(model2026.allEvents.map(({ id }) => id), ["2026", "across-2026"]);
+  assert.deepEqual(model2027.allEvents.map(({ id }) => id), [
+    ...five2027.map(({ id }) => id),
+    "across-2027",
+  ]);
+  assert.equal(model2027.upcomingTotal, 6);
+  assert.deepEqual(model2027.monthCounts.map(({ month }) => month), ["2027-01", "2027-05", "2027-12"]);
+  assert.deepEqual(filterMotorcycleConcentrations(model2027, parseMotorcycleLandingQuery({ month: "2027-01" }, 2027)).map(({ id }) => id), [
+    "leyenda-2027", "pinguinos-2027", "motauros-2027", "cuervo-2027",
+  ]);
+  assert.equal(parseMotorcycleLandingQuery({ month: "2026-01" }, 2027).month, "");
+  assert.equal(parseMotorcycleLandingQuery({ month: "2027-13" }, 2027).month, "");
+  assert.equal(parseMotorcycleLandingQuery({ month: "2027-01-extra" }, 2027).month, "");
+  assert.equal(parseMotorcycleLandingQuery({ month: "2027-01" }).month, "");
+});
+
+test("2027 separa archivo, próximos, fin de semana y próximos 30 días sin duplicados", () => {
+  const model = buildMotorcycleConcentrationsModel([
+    event("past", { start: "2027-01-10", end: "2027-01-11" }),
+    event("ongoing", { start: "2027-01-13", end: "2027-01-16" }),
+    event("weekend", { start: "2027-01-15", end: "2027-01-17" }),
+    event("near", { start: "2027-02-12", end: "2027-02-12" }),
+    event("later", { start: "2027-03-01", end: "2027-03-01" }),
+    event("weekend", { start: "2027-01-15", end: "2027-01-17", title: "Duplicado" }),
+    event("wrong-year", { start: "2026-01-15", end: "2026-01-17" }),
+  ], new Date("2027-01-14T10:00:00.000Z"), 2027);
+
+  assert.deepEqual(model.upcomingEvents.map(({ id }) => id), ["ongoing", "weekend", "near", "later"]);
+  assert.deepEqual(model.pastEvents.map(({ id }) => id), ["past"]);
+  assert.deepEqual(model.weekendEvents.map(({ id }) => id), ["ongoing", "weekend"]);
+  assert.deepEqual(model.nextThirtyDaysEvents.map(({ id }) => id), ["ongoing", "weekend", "near"]);
+  assert.deepEqual(filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ when: "weekend" }, 2027)).map(({ id }) => id), ["ongoing", "weekend"]);
+  assert.deepEqual(filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ when: "next30" }, 2027)).map(({ id }) => id), ["ongoing", "weekend", "near"]);
+  assert.equal(model.allEvents.length, 5);
 });

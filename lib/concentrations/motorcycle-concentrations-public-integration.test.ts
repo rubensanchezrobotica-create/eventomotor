@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
@@ -32,6 +32,7 @@ test("la ruta usa searchParams como API request-time y abandona OpportunityPage"
   const route = source("app/concentraciones-moteras-2026/page.tsx");
   assert.match(route, /searchParams:\s*Promise<Record<string, string \| string\[\] \| undefined>>/);
   assert.match(route, /PublicMotorcycleConcentrationsLanding/);
+  assert.match(route, /year=\{2026\}/);
   assert.doesNotMatch(route, /OpportunityPage from/);
   assert.doesNotMatch(route, /force-dynamic|revalidate\s*=|generateStaticParams/);
 });
@@ -46,6 +47,8 @@ test("el HTML server se construye con datos visibles, fecha de servidor y schema
   }
   assert.match(publicLanding, /model\.upcomingEvents\.slice\(0, 20\)/);
   assert.match(publicLanding, /model\.upcomingTotal > 0/);
+  assert.match(publicLanding, /buildMotorcycleConcentrationsModel\([\s\S]*?year,/);
+  assert.match(publicLanding, /parseMotorcycleLandingQuery\(queryParams, year\)/);
 });
 
 test("la landing comparte finder y tarjetas regionales sin filtro Tipo ni bifurcación cliente", () => {
@@ -56,6 +59,12 @@ test("la landing comparte finder y tarjetas regionales sin filtro Tipo ni bifurc
   assert.match(landing, /RegionalEventCard/);
   assert.match(landing, /MOTORCYCLE_MOBILE_LIMIT/);
   assert.match(landing, /MOTORCYCLE_DESKTOP_LIMIT/);
+  assert.match(landing, /data-listing=\{listingId\}/);
+  assert.match(landing, /data-motorcycle-concentrations/);
+  assert.match(landing, /Calendario \{model\.year\}/);
+  assert.match(landing, /Archivo \{model\.year\}/);
+  assert.match(landing, /Guía motera \{model\.year\}/);
+  assert.match(landing, /concentraciones_moteras_\$\{model\.year\}/);
   assert.doesNotMatch(landing, /name="type"|name="vehicle"|Más filtros/);
   assert.doesNotMatch(landing, /useSearchParams|useState|window\./);
 });
@@ -77,4 +86,15 @@ test("los breakpoints regionales siguen cubriendo finder, móvil y escritorio", 
   assert.match(css, /@media \(min-width: 768px\)/);
   assert.match(css, /\.mobileInitialHidden/);
   assert.match(css, /\.eventGrid/);
+  assert.match(css, /\.page\[data-motorcycle-concentrations\] \.hero h1/);
+  assert.match(css, /\.page\[data-motorcycle-concentrations\] \.quickLinks/);
+});
+
+test("compatibilidad anual sin publicar la ruta 2027 ni cambiar rutas vecinas", () => {
+  const analytics = source("components/concentrations/MotorcycleConcentrationsAnalytics.tsx");
+  assert.match(analytics, /concentraciones_moteras_\$\{year\}/);
+  assert.match(analytics, /\[year\]/);
+  assert.match(source("app/motoalmuerzos-2026/page.tsx"), /motoalmuerzos-2026/);
+  assert.match(source("app/concentraciones-moteras-este-fin-de-semana/page.tsx"), /concentraciones-moteras-este-fin-de-semana/);
+  assert.equal(existsSync(resolve(root, "app/concentraciones-moteras-2027/page.tsx")), false);
 });

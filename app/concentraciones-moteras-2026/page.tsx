@@ -17,6 +17,7 @@ export default function ConcentracionesMoteras2026Page({
     <PublicMotorcycleConcentrationsLanding
       page={page}
       searchParams={searchParams}
+      year={2026}
     />
   );
 }
