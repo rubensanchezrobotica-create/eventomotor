@@ -32,8 +32,20 @@ test("actual paragraph control edits neighbouring text, roundtrips approved LINK
   const reopened = StoryParagraphEditor({ block: document.contentBlocks[0] as StoryParagraphBlock, onChange() {} });
   assert.match(renderToStaticMarkup(reopened), /motos trail/);
   const html = renderToStaticMarkup(<StoryRenderer blocks={document.contentBlocks} media={{}} events={{}} />);
-  assert.match(html, /href="https:\/\/www.kawasaki.es\/es_es\/Motorcycles\/Adventure.html"[^>]*rel="sponsored noopener noreferrer"/);
-  assert.match(html, /href="https:\/\/www.eventomotor.com\/disciplinas\/rutas"[^>]*rel="noopener noreferrer"/);
-  assert.match(html, />motos trail</); assert.match(html, />agenda de rutas moteras</);
+  const anchors = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].map(([, rawAttributes, content]) => ({
+    attributes: Object.fromEntries([...rawAttributes.matchAll(/(?:^|\s)([a-z-]+)="([^"]*)"/g)]
+      .map(([, name, value]) => [name, value])),
+    content,
+  }));
+  assert.equal(anchors.length, 2);
+  const commercial = anchors.find(({ attributes }) => attributes.href === "https://www.kawasaki.es/es_es/Motorcycles/Adventure.html");
+  const internal = anchors.find(({ attributes }) => attributes.href === "https://www.eventomotor.com/disciplinas/rutas");
+  assert.ok(commercial); assert.ok(internal);
+  assert.match(commercial.content, />motos trail</);
+  assert.equal(commercial.attributes.target, "_blank");
+  assert.deepEqual(commercial.attributes.rel?.split(/\s+/).sort(), ["noopener", "noreferrer", "sponsored"]);
+  assert.match(internal.content, />agenda de rutas moteras</);
+  assert.equal(internal.attributes.target, undefined);
+  assert.ok(!internal.attributes.rel?.split(/\s+/).includes("sponsored"));
   }
 });

@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
+import { SITE_URL } from "@/lib/seo";
 import type { StoryContentBlock, StoryInlineNode } from "@/lib/stories/story-types";
+import { isSafeStoryLink } from "@/lib/stories/story-validation";
 import { publicStoryImageProps, storyArticleImageSizes, type StoryPublicImage } from "@/lib/stories/story-responsive-images";
 import { formatEventDetailDate } from "../event-detail/event-detail-model";
 import { storyImageRatio, storyPairGeometry } from "./story-presentation";
@@ -20,11 +22,37 @@ type Props = {
   events: Readonly<Record<string, StoryRendererEvent>>;
 };
 
+const canonicalHost = new URL(SITE_URL).hostname;
+const apexHost = canonicalHost.replace(/^www\./, "");
+const siteHosts = new Set([apexHost, `www.${apexHost}`]);
+
+function opensNewTab(href: string) {
+  if (!/^https?:\/\//i.test(href)) return false;
+  try {
+    const url = new URL(href);
+    return !siteHosts.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function InlineContent({ nodes }: { nodes: readonly StoryInlineNode[] }) {
   return nodes.map((node, index) => {
-    if (node.type === "LINK") return (
-      <a href={node.href} key={`${node.href}-${index}`} rel={node.sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer"}><InlineContent nodes={node.children} /></a>
-    );
+    if (node.type === "LINK") {
+      const newTab = opensNewTab(node.href);
+      const reference = node.children.length === 1 && !node.children[0].marks?.length && isSafeStoryLink(node.href)
+        ? /^\[\^(\d+)\]$/.exec(node.children[0].text)?.[1]
+        : undefined;
+      return (
+        <a aria-label={reference ? `Referencia ${reference}${newTab ? ", se abre en una pestaña nueva" : ""}` : undefined}
+          className={styles.inlineLink} href={node.href} key={`${node.href}-${index}`}
+          rel={newTab ? (node.sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer") : (node.sponsored ? "sponsored" : undefined)}
+          target={newTab ? "_blank" : undefined}>
+          {reference ? `[${reference}]` : <InlineContent nodes={node.children} />}
+          {newTab && !reference ? <span className={styles.srOnly}> (se abre en una pestaña nueva)</span> : null}
+        </a>
+      );
+    }
     let content: ReactNode = node.text;
     if (node.marks?.includes("italic")) content = <em>{content}</em>;
     if (node.marks?.includes("bold")) content = <strong>{content}</strong>;
