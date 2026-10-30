@@ -12,7 +12,7 @@ import {
 import type { EventItem } from "@/types/event";
 import {
   effectiveMotorcycleEventEnd,
-  isMotorcycleEvent,
+  isMotorcycleEventForYear,
   isMotorcycleGatheringEvent,
   isValidIsoDate,
   madridIsoDate,
@@ -23,6 +23,7 @@ import {
 export {
   effectiveMotorcycleEventEnd,
   isMotorcycleEvent,
+  isMotorcycleEventForYear,
   isMotorcycleGatheringEvent,
   isValidIsoDate,
   madridIsoDate,
@@ -77,6 +78,7 @@ export type MotorcycleConcentrationsModel = {
   upcomingTotal: number;
   weekendEvents: EventItem[];
   weekendRange: { friday: string; sunday: string };
+  year: number;
 };
 
 function cleanText(value: string | null | undefined) {
@@ -204,10 +206,11 @@ function buildTerritories(events: EventItem[]) {
 export function buildMotorcycleConcentrationsModel(
   events: EventItem[],
   now: Date,
+  year = 2026,
 ): MotorcycleConcentrationsModel {
   const today = madridIsoDate(now);
   const allEvents = deduplicateEvents(events.filter((event) => (
-    isMotorcycleEvent(event) && isMotorcycleGatheringEvent(event)
+    isMotorcycleEventForYear(event, year) && isMotorcycleGatheringEvent(event)
   )));
   const upcomingEvents = sortUpcoming(
     allEvents.filter((event) => {
@@ -241,17 +244,22 @@ export function buildMotorcycleConcentrationsModel(
     upcomingTotal: upcomingEvents.length,
     weekendEvents,
     weekendRange,
+    year,
   };
 }
 
 export function parseMotorcycleLandingQuery(
   searchParams: Record<string, string | string[] | undefined>,
+  year = 2026,
 ): MotorcycleLandingQuery {
   const when = firstParam(searchParams.when);
   const month = firstParam(searchParams.month);
+  const validMonth = Number.isInteger(year)
+    && month.startsWith(`${year}-`)
+    && /^\d{4}-(?:0[1-9]|1[0-2])$/.test(month);
   return {
     archiveAll: firstParam(searchParams.archive) === "all",
-    month: /^2026-(?:0[1-9]|1[0-2])$/.test(month) ? month : "",
+    month: validMonth ? month : "",
     province: provinceIdentity(firstParam(searchParams.province)).key,
     query: cleanText(firstParam(searchParams.q)),
     showAll: firstParam(searchParams.show) === "all",
@@ -271,7 +279,7 @@ export function filterMotorcycleConcentrations(
   const normalizedQuery = normalizeRegionalText(query.query);
 
   return events.filter((event) => {
-    if (!isMotorcycleEvent(event) || !isMotorcycleGatheringEvent(event)) return false;
+    if (!isMotorcycleEventForYear(event, model.year) || !isMotorcycleGatheringEvent(event)) return false;
     if (query.month && !event.start.startsWith(`${query.month}-`)) return false;
     if (query.province && provinceIdentity(event.province).key !== query.province) return false;
     if (normalizedQuery) {
