@@ -14,6 +14,50 @@ require.extensions[".css"] = (module) => {
 const { default: StoryRenderer } = require("./StoryRenderer") as typeof import("./StoryRenderer");
 const { default: StoryArticle } = require("./StoryArticle") as typeof import("./StoryArticle");
 
+test("body links use safe new tabs only for external HTTP(S) destinations", () => {
+  const links = [
+    { href: "https://example.test/source", text: "Fuente externa" },
+    { href: "https://www.kawasaki.es/es_es/Motorcycles/Adventure.html", text: "motos trail", sponsored: true },
+    { href: "/disciplinas/rutas", text: "Ruta interna" },
+    { href: "https://www.eventomotor.com/historias/ejemplo", text: "Canon absoluto" },
+    { href: "http://eventomotor.com/evento/ejemplo", text: "Dominio raíz" },
+    { href: "https://eventomotor.com.evil.test/", text: "Dominio ajeno" },
+    { href: "#fuente", text: "Ancla" },
+    { href: "mailto:info@example.test", text: "Correo" },
+    { href: "tel:+34000000000", text: "Teléfono" },
+  ];
+  const blocks: StoryContentBlock[] = [{ id: "links", type: "PARAGRAPH", content: links.map(({ href, text, sponsored }) => ({
+    type: "LINK", href, sponsored, children: [{ type: "TEXT", text }],
+  })) }];
+  const html = renderToStaticMarkup(<StoryRenderer blocks={blocks} media={{}} events={{}} />);
+  const anchors = [...html.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/g)].map(([anchor]) => anchor);
+  assert.equal(anchors.length, links.length);
+  assert.match(anchors[0], /rel="noopener noreferrer"[^>]*target="_blank"/);
+  assert.match(anchors[0], /Fuente externa.*se abre en una pestaña nueva/);
+  assert.match(anchors[1], /rel="sponsored noopener noreferrer"[^>]*target="_blank"/);
+  assert.match(anchors[1], /motos trail/);
+  for (const anchor of anchors.slice(2, 5)) assert.doesNotMatch(anchor, /target=|se abre en una pestaña nueva/);
+  assert.match(anchors[5], /target="_blank"/);
+  for (const anchor of anchors.slice(6)) assert.doesNotMatch(anchor, /target=|se abre en una pestaña nueva/);
+  assert.match(anchors[2], /href="\/disciplinas\/rutas"/);
+  assert.match(anchors[3], /href="https:\/\/www\.eventomotor\.com\/historias\/ejemplo"/);
+});
+
+test("linked short references display [number] without changing their destination or unrelated text", () => {
+  const href = "https://example.test/official-source";
+  const blocks: StoryContentBlock[] = [{ id: "references", type: "PARAGRAPH", content: [
+    { type: "TEXT", text: "Texto y fuente " },
+    { type: "LINK", href, children: [{ type: "TEXT", text: "[^3]" }] },
+    { type: "TEXT", text: " y marcador sin enlace [^4]" },
+  ] }];
+  const html = renderToStaticMarkup(<StoryRenderer blocks={blocks} media={{}} events={{}} />);
+  assert.match(html, /aria-label="Referencia 3, se abre en una pestaña nueva"/);
+  assert.match(html, /href="https:\/\/example\.test\/official-source"/);
+  assert.match(html, />\[3\]<\/a>/);
+  assert.doesNotMatch(html, /\[\^3\]/);
+  assert.match(html, /marcador sin enlace \[\^4\]/);
+});
+
 test("commercial article hides pending advertiser but keeps disclosure and sponsored link", () => {
   const props = { title: "Synthetic commercial article", dek: "Synthetic dek", type: "ARTICULO" as const,
     collection: "COLABORACIONES" as const, heroMediaId: null,
