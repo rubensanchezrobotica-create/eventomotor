@@ -544,7 +544,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       "Explora las concentraciones moteras de 2027 por fecha y provincia. Consulta cada ficha para comprobar la fuente, el programa y el estado de revisión antes de viajar.",
     resultsTitle: "Próximas concentraciones moteras 2027",
     intro:
-      "Esta agenda reúne las fichas visibles de concentraciones y encuentros moteros con fecha de inicio en 2027. Las citas se ordenan por fecha y pueden filtrarse por mes o provincia. La información disponible varía entre eventos: algunas convocatorias siguen pendientes de verificación directa con el organizador. Abre cada ficha y revisa su fuente antes de planificar un desplazamiento o una inscripción.",
+      "La agenda de concentraciones moteras de 2027 arranca con encuentros invernales como La Leyenda Continúa (7–10 de enero), Pingüinos (13–17 de enero) y Motauros (14–17 de enero). Consulta las citas publicadas por mes y provincia: el calendario se ampliará a medida que se conozcan nuevas convocatorias. Algunas fichas siguen pendientes de verificación directa con el organizador; revisa las fuentes, horarios, accesos e inscripciones antes de desplazarte.",
     editorialBlocks: [
       { title: "Fechas de 2027", text: "El calendario muestra encuentros que comienzan en 2027, aunque una celebración pueda terminar en enero del año siguiente." },
       { title: "Fuentes y revisión", text: "Cada ficha indica la fuente disponible. Estar en esta agenda no significa que todos los detalles estén confirmados por una fuente primaria." },
