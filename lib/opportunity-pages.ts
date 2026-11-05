@@ -3,6 +3,7 @@ import type { EventItem } from "@/types/event";
 import {
   effectiveMotorcycleEventEnd,
   isMotorcycleEvent,
+  isMotorcycleEventForYear,
   isMotorcycleGatheringEvent,
   motorcycleWeekendRange,
 } from "@/lib/concentrations/motorcycle-event-core";
@@ -531,6 +532,43 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       isYear(event, 2026) &&
       includesAny(event, extendedConcentrationTerms) &&
       includesAny(event, ["moto", "motera", "moteras", "biker", "custom", "concentracion", "concentración", "motoalmuerzo"]),
+  },
+  {
+    slug: "concentraciones-moteras-2027",
+    h1: "Concentraciones moteras 2027",
+    title: "Concentraciones moteras 2027 | Calendario por mes y provincia | EventoMotor",
+    description:
+      "Consulta las concentraciones moteras 2027 publicadas en EventoMotor: fechas, provincias, encuentros y fuentes disponibles para revisar cada convocatoria.",
+    eyebrow: "Calendario motero 2027",
+    lead:
+      "Explora las concentraciones moteras de 2027 por fecha y provincia. Consulta cada ficha para comprobar la fuente, el programa y el estado de revisión antes de viajar.",
+    resultsTitle: "Próximas concentraciones moteras 2027",
+    intro:
+      "La agenda de concentraciones moteras de 2027 arranca con encuentros invernales como La Leyenda Continúa (7–10 de enero), Pingüinos (13–17 de enero) y Motauros (14–17 de enero). Consulta las citas publicadas por mes y provincia: el calendario se ampliará a medida que se conozcan nuevas convocatorias. Algunas fichas siguen pendientes de verificación directa con el organizador; revisa las fuentes, horarios, accesos e inscripciones antes de desplazarte.",
+    editorialBlocks: [
+      { title: "Fechas de 2027", text: "El calendario muestra encuentros que comienzan en 2027, aunque una celebración pueda terminar en enero del año siguiente." },
+      { title: "Fuentes y revisión", text: "Cada ficha indica la fuente disponible. Estar en esta agenda no significa que todos los detalles estén confirmados por una fuente primaria." },
+      { title: "Antes de salir", text: "Confirma con la organización horarios, acceso, inscripciones y posibles cambios de última hora." },
+    ],
+    usageSteps: [
+      { title: "Filtra por mes", text: "Elige el mes de 2027 que te interese para acotar las citas publicadas." },
+      { title: "Compara provincias", text: "Consulta la ubicación y abre la ficha individual para revisar los datos disponibles." },
+      { title: "Comprueba la fuente", text: "Verifica el estado de la convocatoria antes de reservar o desplazarte." },
+    ],
+    faqs: [
+      { question: "¿Dónde consultar concentraciones moteras de 2027?", answer: "Esta página reúne las citas de 2027 seleccionadas por el calendario motero de EventoMotor y enlaza a sus fichas individuales." },
+      { question: "¿Puedo filtrar por mes y provincia?", answer: "Sí. Los filtros utilizan las fechas y provincias de las fichas publicadas para 2027." },
+      { question: "¿Todos los eventos tienen confirmación directa del organizador?", answer: "No. Algunas fichas siguen pendientes de verificación primaria. Consulta la fuente y las notas de cada evento antes de organizar el viaje." },
+      { question: "¿Dónde compruebo horarios e inscripciones?", answer: "Abre la ficha del evento y revisa el enlace de la organización cuando esté disponible; los programas pueden cambiar." },
+      { question: "¿Cómo añadir una concentración motera de 2027?", answer: "Puedes enviarla desde Publicar evento con fecha, lugar y una fuente comprobable para su revisión." },
+    ],
+    relatedLinks: [
+      { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
+      { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
+      { label: "Publicar evento", href: "/publicar-evento" },
+    ],
+    // EDITORIAL_INTENT_REVIEW_REQUIRED: Pilas 2027 is a mixed classic-vehicle event selected by the shared model.
+    filter: (event) => isMotorcycleEventForYear(event, 2027) && isMotorcycleGatheringEvent(event),
   },
   {
     slug: "motoalmuerzos-2026",

@@ -90,11 +90,11 @@ test("los breakpoints regionales siguen cubriendo finder, móvil y escritorio", 
   assert.match(css, /\.page\[data-motorcycle-concentrations\] \.quickLinks/);
 });
 
-test("compatibilidad anual sin publicar la ruta 2027 ni cambiar rutas vecinas", () => {
+test("compatibilidad anual con ruta 2027 aislada y rutas vecinas intactas", () => {
   const analytics = source("components/concentrations/MotorcycleConcentrationsAnalytics.tsx");
   assert.match(analytics, /concentraciones_moteras_\$\{year\}/);
   assert.match(analytics, /\[year\]/);
   assert.match(source("app/motoalmuerzos-2026/page.tsx"), /motoalmuerzos-2026/);
   assert.match(source("app/concentraciones-moteras-este-fin-de-semana/page.tsx"), /concentraciones-moteras-este-fin-de-semana/);
-  assert.equal(existsSync(resolve(root, "app/concentraciones-moteras-2027/page.tsx")), false);
+  assert.equal(existsSync(resolve(root, "app/concentraciones-moteras-2027/page.tsx")), true);
 });
