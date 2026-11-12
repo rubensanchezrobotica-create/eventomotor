@@ -1,0 +1,281 @@
+.page {
+  background: #080b0f;
+}
+
+.page :global(#eventos) {
+  scroll-margin-top: 108px;
+}
+
+.overview {
+  padding: 28px 0 34px;
+  border-bottom: 1px solid #252c34;
+  background: #0c1117;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 32px;
+}
+
+.metrics > div {
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid #29313b;
+  border-radius: 9px;
+  background: #111820;
+}
+
+.metrics dt {
+  color: #a6afb9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metrics dd {
+  margin: 5px 0 0;
+  color: #f7f7f4;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.monthRow {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.monthRow h2,
+.organizer h2 {
+  margin: 12px 0 0;
+  font-family: var(--font-v2-display-pilot), "Arial Narrow", Arial, sans-serif;
+  font-size: clamp(1.7rem, 3.2vw, 2.7rem);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.monthLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 22px;
+}
+
+.monthLinks a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border: 1px solid #35404a;
+  border-radius: 7px;
+  background: #131b23;
+  color: #e9edf0;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.monthLinks a:hover,
+.monthLinks a[aria-current="page"] {
+  border-color: #ff6200;
+  color: #ff8a4a;
+}
+
+.monthLinks span {
+  color: #ff7925;
+}
+
+.filters {
+  margin-bottom: 26px;
+}
+
+.filterForm {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.7fr) repeat(3, minmax(120px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.filterFormCompact {
+  grid-template-columns: minmax(220px, 1.7fr) repeat(2, minmax(120px, 1fr)) auto;
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterActions button {
+  white-space: nowrap;
+}
+
+.archive {
+  padding: 32px 0;
+  background: #0d1218;
+}
+
+.archiveList {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0 18px;
+}
+
+.archiveList a {
+  color: #d5dce2;
+  text-decoration: underline;
+  text-decoration-color: #424d58;
+  text-underline-offset: 3px;
+}
+
+.guide > header p {
+  color: #aeb5bd;
+  line-height: 1.7;
+}
+
+.guideGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: clamp(24px, 5vw, 72px);
+}
+
+.faqs {
+  margin-top: 0;
+}
+
+.organizer {
+  padding: 35px 0;
+  border-top: 1px solid #303945;
+  background: #111820;
+}
+
+.organizer > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.organizer p {
+  margin: 10px 0 0;
+  color: #aeb5bd;
+  line-height: 1.6;
+}
+
+.organizer a {
+  flex: none;
+  text-decoration: none;
+}
+
+.monthLinks a:focus-visible,
+.archiveList a:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1060px) {
+  .filterForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .searchField {
+    grid-column: 1 / -1;
+  }
+
+  .filterActions {
+    align-self: end;
+  }
+}
+
+@media (max-width: 700px) {
+  .page :global(#eventos) {
+    scroll-margin-top: 60px;
+  }
+
+  .overview {
+    padding: 22px 0 28px;
+  }
+
+  .metrics {
+    gap: 7px;
+    margin-bottom: 28px;
+  }
+
+  .metrics > div {
+    padding: 12px 9px;
+  }
+
+  .metrics dt {
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
+  .monthRow {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .monthLinks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 16px;
+  }
+
+  .monthLinks a {
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  .monthLinks a:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .filterForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .searchField {
+    grid-column: auto;
+  }
+
+  .filterActions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .guideGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .organizer > div {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  :global(body):has([data-v2-motorcycle-concentrations]) :global(#redesign-v2-interior-title) {
+    max-width: 100%;
+    font-size: clamp(1.7rem, 8.2vw, 2.8rem);
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 350px) {
+  :global(body):has([data-v2-motorcycle-concentrations]) :global(#redesign-v2-interior-title) {
+    font-size: 1.45rem;
+  }
+
+  .page :global(#motorcycle-v2-results) {
+    font-size: 1.4rem;
+  }
+}
