@@ -65,6 +65,12 @@ test("la ruta 2027 tiene editorial y canonical propios, con indexación retenida
   assert.match(v2Landing, /filterMotorcycleConcentrations\(model, query\)/);
   assert.match(v2Landing, /const leadingMonth = model\.monthCounts\[0\]/);
   assert.match(v2Landing, /leadingMonth\?\.count \?\? 0/);
+  assert.match(publicLanding, /year === 2027 && \(/);
+  assert.match(publicLanding, /parsedQuery\.when === "weekend" && model\.weekendEvents\.length === 0/);
+  assert.match(publicLanding, /parsedQuery\.when === "next30" && model\.nextThirtyDaysEvents\.length === 0/);
+  assert.match(v2Landing, /showWhenFilter \?/);
+  assert.match(v2Landing, /hasWeekendEvents \? <option value="weekend">/);
+  assert.match(v2Landing, /hasNextThirtyDaysEvents \? <option value="next30">/);
   assert.match(v2Landing, />Próximas citas<\/h2>/);
   assert.doesNotMatch(v2Landing, /href="\/concentraciones-moteras-este-fin-de-semana"/);
   const v2Css = source("components/concentrations/MotorcycleConcentrationsLandingV2.module.css");
@@ -104,6 +110,14 @@ test("Pilas queda fuera solo de la selección editorial 2027", () => {
   assert.deepEqual(model.allEvents.map((item) => item.id), ["leyenda", "pinguinos", "motauros", "cuervo", "jabalinera", "rota", "valadouro", "hot-rally"]);
   assert.equal(model.upcomingTotal, 8);
   assert.deepEqual(model.monthCounts.map(({ key, count }) => [key, count]), [["2027-01", 5], ["2027-02", 1], ["2027-04", 1], ["2027-05", 1]]);
+  assert.equal(model.weekendEvents.length, 0);
+  assert.equal(model.nextThirtyDaysEvents.length, 0);
+  const approachingModel = buildMotorcycleConcentrationsModel(inventory.filter((item) => page.filter(item, now)), new Date("2026-12-20T12:00:00.000Z"), 2027);
+  assert.equal(approachingModel.weekendEvents.length, 0);
+  assert.ok(approachingModel.nextThirtyDaysEvents.length > 0);
+  const nearWeekendModel = buildMotorcycleConcentrationsModel(inventory.filter((item) => page.filter(item, now)), new Date("2027-01-05T12:00:00.000Z"), 2027);
+  assert.ok(nearWeekendModel.weekendEvents.length > 0);
+  assert.ok(nearWeekendModel.nextThirtyDaysEvents.length > 0);
   assert.deepEqual(filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ month: "2027-01" }, 2027)).map((item) => item.id), ["leyenda", "pinguinos", "motauros", "cuervo", "jabalinera"]);
   assert.deepEqual(filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ month: "2027-02" }, 2027)).map((item) => item.id), ["rota"]);
   assert.deepEqual(filterMotorcycleConcentrations(model, parseMotorcycleLandingQuery({ province: "sevilla" }, 2027)).map((item) => item.id), ["cuervo"]);

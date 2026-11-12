@@ -54,6 +54,9 @@ export default function MotorcycleConcentrationsLandingV2({
   const hasFilters = Boolean(query.month || query.province || query.query || query.when !== "upcoming");
   const archiveEvents = query.archiveAll ? model.pastEvents : model.pastEvents.slice(0, 12);
   const leadingMonth = model.monthCounts[0];
+  const hasWeekendEvents = model.weekendEvents.length > 0;
+  const hasNextThirtyDaysEvents = model.nextThirtyDaysEvents.length > 0;
+  const showWhenFilter = hasWeekendEvents || hasNextThirtyDaysEvents;
 
   return (
     <div className={`${v2.page} ${styles.page}`} data-listing={`concentraciones-moteras-${model.year}`} data-motorcycle-concentrations data-v2-motorcycle-concentrations>
@@ -97,7 +100,7 @@ export default function MotorcycleConcentrationsLandingV2({
           </header>
 
           <div aria-label="Filtrar concentraciones moteras" className={`${v2.filters} ${styles.filters}`}>
-            <form action={`${pathname}#eventos`} className={styles.filterForm} method="get">
+            <form action={`${pathname}#eventos`} className={`${styles.filterForm} ${showWhenFilter ? "" : styles.filterFormCompact}`} method="get">
               <label className={`${v2.filterField} ${styles.searchField}`} htmlFor="motorcycle-v2-search">
                 <span>Buscar</span>
                 <input defaultValue={query.query} id="motorcycle-v2-search" name="q" placeholder="Evento, ciudad o provincia" type="search" />
@@ -116,14 +119,16 @@ export default function MotorcycleConcentrationsLandingV2({
                   {model.provinceCounts.map((province) => <option key={province.key} value={province.key}>{province.label} · {province.count}</option>)}
                 </select>
               </label>
-              <label className={v2.filterField} htmlFor="motorcycle-v2-when">
-                <span>Cuándo</span>
-                <select defaultValue={query.when} id="motorcycle-v2-when" name="when">
-                  <option value="upcoming">Próximos</option>
-                  <option value="weekend">Este fin de semana</option>
-                  <option value="next30">Próximos 30 días</option>
-                </select>
-              </label>
+              {showWhenFilter ? (
+                <label className={v2.filterField} htmlFor="motorcycle-v2-when">
+                  <span>Cuándo</span>
+                  <select defaultValue={query.when} id="motorcycle-v2-when" name="when">
+                    <option value="upcoming">Próximos</option>
+                    {hasWeekendEvents ? <option value="weekend">Este fin de semana</option> : null}
+                    {hasNextThirtyDaysEvents ? <option value="next30">Próximos 30 días</option> : null}
+                  </select>
+                </label>
+              ) : null}
               <div className={styles.filterActions}>
                 {hasFilters ? (
                   <TrackLink

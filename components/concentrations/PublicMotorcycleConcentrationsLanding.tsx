@@ -77,7 +77,13 @@ export default async function PublicMotorcycleConcentrationsLanding({
     now,
     year,
   );
-  const query = parseMotorcycleLandingQuery(queryParams, year);
+  const parsedQuery = parseMotorcycleLandingQuery(queryParams, year);
+  const query = year === 2027 && (
+    (parsedQuery.when === "weekend" && model.weekendEvents.length === 0)
+    || (parsedQuery.when === "next30" && model.nextThirtyDaysEvents.length === 0)
+  )
+    ? { ...parsedQuery, when: "upcoming" as const }
+    : parsedQuery;
   const jsonLdEvents = eventFilter
     ? filterMotorcycleConcentrations(model, query)
     : model.upcomingEvents;

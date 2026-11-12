@@ -104,6 +104,10 @@
   gap: 12px;
 }
 
+.filterFormCompact {
+  grid-template-columns: minmax(220px, 1.7fr) repeat(2, minmax(120px, 1fr)) auto;
+}
+
 .filterActions {
   display: flex;
   align-items: center;
