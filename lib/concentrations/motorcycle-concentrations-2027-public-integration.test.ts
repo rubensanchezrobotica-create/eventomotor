@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import type { EventItem } from "@/types/event";
-import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
+import { OPPORTUNITY_PAGES, buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-pages";
 import {
   buildMotorcycleConcentrationsModel,
   filterMotorcycleConcentrations,
@@ -36,14 +36,18 @@ function event(id: string, overrides: Partial<EventItem> = {}): EventItem {
   };
 }
 
-test("la ruta 2027 tiene editorial y canonical propios, con indexación retenida", () => {
+test("la ruta 2027 conserva canonical propio y publica enlaces entre anualidades", () => {
   const page = getOpportunityPage("concentraciones-moteras-2027");
   assert.ok(page);
   assert.equal(page.h1, "Concentraciones moteras 2027");
   assert.match(page.title, /2027/);
   assert.match(page.description, /2027/);
   assert.ok(page.faqs.some((faq) => /confirmación directa/.test(faq.question) && /No\./.test(faq.answer)));
-  assert.ok(page.relatedLinks.every((link) => !/concentraciones-moteras-2026|concentraciones-moteras-2027/.test(link.href)));
+  const page2026 = getOpportunityPage("concentraciones-moteras-2026");
+  assert.ok(page2026);
+  assert.equal(OPPORTUNITY_PAGES.filter((item) => item.slug === "concentraciones-moteras-2027").length, 1);
+  assert.ok(page.relatedLinks.some((link) => link.href === "/concentraciones-moteras-2026"));
+  assert.ok(page2026.relatedLinks.some((link) => link.href === "/concentraciones-moteras-2027"));
   assert.deepEqual(buildOpportunityMetadata(page).alternates, {
     canonical: "https://www.eventomotor.com/concentraciones-moteras-2027",
   });
@@ -52,9 +56,10 @@ test("la ruta 2027 tiene editorial y canonical propios, con indexación retenida
   assert.match(route, /PublicMotorcycleConcentrationsLanding/);
   assert.match(route, /eventFilter=\{page\.filter\}/);
   assert.match(route, /year=\{2027\}/);
-  assert.match(route, /robots: \{ index: false, follow: false \}/);
+  assert.match(route, /robots: \{ index: true, follow: true \}/);
   const sitemap = source("app/sitemap.ts");
-  assert.match(sitemap, /page\.slug !== "concentraciones-moteras-2027"/);
+  assert.match(sitemap, /OPPORTUNITY_PAGES\.map\(\(page\) =>/);
+  assert.doesNotMatch(sitemap, /page\.slug !== "concentraciones-moteras-2027"/);
   const publicLanding = source("components/concentrations/PublicMotorcycleConcentrationsLanding.tsx");
   const v2Landing = source("components/concentrations/MotorcycleConcentrationsLandingV2.tsx");
   assert.match(publicLanding, /year === 2026 \?/);

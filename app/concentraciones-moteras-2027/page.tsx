@@ -5,10 +5,9 @@ import { buildOpportunityMetadata, getOpportunityPage } from "@/lib/opportunity-
 
 const page = getOpportunityPage("concentraciones-moteras-2027");
 
-// P2 stays out of public search until SEO Operations approves the annual launch.
 export const metadata: Metadata = {
   ...buildOpportunityMetadata(page),
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 };
 
 export default function ConcentracionesMoteras2027Page({

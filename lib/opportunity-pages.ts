@@ -519,6 +519,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo publicar una concentración motera en EventoMotor?", answer: "Puedes enviar nombre, fecha, ubicación, fuente oficial, cartel y datos de contacto desde publicar evento para que la revisemos antes de incorporarla al calendario." },
     ],
     relatedLinks: [
+      { label: "Concentraciones moteras 2027", href: "/concentraciones-moteras-2027" },
       { label: "Motoalmuerzos y matinales moteras 2026", href: "/motoalmuerzos-2026" },
       { label: "Eventos de motor este fin de semana", href: "/eventos-motor-este-fin-de-semana" },
       { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
@@ -563,6 +564,7 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { question: "¿Cómo añadir una concentración motera de 2027?", answer: "Puedes enviarla desde Publicar evento con fecha, lugar y una fuente comprobable para su revisión." },
     ],
     relatedLinks: [
+      { label: "Concentraciones moteras 2026 (archivo)", href: "/concentraciones-moteras-2026" },
       { label: "Calendario general", href: PUBLIC_NAVIGATION.calendar },
       { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Publicar evento", href: "/publicar-evento" },

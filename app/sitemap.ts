@@ -132,12 +132,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sitemapEntry(`/zonas/${zone.slug}`, now, "weekly", 0.75),
     ),
   ];
-  // P2 launch gate: omit the 2027 landing until SEO Operations authorizes public indexing.
   const opportunityEntries = OPPORTUNITY_PAGES.map((page) =>
-    page.slug !== "concentraciones-moteras-2027"
-      ? sitemapEntry(`/${page.slug}`, now, "daily", 0.85)
-      : null,
-  ).filter((entry): entry is ReturnType<typeof sitemapEntry> => entry !== null);
+    sitemapEntry(`/${page.slug}`, now, "daily", 0.85),
+  );
   const eventEntries = events
     .filter(isIndexableFutureEvent)
     .map((event) =>
