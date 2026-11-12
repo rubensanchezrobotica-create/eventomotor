@@ -1,4 +1,7 @@
 import MotorcycleConcentrationsLanding from "@/components/concentrations/MotorcycleConcentrationsLanding";
+import MotorcycleConcentrationsLandingV2 from "@/components/concentrations/MotorcycleConcentrationsLandingV2";
+import { redesignV2DisplayPilot } from "@/components/redesign-v2/redesign-v2-fonts";
+import V2InteriorShell from "@/components/redesign-v2/site/V2InteriorShell";
 import {
   buildMotorcycleConcentrationsModel,
   filterMotorcycleConcentrations,
@@ -111,12 +114,35 @@ export default async function PublicMotorcycleConcentrationsLanding({
           dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }}
         />
       ) : null}
-      <MotorcycleConcentrationsLanding
-        model={model}
-        page={page}
-        pathname={pathname}
-        query={query}
-      />
+      {year === 2026 ? (
+        <MotorcycleConcentrationsLanding
+          model={model}
+          page={page}
+          pathname={pathname}
+          query={query}
+        />
+      ) : (
+        <div className={redesignV2DisplayPilot.variable} data-v2-display-font-pilot="archivo">
+          <V2InteriorShell
+            breadcrumbs={[{ label: "Inicio", navigationId: "home" }, { label: page.h1 }]}
+            description={page.lead}
+            eyebrow={page.eyebrow}
+            heroImageSrc="/images/redesign-v2/disciplines/hero-concentraciones.png"
+            heroTitleFontClassName={redesignV2DisplayPilot.variable}
+            navigationMode="public"
+            title={page.h1}
+            upcomingCount={events.filter((event) => (event.end || event.start) >= model.today).length}
+          >
+            <MotorcycleConcentrationsLandingV2
+              model={model}
+              nowIso={now.toISOString()}
+              page={page}
+              pathname={pathname}
+              query={query}
+            />
+          </V2InteriorShell>
+        </div>
+      )}
     </>
   );
 }
