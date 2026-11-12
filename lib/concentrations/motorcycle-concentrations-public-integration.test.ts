@@ -45,8 +45,9 @@ test("el HTML server se construye con datos visibles, fecha de servidor y schema
   for (const schema of ["BreadcrumbList", "CollectionPage", "FAQPage", "ItemList"]) {
     assert.match(publicLanding, new RegExp(schema));
   }
-  assert.match(publicLanding, /model\.upcomingEvents\.slice\(0, 20\)/);
-  assert.match(publicLanding, /model\.upcomingTotal > 0/);
+  assert.match(publicLanding, /: model\.upcomingEvents/);
+  assert.match(publicLanding, /jsonLdEvents\.slice\(0, 20\)/);
+  assert.match(publicLanding, /jsonLdEvents\.length > 0/);
   assert.match(publicLanding, /buildMotorcycleConcentrationsModel\([\s\S]*?year,/);
   assert.match(publicLanding, /parseMotorcycleLandingQuery\(queryParams, year\)/);
 });

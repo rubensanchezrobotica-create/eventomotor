@@ -567,8 +567,11 @@ const RAW_OPPORTUNITY_PAGES: OpportunityPage[] = [
       { label: "Disciplina Concentraciones", href: "/disciplinas/concentraciones" },
       { label: "Publicar evento", href: "/publicar-evento" },
     ],
-    // EDITORIAL_INTENT_REVIEW_REQUIRED: Pilas 2027 is a mixed classic-vehicle event selected by the shared model.
-    filter: (event) => isMotorcycleEventForYear(event, 2027) && isMotorcycleGatheringEvent(event),
+    // This mixed classic-vehicle event remains public outside this motorcycle-specific landing.
+    filter: (event) =>
+      event.id !== "batch-l14-5-concentracion-vehiculos-clasicos-pilas-2027-02-21"
+      && isMotorcycleEventForYear(event, 2027)
+      && isMotorcycleGatheringEvent(event),
   },
   {
     slug: "motoalmuerzos-2026",

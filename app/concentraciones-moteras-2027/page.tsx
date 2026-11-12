@@ -19,6 +19,7 @@ export default function ConcentracionesMoteras2027Page({
   if (!page) notFound();
   return (
     <PublicMotorcycleConcentrationsLanding
+      eventFilter={page.filter}
       page={page}
       searchParams={searchParams}
       year={2027}

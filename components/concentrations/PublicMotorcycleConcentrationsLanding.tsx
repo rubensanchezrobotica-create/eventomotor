@@ -1,6 +1,7 @@
 import MotorcycleConcentrationsLanding from "@/components/concentrations/MotorcycleConcentrationsLanding";
 import {
   buildMotorcycleConcentrationsModel,
+  filterMotorcycleConcentrations,
   parseMotorcycleLandingQuery,
 } from "@/lib/concentrations/motorcycle-concentrations-model";
 import type { OpportunityPage } from "@/lib/opportunity-pages";
@@ -10,6 +11,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/seo";
 type SearchParams = Record<string, string | string[] | undefined>;
 
 type PublicMotorcycleConcentrationsLandingProps = {
+  eventFilter?: OpportunityPage["filter"];
   page: OpportunityPage;
   searchParams: Promise<SearchParams>;
   year: number;
@@ -59,23 +61,29 @@ function faqJsonLd(page: OpportunityPage) {
 }
 
 export default async function PublicMotorcycleConcentrationsLanding({
+  eventFilter,
   page,
   searchParams,
   year,
 }: PublicMotorcycleConcentrationsLandingProps) {
   const [events, queryParams] = await Promise.all([getVisibleEvents(), searchParams]);
+  const now = new Date();
+  const visibleEvents = events.map((event) => ({ ...event, visible: true }));
   const model = buildMotorcycleConcentrationsModel(
-    events.map((event) => ({ ...event, visible: true })),
-    new Date(),
+    eventFilter ? visibleEvents.filter((event) => eventFilter(event, now)) : visibleEvents,
+    now,
     year,
   );
   const query = parseMotorcycleLandingQuery(queryParams, year);
+  const jsonLdEvents = eventFilter
+    ? filterMotorcycleConcentrations(model, query)
+    : model.upcomingEvents;
   const pathname = `/${page.slug}`;
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: page.h1,
-    itemListElement: model.upcomingEvents.slice(0, 20).map((event, index) => ({
+    itemListElement: jsonLdEvents.slice(0, 20).map((event, index) => ({
       "@type": "ListItem",
       position: index + 1,
       url: `${SITE_URL}/evento/${event.slug || event.id}`,
@@ -97,7 +105,7 @@ export default async function PublicMotorcycleConcentrationsLanding({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd(page)) }}
       />
-      {model.upcomingTotal > 0 ? (
+      {jsonLdEvents.length > 0 ? (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }}
