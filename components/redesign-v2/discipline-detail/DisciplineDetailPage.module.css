@@ -290,6 +290,66 @@
   background: #10151b;
 }
 
+.trackdaysLinks {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin: 0 0 24px;
+  padding: 16px 18px;
+  border: 1px solid #303943;
+  border-radius: 10px;
+  background: #10151b;
+}
+
+.trackdaysLinks h3 {
+  margin: 0;
+  color: #f7f7f4;
+  font-size: 0.96rem;
+  font-weight: 850;
+}
+
+.trackdaysLinks p {
+  margin: 4px 0 0;
+  color: #aab2bc;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.trackdaysLinkList {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trackdaysLinkList a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #414b56;
+  border-radius: 7px;
+  color: #e3e6e9;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.trackdaysLinkList a:hover {
+  border-color: #ff6200;
+  color: #ff8a54;
+}
+
+.trackdaysLinkList a:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #b74400;
+}
+
 .publicFilterPrimary {
   min-width: 0;
   display: grid;
