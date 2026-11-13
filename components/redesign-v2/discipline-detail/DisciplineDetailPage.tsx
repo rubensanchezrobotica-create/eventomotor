@@ -252,6 +252,19 @@ export default function DisciplineDetailPage(props: DisciplineDetailPageProps) {
           />
         )}
 
+        {routeContext === "public" && model.definition.slug === "circuito" ? (
+          <aside aria-labelledby="circuito-trackdays-title" className={styles.trackdaysLinks}>
+            <div>
+              <h3 id="circuito-trackdays-title">¿Quieres entrar a rodar en circuito?</h3>
+              <p>Encuentra jornadas de conducción en pista, diferenciadas por tipo de vehículo.</p>
+            </div>
+            <nav aria-label="Calendarios de tandas en circuito" className={styles.trackdaysLinkList}>
+              <Link href="/trackdays-espana-2026">Trackdays y tandas de coches 2026 <span aria-hidden="true">→</span></Link>
+              <Link href="/rodadas-moto-2026">Rodadas y tandas de moto 2026 <span aria-hidden="true">→</span></Link>
+            </nav>
+          </aside>
+        ) : null}
+
         {model.items.length ? (
           <div aria-labelledby="discipline-detail-results" className={styles.eventGrid}>
             {model.items.map((item) => (
