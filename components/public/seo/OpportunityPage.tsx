@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { connection } from "next/server";
 import TrackLink from "@/components/analytics/TrackLink";
 import ConceptFooter from "@/components/public/concept/ConceptFooter";
 import ConceptStaticHeader from "@/components/public/concept/ConceptStaticHeader";
@@ -710,9 +709,6 @@ export default async function OpportunityPage({
   page: OpportunityPageConfig;
   strictData?: boolean;
 }) {
-  // Strict event data is request-bound: never prerender a fallback or require
-  // production credentials during an isolated CI build.
-  if (strictData) await connection();
   const now = new Date();
   const visibleEvents = strictData
     ? await getVisibleEventsStrict()
