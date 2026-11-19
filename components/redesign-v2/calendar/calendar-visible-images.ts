@@ -62,12 +62,20 @@ export function diversifyCalendarVisibleImages(
       return base;
     }
 
-    const compatible = resolveV2EventImageCandidates(event).filter((candidate) => (
-      candidate.tier === base.fallbackTier
-      && candidate.discipline === classification.discipline
+    const semanticMatches = resolveV2EventImageCandidates(event).filter((candidate) => (
+      candidate.discipline === classification.discipline
       && candidate.vehicle === classification.vehicle
       && candidateMatchesSubtype(classification.subtype, candidate.tags)
     ));
+    const sameTier = semanticMatches.filter((candidate) => candidate.tier === base.fallbackTier);
+    // A legacy Trial image may be assigned to Supercross with an incompatible tier.
+    // Repair that mismatch by selecting the best semantic motocross tier, not Trial.
+    // Other disciplines retain the strict original tier boundary.
+    const compatible = sameTier.length
+      ? sameTier
+      : classification.subtype === "supercross" && semanticMatches.length
+        ? semanticMatches.filter((candidate) => candidate.tier === Math.min(...semanticMatches.map(({ tier }) => tier)))
+        : [];
     if (!compatible.length) {
       assignedByEvent.set(stableKey, base);
       return base;

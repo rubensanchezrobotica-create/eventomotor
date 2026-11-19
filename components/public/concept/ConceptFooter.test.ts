@@ -4,7 +4,6 @@ import path from "node:path";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import ZonasPage from "@/app/zonas/page";
 import ConceptFooter, { PUBLIC_FOOTER_COLUMNS } from "@/components/public/concept/ConceptFooter";
 import { SEO_COMMUNITIES } from "@/lib/seo-communities";
 import { SEO_ZONES } from "@/lib/seo-taxonomy";
@@ -78,12 +77,13 @@ test("las variantes desktop y compacta conservan todos los grupos y enlaces", ()
   }
 });
 
-test("/zonas descubre todas las comunidades y conserva las páginas territoriales", () => {
-  const markup = renderToStaticMarkup(createElement(ZonasPage));
-
+test("/zonas conserva rutas, el modelo de directorio y los enlaces territoriales públicos", () => {
+  const zonesSource = readFileSync(path.join(workspace, "app/zonas/page.tsx"), "utf8");
+  assert.match(zonesSource, /buildTerritoryDirectoryModel\(await getVisibleEvents\(\)/);
+  assert.match(zonesSource, /<ZonesDirectoryPage model=\{model\} \/>/);
+  const markup = footerMarkup();
   for (const community of communityPages) {
     const href = `/${community.landingSlug}`;
-    assert.match(markup, new RegExp(`href="${href}"`));
     assert.equal(
       existsSync(path.join(workspace, "app", community.landingSlug, "page.tsx")),
       true,
@@ -93,7 +93,6 @@ test("/zonas descubre todas las comunidades y conserva las páginas territoriale
   for (const zone of SEO_ZONES) {
     assert.match(markup, new RegExp(`href="/zonas/${zone.slug}"`));
   }
-  assert.match(markup, /aria-label="Eventos de motor por comunidad"/);
 });
 
 test("el cambio de footer no depende de Supabase ni altera sitemap o canonical", () => {

@@ -17,8 +17,9 @@ test("contacto público usa el shell V2 sin modificar URL ni navegación princip
   assert.match(page, /currentNavigationId="contact"/);
   assert.match(page, /heroTitleFontClassName=\{redesignV2DisplayPilot\.variable\}/);
   assert.doesNotMatch(page, /ConceptStyles|ConceptStaticHeader|ConceptFooter/);
-  assert.doesNotMatch(navigation.match(/public: \{[\s\S]*?\},\n\}/)?.[0] ?? "", /desktop: \[[^\]]*"contact"/);
-  assert.match(navigation, /mobile: \[[^\]]*"publish", "contact"\]/);
+  assert.doesNotMatch(navigation.match(/const GLOBAL_DESKTOP_NAVIGATION_IDS = \[[^\]]+\]/)?.[0] ?? "", /"contact"/);
+  assert.match(navigation, /const GLOBAL_MOBILE_NAVIGATION_IDS = \[\.\.\.GLOBAL_DESKTOP_NAVIGATION_IDS, "publish", "contact"\] as const;/);
+  assert.match(navigation, /mobile: GLOBAL_MOBILE_NAVIGATION_IDS/);
   assert.match(navigation, /publish: \{[^\n]*variant: "primary"/);
   assert.match(shell, /<PreviewAwareLink mode=\{navigationMode\} navigationId="contact" \/>/);
   assert.doesNotMatch(page + styles, /\/preview\/redesign-v2/);

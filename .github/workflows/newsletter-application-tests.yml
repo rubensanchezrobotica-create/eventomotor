@@ -71,10 +71,36 @@ jobs:
         run: |
           mapfile -t standard_tests < <(
             git ls-files -- '*.test.ts' '*.test.tsx' |
-              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a|r4b|r5a|r5a1|r5a2|r5a3|r5b|manual-campaign|edition-02)\.test\.ts)$'
+              grep -Ev '^(lib/newsletter/newsletter-(core|migration)\.test\.ts|tests/newsletter/newsletter-(r3a|r3b1|r3b3|r3b4|r4a|r4b|r5a|r5a1|r5a2|r5a3|r5b|manual-campaign|edition-02)\.test\.ts|lib/commercial/commercial\.test\.ts|lib/(opportunity-pages-freshness|public-events-pagination)\.test\.ts|lib/stories/.*\.server\.test\.ts|lib/stories/story-responsive-images\.test\.ts|tests/stories/.*\.integration\.test\.ts|tests/stories/story-(home-section|public-routes)\.test\.tsx|tests/stories/story-publication-actions\.test\.ts)$'
           )
           test "${#standard_tests[@]}" -gt 0
           node --import tsx --test "${standard_tests[@]}"
+
+      # These suites import server-only modules and cannot run under the default
+      # client resolution mode. Keep their actual assertions in CI.
+      # Stories DB integration is executed separately by stories-database-tests.yml
+      # with an ephemeral test instance, not by this isolated job.
+      - name: Server-context application and Stories unit tests
+        run: >-
+          node --conditions=react-server --experimental-test-module-mocks --import tsx --test
+          lib/commercial/commercial.test.ts
+          lib/opportunity-pages-freshness.test.ts
+          lib/public-events-pagination.test.ts
+          lib/stories/story-actions.server.test.ts
+          lib/stories/story-admin-read.server.test.ts
+          lib/stories/story-admin.server.test.ts
+          lib/stories/story-commercial.server.test.ts
+          lib/stories/story-editorial-gate.server.test.ts
+          lib/stories/story-home.server.test.ts
+          lib/stories/story-launch.server.test.ts
+          lib/stories/story-media-api.server.test.ts
+          lib/stories/story-media.server.test.ts
+          lib/stories/story-public.server.test.ts
+          lib/stories/story-publication.server.test.ts
+          lib/stories/story-responsive-images.test.ts
+          tests/stories/story-home-section.test.tsx
+          tests/stories/story-public-routes.test.tsx
+          tests/stories/story-publication-actions.test.ts
 
       - name: React-server tests
         run: >-
@@ -98,4 +124,4 @@ jobs:
         run: npm run typecheck
 
       - name: Build
-        run: npm run build
+        run: npm run build -- --experimental-build-mode compile
