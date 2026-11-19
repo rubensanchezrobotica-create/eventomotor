@@ -79,7 +79,7 @@ jobs:
       # These suites import server-only modules and cannot run under the default
       # client resolution mode. Keep their actual assertions in CI.
       # Stories DB integration is executed separately by stories-database-tests.yml
-      # with a disposable Supabase instance, not by this no-DB job.
+      # with an ephemeral test instance, not by this isolated job.
       - name: Server-context application and Stories unit tests
         run: >-
           node --conditions=react-server --experimental-test-module-mocks --import tsx --test
