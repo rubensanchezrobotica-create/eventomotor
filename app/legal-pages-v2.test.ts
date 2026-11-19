@@ -37,8 +37,9 @@ test("las tres páginas legales conservan rutas, SEO y un único h1 semántico d
     assert.equal((page.match(/<h1\b/g) ?? []).length, 0);
     assert.doesNotMatch(page, /ConceptStyles|ConceptStaticHeader|ConceptFooter|robots:/);
   }
-  assert.match(navigation, /mobile: \[[^\]]*"publish", "contact"\]/);
-  assert.doesNotMatch(navigation.match(/public: \{[\s\S]*?\},\n\}/)?.[0] ?? "", /desktop: \[[^\]]*"contact"/);
+  assert.match(navigation, /const GLOBAL_MOBILE_NAVIGATION_IDS = \[\.\.\.GLOBAL_DESKTOP_NAVIGATION_IDS, "publish", "contact"\] as const;/);
+  assert.match(navigation, /mobile: GLOBAL_MOBILE_NAVIGATION_IDS/);
+  assert.doesNotMatch(navigation.match(/const GLOBAL_DESKTOP_NAVIGATION_IDS = \[[^\]]+\]/)?.[0] ?? "", /"contact"/);
   for (const id of ["legal", "privacy", "cookies", "contact"]) {
     assert.match(shell, new RegExp(`navigationId="${id}"`));
   }

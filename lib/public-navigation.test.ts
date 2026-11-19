@@ -122,9 +122,14 @@ test("home anchors exist and reserve space below the fixed header", () => {
   assert.match(styles, /#calendario, #disciplinas, #zonas \{ scroll-margin-top: 92px; \}/);
 });
 
-test("contact returns to the home calendar section", () => {
+test("contact uses the canonical public V2 shell without a stale home-calendar anchor", () => {
   const contactPage = source("app/contacto/page.tsx");
-  assert.match(contactPage, /href=\{HOME_SECTION_LINKS\.calendar\}/);
+  const contactView = source("components/redesign-v2/contact/ContactV2.tsx");
+  assert.match(contactPage, /<V2InteriorShell/);
+  assert.match(contactPage, /navigationMode="public"/);
+  assert.match(contactView, /href="\/publicar-evento"/);
+  assert.match(contactView, /mailto:\$\{CONTACT_EMAIL\}/);
+  assert.doesNotMatch(contactPage + contactView, /HOME_SECTION_LINKS\.calendar/);
 });
 
 test("active public components do not hardcode obsolete calendar hrefs or preview destinations", () => {
