@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { GateError, operate } from "./core.mjs";
+import { withSafeGet } from "./http.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [action, ...argv] = process.argv.slice(2);
@@ -46,12 +47,6 @@ function parseKeyValue(output) {
   }
   return values;
 }
-async function getSafe(url, options = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
-  try { return await fetch(url, { redirect: "manual", signal: controller.signal, ...options }); }
-  finally { clearTimeout(timeout); }
-}
 const adapter = {
   meta: () => bridge("meta"),
   preview: () => {
@@ -66,20 +61,22 @@ const adapter = {
     if (!meta.headerOpaque) throw new GateError("header_not_opaque");
     for (const asset of meta.assets) {
       const url = `https://www.eventomotor.com/newsletter/${date}/assets/${encodeURIComponent(asset.file)}`;
-      const response = await getSafe(url);
-      if (response.status !== 200 || response.redirected || response.headers.get("location")) throw new GateError("public_asset_http_invalid");
-      const mime = asset.file.endsWith(".png") ? "image/png" : "image/webp";
-      if (response.headers.get("content-type")?.split(";")[0].trim() !== mime) throw new GateError("public_asset_mime_invalid");
-      const bytes = Buffer.from(await response.arrayBuffer());
-      if (bytes.length !== asset.bytes || createHash("sha256").update(bytes).digest("hex") !== asset.sha256) throw new GateError("public_asset_hash_invalid");
+      await withSafeGet(url, async (response) => {
+        if (response.status !== 200 || response.redirected || response.headers.get("location")) throw new GateError("public_asset_http_invalid");
+        const mime = asset.file.endsWith(".png") ? "image/png" : "image/webp";
+        if (response.headers.get("content-type")?.split(";")[0].trim() !== mime) throw new GateError("public_asset_mime_invalid");
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.length !== asset.bytes || createHash("sha256").update(bytes).digest("hex") !== asset.sha256) throw new GateError("public_asset_hash_invalid");
+      });
     }
   },
   async verifyLinks(meta) {
     for (const value of meta.urls) {
       const url = new URL(value);
       if (url.origin !== "https://www.eventomotor.com" || url.searchParams.get("utm_campaign") !== meta.campaignKey) throw new GateError("content_link_invalid");
-      const response = await getSafe(url);
-      if (response.status !== 200) throw new GateError("content_link_http_invalid");
+      await withSafeGet(url, (response) => {
+        if (response.status !== 200) throw new GateError("content_link_http_invalid");
+      });
     }
   },
   async test(meta) {

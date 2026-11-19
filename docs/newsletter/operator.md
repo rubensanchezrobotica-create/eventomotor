@@ -4,10 +4,10 @@ Este operador reutiliza los módulos y runners **sellados de cada edición**. No
 
 ## Estructura y límites
 
-- Código: `scripts/newsletter-operator/{operator.ps1,cli.mjs,edition-bridge.cjs,core.mjs}`.
+- Código: `scripts/newsletter-operator/{operator.ps1,cli.mjs,http.mjs,edition-bridge.cjs,core.mjs}`.
 - Cada ejecución apunta al worktree `eventomotor-newsletter-edition-NN` (o `-Worktree` explícito). El worktree operador puede estar en otra rama; no modifica el checkout principal ni Ed15.
 - El puente carga el contenido canónico y valida manifiesto, bytes locales, hashes HTML/texto de ambas variantes y opacidad local del header usando la implementación de la edición. Exige la misma convención de exports/CLI de Ed14/Ed15. Si Ed16 cambia esa interfaz, falla cerrado hasta adaptar el puente y probarlo; no inventa argumentos.
-- `preview` vuelve a GET de assets públicos (200, MIME, SHA256, sin redirects) y enlaces UTM, y llama a la RPC de preview read-only. `status` hace solo el preview de campaña. `audit` usa la RPC de auditoría. `report` combina ambas.
+- `preview` vuelve a GET de assets públicos (200, MIME, SHA256, sin redirects) y enlaces UTM, y llama a la RPC de preview read-only. Cada GET consume o cancela su cuerpo con timeout activo hasta cerrarlo, también si falla un gate HTTP, para no dejar conexiones abiertas. `status` hace solo el preview de campaña. `audit` usa la RPC de auditoría. `report` combina ambas.
 - `test` exige que la campaña aún no exista e invoca exactamente una vez el sender protegido de esa edición, destinatario fijo y confirmación propia de ella. Por ello también requiere conexión Supabase. `prepare` invoca exactamente una vez el runner `--prepare-only` tras un preview actualizado. `send` invoca exactamente una vez `--send-prepared` tras auditar el snapshot preparado. Ante error o respuesta incierta, solo hace auditoría read-only: **nunca reintenta**.
 - El runner de edición sigue imponiendo `allowRetry:false`, snapshot exacto, límite 500 y ausencia de segundo prepare. El operador añade aprobación separada, verificación pública, un lock local por campaña contra dos procesos simultáneos y reconciliación final 100% accepted. Un resultado parcial se reporta como bloqueo con la auditoría agregada disponible, no como éxito.
 
