@@ -3,7 +3,9 @@ import test from "node:test";
 import { GET as getEventsApi } from "@/app/api/events/route";
 import { buildEventDetailV2Model } from "@/components/redesign-v2/event-detail/event-detail-model";
 import {
+  getHomeVisibleEvents,
   getVisibleEventsStrict,
+  isPublicAttendanceEvent,
   VISIBLE_EVENTS_PAGE_SIZE,
 } from "@/lib/public-events";
 import type { EventRow } from "@/lib/supabase";
@@ -31,6 +33,7 @@ function eventRow(index: number): EventRow {
     ticket_url: null,
     tags: ["test"],
     vehicle_type: "coche",
+    event_status: null,
     featured: false,
     visible: true,
     import_method: null,
@@ -146,4 +149,49 @@ test("la ficha calcula próximos con la colección paginada completa", async () 
   assert.ok(model);
   assert.equal(model.upcomingCount, TOTAL_ROWS);
   assertPaginationRequests(requests);
+});
+
+test("solo cancelled deja los listados, la proyección Home y la API tras paginar 1.205 filas", async () => {
+  const rows = Array.from({ length: TOTAL_ROWS }, (_, index) => eventRow(index));
+  rows[0].event_status = "confirmed";
+  rows[1].event_status = "cancelled";
+  rows[499].event_status = "  CANCELLED  ";
+  rows[500].event_status = null;
+  rows[1_000].event_status = "postponed";
+  rows[1_204].event_status = "tentative";
+  const expected = rows.filter(isPublicAttendanceEvent).map(({ id }) => id);
+
+  const listed = await withPaginatedSupabase(rows, getVisibleEventsStrict);
+  assert.deepEqual(listed.result.map(({ id }) => id), expected);
+  assertPaginationRequests(listed.requests);
+
+  const home = await withPaginatedSupabase(rows, getHomeVisibleEvents);
+  assert.deepEqual(home.result.map(({ id }) => id), expected);
+  assertPaginationRequests(home.requests);
+  assert.match(new URL(home.requests[0].url).searchParams.get("select") || "", /event_status/);
+
+  const api = await withPaginatedSupabase(rows, getEventsApi);
+  const payload = await api.result.json();
+  assert.equal(api.result.status, 200);
+  assert.deepEqual(payload.events.map(({ id }: EventRow) => id), expected);
+  assert.equal(typeof payload.updatedAt, "string");
+  assertPaginationRequests(api.requests);
+});
+
+test("NULL y todos los estados no cancelados se conservan sin reintroducir fallback", async () => {
+  for (const event_status of [null, "", "confirmed", "postponed", "tentative"]) {
+    assert.equal(isPublicAttendanceEvent({ visible: true, event_status }), true);
+  }
+  assert.equal(isPublicAttendanceEvent({ visible: true, event_status: " Cancelled " }), false);
+  assert.equal(isPublicAttendanceEvent({ visible: true, eventStatus: "CANCELLED" }), false);
+  assert.equal(isPublicAttendanceEvent({ visible: false, event_status: null }), false);
+
+  const rows = [eventRow(0), eventRow(1)];
+  rows.forEach((row) => { row.event_status = "cancelled"; });
+  const listed = await withPaginatedSupabase(rows, getVisibleEventsStrict);
+  assert.deepEqual(listed.result, []);
+  const home = await withPaginatedSupabase(rows, getHomeVisibleEvents);
+  assert.deepEqual(home.result, []);
+  const api = await withPaginatedSupabase(rows, getEventsApi);
+  assert.deepEqual((await api.result.json()).events, []);
 });

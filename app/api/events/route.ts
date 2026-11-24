@@ -1,5 +1,5 @@
 import { FALLBACK_EVENTS } from "@/lib/fallback-events";
-import { fetchAllVisibleEventRows } from "@/lib/public-events";
+import { fetchAllVisibleEventRows, isPublicAttendanceEvent } from "@/lib/public-events";
 import { createSupabaseServerClient, mapEventRowToEventItem } from "@/lib/supabase";
 import type { EventRow } from "@/lib/supabase";
 import type { EventItem } from "@/types/event";
@@ -12,7 +12,7 @@ type EventsResponse = {
 function fallbackResponse(): EventsResponse {
   return {
     updatedAt: new Date().toISOString(),
-    events: FALLBACK_EVENTS,
+    events: FALLBACK_EVENTS.filter(isPublicAttendanceEvent),
   };
 }
 
@@ -31,7 +31,7 @@ export async function GET() {
     }
 
     const rows = data as EventRow[];
-    const events = rows.map(mapEventRowToEventItem);
+    const events = rows.filter(isPublicAttendanceEvent).map(mapEventRowToEventItem);
     const updatedAt = rows.reduce((latest, row) => {
       return row.updated_at > latest ? row.updated_at : latest;
     }, rows[0].updated_at);

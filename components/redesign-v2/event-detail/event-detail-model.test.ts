@@ -190,6 +190,29 @@ test("muestra únicamente estados excepcionales con los labels públicos existen
   });
 });
 
+test("fixture Asón cancelado conserva ficha informativa y fuente sin inscripción", () => {
+  const model = buildEventDetailV2Model(event({
+    id: "batch-l08-rallye-historico-comarca-ason-2026-11-27",
+    slug: "5-rallye-historico-comarca-del-ason-2026-11-27",
+    title: "V Rallye Histórico Comarca del Asón 2026",
+    start: "2026-11-27",
+    end: "2026-11-28",
+    eventStatus: "cancelled",
+    shortDescription: "La edición de 2026 no se disputará.",
+    longDescription: "El organizador comunicó la suspensión de la edición 2026.",
+    officialUrl: "https://www.rallyecomarcadelason.com/",
+    registrationUrl: "",
+    ticketUrl: "",
+  }), [], { ...options, routeContext: "public", today: "2026-11-24" });
+
+  assert.ok(model);
+  assert.deepEqual(model.exceptionalStatus, { kind: "cancelled", label: "Cancelado" });
+  assert.match(model.description, /suspensión/);
+  assert.equal(model.source?.href, "https://www.rallyecomarcadelason.com/");
+  assert.equal(model.primaryAction?.type, "official");
+  assert.equal(model.publicUrl, "https://www.eventomotor.com/evento/5-rallye-historico-comarca-del-ason-2026-11-27");
+});
+
 test("oculta championships equivalentes y conserva sólo contexto distintivo", () => {
   assert.equal(distinctChampionship("MotoGP", "MotoGP"), "");
   assert.equal(distinctChampionship("  motoGP  ", "MOTOGP"), "");

@@ -333,6 +333,15 @@ test("Event JSON-LD usa datos reales y no inventa ofertas, precio ni coordenadas
   assert.equal("geo" in location, false);
 });
 
+test("un evento cancelado conserva fechas y URL con EventCancelled", () => {
+  const event = eventFixture({ eventStatus: "cancelled" });
+  const jsonLd = buildEventJsonLd(event, CANONICAL, IMAGE, SEO_DESCRIPTION);
+  assert.equal(jsonLd.eventStatus, "https://schema.org/EventCancelled");
+  assert.equal(jsonLd.url, CANONICAL);
+  assert.equal(jsonLd.startDate, "2026-08-07");
+  assert.equal(jsonLd.endDate, "2026-08-09");
+});
+
 test("Event JSON-LD conserva la identidad semántica del organizador", () => {
   const fctaUrl = "https://www.fcta.es/competiciones/1c1357bf-c552-4993-96d9-3d9c42bdc225";
   const municipalUrl = "https://aytovaldemorillo.com/xv-concentracion-clasicos-sierra-oeste-de-madrid/";
