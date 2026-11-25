@@ -26,6 +26,7 @@ const HOME_EVENT_SELECT = [
   "ticket_url",
   "tags",
   "vehicle_type",
+  "event_status",
   "featured",
   "latitude",
   "longitude",
@@ -49,6 +50,7 @@ type HomeEventRow = Pick<
   | "ticket_url"
   | "tags"
   | "vehicle_type"
+  | "event_status"
   | "featured"
   | "latitude"
   | "longitude"
@@ -117,8 +119,17 @@ function mapHomeEventRow(row: HomeEventRow): EventItem {
   };
 }
 
+export function isPublicAttendanceEvent(event: {
+  visible?: boolean | null;
+  event_status?: string | null;
+  eventStatus?: string | null;
+}) {
+  const status = event.event_status ?? event.eventStatus;
+  return event.visible !== false && status?.trim().toLowerCase() !== "cancelled";
+}
+
 function fallbackVisibleEvents(): EventItem[] {
-  return FALLBACK_EVENTS.filter((event) => event.visible !== false).map((event) => ({
+  return FALLBACK_EVENTS.filter(isPublicAttendanceEvent).map((event) => ({
     ...event,
     slug: event.slug || createEventSlug(event.title, event.start),
   }));
@@ -201,16 +212,16 @@ async function loadVisibleEvents(failureMode: VisibleEventsFailureMode) {
     );
   }
 
-  const events = (data as EventRow[]).map(mapEventRowToEventItem);
-
-  if (!events.length) {
+  if (!data.length) {
     return handleVisibleEventsFailure(
       failureMode,
       "Supabase visible-events query returned an unexpected empty result.",
     );
   }
 
-  return events;
+  return (data as EventRow[])
+    .filter(isPublicAttendanceEvent)
+    .map(mapEventRowToEventItem);
 }
 
 export async function getVisibleEvents() {
@@ -248,6 +259,9 @@ export async function getHomeVisibleEvents() {
     return fallbackEvents;
   }
 
-  const events = (data as unknown as HomeEventRow[]).map(mapHomeEventRow);
-  return events.length ? events : fallbackEvents;
+  if (!data.length) return fallbackEvents;
+
+  return (data as unknown as HomeEventRow[])
+    .filter(isPublicAttendanceEvent)
+    .map(mapHomeEventRow);
 }

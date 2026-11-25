@@ -108,6 +108,15 @@ test("A10G conserva acciones y nombres de analítica pública sin tocar save, IC
   assert.match(shell, /source: "footer_link"/);
 });
 
+test("cancelled prioriza la alerta y conserva Guardar y Compartir sin etiqueta temporal ni ICS", () => {
+  assert.match(component, /const isCancelled = model\.exceptionalStatus\?\.kind === "cancelled"/);
+  assert.match(component, /routeContext === "public" && !isCancelled \? \([\s\S]*?model\.temporalStatus/);
+  assert.match(component, /saveOnly=\{isCancelled\}/);
+  assert.match(component, /model\.primaryAction && \(!isCancelled \|\| model\.primaryAction\.type === "official"\)/);
+  assert.match(component, /<ShareEventButton/);
+  assert.match(component, /model\.source/);
+});
+
 test("A10G no filtra la captación pública y no filtra destinos Preview al contexto público", () => {
   assert.match(route, /currentNewsletterPublicLaunchEnvironment\(\)/);
   assert.match(route, /!canaryConfiguration\.enabled/);

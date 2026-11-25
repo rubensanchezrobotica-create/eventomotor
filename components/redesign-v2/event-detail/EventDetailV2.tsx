@@ -49,6 +49,7 @@ function ExternalLinkIcon() {
 
 export default function EventDetailV2(props: EventDetailV2Props) {
   const { model, routeContext } = props;
+  const isCancelled = model.exceptionalStatus?.kind === "cancelled";
   const publicContext = props.routeContext === "public" ? props.publicContext : null;
   const trackingParams = publicContext ? {
     ...eventAnalyticsParams(publicContext.event, { event_slug: model.slug }),
@@ -128,7 +129,7 @@ export default function EventDetailV2(props: EventDetailV2Props) {
                   </div>
                 ) : null}
 
-                {routeContext === "public" ? (
+                {routeContext === "public" && !isCancelled ? (
                   <span className={styles.temporalStatus}>{model.temporalStatus}</span>
                 ) : null}
 
@@ -185,12 +186,13 @@ export default function EventDetailV2(props: EventDetailV2Props) {
                     compactIcons
                     directChildren
                     event={model.savedEvent}
+                    saveOnly={isCancelled}
                     source={routeContext === "public" ? "event_detail" : "redesign_v2_event_detail"}
                   />
                   <ShareEventButton directChildren title={model.title} url={model.publicUrl} />
                 </div>
 
-                {model.primaryAction ? (
+                {model.primaryAction && (!isCancelled || model.primaryAction.type === "official") ? (
                   routeContext === "public" ? (
                     <TrackAnchor
                       className={styles.primaryAction}
