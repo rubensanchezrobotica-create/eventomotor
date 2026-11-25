@@ -1,4 +1,5 @@
 // Local-only QA for draft HTML. Does not fetch production data or send mail.
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CJS QA script loads Playwright from a temporary local path. */
 const { chromium } = require(process.env.ED17_PLAYWRIGHT_CORE || "playwright-core");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
@@ -24,13 +25,19 @@ async function main() {
         const source = path.resolve(root, `preview-${item.variant}-draft.html`);
         await page.goto(pathToFileURL(source).href, { waitUntil: "load" });
         const result = await page.evaluate(() => {
-          const logo = document.querySelector('img[src="assets/eventomotor-logo.png"]');
+          const images = [...document.querySelectorAll("img")];
           const links = [...document.querySelectorAll("a")];
           return {
             viewport: window.innerWidth,
             scrollWidth: document.documentElement.scrollWidth,
-            logoLoaded: Boolean(logo && logo.complete && logo.naturalWidth > 0),
-            plannedSlots: document.querySelectorAll("[data-planned-asset]").length,
+            imageCount: images.length,
+            loadedImages: images.filter((item) => item.complete && item.naturalWidth > 0).length,
+            brokenImages: images.filter((item) => !item.complete || item.naturalWidth === 0).map((item) => item.src),
+            distortedImages: images.filter((item) => {
+              if (!item.naturalWidth || !item.naturalHeight) return true;
+              const box = item.getBoundingClientRect();
+              return Math.abs(box.width / box.height - item.naturalWidth / item.naturalHeight) > 0.02;
+            }).map((item) => item.src),
             links: links.length,
             badLinks: links.filter((link) => !link.href.startsWith("https://www.eventomotor.com/")).length,
             ctaVisible: links.filter((link) => link.getBoundingClientRect().width > 0).length,
@@ -41,7 +48,8 @@ async function main() {
         const name = `${item.variant}-${item.device}.png`;
         await page.screenshot({ path: path.join(__dirname, name), fullPage: true });
         console.log(JSON.stringify({ screenshot: name, ...result }));
-        if (result.scrollWidth > result.viewport || !result.logoLoaded || result.badLinks ||
+        if (result.scrollWidth > result.viewport || result.imageCount !== (item.variant === "madrid" ? 7 : 6) ||
+            result.loadedImages !== result.imageCount || result.distortedImages.length || result.badLinks ||
             !result.footerVisible || result.ctaVisible !== result.links ||
             result.madridModuleCount !== (item.variant === "madrid" ? 1 : 0)) {
           throw new Error(`visual_qa_gate_failed:${name}`);
