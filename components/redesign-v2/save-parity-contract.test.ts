@@ -53,6 +53,20 @@ test("A9C-B renderiza un único corazón compacto accesible en modo saveOnly", (
   assert.doesNotMatch(markup, /Añadir al calendario/);
 });
 
+test("la ficha confirmada mantiene Guardar y Añadir al calendario", () => {
+  const markup = renderToStaticMarkup(createElement(EventRetentionActions, {
+    compactIcons: true,
+    directChildren: true,
+    event: savedEvent,
+    saveOnly: false,
+    source: "a9cb_test",
+  }));
+
+  assert.equal((markup.match(/<button/g) || []).length, 2);
+  assert.match(markup, /aria-label="Guardar evento"/);
+  assert.match(markup, /aria-label="Añadir al calendario"/);
+});
+
 test("A9C-B conserva exactamente el payload SavedEvent disponible en PreviewEvent", () => {
   const event = {
     id: "event-id",
@@ -136,10 +150,16 @@ test("A9C-B añade el mismo saveOnly a la tarjeta local de Disciplina", () => {
 });
 
 test("A9C-B protege Calendar, Weekend y Event Detail con un solo control existente", () => {
-  for (const protectedSource of [calendar, weekend, eventDetail]) {
+  for (const protectedSource of [calendar, weekend]) {
     assert.equal((protectedSource.match(/<EventRetentionActions/g) || []).length, 1);
     assert.doesNotMatch(protectedSource, /saveOnly/);
   }
+
+  assert.equal((eventDetail.match(/<EventRetentionActions/g) || []).length, 1);
+  assert.equal((eventDetail.match(/saveOnly=/g) || []).length, 1);
+  assert.match(eventDetail, /const isCancelled = model\.exceptionalStatus\?\.kind === "cancelled"/);
+  assert.match(eventDetail, /saveOnly=\{isCancelled\}/);
+  assert.equal((eventDetail.match(/<ShareEventButton/g) || []).length, 1);
 });
 
 test("A9C-B mantiene el corazón dentro de media y R5 reduce sólo el destacado móvil", () => {

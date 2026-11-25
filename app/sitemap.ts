@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isIndexableFutureEvent, todayAtMidnight, validDate } from "@/lib/event-sitemap-eligibility";
 import { getVisibleEvents } from "@/lib/public-events";
 import { SITE_URL } from "@/lib/seo";
 import { OPPORTUNITY_PAGES } from "@/lib/opportunity-pages";
@@ -16,8 +17,6 @@ import { buildStoriesSitemap } from "@/lib/stories/story-public-seo";
 
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
 type SitemapEvent = Pick<EventRow, "slug" | "start_date" | "created_at" | "updated_at" | "visible" | "event_status">;
-
-const EVENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // Metadata routes are cached by default. Publication/archival must be visible on
 // the next canonical request, independently of deployment or action invalidation.
@@ -39,33 +38,8 @@ function sitemapEntry(
   };
 }
 
-function validDate(value: string | null | undefined) {
-  if (!value) return null;
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function todayAtMidnight() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
-function isFutureEvent(event: SitemapEvent) {
-  const start = validDate(event.start_date);
-  return Boolean(start && start.getTime() >= todayAtMidnight().getTime());
-}
-
 function eventLastModified(event: SitemapEvent) {
   return validDate(event.updated_at) || validDate(event.created_at) || validDate(event.start_date) || new Date();
-}
-
-export function isIndexableFutureEvent(event: SitemapEvent) {
-  const slug = event.slug?.trim() || "";
-
-  return event.visible !== false && EVENT_SLUG_PATTERN.test(slug) && isFutureEvent(event);
 }
 
 async function fallbackSitemapEvents(): Promise<SitemapEvent[]> {
@@ -135,7 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry(`/${page.slug}`, now, "daily", 0.85),
   );
   const eventEntries = events
-    .filter(isIndexableFutureEvent)
+    .filter((event) => isIndexableFutureEvent(event))
     .map((event) =>
       sitemapEntry(`/evento/${event.slug}`, eventLastModified(event), "weekly", 0.7),
     );
