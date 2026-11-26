@@ -12,6 +12,11 @@ export type EventSeoOverride = {
 export const LA_BANEZA_EVENT_SLUG = "lxv-gran-premio-la-baneza-2026-08-07";
 
 const EVENT_SEO_OVERRIDES = {
+  "rallye-comarca-norte-2026-11-28": {
+    seoTitle: "Rally Comarca Norte 2026: horarios, tramos e inscritos",
+    seoDescription:
+      "Rally Comarca Norte de Gran Canaria, 27 y 28 de noviembre de 2026. Consulta el programa, los 11 tramos cronometrados y los 67 equipos inscritos.",
+  },
   "2-ruedas-valencia-2026-11-27": {
     seoTitle: "Salón 2 Ruedas Valencia 2026: horarios y entradas",
     seoDescription:

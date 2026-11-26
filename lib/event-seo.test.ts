@@ -267,6 +267,47 @@ test("2 Ruedas aplica solo su metadata editorial y conserva la entidad del event
   assert.equal("offers" in jsonLd, false);
 });
 
+test("Comarca Norte aplica solo el override aprobado y conserva la entidad", () => {
+  const slug = "rallye-comarca-norte-2026-11-28";
+  const event = eventFixture({
+    id: "batch-rallye-comarca-norte-2026-11-28",
+    slug,
+    title: "Rallye Comarca Norte 2026",
+    discipline: "Rally",
+    start: "2026-11-27",
+    end: "2026-11-28",
+    city: "Gran Canaria",
+    province: "Las Palmas",
+  });
+  const canonical = SITE_URL + "/evento/" + slug;
+  const description = buildMetadataDescription(event);
+  const metadata = buildEventMetadata(event, SITE_URL, slug, {
+    title: buildEventSeoTitle(event),
+    description,
+  });
+  const jsonLd = buildEventJsonLd(event, canonical, IMAGE, description);
+  const expectedTitle = "Rally Comarca Norte 2026: horarios, tramos e inscritos | EventoMotor";
+  const expectedDescription =
+    "Rally Comarca Norte de Gran Canaria, 27 y 28 de noviembre de 2026. Consulta el programa, los 11 tramos cronometrados y los 67 equipos inscritos.";
+  const openGraph = metadata.openGraph as { title?: string; description?: string; url?: string };
+  const twitter = metadata.twitter as { title?: string; description?: string };
+
+  assert.equal(getEventSeoOverride(slug)?.faqItems, undefined);
+  assert.equal(absoluteTitle(metadata), expectedTitle);
+  assert.equal(metadata.description, expectedDescription);
+  assert.equal(openGraph.title, expectedTitle);
+  assert.equal(openGraph.description, expectedDescription);
+  assert.equal(openGraph.url, canonical);
+  assert.equal(twitter.title, expectedTitle);
+  assert.equal(twitter.description, expectedDescription);
+  assert.equal(metadata.alternates?.canonical, canonical);
+  assert.equal(event.title, "Rallye Comarca Norte 2026");
+  assert.equal(jsonLd.name, event.title);
+  assert.equal(jsonLd.description, expectedDescription);
+  assert.equal(jsonLd.startDate, "2026-11-27");
+  assert.equal(jsonLd.endDate, "2026-11-28");
+  assert.equal("offers" in jsonLd, false);
+});
 for (const slug of [
   "gran-premio-motul-de-la-comunitat-valenciana-2026-11-27",
   "subida-a-trassierra-2026-11-28",
