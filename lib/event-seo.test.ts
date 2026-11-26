@@ -308,6 +308,59 @@ test("Comarca Norte aplica solo el override aprobado y conserva la entidad", () 
   assert.equal(jsonLd.endDate, "2026-11-28");
   assert.equal("offers" in jsonLd, false);
 });
+
+for (const candidate of [
+  {
+    id: "batch-feria-del-automovil-valencia-2026-12-04",
+    slug: "feria-del-automovil-valencia-2026-12-04",
+    title: "Feria del Automóvil Valencia 2026",
+    start: "2026-12-04",
+    end: "2026-12-06",
+    seoTitle: "Feria del Automóvil Valencia 2026: horarios y entradas | EventoMotor",
+    seoDescription:
+      "Del 4 al 6 de diciembre en Feria Valencia, de 10:00 a 20:00. Coches nuevos, de ocasión y km 0. Entradas: 6 € online y 8 € en taquilla.",
+  },
+  {
+    id: "batch-l07-enduroc-2026-12-05",
+    slug: "enduroc-2026-12-05",
+    title: "EnduRoc 2026",
+    start: "2026-12-05",
+    end: "2026-12-06",
+    seoTitle: "EnduRoc 2026 en Les Comes: programa y horarios | EventoMotor",
+    seoDescription:
+      "EnduRoc Les Comes, 5 y 6 de diciembre en Súria (Barcelona). Consulta los horarios de las carreras, SuperTrail, Superpole e información para asistir.",
+  },
+]) {
+  test(`${candidate.title} aplica solo metadata editorial y conserva la entidad`, () => {
+    const event = eventFixture(candidate);
+    const canonical = `${SITE_URL}/evento/${candidate.slug}`;
+    const description = buildMetadataDescription(event);
+    const metadata = buildEventMetadata(event, SITE_URL, candidate.slug, {
+      title: buildEventSeoTitle(event),
+      description,
+    });
+    const jsonLd = buildEventJsonLd(event, canonical, IMAGE, description);
+    const openGraph = metadata.openGraph as { title?: string; description?: string; url?: string };
+    const twitter = metadata.twitter as { title?: string; description?: string };
+
+    assert.equal(getEventSeoOverride(candidate.slug)?.faqItems, undefined);
+    assert.equal(absoluteTitle(metadata), candidate.seoTitle);
+    assert.equal(candidate.seoTitle.split(SITE_NAME).length - 1, 1);
+    assert.equal(metadata.description, candidate.seoDescription);
+    assert.equal(openGraph.title, candidate.seoTitle);
+    assert.equal(openGraph.description, candidate.seoDescription);
+    assert.equal(openGraph.url, canonical);
+    assert.equal(twitter.title, candidate.seoTitle);
+    assert.equal(twitter.description, candidate.seoDescription);
+    assert.equal(metadata.alternates?.canonical, canonical);
+    assert.equal(event.title, candidate.title);
+    assert.equal(jsonLd.name, candidate.title);
+    assert.equal(jsonLd.description, candidate.seoDescription);
+    assert.equal(jsonLd.startDate, candidate.start);
+    assert.equal(jsonLd.endDate, candidate.end);
+    assert.equal("offers" in jsonLd, false);
+  });
+}
 for (const slug of [
   "gran-premio-motul-de-la-comunitat-valenciana-2026-11-27",
   "subida-a-trassierra-2026-11-28",
