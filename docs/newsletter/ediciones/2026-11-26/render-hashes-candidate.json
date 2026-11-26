@@ -1,0 +1,12 @@
+{
+  "campaign_key": "agenda_motor_2026_11_26",
+  "subject": "MotoGP cierra en Cheste: drift en Jarama y montaña en Tenerife",
+  "status": "local-preview-candidate-not-sealed",
+  "includes_local_warning_and_synthetic_unsubscribe": true,
+  "html_national_sha256": "76cfa4f131dec6a79be479f25a9909044fb9f8afe9a7dde73408c0a276c20e8e",
+  "text_national_sha256": "0e02e8c03906bdbd44e3294f650f10f7d4c17230b615f0ea6d797bcee77196dd",
+  "html_madrid_sha256": "4bd0665d6b80bf642cd79959b9c95e21ab24856b5699ec49e31bc1d747ddde99",
+  "text_madrid_sha256": "fb4874ceac840cd744263c0de37f637e6e67c0192897dfb49ad6ff3fb93eb78e",
+  "asset_manifest_digest_algorithm": "sha256(JSON.stringify(parsed asset-manifest.json))",
+  "asset_manifest_digest_candidate": "d7d90e27b4fa94edcd373bad25ec81b7e02eca5aee8161321e4f4a4ed1ec3094"
+}
