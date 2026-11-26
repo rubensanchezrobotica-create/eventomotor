@@ -1,0 +1,392 @@
+-- CANDIDATE ONLY: Ed17 local seal is active; do not execute in production.
+-- Review the canonical identity and obtain independent migration authorization first.
+-- Edition 17 candidate migration; install manually only after authorization.
+-- Edition 17 canonical RPC: national/Madrid preview, one-shot freeze and frozen audit.
+-- Schema/functions/grants only; no top-level campaign or subscriber DML.
+begin;
+
+create or replace function public.newsletter_edition_17_content_variant(
+  p_region_slug text
+)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case p_region_slug
+    when 'comunidad-de-madrid' then 'madrid'
+    else 'national'
+  end;
+$$;
+
+create or replace function public.preview_newsletter_campaign_edition_17(
+  p_edition_key text,
+  p_subject text,
+  p_html_sha256 text,
+  p_text_sha256 text,
+  p_content_manifest_digest text
+)
+returns table (
+  campaign_id uuid,
+  campaign_status text,
+  audience_frozen_at timestamptz,
+  eligible_count integer,
+  prepared_count integer,
+  sending_count integer,
+  accepted_count integer,
+  failed_count integer,
+  unknown_count integer,
+  retryable_count integer,
+  national_count integer,
+  madrid_count integer,
+  excluded_count integer,
+  duplicate_count integer,
+  invalid_count integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_campaign public.newsletter_campaigns%rowtype;
+  v_current_eligible integer;
+  v_current_invalid integer;
+  v_current_excluded integer;
+  v_current_duplicates integer;
+begin
+  if p_edition_key is distinct from 'agenda_motor_2026_11_26'
+    or p_subject is distinct from 'MotoGP cierra en Cheste: drift en Jarama y montaña en Tenerife'
+    or p_html_sha256 is distinct from '65c8ee462b00959bdebdb63d19ef3fa15e4d2ee0285d89ff982e8b581dee8791'
+    or p_text_sha256 is distinct from '0e02e8c03906bdbd44e3294f650f10f7d4c17230b615f0ea6d797bcee77196dd'
+    or p_content_manifest_digest is distinct from 'a13009463408077bd45602a28839b6b479db449daf6b6b6ca610eec7fbcaac38' then
+    raise exception 'invalid newsletter edition 17 campaign identity';
+  end if;
+
+  select * into v_campaign
+  from public.newsletter_campaigns as campaign
+  where campaign.edition_key = p_edition_key;
+
+  if found and (
+    v_campaign.subject <> p_subject
+    or v_campaign.html_sha256 <> p_html_sha256
+    or v_campaign.text_sha256 <> p_text_sha256
+    or v_campaign.content_manifest_digest is distinct from p_content_manifest_digest
+  ) then
+    raise exception 'newsletter edition 17 campaign content mismatch';
+  end if;
+
+  select pg_catalog.count(*)::integer into v_current_eligible
+  from public.newsletter_subscribers as subscriber
+  where public.newsletter_edition_02_subscriber_is_sendable(subscriber.id);
+
+  select pg_catalog.count(*)::integer into v_current_invalid
+  from public.newsletter_subscribers as subscriber
+  where public.newsletter_campaign_subscriber_is_eligible(subscriber.id)
+    and not public.newsletter_edition_02_subscriber_is_sendable(subscriber.id);
+
+  select (
+    pg_catalog.count(*) - v_current_eligible - v_current_invalid
+  )::integer into v_current_excluded
+  from public.newsletter_subscribers;
+
+  select coalesce(pg_catalog.sum(duplicates), 0)::integer into v_current_duplicates
+  from (
+    select greatest(pg_catalog.count(*) - 1, 0) as duplicates
+    from public.newsletter_subscribers as subscriber
+    where public.newsletter_edition_02_subscriber_is_sendable(subscriber.id)
+    group by subscriber.email_normalized
+  ) as duplicate_groups;
+
+  return query
+  select
+    v_campaign.id,
+    coalesce(v_campaign.status, 'not_created'),
+    v_campaign.audience_frozen_at,
+    case
+      when v_campaign.id is null then v_current_eligible
+      else pg_catalog.count(delivery.id)::integer
+    end,
+    coalesce(pg_catalog.count(*) filter (where delivery.status = 'prepared'), 0)::integer,
+    coalesce(pg_catalog.count(*) filter (where delivery.status = 'sending'), 0)::integer,
+    coalesce(pg_catalog.count(*) filter (where delivery.status = 'accepted'), 0)::integer,
+    coalesce(pg_catalog.count(*) filter (where delivery.status = 'failed'), 0)::integer,
+    coalesce(pg_catalog.count(*) filter (where delivery.status = 'unknown'), 0)::integer,
+    coalesce(pg_catalog.count(*) filter (
+      where delivery.status = 'failed' and delivery.retryable
+    ), 0)::integer,
+    case when v_campaign.id is null then (
+      select pg_catalog.count(*)::integer
+      from public.newsletter_subscribers as subscriber
+      where public.newsletter_edition_02_subscriber_is_sendable(subscriber.id)
+        and public.newsletter_edition_17_content_variant(subscriber.region_slug) = 'national'
+    ) else coalesce(pg_catalog.count(*) filter (
+      where delivery.content_variant = 'national'
+    ), 0)::integer end,
+    case when v_campaign.id is null then (
+      select pg_catalog.count(*)::integer
+      from public.newsletter_subscribers as subscriber
+      where public.newsletter_edition_02_subscriber_is_sendable(subscriber.id)
+        and public.newsletter_edition_17_content_variant(subscriber.region_slug) = 'madrid'
+    ) else coalesce(pg_catalog.count(*) filter (
+      where delivery.content_variant = 'madrid'
+    ), 0)::integer end,
+    v_current_excluded,
+    v_current_duplicates,
+    v_current_invalid
+  from public.newsletter_campaign_deliveries as delivery
+  where delivery.campaign_id = v_campaign.id;
+end;
+$$;
+
+create or replace function public.prepare_newsletter_campaign_edition_17(
+  p_edition_key text,
+  p_subject text,
+  p_html_sha256 text,
+  p_text_sha256 text,
+  p_content_manifest_digest text
+)
+returns table (
+  campaign_id uuid,
+  campaign_status text,
+  audience_frozen_at timestamptz,
+  eligible_count integer,
+  prepared_count integer,
+  sending_count integer,
+  accepted_count integer,
+  failed_count integer,
+  unknown_count integer,
+  retryable_count integer,
+  national_count integer,
+  madrid_count integer,
+  excluded_count integer,
+  duplicate_count integer,
+  invalid_count integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_campaign public.newsletter_campaigns%rowtype;
+  v_now timestamptz := pg_catalog.clock_timestamp();
+  v_inserted_count integer;
+  v_preflight record;
+begin
+  if p_edition_key is distinct from 'agenda_motor_2026_11_26'
+    or p_subject is distinct from 'MotoGP cierra en Cheste: drift en Jarama y montaña en Tenerife'
+    or p_html_sha256 is distinct from '65c8ee462b00959bdebdb63d19ef3fa15e4d2ee0285d89ff982e8b581dee8791'
+    or p_text_sha256 is distinct from '0e02e8c03906bdbd44e3294f650f10f7d4c17230b615f0ea6d797bcee77196dd'
+    or p_content_manifest_digest is distinct from 'a13009463408077bd45602a28839b6b479db449daf6b6b6ca610eec7fbcaac38' then
+    raise exception 'invalid newsletter edition 17 campaign identity';
+  end if;
+
+  -- Defence in depth: a direct RPC caller cannot bypass the one-shot
+  -- audience, consent, variant and 500-recipient preflight used by the runner.
+  select * into strict v_preflight
+  from public.preview_newsletter_campaign_edition_17(
+    p_edition_key, p_subject, p_html_sha256, p_text_sha256,
+    p_content_manifest_digest
+  );
+  if v_preflight.campaign_status <> 'not_created'
+    or v_preflight.campaign_id is not null
+    or v_preflight.audience_frozen_at is not null
+    or v_preflight.eligible_count not between 1 and 500
+    or v_preflight.national_count + v_preflight.madrid_count <> v_preflight.eligible_count
+    or v_preflight.duplicate_count <> 0
+    or v_preflight.invalid_count <> 0
+    or v_preflight.prepared_count <> 0
+    or v_preflight.sending_count <> 0
+    or v_preflight.accepted_count <> 0
+    or v_preflight.failed_count <> 0
+    or v_preflight.unknown_count <> 0
+    or v_preflight.retryable_count <> 0 then
+    raise exception 'newsletter edition 17 preflight gate failed';
+  end if;
+
+  insert into public.newsletter_campaigns (
+    edition_key, subject, html_sha256, text_sha256, content_manifest_digest,
+    status, created_at, updated_at, prepared_at
+  ) values (
+    p_edition_key, p_subject, p_html_sha256, p_text_sha256,
+    p_content_manifest_digest, 'prepared', v_now, v_now, v_now
+  )
+  on conflict on constraint newsletter_campaigns_edition_key do nothing;
+
+  get diagnostics v_inserted_count = row_count;
+  if v_inserted_count <> 1 then
+    raise exception 'newsletter edition 17 already prepared; second prepare blocked';
+  end if;
+
+  select * into strict v_campaign
+  from public.newsletter_campaigns as campaign
+  where campaign.edition_key = p_edition_key
+  for update;
+
+  if v_campaign.subject <> p_subject
+    or v_campaign.html_sha256 <> p_html_sha256
+    or v_campaign.text_sha256 <> p_text_sha256
+    or v_campaign.content_manifest_digest is distinct from p_content_manifest_digest then
+    raise exception 'newsletter edition 17 campaign content mismatch';
+  end if;
+
+  if v_campaign.audience_frozen_at is null then
+    insert into public.newsletter_campaign_deliveries (
+      campaign_id, subscriber_id, content_variant,
+      status, created_at, updated_at, prepared_at
+    )
+    select
+      v_campaign.id,
+      subscriber.id,
+      public.newsletter_edition_17_content_variant(subscriber.region_slug),
+      'prepared', v_now, v_now, v_now
+    from public.newsletter_subscribers as subscriber
+    where public.newsletter_edition_02_subscriber_is_sendable(subscriber.id)
+    on conflict on constraint newsletter_campaign_deliveries_recipient_key do nothing;
+
+    update public.newsletter_campaigns as campaign
+    set audience_frozen_at = greatest(v_now, campaign.created_at),
+        updated_at = greatest(v_now, campaign.updated_at),
+        prepared_at = greatest(v_now, campaign.prepared_at)
+    where campaign.id = v_campaign.id
+    returning * into v_campaign;
+  end if;
+
+  update public.newsletter_campaigns as campaign
+  set status = case
+        when exists (
+          select 1 from public.newsletter_campaign_deliveries as delivery
+          where delivery.campaign_id = campaign.id and delivery.status = 'unknown'
+        ) then 'paused'
+        when exists (
+          select 1 from public.newsletter_campaign_deliveries as delivery
+          where delivery.campaign_id = campaign.id and delivery.status <> 'accepted'
+        ) then 'prepared'
+        else campaign.status
+      end,
+      updated_at = greatest(v_now, campaign.updated_at)
+  where campaign.id = v_campaign.id;
+
+  return query
+  select * from public.preview_newsletter_campaign_edition_17(
+    p_edition_key, p_subject, p_html_sha256, p_text_sha256,
+    p_content_manifest_digest
+  );
+end;
+$$;
+
+-- Snapshot-only audit. This never enumerates a live audience or exposes
+-- recipients; it binds a frozen campaign to the five sealed Ed16 arguments.
+create or replace function public.audit_newsletter_campaign_edition_17(
+  p_edition_key text,
+  p_subject text,
+  p_html_sha256 text,
+  p_text_sha256 text,
+  p_content_manifest_digest text
+)
+returns table (
+  campaign_id uuid,
+  campaign_status text,
+  audience_frozen_at timestamptz,
+  delivery_count integer,
+  prepared_count integer,
+  sending_count integer,
+  accepted_count integer,
+  failed_count integer,
+  unknown_count integer,
+  national_count integer,
+  madrid_count integer,
+  duplicate_subscriber_count integer,
+  duplicate_email_count integer,
+  invalid_variant_count integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_campaign public.newsletter_campaigns%rowtype;
+begin
+  if p_edition_key is distinct from 'agenda_motor_2026_11_26'
+    or p_subject is distinct from 'MotoGP cierra en Cheste: drift en Jarama y montaña en Tenerife'
+    or p_html_sha256 is distinct from '65c8ee462b00959bdebdb63d19ef3fa15e4d2ee0285d89ff982e8b581dee8791'
+    or p_text_sha256 is distinct from '0e02e8c03906bdbd44e3294f650f10f7d4c17230b615f0ea6d797bcee77196dd'
+    or p_content_manifest_digest is distinct from 'a13009463408077bd45602a28839b6b479db449daf6b6b6ca610eec7fbcaac38' then
+    raise exception 'invalid newsletter edition 17 audit identity';
+  end if;
+
+  select * into strict v_campaign
+  from public.newsletter_campaigns as campaign
+  where campaign.edition_key = p_edition_key;
+
+  if v_campaign.subject is distinct from p_subject
+    or v_campaign.html_sha256 is distinct from p_html_sha256
+    or v_campaign.text_sha256 is distinct from p_text_sha256
+    or v_campaign.content_manifest_digest is distinct from p_content_manifest_digest
+    or v_campaign.audience_frozen_at is null then
+    raise exception 'newsletter edition 17 frozen content mismatch';
+  end if;
+
+  return query
+  select
+    v_campaign.id,
+    v_campaign.status,
+    v_campaign.audience_frozen_at,
+    pg_catalog.count(*)::integer,
+    pg_catalog.count(*) filter (where delivery.status = 'prepared')::integer,
+    pg_catalog.count(*) filter (where delivery.status = 'sending')::integer,
+    pg_catalog.count(*) filter (where delivery.status = 'accepted')::integer,
+    pg_catalog.count(*) filter (where delivery.status = 'failed')::integer,
+    pg_catalog.count(*) filter (where delivery.status = 'unknown')::integer,
+    pg_catalog.count(*) filter (where delivery.content_variant = 'national')::integer,
+    pg_catalog.count(*) filter (where delivery.content_variant = 'madrid')::integer,
+    (pg_catalog.count(*) - pg_catalog.count(distinct delivery.subscriber_id))::integer,
+    (pg_catalog.count(*) - pg_catalog.count(distinct subscriber.email_normalized))::integer,
+    pg_catalog.count(*) filter (
+      where delivery.content_variant is null
+        or delivery.content_variant not in ('national', 'madrid')
+    )::integer
+  from public.newsletter_campaign_deliveries as delivery
+  join public.newsletter_subscribers as subscriber
+    on subscriber.id = delivery.subscriber_id
+  where delivery.campaign_id = v_campaign.id;
+end;
+$$;
+
+revoke all on function public.newsletter_edition_17_content_variant(text)
+  from public, anon, authenticated;
+revoke all on function public.preview_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) from public, anon, authenticated;
+revoke all on function public.prepare_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) from public, anon, authenticated;
+revoke all on function public.audit_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) from public, anon, authenticated;
+
+grant execute on function public.preview_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) to service_role;
+grant execute on function public.prepare_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) to service_role;
+grant execute on function public.audit_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) to service_role;
+
+comment on function public.newsletter_edition_17_content_variant(text) is
+  'Maps the frozen subscriber region_slug to the Edition 17 content variant.';
+comment on function public.preview_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) is
+  'Read-only Edition 17 campaign preview using region_slug territorial mapping.';
+comment on function public.prepare_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) is
+  'Atomically prepares the immutable Edition 17 audience snapshot by region_slug.';
+comment on function public.audit_newsletter_campaign_edition_17(
+  text, text, text, text, text
+) is
+  'Read-only Edition 17 frozen snapshot audit without live audience recalculation.';
+
+commit;
