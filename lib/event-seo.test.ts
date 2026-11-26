@@ -13,6 +13,7 @@ import {
   buildEventBreadcrumbJsonLd,
   buildEventJsonLd,
   buildEventMetadata,
+  buildEventSeoDescription,
   buildEventSeoTitle,
   buildMetadataDescription,
   isJaramaTrackdayEvent,
@@ -24,6 +25,10 @@ const OFFICIAL_TITLE = "LXV Gran Premio de Velocidad Ciudad de La Bañeza 2026";
 const SEO_TITLE = "Gran Premio de La Bañeza 2026: programa y horarios | EventoMotor";
 const SEO_DESCRIPTION =
   "Consulta las fechas, el programa y todos los horarios del Gran Premio de La Bañeza 2026, del 7 al 9 de agosto, con entrenamientos y carreras.";
+const TWO_WHEELS_SLUG = "2-ruedas-valencia-2026-11-27";
+const TWO_WHEELS_TITLE = "Salón 2 Ruedas Valencia 2026: horarios y entradas | EventoMotor";
+const TWO_WHEELS_DESCRIPTION =
+  "Salón 2 Ruedas del 27 al 29 de noviembre en Feria Valencia. Programa, exhibiciones y pruebas de motos. Entradas: 8 € online y 10 € en taquilla.";
 
 function eventFixture(overrides: Partial<EventItem> = {}): EventItem {
   return {
@@ -221,6 +226,66 @@ test("La Bañeza usa el title editorial con una sola aparición de EventoMotor",
   assert.equal(title.split(SITE_NAME).length - 1, 1);
   assert.equal(metadata.description, SEO_DESCRIPTION);
 });
+
+test("2 Ruedas aplica solo su metadata editorial y conserva la entidad del evento", () => {
+  const event = eventFixture({
+    id: "batch-2-ruedas-valencia-2026-11-27",
+    slug: TWO_WHEELS_SLUG,
+    title: "2 Ruedas Valencia",
+    discipline: "Ferias",
+    start: "2026-11-27",
+    end: "2026-11-29",
+    venue: "Feria Valencia",
+    city: "Valencia",
+    province: "Valencia",
+  });
+  const description = buildMetadataDescription(event);
+  const canonical = `${SITE_URL}/evento/${TWO_WHEELS_SLUG}`;
+  const metadata = buildEventMetadata(event, SITE_URL, TWO_WHEELS_SLUG, {
+    title: buildEventSeoTitle(event),
+    description,
+  });
+  const jsonLd = buildEventJsonLd(event, canonical, IMAGE, description);
+  const openGraph = metadata.openGraph as { title?: string; description?: string; url?: string };
+  const twitter = metadata.twitter as { title?: string; description?: string };
+
+  assert.equal(getEventSeoOverride(TWO_WHEELS_SLUG)?.faqItems, undefined);
+  assert.equal(absoluteTitle(metadata), TWO_WHEELS_TITLE);
+  assert.equal(absoluteTitle(metadata).split(SITE_NAME).length - 1, 1);
+  assert.equal(metadata.description, TWO_WHEELS_DESCRIPTION);
+  assert.equal(openGraph.title, TWO_WHEELS_TITLE);
+  assert.equal(openGraph.description, TWO_WHEELS_DESCRIPTION);
+  assert.equal(openGraph.url, canonical);
+  assert.equal(twitter.title, TWO_WHEELS_TITLE);
+  assert.equal(twitter.description, TWO_WHEELS_DESCRIPTION);
+  assert.equal(metadata.alternates?.canonical, canonical);
+  assert.equal(event.title, "2 Ruedas Valencia");
+  assert.equal(jsonLd.name, event.title);
+  assert.equal(jsonLd.description, TWO_WHEELS_DESCRIPTION);
+  assert.equal(jsonLd.startDate, "2026-11-27");
+  assert.equal(jsonLd.endDate, "2026-11-29");
+  assert.equal("offers" in jsonLd, false);
+});
+
+for (const slug of [
+  "gran-premio-motul-de-la-comunitat-valenciana-2026-11-27",
+  "subida-a-trassierra-2026-11-28",
+  "17e-ral-li-vidreres-2026-11-28",
+]) {
+  test(`2 Ruedas no altera la metadata de ${slug}`, () => {
+    const event = eventFixture({ slug, title: slug });
+    const description = buildMetadataDescription(event);
+    const metadata = buildEventMetadata(event, SITE_URL, slug, {
+      title: buildEventSeoTitle(event),
+      description,
+    });
+
+    assert.equal(getEventSeoOverride(slug), undefined);
+    assert.ok(description.startsWith(buildEventSeoDescription(event).slice(0, 80)));
+    assert.equal(metadata.description, description);
+    assert.equal(absoluteTitle(metadata), `${buildEventSeoTitle(event)} | EventoMotor`);
+  });
+}
 
 test("canonical, Open Graph y Twitter conservan URL, imagen y contenido editorial", () => {
   const metadata = buildEventMetadata(eventFixture(), SITE_URL, LA_BANEZA_EVENT_SLUG, {

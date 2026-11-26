@@ -12,6 +12,11 @@ export type EventSeoOverride = {
 export const LA_BANEZA_EVENT_SLUG = "lxv-gran-premio-la-baneza-2026-08-07";
 
 const EVENT_SEO_OVERRIDES = {
+  "2-ruedas-valencia-2026-11-27": {
+    seoTitle: "Salón 2 Ruedas Valencia 2026: horarios y entradas",
+    seoDescription:
+      "Salón 2 Ruedas del 27 al 29 de noviembre en Feria Valencia. Programa, exhibiciones y pruebas de motos. Entradas: 8 € online y 10 € en taquilla.",
+  },
   [LA_BANEZA_EVENT_SLUG]: {
     seoTitle: "Gran Premio de La Bañeza 2026: programa y horarios",
     seoDescription:
