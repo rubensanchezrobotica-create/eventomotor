@@ -12,6 +12,16 @@ export type EventSeoOverride = {
 export const LA_BANEZA_EVENT_SLUG = "lxv-gran-premio-la-baneza-2026-08-07";
 
 const EVENT_SEO_OVERRIDES = {
+  "feria-del-automovil-valencia-2026-12-04": {
+    seoTitle: "Feria del Automóvil Valencia 2026: horarios y entradas",
+    seoDescription:
+      "Del 4 al 6 de diciembre en Feria Valencia, de 10:00 a 20:00. Coches nuevos, de ocasión y km 0. Entradas: 6 € online y 8 € en taquilla.",
+  },
+  "enduroc-2026-12-05": {
+    seoTitle: "EnduRoc 2026 en Les Comes: programa y horarios",
+    seoDescription:
+      "EnduRoc Les Comes, 5 y 6 de diciembre en Súria (Barcelona). Consulta los horarios de las carreras, SuperTrail, Superpole e información para asistir.",
+  },
   "rallye-comarca-norte-2026-11-28": {
     seoTitle: "Rally Comarca Norte 2026: horarios, tramos e inscritos",
     seoDescription:
