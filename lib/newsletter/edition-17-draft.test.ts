@@ -94,7 +94,7 @@ test("legal footer and mobile shell remain present, while drafts cannot be sent"
     assert.ok(!output.html.includes("NEWSLETTER_RESEND_API_KEY"));
   }
   assert.throws(() => renderEdition17Draft("unknown" as "national"), /inactive content variant/);
-  assert.throws(() => renderEdition17Draft("national", "planned-url" as "review-local"), /production asset mode unavailable/);
+  assert.throws(() => renderEdition17Draft("national", "planned-url" as "review-local"), /production asset mode unavailable|inactive asset mode/);
 });
 
 test("local HTML and text candidate hashes reproduce from the Ed17 render", () => {

@@ -12,11 +12,12 @@ import {
   type NewsletterEdition17ContentVariant,
 } from "./edition-17-territorial";
 
+const ASSET_ROOT = "https://www.eventomotor.com/newsletter/2026-11-26/assets/";
 export const NEWSLETTER_EDITION_17_CANONICAL_UNSUBSCRIBE_URL =
   "https://www.eventomotor.com/newsletter/unsubscribe?token=edition17-preview-token-fixture-000000000000";
 const REVIEW_WARNING = '<div style="padding:12px;background-color:#ffe7d7;color:#7c2d12;font-family:Arial,Helvetica,sans-serif;font-size:13px;text-align:center;">PREVIEW LOCAL · SELLO PENDIENTE · NO ENVIAR</div>';
 
-type Edition17DraftAssetMode = "review-local";
+type Edition17DraftAssetMode = "review-local" | "public-url";
 
 function html(value: string): string {
   return value
@@ -27,8 +28,8 @@ function html(value: string): string {
 }
 
 function imageBlock(file: string, alt: string, width: number, mode: Edition17DraftAssetMode): string {
-  if (mode !== "review-local") throw new Error("Edition 17 production asset mode unavailable");
-  return `<img src="assets/${html(file)}" width="${width}" alt="${html(alt)}" style="display:block;width:100%;max-width:${width}px;height:auto;border:0;">`;
+  const source = mode === "review-local" ? `assets/${file}` : `${ASSET_ROOT}${file}`;
+  return `<img src="${html(source)}" width="${width}" alt="${html(alt)}" style="display:block;width:100%;max-width:${width}px;height:auto;border:0;">`;
 }
 
 function paragraph(value: string, compact: boolean): string {
@@ -65,6 +66,9 @@ export function renderEdition17Draft(
   if (variant !== "national" && variant !== "madrid") {
     throw new Error("Edition 17 draft: inactive content variant");
   }
+  if (mode !== "review-local" && mode !== "public-url") {
+    throw new Error("Edition 17 draft: inactive asset mode");
+  }
   const [hero, ...cards] = NEWSLETTER_EDITION_17_EVENTS;
   if (!hero) throw new Error("Edition 17 draft: hero missing");
   const regional = territorialEvent(variant);
@@ -94,4 +98,23 @@ ${regionalHtml}
     throw new Error("Edition 17 draft: campaign tracking missing");
   }
   return { html: emailHtml, text: emailText };
+}
+
+// The sendable projection preserves the approved editorial/visual draft. It
+// changes only asset URLs, removes the local warning and injects the recipient's
+// unsubscribe URL; the fixture token must never reach a real subscriber.
+export function renderEdition17Sendable(
+  variant: NewsletterEdition17ContentVariant,
+  unsubscribeUrl: string,
+): { html: string; text: string } {
+  const draft = renderEdition17Draft(variant, "public-url");
+  if (
+    draft.html.split(REVIEW_WARNING).length !== 2 ||
+    draft.html.split(NEWSLETTER_EDITION_17_CANONICAL_UNSUBSCRIBE_URL).length !== 2 ||
+    draft.text.split(NEWSLETTER_EDITION_17_CANONICAL_UNSUBSCRIBE_URL).length !== 2
+  ) throw new Error("Edition 17 sendable projection failed safely");
+  return {
+    html: draft.html.replace(REVIEW_WARNING, "").replace(NEWSLETTER_EDITION_17_CANONICAL_UNSUBSCRIBE_URL, html(unsubscribeUrl)),
+    text: draft.text.replace(NEWSLETTER_EDITION_17_CANONICAL_UNSUBSCRIBE_URL, unsubscribeUrl),
+  };
 }
